@@ -1,0 +1,231 @@
+# Files with 'ours' merge strategy
+README.md merge=ours
+.gitmodules merge=ours
+.gitremotes merge=ours
+#
+# Text files
+*.txt filter=lfs diff=lfs merge=lfs -text
+*.TXT filter=lfs diff=lfs merge=lfs -text
+
+# Portable Document Extensions
+*.pdf filter=lfs diff=lfs merge=lfs -text
+*.PDF filter=lfs diff=lfs merge=lfs -text
+*.eps filter=lfs diff=lfs merge=lfs -text
+*.epsi filter=lfs diff=lfs merge=lfs -text
+*.ps filter=lfs diff=lfs merge=lfs -text
+*.pstex filter=lfs diff=lfs merge=lfs -text
+*.dvi filter=lfs diff=lfs merge=lfs -text
+# Microsoft Office Document Extensions
+*.xlsx filter=lfs diff=lfs merge=lfs -text
+*.xls filter=lfs diff=lfs merge=lfs -text
+*.docx filter=lfs diff=lfs merge=lfs -text
+*.doc filter=lfs diff=lfs merge=lfs -text
+*.pptx filter=lfs diff=lfs merge=lfs -text
+*.ppt filter=lfs diff=lfs merge=lfs -text
+*.vsd filter=lfs diff=lfs merge=lfs -text
+*.vsdx filter=lfs diff=lfs merge=lfs -text
+*.mpp filter=lfs diff=lfs merge=lfs -text
+# LibreOffice Document Extensions
+*.odt filter=lfs diff=lfs merge=lfs -text
+*.ods filter=lfs diff=lfs merge=lfs -text
+*.odp filter=lfs diff=lfs merge=lfs -text
+*.odg filter=lfs diff=lfs merge=lfs -text
+*.sxc filter=lfs diff=lfs merge=lfs -text
+# PTC Creo Extensions
+*.asm filter=lfs diff=lfs merge=lfs -text
+*.prt filter=lfs diff=lfs merge=lfs -text
+*.drw filter=lfs diff=lfs merge=lfs -text
+*.rwd filter=lfs diff=lfs merge=lfs -text
+*.rwt filter=lfs diff=lfs merge=lfs -text
+# Step file extensions
+*.stp filter=lfs diff=lfs merge=lfs -text
+*.STP filter=lfs diff=lfs merge=lfs -text
+*.dwg filter=lfs diff=lfs merge=lfs -text
+# Solidworks Extensions
+*.SLDASM filter=lfs diff=lfs merge=lfs -text
+*.SLDPRT filter=lfs diff=lfs merge=lfs -text
+*.SLDDRW filter=lfs diff=lfs merge=lfs -text
+*.sldasm filter=lfs diff=lfs merge=lfs -text
+*.sldprt filter=lfs diff=lfs merge=lfs -text
+*.slddrw filter=lfs diff=lfs merge=lfs -text
+*.dxf filter=lfs diff=lfs merge=lfs -text
+*.IGS filter=lfs diff=lfs merge=lfs -text
+*.igs filter=lfs diff=lfs merge=lfs -text
+*.emn filter=lfs diff=lfs merge=lfs -text
+# Zemax Extensions
+*.ZMX filter=lfs diff=lfs merge=lfs -text
+*.ZAR filter=lfs diff=lfs merge=lfs -text
+*.SES filter=lfs diff=lfs merge=lfs -text
+*.CFG filter=lfs diff=lfs merge=lfs -text
+*.UDA filter=lfs diff=lfs merge=lfs -text
+*.MF filter=lfs diff=lfs merge=lfs -text
+*.TSC filter=lfs diff=lfs merge=lfs -text
+*.BGF filter=lfs diff=lfs merge=lfs -text
+*.ZMF filter=lfs diff=lfs merge=lfs -text
+*.ZTG filter=lfs diff=lfs merge=lfs -text
+*.ZOF filter=lfs diff=lfs merge=lfs -text
+*.ZRD filter=lfs diff=lfs merge=lfs -text
+*.ZBF filter=lfs diff=lfs merge=lfs -text
+*.ZPL filter=lfs diff=lfs merge=lfs -text
+*.ZDA filter=lfs diff=lfs merge=lfs -text
+*.zmx filter=lfs diff=lfs merge=lfs -text
+*.zar filter=lfs diff=lfs merge=lfs -text
+*.ses filter=lfs diff=lfs merge=lfs -text
+*.cfg filter=lfs diff=lfs merge=lfs -text
+*.uda filter=lfs diff=lfs merge=lfs -text
+*.mf filter=lfs diff=lfs merge=lfs -text
+*.tsc filter=lfs diff=lfs merge=lfs -text
+*.bgf filter=lfs diff=lfs merge=lfs -text
+*.zmf filter=lfs diff=lfs merge=lfs -text
+*.stg filter=lfs diff=lfs merge=lfs -text
+*.zof filter=lfs diff=lfs merge=lfs -text
+*.zrd filter=lfs diff=lfs merge=lfs -text
+*.zbf filter=lfs diff=lfs merge=lfs -text
+*.zpl filter=lfs diff=lfs merge=lfs -text
+*.zda filter=lfs diff=lfs merge=lfs -text
+# SPICE Extensions
+*.cir filter=lfs diff=lfs merge=lfs -text
+*.dsn filter=lfs diff=lfs merge=lfs -text
+*.DBK filter=lfs diff=lfs merge=lfs -text
+*.net filter=lfs diff=lfs merge=lfs -text
+*.out filter=lfs diff=lfs merge=lfs -text
+*.mrk filter=lfs diff=lfs merge=lfs -text
+*.asc filter=lfs diff=lfs merge=lfs -text
+# PADS Extensions
+*.pcb filter=lfs diff=lfs merge=lfs -text
+*.sch filter=lfs diff=lfs merge=lfs -text
+*.ld9 filter=lfs diff=lfs merge=lfs -text
+*.ln9 filter=lfs diff=lfs merge=lfs -text
+*.pd9 filter=lfs diff=lfs merge=lfs -text
+*.pt9 filter=lfs diff=lfs merge=lfs -text
+*.bxl filter=lfs diff=lfs merge=lfs -text
+*.raw filter=lfs diff=lfs merge=lfs -text
+*.pho filter=lfs diff=lfs merge=lfs -text
+*.g2l filter=lfs diff=lfs merge=lfs -text
+*.gbl filter=lfs diff=lfs merge=lfs -text
+*.cam filter=lfs diff=lfs merge=lfs -text
+*.GND filter=lfs diff=lfs merge=lfs -text
+*.gtl filter=lfs diff=lfs merge=lfs -text
+*.SST filter=lfs diff=lfs merge=lfs -text
+*.rep filter=lfs diff=lfs merge=lfs -text
+*.drl filter=lfs diff=lfs merge=lfs -text
+*.lst filter=lfs diff=lfs merge=lfs -text
+*.cce filter=lfs diff=lfs merge=lfs -text
+*.ipl filter=lfs diff=lfs merge=lfs -text
+*.CONTENTS filter=lfs diff=lfs merge=lfs -text
+*.ini filter=lfs diff=lfs merge=lfs -text
+*.eco filter=lfs diff=lfs merge=lfs -text
+*.fdc filter=lfs diff=lfs merge=lfs -text
+*.ndc filter=lfs diff=lfs merge=lfs -text
+*.p filter=lfs diff=lfs merge=lfs -text
+*.qcv filter=lfs diff=lfs merge=lfs -text
+*.idx filter=lfs diff=lfs merge=lfs -text
+*.oat filter=lfs diff=lfs merge=lfs -text
+# Bitmap Image Extensions
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.JPG filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.jp2 filter=lfs diff=lfs merge=lfs -text
+*.jpx filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+*.gif filter=lfs diff=lfs merge=lfs -text
+*.bmp filter=lfs diff=lfs merge=lfs -text
+# Vector Image Extensions
+*.svg filter=lfs diff=lfs merge=lfs -text
+# Video Extensions
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.mpeg filter=lfs diff=lfs merge=lfs -text
+*.mpg filter=lfs diff=lfs merge=lfs -text
+*.avi filter=lfs diff=lfs merge=lfs -text
+*.mov filter=lfs diff=lfs merge=lfs -text
+*.wmv filter=lfs diff=lfs merge=lfs -text
+*.VOB filter=lfs diff=lfs merge=lfs -text
+# Data Extensions
+*.fits filter=lfs diff=lfs merge=lfs -text
+*.roe filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.dat filter=lfs diff=lfs merge=lfs -text
+*.DAT filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.mat filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text
+*.log filter=lfs diff=lfs merge=lfs -text
+*.db filter=lfs diff=lfs merge=lfs -text
+# Compressed File Extension
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.tar.gz filter=lfs diff=lfs merge=lfs -text
+*.tar.bz2 filter=lfs diff=lfs merge=lfs -text
+# Executable File Extensions
+*.exe
+# IDL data files
+*.sav filter=lfs diff=lfs merge=lfs -text
+# Virtex ISE extensions
+*.mcs filter=lfs diff=lfs merge=lfs -text
+*.bit filter=lfs diff=lfs merge=lfs -text
+*.ncd filter=lfs diff=lfs merge=lfs -text
+*.ngc filter=lfs diff=lfs merge=lfs -text
+*.ngd filter=lfs diff=lfs merge=lfs -text
+*.ngr filter=lfs diff=lfs merge=lfs -text
+*.pad filter=lfs diff=lfs merge=lfs -text
+*.pcf filter=lfs diff=lfs merge=lfs -text
+*.ptwx filter=lfs diff=lfs merge=lfs -text
+*.syr filter=lfs diff=lfs merge=lfs -text
+*.twx filter=lfs diff=lfs merge=lfs -text
+*.ipf filter=lfs diff=lfs merge=lfs -text
+*.map filter=lfs diff=lfs merge=lfs -text
+*.mrp filter=lfs diff=lfs merge=lfs -text
+*.ngm filter=lfs diff=lfs merge=lfs -text
+*.xrpt filter=lfs diff=lfs merge=lfs -text
+*.prj filter=lfs diff=lfs merge=lfs -text
+*.cpj filter=lfs diff=lfs merge=lfs -text
+*.debug filter=lfs diff=lfs merge=lfs -text
+*.ucf filter=lfs diff=lfs merge=lfs -text
+*.xaw filter=lfs diff=lfs merge=lfs -text
+*.xco filter=lfs diff=lfs merge=lfs -text
+*.gise filter=lfs diff=lfs merge=lfs -text
+*.xise filter=lfs diff=lfs merge=lfs -text
+*.sym filter=lfs diff=lfs merge=lfs -text
+*.asy filter=lfs diff=lfs merge=lfs -text
+*.tcl filter=lfs diff=lfs merge=lfs -text
+*.cdc filter=lfs diff=lfs merge=lfs -text
+*.cgp filter=lfs diff=lfs merge=lfs -text
+*.bat filter=lfs diff=lfs merge=lfs -text
+*.arg filter=lfs diff=lfs merge=lfs -text
+*.edn filter=lfs diff=lfs merge=lfs -text
+*.psm filter=lfs diff=lfs merge=lfs -text
+*.ref filter=lfs diff=lfs merge=lfs -text
+*.vho filter=lfs diff=lfs merge=lfs -text
+*.xmsgs filter=lfs diff=lfs merge=lfs -text
+*.xreport filter=lfs diff=lfs merge=lfs -text
+*.xdc filter=lfs diff=lfs merge=lfs -text
+*.ngo filter=lfs diff=lfs merge=lfs -text
+*.twr filter=lfs diff=lfs merge=lfs -text
+*.xbcd filter=lfs diff=lfs merge=lfs -text
+*.cgc filter=lfs diff=lfs merge=lfs -text
+*.bld filter=lfs diff=lfs merge=lfs -text
+*.do filter=lfs diff=lfs merge=lfs -text
+# Lab-view filename extensions
+*.vi filter=lfs diff=lfs merge=lfs -text
+*.lvlps filter=lfs diff=lfs merge=lfs -text
+*.lvproj filter=lfs diff=lfs merge=lfs -text
+# Dia filename extensions
+*.dia filter=lfs diff=lfs merge=lfs -text
+# Set Chart WFE LFS exceptions
+*Bss_*.txt filter=lfs diff=lfs merge=lfs -text
+*DATA.txt filter=lfs diff=lfs merge=lfs -text
+*wfe*.txt filter=lfs diff=lfs merge=lfs -text
+*BsStDiv.txt filter=lfs diff=lfs merge=lfs -text
+*DSC_*.txt filter=lfs diff=lfs merge=lfs -text
+*Pdata_*.txt filter=lfs diff=lfs merge=lfs -text
+*data_Pyz_*.txt filter=lfs diff=lfs merge=lfs -text
+# Email file extension
+*.eml filter=lfs diff=lfs merge=lfs -text
+# NSROC Data files
+*.CH10 filter=lfs diff=lfs merge=lfs -text
+# C/C++ libraries
+*.so filter=lfs diff=lfs merge=lfs -text
+*.a filter=lfs diff=lfs merge=lfs -text
+# Mathematica Notebooks
+*.nb filter=lfs diff=lfs merge=lfs -text
