@@ -2,7 +2,7 @@ import numpy
 import matplotlib.pyplot as plt
 
 
-class ImageSlicer(object):
+class CubeSlicer(object):
     def __init__(self, X):
         fig, ax = plt.subplots(1, 1)
         self.fig = fig
@@ -31,11 +31,13 @@ class ImageSlicer(object):
         self.ax.set_ylabel('slice %s' % self.ind)
         self.im.axes.figure.canvas.draw()
 
-def test_ImageSlicer():
+def test_CubeSlicer():
 
     X = numpy.random.rand(20, 20, 40)
-    img = ImageSlicer(X)
+    Y = numpy.random.rand(20, 20, 40)
+    img = CubeSlicer(X)
+    img2 = CubeSlicer(Y)
     plt.show()
 
 if __name__ == '__main__':
-    test_ImageSlicer()
+    test_CubeSlicer()
