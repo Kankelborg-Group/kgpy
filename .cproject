@@ -1,53 +1,59 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
-		<cconfiguration id="cdt.managedbuild.config.gnu.so.debug.1153176747">
-			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.so.debug.1153176747" moduleId="org.eclipse.cdt.core.settings" name="Debug">
+		<cconfiguration id="com.pgroup.project.linux.sharedlib.release.97425177">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.pgroup.project.linux.sharedlib.release.97425177" moduleId="org.eclipse.cdt.core.settings" name="Release">
 				<externalSettings>
 					<externalSetting>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/kgpy"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/kgpy/Debug"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/kgpy/The Portland Group Linux Shared Library Project (release)"/>
 						<entry flags="RESOLVED" kind="libraryFile" name="kgpy" srcPrefixMapping="" srcRootPath=""/>
 					</externalSetting>
 				</externalSettings>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.GNU_ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.ptp.cdt.compilers.core.PGIErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.MakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.autotools.core.ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.ptp.cdt.compilers.core.Open64ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.VCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.ptp.cdt.compilers.core.CrayErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.pgroup.toolchain.errorparser.parser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.so.debug.1153176747" name="Debug" parent="cdt.managedbuild.config.gnu.so.debug">
-					<folderInfo id="cdt.managedbuild.config.gnu.so.debug.1153176747." name="/" resourcePath="">
-						<toolChain id="cdt.managedbuild.toolchain.gnu.so.debug.323451262" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.so.debug">
-							<targetPlatform id="cdt.managedbuild.target.gnu.platform.so.debug.832261589" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.so.debug"/>
-							<builder buildPath="${workspace_loc:/kgpy}/Debug" id="cdt.managedbuild.target.gnu.builder.so.debug.988901669" managedBuildOn="true" name="Gnu Make Builder.Debug" superClass="cdt.managedbuild.target.gnu.builder.so.debug"/>
-							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1418977558" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.so.debug.1236048629" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.so.debug">
-								<option id="gnu.cpp.compiler.so.debug.option.optimization.level.1358045821" superClass="gnu.cpp.compiler.so.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.so.debug.option.debugging.level.1294525943" superClass="gnu.cpp.compiler.so.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1392082541" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.so.debug.1514105867" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.so.debug">
-								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.so.debug.option.optimization.level.271151859" superClass="gnu.c.compiler.so.debug.option.optimization.level" valueType="enumerated"/>
-								<option id="gnu.c.compiler.so.debug.option.debugging.level.2113324021" superClass="gnu.c.compiler.so.debug.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1027277166" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.linker.so.debug.1998348671" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.so.debug">
-								<option defaultValue="true" id="gnu.c.link.so.debug.option.shared.1089576419" superClass="gnu.c.link.so.debug.option.shared" valueType="boolean"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.so.debug.1063976976" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.so.debug">
-								<option defaultValue="true" id="gnu.cpp.link.so.debug.option.shared.46401067" superClass="gnu.cpp.link.so.debug.option.shared" valueType="boolean"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1912448639" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" description="" id="com.pgroup.project.linux.sharedlib.release.97425177" name="Release" parent="com.pgroup.project.linux.sharedlib.release" postbuildStep="mv a.out lib${ProjName}.so">
+					<folderInfo id="com.pgroup.project.linux.sharedlib.release.97425177." name="/" resourcePath="">
+						<toolChain id="com.pgroup.project.linux.toolchain.sharedlib.release.2133914606" name="The Portland Group C/C++ Toolchain" superClass="com.pgroup.project.linux.toolchain.sharedlib.release">
+							<targetPlatform id="com.pgroup.project.linux.target.sharedlib.release.1335844702" isAbstract="false" name="The Portland Group Linux Toolchain Target Platform" superClass="com.pgroup.project.linux.target.sharedlib.release"/>
+							<builder buildPath="${workspace_loc:/kgpy}/The Portland Group Linux Shared Library Project (release)" id="com.pgroup.project.linux.builder.sharedlib.release.655548942" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="The Portland Group Builder (Linux)" superClass="com.pgroup.project.linux.builder.sharedlib.release"/>
+							<tool id="com.pgroup.project.linux.gnu.archiver.sharedlib.release.388009759" name="GNU Archiver (Linux)" superClass="com.pgroup.project.linux.gnu.archiver.sharedlib.release"/>
+							<tool id="com.pgroup.project.linux.c.compiler.sharedlib.release.635283358" name="The Portland Group C Compiler (Linux)" superClass="com.pgroup.project.linux.c.compiler.sharedlib.release"/>
+							<tool id="com.pgroup.project.linux.cpp.compiler.sharedlib.release.1479952382" name="The Portland Group C++ Compiler (Linux)" superClass="com.pgroup.project.linux.cpp.compiler.sharedlib.release">
+								<option id="com.pgroup.toolchain.linux.cpp.compiler.optioncat.general.additionalincludedirectories.1238087782" name="Additional Include Directories" superClass="com.pgroup.toolchain.linux.cpp.compiler.optioncat.general.additionalincludedirectories" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="/usr/include/python3.5m"/>
+								</option>
+								<option id="com.pgroup.toolchain.linux.cpp.compiler.optioncat.additionaloptions.additionaloptions.555616799" name="Additional Options" superClass="com.pgroup.toolchain.linux.cpp.compiler.optioncat.additionaloptions.additionaloptions" useByScannerDiscovery="false" value="-fPIC" valueType="string"/>
+								<inputType id="com.pgroup.cpp.abstractcompiler.input.1985359390" name="The Portland Group C++ Compiler Input (abstract)" superClass="com.pgroup.cpp.abstractcompiler.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
 								</inputType>
+								<inputType id="com.pgroup.toolchain.linux.cpp.compiler.input.433759156" superClass="com.pgroup.toolchain.linux.cpp.compiler.input"/>
 							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.so.debug.1070753888" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.so.debug">
-								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.980962508" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							<tool id="com.pgroup.project.linux.c.linker.sharedlib.release.13949179" name="The Portland Group C Linker (Linux)" superClass="com.pgroup.project.linux.c.linker.sharedlib.release"/>
+							<tool id="com.pgroup.project.linux.cpp.linker.sharedlib.release.229325333" name="The Portland Group C++ Linker (Linux)" superClass="com.pgroup.project.linux.cpp.linker.sharedlib.release">
+								<option id="com.pgroup.toolchain.linux.cpp.linker.optioncat.input.additionaldependencies.273586412" name="Additional Dependencies" superClass="com.pgroup.toolchain.linux.cpp.linker.optioncat.input.additionaldependencies" useByScannerDiscovery="false" valueType="stringList"/>
+								<option id="com.pgroup.toolchain.linux.cpp.linker.optioncat.additionaloptions.additionaloptions.698473034" name="Additional Options" superClass="com.pgroup.toolchain.linux.cpp.linker.optioncat.additionaloptions.additionaloptions" useByScannerDiscovery="false" value="-shared -lboost_python-py35 -lboost_numpy3" valueType="string"/>
+								<inputType id="com.pgroup.cpp.abstractlinker.input.456882934" name="The Portland Group C++ Linker Input (abstract)" superClass="com.pgroup.cpp.abstractlinker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+								<outputType id="com.pgroup.cpp.abstractlinker.output.exe.645654323" name="The Portland Group C++ Linker Output (abstract)" outputPrefix="lib" superClass="com.pgroup.cpp.abstractlinker.output.exe"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
@@ -55,89 +61,67 @@
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
-		<cconfiguration id="cdt.managedbuild.config.gnu.so.release.1171427605">
-			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.so.release.1171427605" moduleId="org.eclipse.cdt.core.settings" name="Release">
+		<cconfiguration id="com.pgroup.project.linux.sharedlib.debug.1679505032">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.pgroup.project.linux.sharedlib.debug.1679505032" moduleId="org.eclipse.cdt.core.settings" name="Debug">
 				<externalSettings>
 					<externalSetting>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/kgpy"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/kgpy/Release"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/kgpy/The Portland Group Linux Shared Library Project (debug)"/>
 						<entry flags="RESOLVED" kind="libraryFile" name="kgpy" srcPrefixMapping="" srcRootPath=""/>
 					</externalSetting>
 				</externalSettings>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.GNU_ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.ptp.cdt.compilers.core.PGIErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.MakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.autotools.core.ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.ptp.cdt.compilers.core.Open64ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.VCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.ptp.cdt.compilers.core.CrayErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.pgroup.toolchain.errorparser.parser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.so.release.1171427605" name="Release" parent="cdt.managedbuild.config.gnu.so.release">
-					<folderInfo id="cdt.managedbuild.config.gnu.so.release.1171427605." name="/" resourcePath="">
-						<toolChain id="cdt.managedbuild.toolchain.gnu.so.release.2000828151" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.so.release">
-							<targetPlatform id="cdt.managedbuild.target.gnu.platform.so.release.502698790" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.so.release"/>
-							<builder buildPath="${workspace_loc:/kgpy}/Release" id="cdt.managedbuild.target.gnu.builder.so.release.1686728168" managedBuildOn="true" name="Gnu Make Builder.Release" superClass="cdt.managedbuild.target.gnu.builder.so.release"/>
-							<tool id="cdt.managedbuild.tool.gnu.archiver.base.956031239" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.so.release.621512514" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.so.release">
-								<option id="gnu.cpp.compiler.so.release.option.optimization.level.2129309002" superClass="gnu.cpp.compiler.so.release.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.so.release.option.debugging.level.233545337" superClass="gnu.cpp.compiler.so.release.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1884427014" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.so.release.535287077" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.so.release">
-								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.so.release.option.optimization.level.2075504713" superClass="gnu.c.compiler.so.release.option.optimization.level" valueType="enumerated"/>
-								<option id="gnu.c.compiler.so.release.option.debugging.level.105901806" superClass="gnu.c.compiler.so.release.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.419181915" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.linker.so.release.1150123632" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.so.release">
-								<option defaultValue="true" id="gnu.c.link.so.release.option.shared.2029007846" superClass="gnu.c.link.so.release.option.shared" valueType="boolean"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.so.release.780982017" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.so.release">
-								<option defaultValue="true" id="gnu.cpp.link.so.release.option.shared.2102914515" superClass="gnu.cpp.link.so.release.option.shared" valueType="boolean"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.297458369" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" description="" id="com.pgroup.project.linux.sharedlib.debug.1679505032" name="Debug" parent="com.pgroup.project.linux.sharedlib.debug">
+					<folderInfo id="com.pgroup.project.linux.sharedlib.debug.1679505032." name="/" resourcePath="">
+						<toolChain id="com.pgroup.project.linux.toolchain.sharedlib.debug.1949056897" name="The Portland Group C/C++ Toolchain" superClass="com.pgroup.project.linux.toolchain.sharedlib.debug">
+							<targetPlatform id="com.pgroup.project.linux.target.sharedlib.debug.269790828" isAbstract="false" name="The Portland Group Linux Toolchain Target Platform" superClass="com.pgroup.project.linux.target.sharedlib.debug"/>
+							<builder buildPath="${workspace_loc:/kgpy}/The Portland Group Linux Shared Library Project (debug)" id="com.pgroup.project.linux.builder.sharedlib.debug.527308860" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="The Portland Group Builder (Linux)" superClass="com.pgroup.project.linux.builder.sharedlib.debug"/>
+							<tool id="com.pgroup.project.linux.gnu.archiver.sharedlib.debug.1408445777" name="GNU Archiver (Linux)" superClass="com.pgroup.project.linux.gnu.archiver.sharedlib.debug"/>
+							<tool id="com.pgroup.project.linux.c.compiler.sharedlib.debug.1190657866" name="The Portland Group C Compiler (Linux)" superClass="com.pgroup.project.linux.c.compiler.sharedlib.debug"/>
+							<tool id="com.pgroup.project.linux.cpp.compiler.sharedlib.debug.540391962" name="The Portland Group C++ Compiler (Linux)" superClass="com.pgroup.project.linux.cpp.compiler.sharedlib.debug">
+								<inputType id="com.pgroup.cpp.abstractcompiler.input.48069772" name="The Portland Group C++ Compiler Input (abstract)" superClass="com.pgroup.cpp.abstractcompiler.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
 								</inputType>
+								<inputType id="com.pgroup.toolchain.linux.cpp.compiler.input.1725127441" superClass="com.pgroup.toolchain.linux.cpp.compiler.input"/>
 							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.so.release.241713936" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.so.release">
-								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1704979549" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							<tool id="com.pgroup.project.linux.c.linker.sharedlib.debug.862464677" name="The Portland Group C Linker (Linux)" superClass="com.pgroup.project.linux.c.linker.sharedlib.debug"/>
+							<tool id="com.pgroup.project.linux.cpp.linker.sharedlib.debug.183128155" name="The Portland Group C++ Linker (Linux)" superClass="com.pgroup.project.linux.cpp.linker.sharedlib.debug">
+								<inputType id="com.pgroup.cpp.abstractlinker.input.118378704" name="The Portland Group C++ Linker Input (abstract)" superClass="com.pgroup.cpp.abstractlinker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
 							</tool>
 						</toolChain>
 					</folderInfo>
 				</configuration>
 			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-		<project id="kgpy.cdt.managedbuild.target.gnu.so.804353429" name="Shared Library" projectType="cdt.managedbuild.target.gnu.so"/>
+		<project id="kgpy.com.pgroup.project.linux.sharedlib.563048963" name="Shared Library" projectType="com.pgroup.project.linux.sharedlib"/>
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.so.release.1407258264;cdt.managedbuild.config.gnu.so.release.1407258264.;cdt.managedbuild.tool.gnu.c.compiler.so.release.2078762624;cdt.managedbuild.tool.gnu.c.compiler.input.928883549">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.so.debug.63473978;cdt.managedbuild.config.gnu.so.debug.63473978.;cdt.managedbuild.tool.gnu.cpp.compiler.so.debug.644911703;cdt.managedbuild.tool.gnu.cpp.compiler.input.1973371213">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.so.debug.1153176747;cdt.managedbuild.config.gnu.so.debug.1153176747.;cdt.managedbuild.tool.gnu.cpp.compiler.so.debug.1236048629;cdt.managedbuild.tool.gnu.cpp.compiler.input.1392082541">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.so.release.1171427605;cdt.managedbuild.config.gnu.so.release.1171427605.;cdt.managedbuild.tool.gnu.cpp.compiler.so.release.621512514;cdt.managedbuild.tool.gnu.cpp.compiler.input.1884427014">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.so.release.1407258264;cdt.managedbuild.config.gnu.so.release.1407258264.;cdt.managedbuild.tool.gnu.cpp.compiler.so.release.2030935609;cdt.managedbuild.tool.gnu.cpp.compiler.input.488441417">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.so.debug.1153176747;cdt.managedbuild.config.gnu.so.debug.1153176747.;cdt.managedbuild.tool.gnu.c.compiler.so.debug.1514105867;cdt.managedbuild.tool.gnu.c.compiler.input.1027277166">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.so.release.1171427605;cdt.managedbuild.config.gnu.so.release.1171427605.;cdt.managedbuild.tool.gnu.c.compiler.so.release.535287077;cdt.managedbuild.tool.gnu.c.compiler.input.419181915">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.so.debug.63473978;cdt.managedbuild.config.gnu.so.debug.63473978.;cdt.managedbuild.tool.gnu.c.compiler.so.debug.780638024;cdt.managedbuild.tool.gnu.c.compiler.input.416532326">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope"/>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

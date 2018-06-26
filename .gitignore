@@ -36,3 +36,5 @@
 
 # Pycharm files
 workspace.xml
+/Debug/
+/Release/
