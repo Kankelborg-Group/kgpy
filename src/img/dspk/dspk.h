@@ -15,7 +15,7 @@
 #include <string>
 
 #include "util.h"
-#include "median.h"
+#include "goodmap.h"
 #include "src/pyboost/pyboost.h"
 
 namespace kgpy {
@@ -24,12 +24,8 @@ namespace img {
 
 namespace dspk {
 
-const dim3 xhat(1, 0, 0);
-const dim3 yhat(0, 1, 0);
-const dim3 zhat(0, 0, 1);
-
-void dspk(DB * db, float tmin, float tmax);
-np::ndarray dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int kz, int ky, int kx);
+void dspk(DB * db, float tmin, float tmax, float bad_pix_val);
+np::ndarray dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int kz, int ky, int kx, float bad_pix_val);
 
 
 

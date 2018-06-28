@@ -13,6 +13,10 @@ namespace img {
 
 namespace dspk {
 
+dim3::dim3() : x(0), y(0), z(0) {
+	xyz = 1;
+}
+
 dim3::dim3(int x, int y, int z) : x(x), y(y), z(z) {
 
 	xyz = x * y * z;
@@ -51,10 +55,110 @@ dim3 dim3::operator/(int right){
 
 }
 
+vec3::vec3() : x(0.0f), y(0.0f), z(0.0f){
+
+}
+
+vec3::vec3(float x, float y, float z) : x(x), y(y), z(z) {
+
+}
+
 DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz) {
 
-	lmed = new float[dsz.xyz];	// allocate local median array
+
+	int hx = 1024;
+	int hy = 1024;
+	int hz = 3;
+	hsz = dim3(hx, hy, hz);
+	tsz = dim3(hx, 1, hz);
+
+//	lmed = new float[dsz.xyz];	// allocate local median array
 	gmap = new float[dsz.xyz];	// allocate good pixel map array
+	hist = new float[hsz.xyz];
+	cumd = new float[hsz.xyz];
+	t1 = new float[hsz.x * hsz.z];
+	t9 = new float[hsz.x * hsz.z];
+
+#pragma acc enter data copyin(data[0:dsz.xyz])
+//#pragma acc enter data create(lmed[0:dsz.xyz])
+#pragma acc enter data create(gmap[0:dsz.xyz])
+#pragma acc enter data create(hist[0:hsz.xyz])
+#pragma acc enter data create(cumd[0:hsz.xyz])
+#pragma acc enter data create(t1[0:tsz.xyz])
+#pragma acc enter data create(t9[0:tsz.xyz])
+
+	dmax = find_max(data, dsz);
+	dmin = find_min(data, dsz);
+
+}
+
+float find_max(float * data, dim3 dsz){
+
+	// split data size into single variables
+	int dx = dsz.x;
+	int dy = dsz.y;
+	int dz = dsz.z;
+
+	// compute array strides in each dimension
+	int sx = 1;
+	int sy = sx * dx;
+	int sz = sy * dy;
+
+	float maxfield = -FLT_MAX;
+
+#pragma acc parallel loop collapse(3) reduction(max:maxfield) present(data)
+	for(int z = 0; z < dz; z++){	// loop along z axis of data array
+		for(int y = 0; y < dy; y++){	// loop along y axis of of data array
+			for(int x = 0; x < dx; x++){	// loop along x axis of of data array
+
+				// overall linear index of data array
+				int L =  (sz * z) + (sy * y) + (sx * x);
+
+				float p = data[L];	// data value at this coordinate
+				if(p > maxfield){
+					maxfield = p;
+				}
+
+			}
+		}
+	}
+
+	return maxfield;
+
+}
+
+float find_min(float * data, dim3 dsz){
+
+	// split data size into single variables
+	int dx = dsz.x;
+	int dy = dsz.y;
+	int dz = dsz.z;
+
+	// compute array strides in each dimension
+	int sx = 1;
+	int sy = sx * dx;
+	int sz = sy * dy;
+
+	float minfield = FLT_MAX;
+
+	#pragma acc parallel loop collapse(3) reduction(min:minfield) present(data)
+	for(int z = 0; z < dz; z++){	// loop along z axis of data array
+		for(int y = 0; y < dy; y++){	// loop along y axis of of data array
+			for(int x = 0; x < dx; x++){	// loop along x axis of of data array
+
+				// overall linear index of data array
+				int L =  (sz * z) + (sy * y) + (sx * x);
+
+				float p = data[L];	// data value at this coordinate
+				if(p < minfield){
+					minfield = p;
+				}
+
+			}
+		}
+	}
+
+	return minfield;
 
 }
 

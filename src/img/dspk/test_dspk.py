@@ -1,6 +1,7 @@
 
 import os
 import time
+import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
@@ -30,6 +31,8 @@ start = time.time()
 lmed = dspk_3D(data)
 end = time.time()
 print('time elapsed', end-start)
+
+print(np.min(data))
 
 dplt = CubeSlicer(data)
 mplt = CubeSlicer(lmed)

@@ -13,7 +13,7 @@ namespace img {
 
 namespace dspk {
 
-void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 ksz, dim3 axis){
+void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 ksz, int axis){
 
 	// split data size into single variables
 	int dx = dsz.x;
@@ -21,9 +21,10 @@ void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 
 	int dz = dsz.z;
 
 	// split axis into single variables
-	int ax = axis.x;
-	int ay = axis.y;
-	int az = axis.z;
+	dim3 uvec = axes[axis];
+	int ax = uvec.x;
+	int ay = uvec.y;
+	int az = uvec.z;
 
 	// split kernel into single variables
 	int kx = ksz.x;
@@ -50,13 +51,9 @@ void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 
 	// halo size along current axis
 	int hX = (hx * ax) + (hy * ay) + (hz * az);
 
-#pragma acc data copyin(data[0:dsz.xyz]), copyout(lmed[0:dsz.xyz])
-#pragma acc kernels
-#pragma acc loop independent gang(dz)
-	for(int z = 0; z < dz; z++){	// loop along z axis of data/median array
-#pragma acc loop independent gang(dy)
+#pragma acc parallel loop collapse(3) present(data), present(lmed)
+	for(int z = 0; z < dz; z++){	// loop along z axis of data/median array)
 		for(int y = 0; y < dy; y++){	// loop along y axis of of data/median array
-#pragma acc loop independent gang(dx/32 + 1), vector(32)
 			for(int x = 0; x < dx; x++){	// loop along x axis of of data/median array
 
 				// variable to store if median was located
@@ -65,13 +62,11 @@ void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 
 				// overall linear index of data/median array
 				int L =  (sz * z) + (sy * y) + (sx * x);
 
-//				printf("%d\n", L);
-
 				// 3D index of data/median array along current axis
 				int X = (x * ax) + (y * ay) + (z * az);
 
-				// loop along current axis to select a trial median value
-				for(int i = -hX; i <= hX; i++){
+#pragma acc loop seq
+				for(int i = -hX; i <= hX; i++){ // loop along current axis to select a trial median value
 
 					// check if we're inside bounds of the data/median array
 					if ((X + i) > (dX - 1) or (X + i) < 0) continue;
@@ -87,8 +82,9 @@ void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 
 					int eq = 0;
 					int lg = 0;
 
-					// loop along current axis to compare trial value to all other values within kernel
-					for (int j = -hX; j <= hX; j++){
+
+#pragma acc loop seq
+					for (int j = -hX; j <= hX; j++){	// loop along current axis to compare trial value to all other values within kernel
 
 						// check if we're inside bounds of the data/median array
 						if ((X + j) > (dX - 1) or (X + j) < 0) continue;
