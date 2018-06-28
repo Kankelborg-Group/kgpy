@@ -8,6 +8,13 @@
 #ifndef SRC_IMG_DSPK_MEDIAN_H_
 #define SRC_IMG_DSPK_MEDIAN_H_
 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <cstdlib>
+#include <string>
+
 #include "util.h"
 
 namespace kgpy {

@@ -22,7 +22,9 @@ public:
 	int xyz;
 
 	dim3(int x, int y, int z);
-	operator+(const dim3 left, int num);
+	dim3 operator+(dim3 right);
+	dim3 operator*(dim3 right);
+	dim3 operator/(int right);
 };
 
 class DB {

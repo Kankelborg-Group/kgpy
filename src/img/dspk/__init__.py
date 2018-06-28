@@ -1,3 +1,1 @@
-import subprocess
-
-subprocess.run()
+from Release.libkgpy import dspk_ndarr
