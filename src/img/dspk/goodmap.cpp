@@ -19,7 +19,12 @@ void calc_gmap(DB * db, float tmin, float tmax, float bad_pix_val){
 	float * gmap = db->gmap;
 	dim3 dsz = db->dsz;
 
+	// initialize the goodmap
 	init_gmap(gmap, data, dsz, bad_pix_val);
+
+	// find the extreme values of the data array not masked by the goodmap
+	db->dmax = find_max(data, gmap, dsz);
+	db->dmin = find_min(data, gmap, dsz);
 
 	int naxis = 3;
 	for(int axis = 0; axis < naxis; axis++){

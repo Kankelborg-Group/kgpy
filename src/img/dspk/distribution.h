@@ -8,6 +8,8 @@
 #ifndef SRC_IMG_DSPK_DISTRIBUTION_H_
 #define SRC_IMG_DSPK_DISTRIBUTION_H_
 
+#include <math.h>
+
 #include "util.h"
 
 namespace kgpy {
@@ -18,6 +20,9 @@ namespace dspk {
 
 void calc_histogram(DB * db, float * lmed, int axis);
 void calc_cumulative_distribution(DB * db, int axis);
+
+int hist2data(float m_min, float m_max, int nbins);
+int data2hist(float m_min, float m_max, int nbins);
 
 }
 

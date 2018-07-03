@@ -16,6 +16,12 @@ namespace img {
 
 namespace dspk {
 
+const float good_pix = 1.0f;
+const float bad_pix = 0.0f;
+
+class dim3;
+class vec3;
+
 class dim3 {
 public:
 	int x;		// fastest-changing dimension
@@ -26,7 +32,7 @@ public:
 	dim3();
 	dim3(int x, int y, int z);
 	dim3 operator+(dim3 right);
-	dim3 operator*(dim3 right);
+	int operator*(dim3 right);
 	dim3 operator/(int right);
 };
 
@@ -44,6 +50,8 @@ public:
 
 	vec3();
 	vec3(float x, float y, float z);
+	vec3(dim3 X);
+	vec3 operator*(float right);
 };
 
 class DB {
@@ -63,14 +71,14 @@ public:
 
 	float dmax;		// maximum value of the data array
 	float dmin;		// minimum value of the data array
-	dim3 mmax;		// maximum median value along each axis
-	dim3 mmin;		// minimum median value along each axis
+	vec3 mmax;		// maximum median value along each axis
+	vec3 mmin;		// minimum median value along each axis
 
 	DB(float * data, dim3 dsz, dim3 ksz);
 };
 
-float find_max(float * data, dim3 dsz);
-float find_min(float * data, dim3 dsz);
+float find_max(float * data, float * gmap, dim3 dsz);
+float find_min(float * data, float * gmap, dim3 dsz);
 
 }
 

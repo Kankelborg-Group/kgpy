@@ -36,13 +36,13 @@ dim3 dim3::operator+(dim3 right){
 /**
  * Dot product
  */
-dim3 dim3::operator*(dim3 right){
+int dim3::operator*(dim3 right){
 
 	int X = x * right.x;
 	int Y = y * right.y;
 	int Z = z * right.z;
 
-	return dim3(X, Y, Z);
+	return X + Y + Z;
 }
 
 dim3 dim3::operator/(int right){
@@ -63,7 +63,23 @@ vec3::vec3(float x, float y, float z) : x(x), y(y), z(z) {
 
 }
 
-DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz) {
+vec3::vec3(dim3 X){
+	x = X.x;
+	y = X.y;
+	z = X.z;
+}
+
+vec3 vec3::operator*(float right){
+
+	float X = right * x;
+	float Y = right * y;
+	float Z = right * z;
+
+	return vec3(X, Y, Z);
+
+}
+
+DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
 
 
 	int hx = 1024;
@@ -87,12 +103,12 @@ DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz) {
 #pragma acc enter data create(t1[0:tsz.xyz])
 #pragma acc enter data create(t9[0:tsz.xyz])
 
-	dmax = find_max(data, dsz);
-	dmin = find_min(data, dsz);
+	dmax = 0.0f;
+	dmin = 0.0f;
 
 }
 
-float find_max(float * data, dim3 dsz){
+float find_max(float * data, float * gmap, dim3 dsz){
 
 	// split data size into single variables
 	int dx = dsz.x;
@@ -114,9 +130,11 @@ float find_max(float * data, dim3 dsz){
 				// overall linear index of data array
 				int L =  (sz * z) + (sy * y) + (sx * x);
 
-				float p = data[L];	// data value at this coordinate
-				if(p > maxfield){
-					maxfield = p;
+				if (gmap[L] == good_pix) {
+					float p = data[L];	// data value at this coordinate
+					if(p > maxfield){
+						maxfield = p;
+					}
 				}
 
 			}
@@ -127,7 +145,7 @@ float find_max(float * data, dim3 dsz){
 
 }
 
-float find_min(float * data, dim3 dsz){
+float find_min(float * data, float * gmap, dim3 dsz){
 
 	// split data size into single variables
 	int dx = dsz.x;
@@ -148,10 +166,11 @@ float find_min(float * data, dim3 dsz){
 
 				// overall linear index of data array
 				int L =  (sz * z) + (sy * y) + (sx * x);
-
-				float p = data[L];	// data value at this coordinate
-				if(p < minfield){
-					minfield = p;
+				if (gmap[L] == good_pix) {
+					float p = data[L];	// data value at this coordinate
+					if(p < minfield){
+						minfield = p;
+					}
 				}
 
 			}
