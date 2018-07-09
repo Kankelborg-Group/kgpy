@@ -26,6 +26,16 @@ void calc_histogram(DB * db, float * lmed, int axis){
 	vec3 mmax = db->mmax;
 	vec3 mmin = db->mmin;
 
+	// split data size into single variables
+	int dx = dsz.x;
+	int dy = dsz.y;
+	int dz = dsz.z;
+
+	// compute array strides in each dimension
+	int sx = 1;
+	int sy = sx * dx;
+	int sz = sy * dy;
+
 	vec3 ax = vec3(axes[axis]);
 
 	// calculate the extreme median values
@@ -33,14 +43,19 @@ void calc_histogram(DB * db, float * lmed, int axis){
 	float med_min = find_min(lmed, gmap, dsz);
 	vec3 this_mmax = ax * med_max;
 
-//#pragma acc parallel loop collapse(3) present(data), present(gmap)
-//	for(int z = 0; z < dsz.z; z++){	// loop along z axis of data array
-//		for(int y = 0; y < dsz.y; y++){	// loop along y axis of of data array
-//			for(int x = 0; x < dsz.x; x++){	// loop along x axis of of data array
-//
-//			}
-//		}
-//	}
+#pragma acc parallel loop collapse(3) present(data), present(gmap)
+	for(int z = 0; z < dz; z++){	// loop along z axis of data array
+		for(int y = 0; y < dy; y++){	// loop along y axis of of data array
+			for(int x = 0; x < dx; x++){	// loop along x axis of of data array
+
+				// overall linear index of data array
+				int L =  (sz * z) + (sy * y) + (sx * x);
+
+
+
+			}
+		}
+	}
 
 }
 void calc_cumulative_distribution(DB * db, int axis);
