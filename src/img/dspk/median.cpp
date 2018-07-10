@@ -41,13 +41,8 @@ void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 
 	int sy = sx * dx;
 	int sz = sy * dy;
 
-	printf("%d %d %d\n", sx, sy, sz);
-
 	// data size along current axis
 	int dX = (dx * ax) + (dy * ay) + (dz * az);
-
-	printf("%d\n", dX);
-
 	// halo size along current axis
 	int hX = (hx * ax) + (hy * ay) + (hz * az);
 
@@ -74,6 +69,9 @@ void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 
 					// Compute linear index of trial median value
 					int I = sz * (z + az * i) + sy * (y + ay * i) + sx * (x + ax * i);
 
+					// check if the comparison value is valid data
+					if (gmap[I] == bad_pix) continue;
+
 					// store trial median value
 					float u = data[I];
 
@@ -93,7 +91,7 @@ void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 
 						int J = sz * (z + az * j) + sy * (y + ay * j) + sx * (x + ax * j);
 
 						// check if the comparison value is valid data
-//						if (gmap[J] == 0.0f) continue;
+						if (gmap[J] == bad_pix) continue;
 
 						// store comparison median value
 						float v = data[J];

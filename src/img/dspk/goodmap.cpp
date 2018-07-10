@@ -19,8 +19,9 @@ void calc_gmap(DB * db, float tmin, float tmax, float bad_pix_val){
 	float * gmap = db->gmap;
 	dim3 dsz = db->dsz;
 
-	// initialize the goodmap
+	// initialize arrays
 	init_gmap(gmap, data, dsz, bad_pix_val);
+	init_histogram(db);
 
 	// find the extreme values of the data array not masked by the goodmap
 	db->dmax = find_max(data, gmap, dsz);
@@ -50,7 +51,9 @@ void calc_axis_gmap(DB * db, float tmin, float tmax, int axis){
 #pragma acc data create(lmed[0:dsz.xyz])
 	{
 		calc_local_median(lmed, data, gmap, dsz, ksz, axis);
-//		calc_thresh(t1, hist);
+		calc_histogram(db, lmed, axis);
+		calc_cumulative_distribution(db, axis);
+		calc_thresh(db, tmin, tmax, axis);
 	}
 
 	return;
@@ -78,13 +81,13 @@ void init_gmap(float * gmap, float * data, dim3 dsz, float bad_pix_val) {
 				int L =  (sz * z) + (sy * y) + (sx * x);
 
 				float p = data[L];	// data value at this coordinate
-				float m = 1.0f;		// default goodmap value (assume pixel is good)
+				float m = good_pix;		// default goodmap value (assume pixel is good)
 
 				// check if pixel is any of the known bad values
 				if(p == NAN){
-					m = 0.0f;
+					m = bad_pix;
 				} else if (p == bad_pix_val) {
-					m = 0.0f;
+					m = bad_pix;
 				}
 
 				gmap[L] = m;

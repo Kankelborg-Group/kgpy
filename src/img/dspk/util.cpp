@@ -79,6 +79,16 @@ vec3 vec3::operator*(float right){
 
 }
 
+vec3 vec3::operator+(vec3 right){
+
+	float X = x + right.x;
+	float Y = y + right.y;
+	float Z = z + right.z;
+
+	return vec3(X, Y, Z);
+
+}
+
 DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
 
 
@@ -92,14 +102,15 @@ DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
 	gmap = new float[dsz.xyz];	// allocate good pixel map array
 	hist = new float[hsz.xyz];
 	cumd = new float[hsz.xyz];
-	t1 = new float[hsz.x * hsz.z];
-	t9 = new float[hsz.x * hsz.z];
+	cnts = new float[tsz.xyz];
+	t1 = new float[tsz.xyz];
+	t9 = new float[tsz.xyz];
 
 #pragma acc enter data copyin(data[0:dsz.xyz])
-//#pragma acc enter data create(lmed[0:dsz.xyz])
 #pragma acc enter data create(gmap[0:dsz.xyz])
 #pragma acc enter data create(hist[0:hsz.xyz])
 #pragma acc enter data create(cumd[0:hsz.xyz])
+#pragma acc enter data create(cnts[0:tsz.xyz])
 #pragma acc enter data create(t1[0:tsz.xyz])
 #pragma acc enter data create(t9[0:tsz.xyz])
 

@@ -8,6 +8,12 @@
 #ifndef SRC_IMG_DSPK_UTIL_H_
 #define SRC_IMG_DSPK_UTIL_H_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <cstdlib>
+#include <string>
+
 #include <float.h>
 
 namespace kgpy {
@@ -52,6 +58,7 @@ public:
 	vec3(float x, float y, float z);
 	vec3(dim3 X);
 	vec3 operator*(float right);
+	vec3 operator+(vec3 right);
 };
 
 class DB {
@@ -66,6 +73,7 @@ public:
 	float * gmap;	// map of good pixels
 	float * hist;	// histogram of median vs intensity for each axis
 	float * cumd;	// cumulative distribution of median vs intensity for each axis
+	float * cnts;	// number of pixels with each median value
 	float * t1;		// upper intensity threshold as a function of median for each axis
 	float * t9;		// lower intensity threshold as a function of median for each axis
 

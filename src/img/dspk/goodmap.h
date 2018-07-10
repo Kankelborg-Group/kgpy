@@ -13,6 +13,7 @@
 #include "util.h"
 #include "median.h"
 #include "threshold.h"
+#include "distribution.h"
 
 namespace kgpy {
 

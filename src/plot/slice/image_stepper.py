@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 class CubeSlicer(object):
-    def __init__(self, X):
+    def __init__(self, X, y=None, **kwargs):
         fig, ax = plt.subplots(1, 1)
         self.fig = fig
         self.ax = ax
@@ -13,7 +13,7 @@ class CubeSlicer(object):
         self.slices, rows, cols = X.shape
         self.ind = 0
 
-        self.im = ax.imshow(self.X[self.ind, :, :])
+        self.im = ax.imshow(self.X[self.ind, :, :], **kwargs)
         self.update()
 
         self.fig.canvas.mpl_connect('scroll_event', self.onscroll)

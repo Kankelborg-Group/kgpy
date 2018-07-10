@@ -25,7 +25,7 @@ namespace img {
 namespace dspk {
 
 void dspk(DB * db, float tmin, float tmax, float bad_pix_val);
-np::ndarray dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int kz, int ky, int kx, float bad_pix_val);
+py::tuple dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int kz, int ky, int kx, float bad_pix_val);
 
 
 

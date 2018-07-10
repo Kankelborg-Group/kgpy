@@ -8,6 +8,8 @@
 #ifndef SRC_IMG_DSPK_THRESHOLD_H_
 #define SRC_IMG_DSPK_THRESHOLD_H_
 
+#include<math.h>
+
 #include "util.h"
 
 namespace kgpy {
@@ -16,7 +18,7 @@ namespace img {
 
 namespace dspk {
 
-void calc_thresh(float * thresh, float * hist, float * data, dim3 tsz, dim3 hsz, dim3 dsz, float percentile, int axis);
+void calc_thresh(DB * db, float tmin, float tmax, int axis);
 
 }
 
