@@ -39,17 +39,17 @@ void calc_histogram(DB * db, float * lmed, int axis){
 	int hy = hx * hsz.x;
 	int hz = hy * hsz.y;
 
-	vec3 ax = vec3(axes[axis]);
-
-	// calculate the extreme median values
-	float med_max = find_max(lmed, gmap, dsz);
-	float med_min = find_min(lmed, gmap, dsz);
-
-	// save extreme median value to database for this axis
-	vec3 mmax = ax * med_max;
-	vec3 mmin = ax * med_min;
-	db->mmax = db->mmax + mmax;
-	db->mmin = db->mmin + mmin;
+//	vec3 ax = vec3(axes[axis]);
+//
+//	// calculate the extreme median values
+//	float med_max = find_max(lmed, gmap, dsz);
+//	float med_min = find_min(lmed, gmap, dsz);
+//
+//	// save extreme median value to database for this axis
+//	vec3 mmax = ax * med_max;
+//	vec3 mmin = ax * med_min;
+//	db->mmax = db->mmax + mmax;
+//	db->mmin = db->mmin + mmin;
 
 
 //	printf("%e %e %e %e", dmin, dmax, med_min, med_max);
@@ -74,7 +74,7 @@ void calc_histogram(DB * db, float * lmed, int axis){
 				float m = lmed[L];
 
 				// calculate histogram indices
-				int X = data2hist(m, med_min, med_max, hsz.x);
+				int X = data2hist(m, dmin, dmax, hsz.x);
 				int Y = data2hist(d, dmin, dmax, hsz.y);
 
 //				printf("%f %f %d %d\n", m, d, X, Y);

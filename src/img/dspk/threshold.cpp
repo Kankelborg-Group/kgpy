@@ -21,6 +21,9 @@ void calc_thresh(DB * db, float tmin, float tmax, int axis){
 	float * t9 = db->t9;
 	dim3 hsz = db->hsz;
 	dim3 tsz = db->tsz;
+	float dmax = db->dmax;
+	float dmin = db->dmin;
+
 
 	int hx = 1;
 	int hy = hx * hsz.x;
@@ -79,34 +82,36 @@ void calc_thresh(DB * db, float tmin, float tmax, int axis){
 	printf("____________________________________\n");
 
 	// find most statstically significant threshold
-#pragma acc update host(cnts[0:tsz.xyz]), host(t1[0:tsz.xyz]), host(t9[0:tsz.xyz])
-//#pragma acc loop seq
-	int max_cnt = 0;
-	for(int x = 0; x < hsz.x; x++){
+	//#pragma acc update host(cnts[0:tsz.xyz]), host(t1[0:tsz.xyz]), host(t9[0:tsz.xyz])
+#pragma acc data present(cnts)
+	{
+#pragma acc loop seq
+		int max_cnt = 0;
+		for(int x = 0; x < hsz.x; x++){
 
-		int T = tz * axis + tx * x;
+			int T = tz * axis + tx * x;
 
-//		printf("%d\n", cnts[T]);
+			//		printf("%d\n", cnts[T]);
 
-		if(cnts[T] > max_cnt) {
-			max_cnt = cnts[T];
-			cnt9 = x;
+			if(cnts[T] > max_cnt) {
+				max_cnt = cnts[T];
+				cnt9 = x;
+			}
+
 		}
 
-	}
+		// find highest statisically significant threshold
+#pragma acc loop seq
+		for(int x = hsz.x - 1; x >= 0; x--){
 
+			int T = tz * axis + tx * x;
 
-	// find highest statisically significant threshold
-//#pragma acc loop seq
-	for(int x = hsz.x - 1; x >= 0; x--){
+			if(cnts[T] > min_cnts) {
+				cnt1 = x;
+				break;
+			}
 
-		int T = tz * axis + tx * x;
-
-		if(cnts[T] > min_cnts) {
-			cnt1 = x;
-			break;
 		}
-
 	}
 
 	// calculate line between these two points
@@ -123,7 +128,7 @@ void calc_thresh(DB * db, float tmin, float tmax, int axis){
 	printf("%d\n", axis);
 
 	// replace all statistically insignificant points with extrapolated line
-//#pragma acc parallel loop present(t1), present(t9), present(cnts)
+#pragma acc parallel loop present(t1), present(t9), present(cnts)
 	for(int x = 0; x < hsz.x; x++){
 
 		int T = tz * axis + tx * x;
@@ -131,13 +136,13 @@ void calc_thresh(DB * db, float tmin, float tmax, int axis){
 		// if point is not statistically significant
 		if(cnts[T] < min_cnts) {
 
-			t1[T] = m1 * T + y1;
-			t9[T] = m9 * T + y9;
+			t1[T] = fmax(fmin(m1 * x + y1, hsz.y - 1), 0);
+			t9[T] = fmax(fmin(m9 * x + y9, hsz.y - 1), 0);
 
 		}
 
 	}
-#pragma acc update device(t1[0:tsz.xyz]), device(t9[0:tsz.xyz])
+	//#pragma acc update device(t1[0:tsz.xyz]), device(t9[0:tsz.xyz])
 
 }
 
