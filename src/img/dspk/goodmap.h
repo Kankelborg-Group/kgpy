@@ -23,6 +23,7 @@ namespace dspk {
 
 void calc_gmap(DB * db, float tmin, float tmax, float bad_pix_val);
 void calc_axis_gmap(DB * db, float tmin, float tmax, int axis);
+void increment_gmap(DB * db, float * lmed, int axis);
 void init_gmap(float * gmap, float * data, dim3 dsz, float bad_pix_val);
 
 }

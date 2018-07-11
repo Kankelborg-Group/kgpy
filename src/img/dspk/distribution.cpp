@@ -62,8 +62,6 @@ void calc_histogram(DB * db, float * lmed, int axis){
 				// overall linear index of data array
 				int L =  (sz * z) + (sy * y) + (sx * x);
 
-
-
 				// Don't incorporate pixels already marked as bad
 				if (gmap[L] == bad_pix) {
 					continue;
@@ -176,6 +174,7 @@ void init_histogram(DB * db){
 
 }
 
+
 float hist2data(int hval, float m_min, float m_max, int nbins){
 
 	float delta = (m_max - m_min) / (((float) nbins) - 1.0f);
@@ -185,6 +184,8 @@ float hist2data(int hval, float m_min, float m_max, int nbins){
 	return val;
 
 }
+
+
 int data2hist(float dval, float m_min, float m_max, int nbins){
 
 	float delta = (m_max - m_min) / (((float) nbins) - 1.0f);

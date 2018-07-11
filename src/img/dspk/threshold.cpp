@@ -20,15 +20,13 @@ void calc_thresh(DB * db, float tmin, float tmax, int axis){
 	float * t1 = db->t1;
 	float * t9 = db->t9;
 	dim3 hsz = db->hsz;
-	dim3 tsz = db->tsz;
-	float dmax = db->dmax;
-	float dmin = db->dmin;
 
-
+	// compute histogram strides
 	int hx = 1;
 	int hy = hx * hsz.x;
 	int hz = hy * hsz.y;
 
+	// compute threshold strides
 	int tx = 1;
 	int tz = tx * hsz.x;
 
@@ -45,6 +43,7 @@ void calc_thresh(DB * db, float tmin, float tmax, int axis){
 
 		// locate lower threshold
 		int y;
+#pragma acc loop seq
 		for(y = 0; y < hsz.y; y++){
 
 			// check if above lower threshold
@@ -58,6 +57,7 @@ void calc_thresh(DB * db, float tmin, float tmax, int axis){
 		}
 
 		// locate upper threshold, starting from where we left off in the last loop
+#pragma acc loop seq
 		for(int Y = y; Y < hsz.y; Y++){
 
 			// check if above lower threshold
@@ -79,70 +79,66 @@ void calc_thresh(DB * db, float tmin, float tmax, int axis){
 	int cnt9 = 1;
 	int cnt1 = 0;
 
-	printf("____________________________________\n");
 
-	// find most statstically significant threshold
-	//#pragma acc update host(cnts[0:tsz.xyz]), host(t1[0:tsz.xyz]), host(t9[0:tsz.xyz])
-#pragma acc data present(cnts)
-	{
+
+
+
+	// replace all statistically insignificant points with extrapolated line
+#pragma acc parallel loop present(t1), present(t9), present(cnts)
+	for(int x = 0; x < hsz.x; x++){
+
+		// find most statstically significant threshold
 #pragma acc loop seq
 		int max_cnt = 0;
-		for(int x = 0; x < hsz.x; x++){
+		for(int X = 0; X < hsz.x; X++){
 
-			int T = tz * axis + tx * x;
+			int T = tz * axis + tx * X;
 
 			//		printf("%d\n", cnts[T]);
 
 			if(cnts[T] > max_cnt) {
 				max_cnt = cnts[T];
-				cnt9 = x;
+				cnt9 = X;
 			}
 
 		}
 
 		// find highest statisically significant threshold
 #pragma acc loop seq
-		for(int x = hsz.x - 1; x >= 0; x--){
+		for(int X = hsz.x - 1; X >= 0; X--){
 
-			int T = tz * axis + tx * x;
+			int T = tz * axis + tx * X;
 
 			if(cnts[T] > min_cnts) {
-				cnt1 = x;
+				cnt1 = X;
 				break;
 			}
 
 		}
-	}
 
-	// calculate line between these two points
-	int a = tz * axis + tx * cnt1;
-	int b = tz * axis + tx * cnt9;
-	float m1 = (t1[a] - t1[b]) / ((float)(cnt1 - cnt9));
-	float m9 = (t9[a] - t9[b]) / ((float)(cnt1 - cnt9));
-	float y1 = t1[a] - (m1 * cnt1);
-	float y9 = t9[a] - (m9 * cnt1);
+		// calculate line between these two points
+		int a = tz * axis + tx * cnt1;
+		int b = tz * axis + tx * cnt9;
+		float m1 = (t1[a] - t1[b]) / ((float)(cnt1 - cnt9));
+		float m9 = (t9[a] - t9[b]) / ((float)(cnt1 - cnt9));
+		float y1 = t1[a] - (m1 * cnt1);
+		float y9 = t9[a] - (m9 * cnt1);
 
-	printf("%d %d\n", cnt1, cnt9);
-	printf("%f %f\n", m1, y1);
-	printf("%f %f\n", m9, y9);
-	printf("%d\n", axis);
-
-	// replace all statistically insignificant points with extrapolated line
-#pragma acc parallel loop present(t1), present(t9), present(cnts)
-	for(int x = 0; x < hsz.x; x++){
 
 		int T = tz * axis + tx * x;
 
 		// if point is not statistically significant
 		if(cnts[T] < min_cnts) {
 
-			t1[T] = fmax(fmin(m1 * x + y1, hsz.y - 1), 0);
-			t9[T] = fmax(fmin(m9 * x + y9, hsz.y - 1), 0);
+			t1[T] = fmax(m1 * x + y1, x + 1);	// make sure upper thresh does not cross lower thresh
+			t1[T] = fmax(fmin(t1[T], hsz.y - 1), 0);
+
+			t9[T] = fmin(m9 * x + y9, x - 1);	// make sure lower thresh does not cross upper thresh
+			t9[T] = fmax(fmin(t9[T], hsz.y - 1), 0);
 
 		}
 
 	}
-	//#pragma acc update device(t1[0:tsz.xyz]), device(t9[0:tsz.xyz])
 
 }
 

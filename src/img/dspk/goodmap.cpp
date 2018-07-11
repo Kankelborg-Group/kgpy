@@ -40,9 +40,6 @@ void calc_axis_gmap(DB * db, float tmin, float tmax, int axis){
 
 	float * data = db->data;
 	float * gmap = db->gmap;
-	float * hist = db->hist;
-	float * t1 = db->t1;
-	float * t9 = db->t9;
 	dim3 dsz = db->dsz;
 	dim3 ksz = db->ksz;
 
@@ -54,9 +51,69 @@ void calc_axis_gmap(DB * db, float tmin, float tmax, int axis){
 		calc_histogram(db, lmed, axis);
 		calc_cumulative_distribution(db, axis);
 		calc_thresh(db, tmin, tmax, axis);
+		increment_gmap(db, lmed, axis);
 	}
 
 	return;
+
+}
+
+void increment_gmap(DB * db, float * lmed, int axis){
+
+	float * data = db->data;
+	float * gmap = db->gmap;
+	float * t1 = db->t1;
+	float * t9 = db->t9;
+	dim3 dsz = db->dsz;
+	dim3 hsz = db->hsz;
+	float dmax = db->dmax;
+	float dmin = db->dmin;
+
+	// split data size into single variables
+	int dx = dsz.x;
+	int dy = dsz.y;
+	int dz = dsz.z;
+
+	// compute array strides in each dimension
+	int sx = 1;
+	int sy = sx * dx;
+	int sz = sy * dy;
+
+	// compute threshold strides
+	int tx = 1;
+	int tz = tx * hsz.x;
+
+
+#pragma acc parallel loop collapse(3) present(data), present(gmap), present(lmed)
+	for(int z = 0; z < dz; z++){	// loop along z axis of data/median array)
+		for(int y = 0; y < dy; y++){	// loop along y axis of of data/median array
+			for(int x = 0; x < dx; x++){	// loop along x axis of of data/median array
+
+				// overall linear index of data/median array
+				int L =  (sz * z) + (sy * y) + (sx * x);
+
+				// do nothing if bad pixel has already been identified
+				if(gmap[L] == bad_pix) continue;
+
+				// load data and median for this pixel
+				float d = data[L];
+				float m = lmed[L];
+
+				// calculate the position of this median/data pair on the histogram
+				int X = data2hist(m, dmin, dmax, hsz.x);
+				int Y = data2hist(d, dmin, dmax, hsz.y);
+
+				// determine if the threshold is exceeded
+				int T = axis * tz + X * tx;
+				int Y1 = t1[T];
+				int Y9 = t9[T];
+				if(Y > Y1 or Y < Y9) {
+					gmap[L] = gmap[L] + 1.0f;
+				}
+
+			}
+		}
+	}
 
 }
 

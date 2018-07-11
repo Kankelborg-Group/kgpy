@@ -14,14 +14,11 @@
 					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.ptp.cdt.compilers.core.PGIErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.MakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.autotools.core.ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.ptp.cdt.compilers.core.Open64ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.VCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.ptp.cdt.compilers.core.CrayErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="com.pgroup.toolchain.errorparser.parser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>
@@ -39,7 +36,7 @@
 									<listOptionValue builtIn="false" value="/usr/include/python3.5m"/>
 									<listOptionValue builtIn="false" value="../"/>
 								</option>
-								<option id="com.pgroup.toolchain.linux.cpp.compiler.optioncat.additionaloptions.additionaloptions.555616799" name="Additional Options" superClass="com.pgroup.toolchain.linux.cpp.compiler.optioncat.additionaloptions.additionaloptions" useByScannerDiscovery="false" value="-fPIC -acc -ta=tesla:cc50,nordc,managed" valueType="string"/>
+								<option id="com.pgroup.toolchain.linux.cpp.compiler.optioncat.additionaloptions.additionaloptions.555616799" name="Additional Options" superClass="com.pgroup.toolchain.linux.cpp.compiler.optioncat.additionaloptions.additionaloptions" useByScannerDiscovery="false" value="-fPIC -acc -ta=tesla:cc50,managed" valueType="string"/>
 								<option id="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.globaloptimizations.1424397490" name="Global Optimizations" superClass="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.globaloptimizations" useByScannerDiscovery="false" value="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.globaloptimizations.o3" valueType="enumerated"/>
 								<option id="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.optimization.1800747248" name="Optimization" superClass="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.optimization" useByScannerDiscovery="false" value="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.optimization.maximizespeedacrossthewholeprogram" valueType="enumerated"/>
 								<option id="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.inlining.831962687" name="Inlining" superClass="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.inlining" useByScannerDiscovery="false" value="com.pgroup.toolchain.linux.cpp.compiler.optioncat.optimization.inlining.yes" valueType="enumerated"/>
@@ -54,7 +51,7 @@
 							<tool id="com.pgroup.project.linux.c.linker.sharedlib.release.13949179" name="The Portland Group C Linker (Linux)" superClass="com.pgroup.project.linux.c.linker.sharedlib.release"/>
 							<tool id="com.pgroup.project.linux.cpp.linker.sharedlib.release.229325333" name="The Portland Group C++ Linker (Linux)" superClass="com.pgroup.project.linux.cpp.linker.sharedlib.release">
 								<option id="com.pgroup.toolchain.linux.cpp.linker.optioncat.input.additionaldependencies.273586412" name="Additional Dependencies" superClass="com.pgroup.toolchain.linux.cpp.linker.optioncat.input.additionaldependencies" useByScannerDiscovery="false"/>
-								<option id="com.pgroup.toolchain.linux.cpp.linker.optioncat.additionaloptions.additionaloptions.698473034" name="Additional Options" superClass="com.pgroup.toolchain.linux.cpp.linker.optioncat.additionaloptions.additionaloptions" useByScannerDiscovery="false" value="-shared -lboost_python-py35 -lboost_numpy3 -laccapi -laccg -laccn -laccg2" valueType="string"/>
+								<option id="com.pgroup.toolchain.linux.cpp.linker.optioncat.additionaloptions.additionaloptions.698473034" name="Additional Options" superClass="com.pgroup.toolchain.linux.cpp.linker.optioncat.additionaloptions.additionaloptions" useByScannerDiscovery="false" value="-shared -lboost_python-py35 -lboost_numpy3 -laccapi -laccg -laccn -laccg2 -lcudadevice" valueType="string"/>
 								<inputType id="com.pgroup.cpp.abstractlinker.input.456882934" name="The Portland Group C++ Linker Input (abstract)" superClass="com.pgroup.cpp.abstractlinker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -80,14 +77,11 @@
 					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.ptp.cdt.compilers.core.PGIErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.MakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.autotools.core.ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.ptp.cdt.compilers.core.Open64ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.VCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.ptp.cdt.compilers.core.CrayErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="com.pgroup.toolchain.errorparser.parser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>

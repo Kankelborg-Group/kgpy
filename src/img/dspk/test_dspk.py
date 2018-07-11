@@ -33,7 +33,6 @@ results = dspk_3D(data, upper_thresh=0.98)
 end = time.time()
 print('time elapsed', end-start)
 
-print(np.min(data))
 
 gmap = results[0]
 histogram = results[1]
@@ -53,7 +52,5 @@ for ind in range(3):
 
 plt.figure()
 plt.semilogy(cnts[ind,0,:])
-
-print(t9[ind,0,:])
 
 plt.show()
