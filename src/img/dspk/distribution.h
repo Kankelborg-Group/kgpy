@@ -24,9 +24,7 @@ void calc_cumulative_distribution(DB * db, int axis);
 void init_histogram(DB * db);
 void init_cumulative_distribution(DB * db);
 
-#pragma acc routine seq
 float hist2data(int hval, float m_min, float m_max, int nbins);
-#pragma acc routine seq
 int data2hist(float dval, float m_min, float m_max, int nbins);
 
 }

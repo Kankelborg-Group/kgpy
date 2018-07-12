@@ -100,8 +100,8 @@ void increment_gmap(DB * db, float * lmed, int axis){
 				float m = lmed[L];
 
 				// calculate the position of this median/data pair on the histogram
-				int X = data2hist(m, dmin, dmax, hsz.x);
-				int Y = data2hist(d, dmin, dmax, hsz.y);
+				int X = d2h(m, dmin, dmax, hsz.x);
+				int Y = d2h(d, dmin, dmax, hsz.y);
 
 				// determine if the threshold is exceeded
 				int T = axis * tz + X * tx;
@@ -152,6 +152,16 @@ void init_gmap(float * gmap, float * data, dim3 dsz, float bad_pix_val) {
 			}
 		}
 	}
+
+}
+
+int d2h(float dval, float m_min, float m_max, int nbins){
+
+	float delta = (m_max - m_min) / (((float) nbins) - 1.0f);
+
+	int index = floor((dval - m_min) / delta);
+
+	return index;
 
 }
 
