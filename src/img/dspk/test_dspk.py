@@ -29,7 +29,7 @@ print(data.shape)
 
 
 start = time.time()
-results = dspk_3D(data, upper_thresh=0.97)
+results = dspk_3D(data, upper_thresh=0.99)
 end = time.time()
 print('time elapsed', end-start)
 
