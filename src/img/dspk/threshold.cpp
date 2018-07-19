@@ -89,20 +89,22 @@ void calc_extrap_thresh(DB * db, float tmin, float tmax, int axis){
 	float * t9 = db->t9;
 	float * t1 = db->t1;
 
+	int x0 = calc_hist_center(db, axis);
+
 	// extrapolate threshold by slicing histogram along threshold
-	int y1_min = median_extrapolation(db, t9, tmin, axis, -1);
-	int y1_max = median_extrapolation(db, t1, tmax, axis, 1);
+	int y1_min = median_extrapolation(db, t9, tmin, x0, axis, -1);
+	int y1_max = median_extrapolation(db, t1, tmax, x0, axis, 1);
 
 	// save the extrapolated trheshold curve to arrays
-	apply_extrap_thresh(db, t9, tmin, y1_min, axis);
-	apply_extrap_thresh(db, t1, tmax, y1_max, axis);
+	apply_extrap_thresh(db, t9, tmin, x0, y1_min, axis);
+	apply_extrap_thresh(db, t1, tmax, x0, y1_max, axis);
 
 
 
 
 }
 
-void apply_extrap_thresh(DB * db, float * t, float thresh, int y1, int axis){
+void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, int y1, int axis){
 
 	// load from database
 	float * cnts = db->cnts;
@@ -111,10 +113,6 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int y1, int axis){
 	// compute threshold strides
 	int tx = 1;
 	int tz = tx * hsz.x;
-
-	// first point at origin
-	int x0 = 0;
-	int y0 = 0;
 
 	// find minimum counts for statistical significance
 	int min_cnts = min_samples(thresh);
@@ -125,6 +123,9 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int y1, int axis){
 #pragma acc parallel loop present(t), present(cnts)
 	for(int x = 0; x < hsz.x; x++){
 
+		// grab y-value at most statistically significant point
+		int y0 = t[tz * axis + tx * x0];
+
 		float m = pts2slope(x0, y0, x1, y1);
 		float b = pts2intercept(x0, y0, x1, y1);
 
@@ -132,8 +133,15 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int y1, int axis){
 
 		// if point is not statistically significant
 		if(cnts[T] < min_cnts) {
+			if(x >= x0) {	// above center of histogram
+				t[T] = m * x + b;
+			} else {		// below center of histogram, reflect line about y=x
+				float M = 1 / m;
+				float B = y0 - M * x0;
+				t[T] = M * x + B;
+			}
 
-			t[T] = m * x + b;	// make sure upper thresh does not cross lower thresh
+				// make sure upper thresh does not cross lower thresh
 			t[T] = fmax(fmin(t[T], hsz.y - 1), 0); // make sure we don't cross top/bottom of histogram
 
 		}
@@ -142,16 +150,12 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int y1, int axis){
 
 }
 
-int median_extrapolation(DB * db, float * t, float thresh, int axis, int direction){
+int median_extrapolation(DB * db, float * t, float thresh, int x0, int axis, int direction){
 
 	// load from database
 	float * cnts = db->cnts;
 	dim3 hsz = db->hsz;
 	dim3 tsz = db->tsz;
-
-	// hold first point fixed
-	int x0 = 0;
-	int y0 = 0;
 
 	// initial guess for second point
 	int x1 = hsz.x - 1;
@@ -164,49 +168,49 @@ int median_extrapolation(DB * db, float * t, float thresh, int axis, int directi
 	// find minimum counts for statistical significance
 	int min_cnts = min_samples(thresh);
 
-	//#pragma acc update host(hist[0:hsz.xyz]), host(t[0:tsz.xyz])
-	{
-		// extrapolate slope of threshold
-		while(true) {
+	// extrapolate slope of threshold
+	while(true) {
 
-			float lsum = 0;
-			float usum = 0;
+		float lsum = 0;
+		float usum = 0;
 
 #pragma acc parallel loop reduction(+:usum,lsum) present(cnts), present(t)
-			for(int x = 0; x < hsz.x; x++){
+		for(int x = 0; x < hsz.x; x++){
 
-				int T = tz * axis + tx * x;
-				float Y = t[T];
+			int T = tz * axis + tx * x;
+			float Y = t[T];
 
-				float m = pts2slope(x0, y0, x1, y1);
-				float b = pts2intercept(x0, y0, x1, y1);
-				float y = m * x + b;
+			// grab y-value at most statistically significant point
+			int y0 = t[tz * axis + tx * x0];
 
-				if(cnts[T] > min_cnts) {
-					if (Y > y) {
-						usum++;
-					} else {
-						lsum++;
-					}
-				}
+			float m = pts2slope(x0, y0, x1, y1);
+			float b = pts2intercept(x0, y0, x1, y1);
+			float y = m * x + b;
 
-			}
-
-			float ratio =  lsum / (usum + lsum);
-
-			if (direction > 0) {
-				if (ratio >= 0.50) {
-					return y1;
-				}
-			} else {
-				if (ratio <= 0.50) {
-					return y1;
+			if(cnts[T] > min_cnts) {
+				if (Y > y) {
+					usum++;
+				} else {
+					lsum++;
 				}
 			}
-
-			y1 += direction;
 
 		}
+
+		float ratio =  lsum / (usum + lsum);
+
+		if (direction > 0) {
+			if (ratio >= 0.50) {
+				return y1;
+			}
+		} else {
+			if (ratio <= 0.50) {
+				return y1;
+			}
+		}
+
+		y1 += direction;
+
 	}
 
 }
@@ -224,23 +228,33 @@ int calc_hist_center(DB * db, int axis) {
 
 	// find most statstically significant threshold
 	float max_cnt = -10.0f;
-#pragma acc update host(cnts[0:tsz.xyz])
-	//#pragma acc data present(cnts[0:tsz.xyz])
-	{
-		//#pragma acc loop seq
-		for(int X = 0; X < tsz.x; X++){
+	//#pragma acc update host(cnts[0:tsz.xyz])
 
-			int T = tz * axis + tx * X;
+	// calc max value
+#pragma acc parallel loop reduction(max:max_cnt) present(cnts)
+	for(int X = 0; X < tsz.x; X++){
 
-			//			printf("%f\n", cnts[T]);
+		int T = tz * axis + tx * X;
 
-			if(cnts[T] > max_cnt) {
-				max_cnt = cnts[T];
-				max_ind = X;
-			}
+		//			printf("%f\n", cnts[T]);
+
+		if(cnts[T] > max_cnt) {
+			max_cnt = cnts[T];
+		}
+	}
+
+	// calc index of max value
+#pragma acc parallel loop present(cnts) copyout(max_ind)
+	for(int X = 0; X < tsz.x; X++){
+
+		int T = tz * axis + tx * X;
+
+		if(cnts[T] == max_cnt) {
+			max_ind = X;
 		}
 
 	}
+
 
 	return max_ind;
 

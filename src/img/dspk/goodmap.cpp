@@ -34,6 +34,8 @@ void calc_gmap(DB * db, float tmin, float tmax, float bad_pix_val){
 
 	}
 
+	finalize_gmap(db);
+
 	return;
 }
 void calc_axis_gmap(DB * db, float tmin, float tmax, int axis){
@@ -55,6 +57,47 @@ void calc_axis_gmap(DB * db, float tmin, float tmax, int axis){
 	}
 
 	return;
+
+}
+
+void finalize_gmap(DB * db){
+
+	float * gmap = db->gmap;
+	dim3 dsz = db->dsz;
+
+	// split data size into single variables
+	int dx = dsz.x;
+	int dy = dsz.y;
+	int dz = dsz.z;
+
+	// compute array strides in each dimension
+	int sx = 1;
+	int sy = sx * dx;
+	int sz = sy * dy;
+
+
+
+#pragma acc parallel loop collapse(3) present(gmap)
+	for(int z = 0; z < dz; z++){	// loop along z axis of data/median array)
+		for(int y = 0; y < dy; y++){	// loop along y axis of of data/median array
+			for(int x = 0; x < dx; x++){	// loop along x axis of of data/median array
+
+				// overall linear index of data/median array
+				int L =  (sz * z) + (sy * y) + (sx * x);
+
+				float g = gmap[L];
+
+				if (g == 4.0f) {
+					gmap[L] = bad_pix;
+				} else if (g == 3.0f) {
+					gmap[L] = good_pix;
+				} else if (g == 2.0f) {
+					gmap[L] = good_pix;
+				}
+
+			}
+		}
+	}
 
 }
 

@@ -21,8 +21,8 @@ namespace dspk {
 void calc_thresh(DB * db, float tmin, float tmax, int axis);
 void calc_exact_thresh(DB * db, float tmin, float tmax, int axis);
 void calc_extrap_thresh(DB * db, float tmin, float tmax, int axis);
-void apply_extrap_thresh(DB * db, float * t, float thresh, int y1, int axis);
-int median_extrapolation(DB * db, float * t, float thresh, int axis, int direction);
+void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, int y1, int axis);
+int median_extrapolation(DB * db, float * t, float thresh, int x0, int axis, int direction);
 
 int calc_hist_center(DB * db, int axis);
 float pts2slope(int x0, int y0, int x1, int y1);
