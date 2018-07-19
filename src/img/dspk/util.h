@@ -74,8 +74,12 @@ public:
 	float * hist;	// histogram of median vs intensity for each axis
 	float * cumd;	// cumulative distribution of median vs intensity for each axis
 	float * cnts;	// number of pixels with each median value
+	float * ihst;	// 1D histogram of intensity
+	float * icmd;	// 1D cumulative distribution of intensity
 	float * t1;		// upper intensity threshold as a function of median for each axis
 	float * t9;		// lower intensity threshold as a function of median for each axis
+	float i1;		// upper hard intensity threshold
+	float i9;		// lower hard intensity threshold
 
 	float dmax;		// maximum value of the data array
 	float dmin;		// minimum value of the data array

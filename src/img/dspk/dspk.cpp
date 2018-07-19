@@ -19,11 +19,15 @@ void dspk(DB * db, float tmin, float tmax, float bad_pix_val){
 
 	calc_gmap(db, tmin, tmax, bad_pix_val);
 
-#pragma acc exit data delete(db->data[0:db->dsz.xyz])
+	fix_badpix(db);
+
+#pragma acc exit data copyout(db->data[0:db->dsz.xyz])
 #pragma acc exit data copyout(db->gmap[0:db->dsz.xyz])
 #pragma acc exit data copyout(db->hist[0:db->hsz.xyz])
 #pragma acc exit data copyout(db->cumd[0:db->hsz.xyz])
 #pragma acc exit data copyout(db->cnts[0:db->tsz.xyz])
+#pragma acc exit data copyout(db->ihst[0:db->tsz.x])
+#pragma acc exit data copyout(db->icmd[0:db->tsz.x])
 #pragma acc exit data copyout(db->t1[0:db->tsz.xyz])
 #pragma acc exit data copyout(db->t9[0:db->tsz.xyz])
 
@@ -75,13 +79,18 @@ py::tuple dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int
 	py::tuple tshape = py::make_tuple(db->hsz.z, 1, db->hsz.x);
 	py::tuple tstride = py::make_tuple(tz, ty, tx);
 
+	py::object iown = py::object();
+	py::tuple ishape = py::make_tuple(db->hsz.x);
+	py::tuple istride = py::make_tuple(tx);
+
 	np::ndarray pydata = np::from_data(db->gmap, dtype, dshape, dstride, down);
 	np::ndarray pyhist = np::from_data(db->hist, dtype, hshape, hstride, hown);
 	np::ndarray pyt1 = np::from_data(db->t1, dtype, tshape, tstride, town);
 	np::ndarray pyt9 = np::from_data(db->t9, dtype, tshape, tstride, town);
 	np::ndarray pycnts = np::from_data(db->cnts, dtype, tshape, tstride, town);
+	np::ndarray pyihst = np::from_data(db->icmd, dtype, ishape, istride, iown);
 
-	return make_tuple(pydata, pyhist, pyt1, pyt9, pycnts);
+	return make_tuple(pydata, pyhist, pyt1, pyt9, pycnts, pyihst);
 
 }
 

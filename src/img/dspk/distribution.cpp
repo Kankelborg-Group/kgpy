@@ -39,21 +39,6 @@ void calc_histogram(DB * db, float * lmed, int axis){
 	int hy = hx * hsz.x;
 	int hz = hy * hsz.y;
 
-//	vec3 ax = vec3(axes[axis]);
-//
-//	// calculate the extreme median values
-//	float med_max = find_max(lmed, gmap, dsz);
-//	float med_min = find_min(lmed, gmap, dsz);
-//
-//	// save extreme median value to database for this axis
-//	vec3 mmax = ax * med_max;
-//	vec3 mmin = ax * med_min;
-//	db->mmax = db->mmax + mmax;
-//	db->mmin = db->mmin + mmin;
-
-
-//	printf("%e %e %e %e", dmin, dmax, med_min, med_max);
-
 #pragma acc parallel loop collapse(3) present(data), present(gmap)
 	for(int z = 0; z < dz; z++){	// loop along z axis of data array
 		for(int y = 0; y < dy; y++){	// loop along y axis of of data array
@@ -74,8 +59,6 @@ void calc_histogram(DB * db, float * lmed, int axis){
 				// calculate histogram indices
 				int X = data2hist(m, dmin, dmax, hsz.x);
 				int Y = data2hist(d, dmin, dmax, hsz.y);
-
-//				printf("%f %f %d %d\n", m, d, X, Y);
 
 				// update histogram
 				int H = hz * axis + hy * Y + hx * X;
@@ -105,7 +88,8 @@ void calc_cumulative_distribution(DB * db, int axis){
 
 		float sum = 0.0f;
 
-		// march along y to build cumulative distributi
+		// march along y to build cumulative distribution
+#pragma acc loop seq
 		for(int y = 0; y < hsz.y; y++){
 
 			// linear index in histogram
@@ -124,6 +108,7 @@ void calc_cumulative_distribution(DB * db, int axis){
 		cnts[C] = sum;
 
 		// normalize
+#pragma acc loop seq
 		for(int y = 0; y < hsz.y; y++){
 
 			// linear index in histogram
@@ -151,6 +136,7 @@ void calc_cumulative_distribution(DB * db, int axis){
 void init_histogram(DB * db){
 
 	float * hist = db->hist;
+	float * ihst = db->ihst;
 	dim3 hsz = db->hsz;
 
 	// compute strides for histogram
@@ -167,8 +153,108 @@ void init_histogram(DB * db){
 
 				hist[L] = 0.0f;
 
+				if(y == 0){
+					if(z == 0) {
+						ihst[L] = 0.0f;
+					}
+				}
+
 			}
 		}
+	}
+}
+
+void calc_intensity_histogram(DB * db){
+
+	// extract requisite data from database
+	float * data = db->data;
+	float * gmap = db->gmap;
+	float * ihst = db->ihst;
+	dim3 dsz = db->dsz;
+	dim3 hsz = db->hsz;
+	float dmax = db->dmax;
+	float dmin = db->dmin;
+
+	// split data size into single variables
+	int dx = dsz.x;
+	int dy = dsz.y;
+	int dz = dsz.z;
+
+	// compute data strides in each dimension
+	int sx = 1;
+	int sy = sx * dx;
+	int sz = sy * dy;
+
+#pragma acc parallel loop collapse(3) present(data), present(gmap)
+	for(int z = 0; z < dz; z++){	// loop along z axis of data array
+		for(int y = 0; y < dy; y++){	// loop along y axis of of data array
+			for(int x = 0; x < dx; x++){	// loop along x axis of of data array
+
+				// overall linear index of data array
+				int L =  (sz * z) + (sy * y) + (sx * x);
+
+				// Don't incorporate pixels already marked as bad
+				if (gmap[L] == bad_pix) {
+					continue;
+				}
+
+				// load histogram values
+				float d = data[L];
+
+				// calculate histogram indices
+				int X = data2hist(d, dmin, dmax, hsz.x);
+
+				// update histogram
+#pragma acc atomic update
+				ihst[X] = ihst[X] + 1.0f;
+
+			}
+		}
+	}
+
+}
+
+void calc_intensity_cumulative_distribution(DB * db){
+
+	// extract requisite data from database
+	float * ihst = db->ihst;
+	float * icmd = db->icmd;
+	dim3 hsz = db->hsz;
+
+
+	float sum = 0.0f;
+
+	// march along y to build cumulative distribution
+#pragma acc kernels present(ihst, icmd) copyout(sum)
+	for(int x = 0; x < hsz.x; x++){
+
+		// increment sum
+		sum = sum + ihst[x];
+
+		// store result
+		icmd[x] = sum;
+
+	}
+
+	// normalize
+#pragma acc kernels present(ihst, icmd)
+	for(int x = 0; x < hsz.x; x++){
+
+
+		// normalize cumulative distribution
+		if (sum != 0.0f) {
+			icmd[x] = icmd[x] / sum;
+		} else {
+			icmd[x] = 0.0f;
+		}
+
+		// normalize histogram
+		if (sum != 0.0f) {
+			ihst[x] = ihst[x] / sum;
+		} else {
+			ihst[x] = 0.0f;
+		}
+
 	}
 
 

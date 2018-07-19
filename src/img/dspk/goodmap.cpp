@@ -27,6 +27,10 @@ void calc_gmap(DB * db, float tmin, float tmax, float bad_pix_val){
 	db->dmax = find_max(data, gmap, dsz);
 	db->dmin = find_min(data, gmap, dsz);
 
+	calc_intensity_histogram(db);
+	calc_intensity_cumulative_distribution(db);
+	calc_intensity_thresh(db, tmin, tmax);
+
 	int naxis = 3;
 	for(int axis = 0; axis < naxis; axis++){
 

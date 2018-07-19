@@ -29,7 +29,7 @@ print(data.shape)
 
 
 start = time.time()
-results = dspk_3D(data, upper_thresh=0.98)
+results = dspk_3D(data, upper_thresh=0.97, lower_thresh=0.02, kernel_shape=(25,25,25))
 end = time.time()
 print('time elapsed', end-start)
 
@@ -39,6 +39,7 @@ histogram = results[1]
 t1 = results[2]
 t9 = results[3]
 cnts = results[4]
+ihst = results[5]
 
 dplt = CubeSlicer(data)
 mplt = CubeSlicer(gmap)
@@ -52,5 +53,8 @@ for ind in range(3):
 
 plt.figure()
 plt.semilogy(cnts[ind,0,:])
+
+plt.figure()
+plt.plot(ihst)
 
 plt.show()

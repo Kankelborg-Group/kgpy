@@ -16,6 +16,7 @@
 
 #include "util.h"
 #include "goodmap.h"
+#include "badpix.h"
 #include "src/pyboost/pyboost.h"
 
 namespace kgpy {

@@ -141,7 +141,7 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, int y1, int a
 				t[T] = M * x + B;
 			}
 
-				// make sure upper thresh does not cross lower thresh
+			// make sure upper thresh does not cross lower thresh
 			t[T] = fmax(fmin(t[T], hsz.y - 1), 0); // make sure we don't cross top/bottom of histogram
 
 		}
@@ -212,6 +212,51 @@ int median_extrapolation(DB * db, float * t, float thresh, int x0, int axis, int
 		y1 += direction;
 
 	}
+
+}
+
+void calc_intensity_thresh(DB * db, float tmin, float tmax){
+
+	float * icmd = db->icmd;
+	dim3 hsz = db->hsz;
+
+	float i1 = 0.0f;
+	float i9 = 0.0f;
+
+	bool found = false;
+
+		// locate lower threshold
+#pragma acc kernels present(icmd) copy(found)
+		for(int x = 0; x < hsz.x; x++){
+
+			// check if above lower threshold
+			float c = icmd[x];
+			if ((c > tmin) and (not found)) {
+				i9 = x - 1;
+				found = true;
+			}
+
+		}
+
+		found = false;
+
+		// locate upper threshold, starting from where we left off in the last loop
+#pragma acc kernels present(icmd) copy(found)
+		for(int x = 0; x < hsz.x; x++){
+
+			// check if above lower threshold
+			float c = icmd[x];
+			if ((c > tmax) and (not found)) {
+				i1 = (float) x;
+				found = true;
+			}
+
+		}
+
+	db->i1 = i1;
+	db->i9 = i9;
+
+	printf("%f %f\n", i9, i1);
 
 }
 

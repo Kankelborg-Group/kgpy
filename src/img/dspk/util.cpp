@@ -103,6 +103,8 @@ DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
 	hist = new float[hsz.xyz];
 	cumd = new float[hsz.xyz];
 	cnts = new float[tsz.xyz];
+	ihst = new float[tsz.x];
+	icmd = new float[tsz.x];
 	t1 = new float[tsz.xyz];
 	t9 = new float[tsz.xyz];
 
@@ -111,11 +113,15 @@ DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
 #pragma acc enter data create(hist[0:hsz.xyz])
 #pragma acc enter data create(cumd[0:hsz.xyz])
 #pragma acc enter data create(cnts[0:tsz.xyz])
+#pragma acc enter data create(ihst[0:tsz.x])
+#pragma acc enter data create(icmd[0:tsz.x])
 #pragma acc enter data create(t1[0:tsz.xyz])
 #pragma acc enter data create(t9[0:tsz.xyz])
 
 	dmax = 0.0f;
 	dmin = 0.0f;
+	i1 = 0.0f;
+	i9 = 0.0f;
 
 }
 
