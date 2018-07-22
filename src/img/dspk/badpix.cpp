@@ -34,9 +34,9 @@ void convol_goodpix(DB * db, float * conv){
 	float * tmp = new float[dsz.xyz];
 #pragma acc data create(tmp[0:dsz.xyz])
 	{
-//		convol_goodpix_axis(db, data, conv, 0);
-//		convol_goodpix_axis(db, conv, tmp, 1);
 		convol_goodpix_axis(db, data, conv, 0);
+		convol_goodpix_axis(db, conv, tmp, 1);
+		convol_goodpix_axis(db, tmp, conv, 2);
 
 	}
 

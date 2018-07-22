@@ -133,13 +133,15 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, int y1, int a
 
 		// if point is not statistically significant
 		if(cnts[T] < min_cnts) {
-			if(x >= x0) {	// above center of histogram
-				t[T] = m * x + b;
-			} else {		// below center of histogram, reflect line about y=x
-				float M = 1 / m;
-				float B = y0 - M * x0;
-				t[T] = M * x + B;
-			}
+//			if(x >= x0) {	// above center of histogram
+//				t[T] = m * x + b;
+//			} else {		// below center of histogram, reflect line about y=x
+//				float M = 1 / m;
+//				float B = y0 - M * x0;
+//				t[T] = M * x + B;
+//			}
+
+			t[T] = m * x + b;
 
 			// make sure upper thresh does not cross lower thresh
 			t[T] = fmax(fmin(t[T], hsz.y - 1), 0); // make sure we don't cross top/bottom of histogram

@@ -9,6 +9,7 @@
 #define SRC_IMG_DSPK_GOODMAP_H_
 
 #include <cmath>
+#include <math.h>
 
 #include "util.h"
 #include "median.h"

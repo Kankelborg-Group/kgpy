@@ -27,10 +27,6 @@ void calc_gmap(DB * db, float tmin, float tmax, float bad_pix_val){
 	db->dmax = find_max(data, gmap, dsz);
 	db->dmin = find_min(data, gmap, dsz);
 
-	calc_intensity_histogram(db);
-	calc_intensity_cumulative_distribution(db);
-	calc_intensity_thresh(db, tmin, tmax);
-
 	int naxis = 3;
 	for(int axis = 0; axis < naxis; axis++){
 
@@ -91,11 +87,9 @@ void finalize_gmap(DB * db){
 
 				float g = gmap[L];
 
-				if (g == 4.0f) {
+				if (g >= 4.0f) {
 					gmap[L] = bad_pix;
-				} else if (g == 3.0f) {
-					gmap[L] = good_pix;
-				} else if (g == 2.0f) {
+				} else if (g > 1.0f) {
 					gmap[L] = good_pix;
 				}
 
@@ -154,9 +148,12 @@ void increment_gmap(DB * db, float * lmed, int axis){
 				int T = axis * tz + X * tx;
 				int Y1 = t1[T];
 				int Y9 = t9[T];
-				if(Y > Y1 or Y < Y9) {
+
+				if ((Y > Y1) or (Y < Y9)) {
 					gmap[L] = gmap[L] + 1.0f;
 				}
+
+
 
 			}
 		}

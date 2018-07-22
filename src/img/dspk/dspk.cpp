@@ -88,9 +88,9 @@ py::tuple dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int
 	np::ndarray pyt1 = np::from_data(db->t1, dtype, tshape, tstride, town);
 	np::ndarray pyt9 = np::from_data(db->t9, dtype, tshape, tstride, town);
 	np::ndarray pycnts = np::from_data(db->cnts, dtype, tshape, tstride, town);
-	np::ndarray pyihst = np::from_data(db->icmd, dtype, ishape, istride, iown);
+//	np::ndarray pyihst = np::from_data(db->icmd, dtype, ishape, istride, iown);
 
-	return make_tuple(pydata, pyhist, pyt1, pyt9, pycnts, pyihst);
+	return make_tuple(pydata, pyhist, pyt1, pyt9, pycnts);
 
 }
 

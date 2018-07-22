@@ -92,8 +92,8 @@ vec3 vec3::operator+(vec3 right){
 DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
 
 
-	int hx = 1024;
-	int hy = 1024;
+	int hx = 2048;
+	int hy = 2048;
 	int hz = 3;
 	hsz = dim3(hx, hy, hz);
 	tsz = dim3(hx, 1, hz);
