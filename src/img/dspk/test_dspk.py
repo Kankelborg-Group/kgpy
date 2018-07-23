@@ -26,7 +26,8 @@ data = hdu.data
 
 print(data.shape)
 
-
+odata = data.copy()
+oplt = CubeSlicer(odata)
 
 start = time.time()
 results = dspk_3D(data, upper_thresh=0.98, lower_thresh=0.02, kernel_shape=(25,25,25))
