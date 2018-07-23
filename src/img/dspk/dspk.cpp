@@ -94,6 +94,18 @@ py::tuple dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int
 
 }
 
+void dspk_idl(float * data, float thresh_min, float thresh_max, int dz, int dy, int dx,int kz, int ky, int kx, float bad_pix_val){
+
+	dim3 dsz = dim3(dx, dy, dz);
+	dim3 ksz = dim3(kx, ky, kz);
+
+	// construct dspk database object
+	DB * db = new DB(data, dsz, ksz);
+
+	dspk(db, thresh_min, thresh_max, bad_pix_val);
+
+}
+
 }
 
 }
