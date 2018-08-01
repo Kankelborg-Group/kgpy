@@ -28,8 +28,14 @@ class CubeSlicer(object):
 
     def update(self):
         self.im.set_data(self.X[self.ind,:, :])
+        self.im.autoscale()
         self.ax.set_ylabel('slice %s' % self.ind)
         self.im.axes.figure.canvas.draw()
+
+    def set_data(self, X):
+        self.X = X
+        self.ind = 0
+        self.update()
 
 def test_CubeSlicer():
 

@@ -5,7 +5,7 @@
  *      Author: byrdie
  */
 
-#include "dspk.h"
+#include <kgpy/img/dspk/dspk.h>
 
 using namespace std;
 
@@ -17,9 +17,58 @@ namespace dspk {
 
 void dspk(DB * db, float tmin, float tmax, float bad_pix_val){
 
+	dim3 dsz = db->dsz;
+
+	// split data size into single variables
+	int dx = dsz.x;
+	int dy = dsz.y;
+	int dz = dsz.z;
+
+	// compute array strides in each dimension
+	int sx = 1;
+	int sy = sx * dx;
+	int sz = sy * dy;
+
+
+	float datamem = ((float)dsz.xyz) * ((float) sizeof(float));
+	printf("datamem = %f\n", datamem);
+	if (datamem > 0.5 * 1e9) {
+		int pivot = dz / 2;
+
+		float * ldata = db->data;
+		float * rdata = db->data + pivot * sz;
+
+		float * lgmap = db->gmap;
+		float * rgmap = db->gmap + pivot * sz;
+
+		dim3 ldsz = dim3(dx, dy, pivot);
+		dim3 rdsz = dim3(dx, dy, dz - pivot);
+
+		DB * ldb = new DB(ldata, lgmap, ldsz, db->ksz);
+		DB * rdb = new DB(rdata, rgmap, rdsz, db->ksz);
+
+		dspk(ldb, tmin, tmax, bad_pix_val);
+		dspk(rdb, tmin, tmax, bad_pix_val);
+	} else {
+
+#pragma acc enter data copyin(db->data[0:db->dsz.xyz])
+#pragma acc enter data create(db->gmap[0:db->dsz.xyz])
+#pragma acc enter data create(db->hist[0:db->hsz.xyz])
+#pragma acc enter data create(db->cumd[0:db->hsz.xyz])
+#pragma acc enter data create(db->cnts[0:db->tsz.xyz])
+#pragma acc enter data create(db->ihst[0:db->tsz.x])
+#pragma acc enter data create(db->icmd[0:db->tsz.x])
+#pragma acc enter data create(db->t1[0:db->tsz.xyz])
+#pragma acc enter data create(db->t9[0:db->tsz.xyz])
+
+	printf("Checkpoint 1\n");
 	calc_gmap(db, tmin, tmax, bad_pix_val);
 
+	printf("Checkpoint 100\n");
+
 	fix_badpix(db);
+
+	printf("\n");
 
 #pragma acc exit data copyout(db->data[0:db->dsz.xyz])
 #pragma acc exit data copyout(db->gmap[0:db->dsz.xyz])
@@ -30,6 +79,8 @@ void dspk(DB * db, float tmin, float tmax, float bad_pix_val){
 #pragma acc exit data copyout(db->icmd[0:db->tsz.x])
 #pragma acc exit data copyout(db->t1[0:db->tsz.xyz])
 #pragma acc exit data copyout(db->t9[0:db->tsz.xyz])
+
+	}
 
 
 }
@@ -50,9 +101,10 @@ py::tuple dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int
 
 	// extract pointer to data array
 	float * dat = (float * ) data.get_data();
+	float * gmap = new float[dsz.xyz];
 
 	// construct dspk database object
-	DB * db = new DB(dat, dsz, ksz);
+	DB * db = new DB(dat, gmap, dsz, ksz);
 
 	// call dspk routine
 	dspk(db, thresh_min, thresh_max, bad_pix_val);

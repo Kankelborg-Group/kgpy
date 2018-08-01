@@ -5,16 +5,16 @@
  *      Author: byrdie
  */
 
-#ifndef SRC_IMG_DSPK_GOODMAP_H_
-#define SRC_IMG_DSPK_GOODMAP_H_
+#ifndef KGPY_IMG_DSPK_GOODMAP_H_
+#define KGPY_IMG_DSPK_GOODMAP_H_
 
+#include <kgpy/img/dspk/distribution.h>
+#include <kgpy/img/dspk/median.h>
+#include <kgpy/img/dspk/threshold.h>
+#include <kgpy/img/dspk/util.h>
 #include <cmath>
 #include <math.h>
 
-#include "util.h"
-#include "median.h"
-#include "threshold.h"
-#include "distribution.h"
 
 namespace kgpy {
 
@@ -35,4 +35,4 @@ int d2h(float dval, float m_min, float m_max, int nbins);
 }
 
 }
-#endif /* SRC_IMG_DSPK_GOODMAP_H_ */
+#endif /* KGPY_IMG_DSPK_GOODMAP_H_ */

@@ -5,19 +5,19 @@
  *      Author: byrdie
  */
 
-#ifndef SRC_IMG_DSPK_DSPK_H_
-#define SRC_IMG_DSPK_DSPK_H_
+#ifndef KGPY_IMG_DSPK_DSPK_H_
+#define KGPY_IMG_DSPK_DSPK_H_
 
+#include <kgpy/img/dspk/badpix.h>
+#include <kgpy/img/dspk/goodmap.h>
+#include <kgpy/img/dspk/util.h>
+#include <kgpy/pyboost/pyboost.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <cstdlib>
 #include <string>
 
-#include "util.h"
-#include "goodmap.h"
-#include "badpix.h"
-#include "src/pyboost/pyboost.h"
 
 namespace kgpy {
 
@@ -36,4 +36,4 @@ py::tuple dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int
 
 }
 
-#endif /* SRC_IMG_DSPK_DSPK_H_ */
+#endif /* KGPY_IMG_DSPK_DSPK_H_ */

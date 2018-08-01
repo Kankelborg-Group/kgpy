@@ -1,7 +1,6 @@
 
-#include "pyboost.h"
-
-#include "src/img/dspk/dspk.h"
+#include <kgpy/img/dspk/dspk.h>
+#include <kgpy/pyboost/pyboost.h>
 
 BOOST_PYTHON_MODULE(libkgpy){
 

@@ -5,7 +5,7 @@
  *      Author: byrdie
  */
 
-#include "distribution.h"
+#include <kgpy/img/dspk/distribution.h>
 
 namespace kgpy {
 

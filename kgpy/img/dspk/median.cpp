@@ -5,7 +5,7 @@
  *      Author: byrdie
  */
 
-#include "median.h"
+#include <kgpy/img/dspk/median.h>
 
 namespace kgpy {
 

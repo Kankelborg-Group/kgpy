@@ -5,8 +5,8 @@
  *      Author: byrdie
  */
 
-#ifndef SRC_IMG_DSPK_UTIL_H_
-#define SRC_IMG_DSPK_UTIL_H_
+#ifndef KGPY_IMG_DSPK_UTIL_H_
+#define KGPY_IMG_DSPK_UTIL_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,7 +86,7 @@ public:
 	vec3 mmax;		// maximum median value along each axis
 	vec3 mmin;		// minimum median value along each axis
 
-	DB(float * data, dim3 dsz, dim3 ksz);
+	DB(float * data, float * gmap, dim3 dsz, dim3 ksz);
 };
 
 float find_max(float * data, float * gmap, dim3 dsz);
@@ -99,4 +99,4 @@ float find_min(float * data, float * gmap, dim3 dsz);
 }
 
 
-#endif /* SRC_IMG_DSPK_UTIL_H_ */
+#endif /* KGPY_IMG_DSPK_UTIL_H_ */

@@ -5,7 +5,7 @@
  *      Author: byrdie
  */
 
-#include "util.h"
+#include <kgpy/img/dspk/util.h>
 
 namespace kgpy {
 
@@ -89,7 +89,7 @@ vec3 vec3::operator+(vec3 right){
 
 }
 
-DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
+DB::DB(float * data, float * gmap, dim3 dsz, dim3 ksz) : data(data), gmap(gmap), dsz(dsz), ksz(ksz){
 
 
 	int hx = 2048;
@@ -98,8 +98,6 @@ DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
 	hsz = dim3(hx, hy, hz);
 	tsz = dim3(hx, 1, hz);
 
-//	lmed = new float[dsz.xyz];	// allocate local median array
-	gmap = new float[dsz.xyz];	// allocate good pixel map array
 	hist = new float[hsz.xyz];
 	cumd = new float[hsz.xyz];
 	cnts = new float[tsz.xyz];
@@ -107,16 +105,6 @@ DB::DB(float * data, dim3 dsz, dim3 ksz) : data(data), dsz(dsz), ksz(ksz){
 	icmd = new float[tsz.x];
 	t1 = new float[tsz.xyz];
 	t9 = new float[tsz.xyz];
-
-#pragma acc enter data copyin(data[0:dsz.xyz])
-#pragma acc enter data create(gmap[0:dsz.xyz])
-#pragma acc enter data create(hist[0:hsz.xyz])
-#pragma acc enter data create(cumd[0:hsz.xyz])
-#pragma acc enter data create(cnts[0:tsz.xyz])
-#pragma acc enter data create(ihst[0:tsz.x])
-#pragma acc enter data create(icmd[0:tsz.x])
-#pragma acc enter data create(t1[0:tsz.xyz])
-#pragma acc enter data create(t9[0:tsz.xyz])
 
 	dmax = 0.0f;
 	dmin = 0.0f;

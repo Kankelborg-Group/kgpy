@@ -5,12 +5,12 @@
  *      Author: byrdie
  */
 
-#ifndef SRC_IMG_DSPK_DISTRIBUTION_H_
-#define SRC_IMG_DSPK_DISTRIBUTION_H_
+#ifndef KGPY_IMG_DSPK_DISTRIBUTION_H_
+#define KGPY_IMG_DSPK_DISTRIBUTION_H_
 
+#include <kgpy/img/dspk/util.h>
 #include <math.h>
 
-#include "util.h"
 
 namespace kgpy {
 
@@ -37,4 +37,4 @@ int data2hist(float dval, float m_min, float m_max, int nbins);
 }
 
 
-#endif /* SRC_IMG_DSPK_DISTRIBUTION_H_ */
+#endif /* KGPY_IMG_DSPK_DISTRIBUTION_H_ */

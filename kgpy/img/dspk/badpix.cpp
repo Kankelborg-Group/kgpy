@@ -5,7 +5,7 @@
  *      Author: byrdie
  */
 
-#include "badpix.h"
+#include <kgpy/img/dspk/badpix.h>
 
 namespace kgpy {
 

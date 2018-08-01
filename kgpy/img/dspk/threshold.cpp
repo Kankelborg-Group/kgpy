@@ -5,7 +5,7 @@
  *      Author: byrdie
  */
 
-#include "threshold.h"
+#include <kgpy/img/dspk/threshold.h>
 
 namespace kgpy {
 
@@ -92,19 +92,19 @@ void calc_extrap_thresh(DB * db, float tmin, float tmax, int axis){
 	int x0 = calc_hist_center(db, axis);
 
 	// extrapolate threshold by slicing histogram along threshold
-	int y1_min = median_extrapolation(db, t9, tmin, x0, axis, -1);
-	int y1_max = median_extrapolation(db, t1, tmax, x0, axis, 1);
+	float theta_min = median_extrapolation(db, t9, tmin, x0, axis);
+	float theta_max = median_extrapolation(db, t1, tmax, x0, axis);
 
 	// save the extrapolated trheshold curve to arrays
-	apply_extrap_thresh(db, t9, tmin, x0, y1_min, axis);
-	apply_extrap_thresh(db, t1, tmax, x0, y1_max, axis);
+	apply_extrap_thresh(db, t9, tmin, x0, theta_min, axis);
+	apply_extrap_thresh(db, t1, tmax, x0, theta_max, axis);
 
 
 
 
 }
 
-void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, int y1, int axis){
+void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, float theta, int axis){
 
 	// load from database
 	float * cnts = db->cnts;
@@ -117,8 +117,6 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, int y1, int a
 	// find minimum counts for statistical significance
 	int min_cnts = min_samples(thresh);
 
-	int x1 = hsz.x - 1;
-
 	// replace all statistically insignificant points with extrapolated line
 #pragma acc parallel loop present(t), present(cnts)
 	for(int x = 0; x < hsz.x; x++){
@@ -126,8 +124,8 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, int y1, int a
 		// grab y-value at most statistically significant point
 		int y0 = t[tz * axis + tx * x0];
 
-		float m = pts2slope(x0, y0, x1, y1);
-		float b = pts2intercept(x0, y0, x1, y1);
+		float m = tan(theta);
+		float b = calc_intercept(x0, y0, m);
 
 		int T = tz * axis + tx * x;
 
@@ -152,16 +150,12 @@ void apply_extrap_thresh(DB * db, float * t, float thresh, int x0, int y1, int a
 
 }
 
-int median_extrapolation(DB * db, float * t, float thresh, int x0, int axis, int direction){
+float median_extrapolation(DB * db, float * t, float thresh, int x0, int axis){
 
 	// load from database
 	float * cnts = db->cnts;
 	dim3 hsz = db->hsz;
 	dim3 tsz = db->tsz;
-
-	// initial guess for second point
-	int x1 = hsz.x - 1;
-	int y1 = x1;
 
 	// compute threshold strides
 	int tx = 1;
@@ -171,7 +165,7 @@ int median_extrapolation(DB * db, float * t, float thresh, int x0, int axis, int
 	int min_cnts = min_samples(thresh);
 
 	// extrapolate slope of threshold
-	while(true) {
+	for (float theta = 0.0f; theta < M_PI/2; theta += M_PI/(hsz.x + hsz.y)){
 
 		float lsum = 0;
 		float usum = 0;
@@ -185,8 +179,8 @@ int median_extrapolation(DB * db, float * t, float thresh, int x0, int axis, int
 			// grab y-value at most statistically significant point
 			int y0 = t[tz * axis + tx * x0];
 
-			float m = pts2slope(x0, y0, x1, y1);
-			float b = pts2intercept(x0, y0, x1, y1);
+			float m = tan(theta);
+			float b = calc_intercept(x0, y0, m);
 			float y = m * x + b;
 
 			if(cnts[T] > min_cnts) {
@@ -201,19 +195,12 @@ int median_extrapolation(DB * db, float * t, float thresh, int x0, int axis, int
 
 		float ratio =  lsum / (usum + lsum);
 
-		if (direction > 0) {
-			if (ratio >= 0.50) {
-				return y1;
-			}
-		} else {
-			if (ratio <= 0.50) {
-				return y1;
-			}
+		if (ratio >= 0.50) {
+			return theta;
 		}
-
-		y1 += direction;
-
 	}
+
+	return 0.0;
 
 }
 
@@ -317,9 +304,7 @@ float pts2slope(int x0, int y0, int x1, int y1) {
 
 }
 
-float pts2intercept(int x0, int y0, int x1, int y1){
-
-	float m = pts2slope(x0, y0, x1, y1);
+float calc_intercept(int x0, int y0, float m){
 
 	return y0 - m * x0;
 

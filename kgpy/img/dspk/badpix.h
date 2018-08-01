@@ -5,12 +5,12 @@
  *      Author: byrdie
  */
 
-#ifndef SRC_IMG_DSPK_BADPIX_H_
-#define SRC_IMG_DSPK_BADPIX_H_
+#ifndef KGPY_IMG_DSPK_BADPIX_H_
+#define KGPY_IMG_DSPK_BADPIX_H_
 
+#include <kgpy/img/dspk/util.h>
 #include <math.h>
 
-#include "util.h"
 
 namespace kgpy {
 
@@ -32,4 +32,4 @@ float kernel(int x);
 
 }
 
-#endif /* SRC_IMG_DSPK_BADPIX_H_ */
+#endif /* KGPY_IMG_DSPK_BADPIX_H_ */

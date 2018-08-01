@@ -1,1 +1,0 @@
-from Release.libkgpy import dspk_ndarr

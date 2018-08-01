@@ -5,17 +5,17 @@
  *      Author: byrdie
  */
 
-#ifndef SRC_IMG_DSPK_MEDIAN_H_
-#define SRC_IMG_DSPK_MEDIAN_H_
+#ifndef KGPY_IMG_DSPK_MEDIAN_H_
+#define KGPY_IMG_DSPK_MEDIAN_H_
 
 
+#include <kgpy/img/dspk/util.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <cstdlib>
 #include <string>
 
-#include "util.h"
 
 namespace kgpy {
 
@@ -32,4 +32,4 @@ void calc_local_median(float * lmed, float * data, float * gmap, dim3 dsz, dim3 
 }
 
 
-#endif /* SRC_IMG_DSPK_MEDIAN_H_ */
+#endif /* KGPY_IMG_DSPK_MEDIAN_H_ */
