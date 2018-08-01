@@ -314,7 +314,7 @@ int min_samples(float thresh){
 
 	// compute how many counts are required for adequate statistics
 	float interval = fmin(1.0f - thresh, thresh);
-	float sigma = 10.0f;	// how many points need to be outside the confidence interval
+	float sigma = 15.0f;	// how many points need to be outside the confidence interval
 	int min_cnts = sigma / interval;
 
 	return min_cnts;
