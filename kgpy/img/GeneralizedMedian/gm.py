@@ -35,6 +35,14 @@ def gm2d(image):
     delta_x = -(C[2]*C[3] - 2*C[5]*C[1]) / denominator
     delta_y = -(C[1]*C[3] - 2*C[4]*C[2]) / denominator
     
+    # Look at the quality of fit
+    model = C[0] + C[1]*X + C[2]*Y + C[3]*X*Y + C[4]*X**2 + C[5]*Y**2
+    var_neighborhood = np.var(neighborhood)
+    var_residuals = np.var(neighborhood - model)
+    print('gm2d quadratic fit accounts for ',
+          100.*(var_neighborhood - var_residuals)/var_neighborhood,
+          '% of 3x3 neighborhood variance')
+    
     meanabsrad = wmap[im,jm]/np.sum(image)
     
     # Calculate and return rm
