@@ -25,7 +25,7 @@ def gm2d(image):
     X,Y = np.meshgrid([-1,0,1],[-1,0,1]) # Neighborhood coordinates
     Xc = X.flatten() # X squished into a column vector
     Yc = Y.flatten() # Y squished into a column vector
-    Cc = np.ones(Xc.shape[0]) # Constant column vector
+    Cc = np.ones(Xc.shape[0]) # Column vector of ones
     A = np.c_[Cc, Xc, Yc, Xc*Yc, Xc**2, Yc**2] # Matrix to be solved
     C = linalg.lstsq(A, neighborhood.flatten())[0] # Array of fit coefficients
     # From this, calculate offsets from im,jm.
