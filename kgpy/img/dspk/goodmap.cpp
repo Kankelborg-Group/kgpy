@@ -19,30 +19,30 @@ void calc_gmap(DB * db, float tmin, float tmax, float bad_pix_val){
 	float * gmap = db->gmap;
 	dim3 dsz = db->dsz;
 
-	printf("Checkpoint 2\n");
+//	printf("Checkpoint 2\n");
 
 	// initialize arrays
 	init_gmap(gmap, data, dsz, bad_pix_val);
 	init_histogram(db);
 
-	printf("Checkpoint 3\n");
+//	printf("Checkpoint 3\n");
 
 	// find the extreme values of the data array not masked by the goodmap
 	db->dmax = find_max(data, gmap, dsz);
 	db->dmin = find_min(data, gmap, dsz);
 
-	printf("Checkpoint 4\n");
+//	printf("Checkpoint 4\n");
 
 	int naxis = 3;
 	for(int axis = 0; axis < naxis; axis++){
 
 		calc_axis_gmap(db, tmin, tmax, axis);
 
-		printf("Checkpoint 4.%d\n", axis);
+//		printf("Checkpoint 4.%d\n", axis);
 
 	}
 
-	printf("Checkpoint 5\n");
+//	printf("Checkpoint 5\n");
 
 	finalize_gmap(db);
 
@@ -60,15 +60,15 @@ void calc_axis_gmap(DB * db, float tmin, float tmax, int axis){
 #pragma acc data create(lmed[0:dsz.xyz])
 	{
 
-		printf("Checkpoint 4.%d.1\n", axis);
+//		printf("Checkpoint 4.%d.1\n", axis);
 		calc_local_median(lmed, data, gmap, dsz, ksz, axis);
-		printf("Checkpoint 4.%d\n", axis);
+//		printf("Checkpoint 4.%d\n", axis);
 		calc_histogram(db, lmed, axis);
-		printf("Checkpoint 4.%d.2\n", axis);
+//		printf("Checkpoint 4.%d.2\n", axis);
 		calc_cumulative_distribution(db, axis);
-		printf("Checkpoint 4.%d.3\n", axis);
+//		printf("Checkpoint 4.%d.3\n", axis);
 		calc_thresh(db, tmin, tmax, axis);
-		printf("Checkpoint 4.%d.4\n", axis);
+//		printf("Checkpoint 4.%d.4\n", axis);
 		increment_gmap(db, lmed, axis);
 	}
 
