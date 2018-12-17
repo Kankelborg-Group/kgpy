@@ -12,11 +12,11 @@ from matplotlib import colors
 print(os.getcwd())
 
 # testfile = "../../../data/iris_l2_20150615_072426_3610091469_raster_t000_r00000.fits"
-# testfile = '/home/byrdie/Kankelborg-Group/kgpy/data/iris_l2_20150615_072426_3610091469_raster_t000_r00000.fits'
+testfile = '/home/byrdie/Kankelborg-Group/kgpy/data/iris_l2_20150615_072426_3610091469_raster_t000_r00000.fits'
 # testfile = '/media/byrdie/RoyHDD/IRIS_level2/iris_l2_20130917_170937_4003005068_raster_t000_r00017.fits'
 # testfile = '/media/byrdie/RoyHDD/IRIS_level2/iris_l2_20131219_174351_3820007196_raster_t000_r00000.fits'
 # testfile = '/media/byrdie/RoyHDD/IRIS_level2/iris_l2_20131219_192751_3820007196_raster_t000_r00000.fits'
-testfile = '/media/byrdie/RoyHDD/IRIS_level2/iris_l2_20130827_102128_4003001167_raster_t000_r00069.fits'
+# testfile = '/media/byrdie/RoyHDD/IRIS_level2/iris_l2_20130827_102128_4003001167_raster_t000_r00069.fits'
 
 hdul = fits.open(testfile)
 
