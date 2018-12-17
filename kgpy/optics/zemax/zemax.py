@@ -14,6 +14,10 @@ from unittest import TestCase
 # Note that Visual Studio and Python Tools make development easier, however this python script should should run without either installed.
 
 class Zemax(object):
+    """
+    A class used to interface with a particular Zemax file
+    """
+
     class LicenseException(Exception):
         pass
 
@@ -26,23 +30,35 @@ class Zemax(object):
     class SystemNotPresentException(Exception):
         pass
 
-    def __init__(self):
-        # make sure the Python wrappers are available for the COM client and
-        # interfaces
-        # EnsureModule('ZOSAPI_Interfaces', 0, 1, 0)
-        # Note - the above can also be accomplished using 'makepy.py' in the
-        # following directory:
-        #      {PythonEnv}\Lib\site-packages\wind32com\client\
-        # Also note that the generate wrappers do not get refreshed when the
-        # COM library changes.
-        # To refresh the wrappers, you can manually delete everything in the
-        # cache directory:
-        #	   {PythonEnv}\Lib\site-packages\win32com\gen_py\*.*
+    def __init__(self, model_path):
+        """
+        Constructor for the Zemax object
 
+        Make sure the Python wrappers are available for the COM client and interfaces
+        EnsureModule('ZOSAPI_Interfaces', 0, 1, 0)
+        Note - the above can also be accomplished using 'makepy.py' in the
+        following directory:
+        ::
+
+             {PythonEnv}\Lib\site-packages\wind32com\client\
+        Also note that the generate wrappers do not get refreshed when the COM library changes.
+        To refresh the wrappers, you can manually delete everything in the cache directory:
+        ::
+
+        	   {PythonEnv}\Lib\site-packages\win32com\gen_py\*.*
+
+        :param model_path: Path to the Zemax model that will be opened when this constructor is called.
+
+
+        """
+
+
+        # Create COM connection to Zemax
         self.TheConnection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")
         if self.TheConnection is None:
             raise Zemax.ConnectionException("Unable to intialize COM connection to ZOSAPI")
 
+        # Open Zemax application
         self.TheApplication = self.TheConnection.CreateNewApplication()
         if self.TheApplication is None:
             raise Zemax.InitializationException("Unable to acquire ZOSAPI application")
@@ -53,6 +69,9 @@ class Zemax(object):
         self.TheSystem = self.TheApplication.PrimarySystem
         if self.TheSystem is None:
             raise Zemax.SystemNotPresentException("Unable to acquire Primary system")
+
+        # Open zemax model
+        self.OpenFile(model_path)
 
     def __del__(self):
         if self.TheApplication is not None:
@@ -87,27 +106,21 @@ class Zemax(object):
         else:
             return "Invalid"
 
+    def raytrace(self, zmx_model_path, surfs, wavl_indices, Fx, Fy, Px, Py):
+
 class TestZemax(TestCase):
 
     def test__init(self):
         zosapi = Zemax()
         value = zosapi.ExampleConstants()
 
-        print(value)
+        self.assertTrue(value is not None)
 
         del zosapi
         zosapi = None
 
 
-# if __name__ == '__main__':
-#     zosapi = Zemax()
-#     value = zosapi.ExampleConstants()
-#
-#     # This will clean up the connection to OpticStudio.
-#     # Note that it closes down the server instance of OpticStudio, so you for maximum performance do not do
-#     # this until you need to.
-#     del zosapi
-#     zosapi = None
+
 
 
 
