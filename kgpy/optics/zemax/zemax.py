@@ -1,7 +1,7 @@
 from win32com.client.gencache import EnsureDispatch, EnsureModule
 from win32com.client import CastTo, constants
 from unittest import TestCase
-
+import numpy as np
 
 # Notes
 #
@@ -71,7 +71,7 @@ class Zemax(object):
             raise Zemax.SystemNotPresentException("Unable to acquire Primary system")
 
         # Open zemax model
-        self.OpenFile(model_path)
+        self.OpenFile(model_path, False)
 
     def __del__(self):
         if self.TheApplication is not None:
@@ -106,7 +106,96 @@ class Zemax(object):
         else:
             return "Invalid"
 
-    def raytrace(self, zmx_model_path, surfs, wavl_indices, Fx, Fy, Px, Py):
+    def raytrace(self, surface_indices, wavl_indices, field_coords_x, field_coords_y, pupil_coords_x, pupil_coords_y):
+
+        # Grab a handle to the zemax system
+        sys = self.TheSystem
+
+        # Initialize raytrace
+        rt = sys.Tools.OpenBatchRayTrace()  # raytrace object
+        tool = sys.Tools.CurrentTool  # pointer to active tool
+
+        # Store number of surfaces
+        num_surf = len(surface_indices)
+
+        # store number of wavelengths
+        num_wavl = len(wavl_indices)
+
+        # Store length of each axis in ray grid
+        num_field_x = len(field_coords_x)
+        num_field_y = len(field_coords_y)
+        num_pupil_x = len(pupil_coords_x)
+        num_pupil_y = len(pupil_coords_y)
+
+        # Create grid of rays
+        Fx, Fy, Px, Py = np.meshgrid(field_coords_x, field_coords_y, pupil_coords_x, pupil_coords_y, indexing='ij')
+
+        # Store shape of grid
+        sh = list(Fx.shape)
+
+        # Shape of grid for each surface and wavelength
+        tot_sh = [num_surf, num_wavl] + sh
+
+        # Allocate output arrays
+        V = np.empty(tot_sh)      # Vignetted rays
+        X = np.empty(tot_sh)
+        Y = np.empty(tot_sh)
+        # F = np.zeros((num_surf, num_field_x, num_field_y))      # Field coordinates at each surface
+        # P = np.zeros((num_surf, num_pupil_x, num_pupil_y))      # Pupil coordinates at each surface
+        C = np.empty(num_surf, dtype=np.str)      # Comment at each surface
+
+        # Loop over each surface and run raytrace to surface
+        for s, surf_ind in enumerate(surface_indices):
+
+            # Save comment at this surface
+            # C.append(sys.LDE.GetSurfaceAt(surf_ind).Comment)
+            C[s] = sys.LDE.GetSurfaceAt(surf_ind).Comment
+
+            # Run raytrace for each wavelength
+            for w, wavl_ind in enumerate(wavl_indices):
+
+                # Run raytrace for each field angle
+                for fi in range(num_field_x):
+                    for fj in range(num_field_y):
+
+                        # Open instance of batch raytrace
+                        rt_dat = rt.CreateNormUnpol(num_pupil_x * num_pupil_y, constants.RaysType_Real, surf_ind)
+
+                        # Loop over pupil to add rays to batch raytrace
+                        for pi in range(num_pupil_x):
+                            for pj in range(num_pupil_y):
+
+                                # Select next ray
+                                fx = Fx[fi, fj, pi, pj]
+                                fy = Fy[fi, fj, pi, pj]
+                                px = Px[fi, fj, pi, pj]
+                                py = Py[fi, fj, pi, pj]
+
+                                # Write ray to pipe
+                                rt_dat.AddRay(w, fx, fy, px, py, constants.OPDMode_None)
+
+                        # Execute the raytrace
+                        tool.RunAndWaitForCompletion()
+
+                        # Initialize the process of reading the results of the raytrace
+                        rt_dat.StartReadingResults()
+
+                        # Loop over pupil and read the results of the raytrace
+                        for pi in range(num_pupil_x):
+                            for pj in range(num_pupil_y):
+
+                                # Read next result from pipe
+                                (ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, intensity) = rt_dat.ReadNextResult()
+
+                                # Store next result in output arrays
+                                V[s, w, fi, fj, pi, pj] = vig
+                                X[s, w, fi, fj, pi, pj] = x
+                                Y[s, w, fi, fj, pi, pj] = y
+
+        return V, X, Y
+
+
+
 
 class TestZemax(TestCase):
 
