@@ -4,6 +4,8 @@ from unittest import TestCase
 from . import Zemax
 from .zemax.zemax import TestZemax
 
+__all__ = ['Surface']
+
 
 class Surface:
     """

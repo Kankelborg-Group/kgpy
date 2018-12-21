@@ -6,6 +6,8 @@ from . import Zemax
 from.zemax.zemax import TestZemax
 from .component import DefaultPrimary
 
+__all__ = ['System']
+
 
 class System(ABC):
     """

@@ -5,6 +5,8 @@ from unittest import TestCase
 from . import Surface, Zemax
 from .zemax.zemax import TestZemax
 
+__all__ = ['Component']
+
 
 class Component(ABC):
     """
@@ -30,7 +32,7 @@ class Component(ABC):
         # Loop through every name/comment pair in provided dictionary to initialize surfaces
         for name, comment in self.surface_comment_dict.items():
             s = Surface(zmx, name, comment)
-            self.surfaces[name] = s.name
+            self.surfaces[name] = s
 
     @property
     @abstractmethod
@@ -92,6 +94,9 @@ class TestComponent(TestCase):
         # Instantiate Zemax design for use by other tests.
         self.zmx = Zemax(TestZemax.test_path)
 
+        # Initialize concrete component for testing
+        self.component = DefaultPrimary(self.zmx)
+
     def test__init__(self):
         """
         Test the constructor by defining a concrete component and checking that every surface in that component is not
@@ -99,12 +104,10 @@ class TestComponent(TestCase):
         :return: None
         """
 
-        # Initialize concrete component for testing
-        self.component = DefaultPrimary(self.zmx)
-
         # Loop through every surface and check that it is not none.
         for key, value in self.component.surfaces.items():
-            self.assertTrue(value is not None)
+            print(value.zmx_surf)
+            self.assertTrue(value.zmx_surf is not None)
 
 
 

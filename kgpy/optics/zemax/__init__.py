@@ -1,1 +1,1 @@
-from .zemax import Zemax
+from .zemax import *
