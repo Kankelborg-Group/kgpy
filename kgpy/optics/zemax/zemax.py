@@ -2,6 +2,10 @@ from win32com.client.gencache import EnsureDispatch, EnsureModule
 from win32com.client import CastTo, constants
 from unittest import TestCase
 import numpy as np
+import os
+import math
+
+__all__ = ['Zemax']
 
 # Notes
 #
@@ -12,6 +16,7 @@ import numpy as np
 #       Python Tools for Visual Studio (https://pytools.codeplex.com/) - integration into Visual Studio
 #
 # Note that Visual Studio and Python Tools make development easier, however this python script should should run without either installed.
+
 
 class Zemax(object):
     """
@@ -45,13 +50,12 @@ class Zemax(object):
         To refresh the wrappers, you can manually delete everything in the cache directory:
         ::
 
-        	   {PythonEnv}\Lib\site-packages\win32com\gen_py\*.*
+            {PythonEnv}\Lib\site-packages\win32com\gen_py\*.*
 
         :param model_path: Path to the Zemax model that will be opened when this constructor is called.
 
 
         """
-
 
         # Create COM connection to Zemax
         self.TheConnection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")
@@ -70,8 +74,12 @@ class Zemax(object):
         if self.TheSystem is None:
             raise Zemax.SystemNotPresentException("Unable to acquire Primary system")
 
+
+
         # Open zemax model
         self.OpenFile(model_path, False)
+
+
 
     def __del__(self):
         if self.TheApplication is not None:
@@ -107,9 +115,28 @@ class Zemax(object):
             return "Invalid"
 
     def raytrace(self, surface_indices, wavl_indices, field_coords_x, field_coords_y, pupil_coords_x, pupil_coords_y):
+        """
+        Execute an arbitrary raytrace of the system
+
+        :param surface_indices: List of surfaces indices where ray positions will be evaluated.
+        :type surface_indices: list
+        :param wavl_indices: List of wavelength indices to generate rays
+        :type wavl_indices: List
+        :param field_coords_x: ndarray of normalized field coordinates in the x direction
+        :param field_coords_y: ndarray of normalized field coordinates in the y direction
+        :param pupil_coords_x: ndarray of normalized pupil coordinates in the x direction
+        :param pupil_coords_y: ndarray of normalized pupil coordinates in the y direction
+        :return: three ndarrrays of shape [len(surface_indices), len(wavl_indices), len(field_coords_x), len(field_coords_y), len(pupil_coords_x), len(pupil_coords_y)]
+        for the vignetting code, x position and y position of every ray in the raytrace.
+        """
 
         # Grab a handle to the zemax system
         sys = self.TheSystem
+
+        # Deal with shorthand for last surface
+        for s, surf in enumerate(surface_indices):
+            if surf < 0:
+                surface_indices[s] = sys.LDE.NumberOfSurfaces + surf
 
         # Initialize raytrace
         rt = sys.Tools.OpenBatchRayTrace()  # raytrace object
@@ -140,12 +167,12 @@ class Zemax(object):
         V = np.empty(tot_sh)      # Vignetted rays
         X = np.empty(tot_sh)
         Y = np.empty(tot_sh)
-        # F = np.zeros((num_surf, num_field_x, num_field_y))      # Field coordinates at each surface
-        # P = np.zeros((num_surf, num_pupil_x, num_pupil_y))      # Pupil coordinates at each surface
         C = np.empty(num_surf, dtype=np.str)      # Comment at each surface
 
         # Loop over each surface and run raytrace to surface
         for s, surf_ind in enumerate(surface_indices):
+
+            print('surface', surf_ind)
 
             # Save comment at this surface
             # C.append(sys.LDE.GetSurfaceAt(surf_ind).Comment)
@@ -172,7 +199,7 @@ class Zemax(object):
                                 py = Py[fi, fj, pi, pj]
 
                                 # Write ray to pipe
-                                rt_dat.AddRay(w, fx, fy, px, py, constants.OPDMode_None)
+                                rt_dat.AddRay(wavl_ind, fx, fy, px, py, constants.OPDMode_None)
 
                         # Execute the raytrace
                         tool.RunAndWaitForCompletion()
@@ -194,19 +221,83 @@ class Zemax(object):
 
         return V, X, Y
 
+    def find_surface(self, comment_str):
+        """
+        Find the surface matching the provided comment string
 
+        :param comment_str: Comment string to search for
+        :return: Surface matching comment string
+        :rtype: ILDERow
+        """
+
+        # Grab pointer to lens data editor
+        lde = self.TheSystem.LDE
+
+        # Save the number of surfaces to local variable
+        n_surf = lde.NumberOfSurfaces
+
+        # Loop through every surface and look for a match to the comment string
+        for s in range(n_surf):
+
+            # Save the pointer to this surface
+            surf = lde.GetSurfaceAt(s)
+
+            # Check if the comment of this surface matches the comment we're looking for
+            if surf.Comment == comment_str:
+
+                return surf
 
 
 class TestZemax(TestCase):
 
+    test_path = os.path.join(os.path.dirname(__file__), 'test_model.zmx')
+
+    def setUp(self):
+        self.zmx = Zemax(self.test_path)
+
+    def tearDown(self):
+
+        del self.zmx
+        self.zmx = None
+
     def test__init(self):
-        zosapi = Zemax()
-        value = zosapi.ExampleConstants()
+
+        value = self.zmx.ExampleConstants()
 
         self.assertTrue(value is not None)
 
-        del zosapi
-        zosapi = None
+    def test_raytrace(self):
+
+        surf_indices = [-1]
+        wavl_indices = [1]
+        fx = [0.0]
+        fy = [1.0]
+        px = [0.0]
+        py = [0.0]
+
+        V, X, Y = self.zmx.raytrace(surf_indices, wavl_indices, fx, fy, px, py)
+
+        self.assertTrue(V[0] == 0.)
+        self.assertTrue(X[0] == 0.)
+        self.assertTrue(math.isclose(Y[0], 100 * np.sin(np.radians(1.0)), abs_tol=1e-3))
+
+    def test_find_surface(self):
+
+        primary_comment = 'Primary'
+        true_primary_ind = 2
+
+        primary_surf = self.zmx.find_surface(primary_comment)
+
+        self.assertTrue(primary_surf.SurfaceNumber == true_primary_ind)
+
+    def test_find_surface_no_match(self):
+
+        unmatching_comment = 'asdfasdf'
+
+        surf = self.zmx.find_surface(unmatching_comment)
+
+        self.assertTrue(surf is None)
+
 
 
 
