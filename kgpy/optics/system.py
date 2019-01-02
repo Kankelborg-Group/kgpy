@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from unittest import TestCase
 
 from . import Zemax
-from.zemax.zemax import TestZemax
+from .zemax.zemax import TestZemax
 from .component import DefaultPrimary
 
 __all__ = ['System']
@@ -27,10 +27,12 @@ class System(ABC):
         self.zmx = Zemax(zmx_path)
 
         # Loop through component dictionary, initialize each object, and place in dictionary for later access
-        self.components = {}
+        self._components = {}
         for component in self.component_list:
             c = component(self.zmx)
-            self.components[c.name] = c
+            self._components[c.name] = c
+
+
 
     @property
     @abstractmethod
@@ -51,6 +53,14 @@ class System(ABC):
         """
 
         return [DefaultPrimary]
+
+    @property
+    def components(self):
+        return self._components
+
+    def generate_baffles(self):
+
+
 
 
 class DefaultSystem(System):

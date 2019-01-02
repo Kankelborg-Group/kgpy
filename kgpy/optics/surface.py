@@ -24,11 +24,29 @@ class Surface:
         """
 
         # Save arguments to class variables
+        self.zmx = zmx
         self.name = name
         self.comment = comment
 
         # Open Zemax surface object
         self.zmx_surf = zmx.find_surface(self.comment)
+
+        # Calculate global z coordinate of surface front
+        self.Z0 = self.calc_global_z(self.zmx_surf)
+
+        # Calculate global z coordinate of surface back
+        self.Z1 = self.Z0 + self.zmx_surf.Thickness
+
+    def calc_global_z(self, surf):
+
+        surf_ind = surf.SurfaceNumber
+        z = 0
+        for s in range(1, surf_ind):
+            z += self.zmx.TheSystem.LDE.GetSurfaceAt(s).Thickness
+
+        return z
+
+
 
 
 class TestSurface(TestCase):

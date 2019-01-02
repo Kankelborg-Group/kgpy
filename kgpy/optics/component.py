@@ -27,12 +27,12 @@ class Component(ABC):
         self.zmx = zmx
 
         # Allocate empty dictionary for Surface objects
-        self.surfaces = {}
+        self._surfaces = {}
 
         # Loop through every name/comment pair in provided dictionary to initialize surfaces
         for name, comment in self.surface_comment_dict.items():
             s = Surface(zmx, name, comment)
-            self.surfaces[name] = s
+            self._surfaces[name] = s
 
     @property
     @abstractmethod
@@ -56,6 +56,16 @@ class Component(ABC):
         :rtype: dict
         """
         return {'default key': 'default value'}
+
+    @property
+    def surfaces(self):
+        """
+        Dictionary of surfaces representing the optical component
+
+        :return: Dictionary, where every key/value pair is the name of the surface and a pointer to the surface object
+        :rtype: dict
+        """
+        return self._surfaces
 
 
 class DefaultPrimary(Component):
@@ -106,7 +116,6 @@ class TestComponent(TestCase):
 
         # Loop through every surface and check that it is not none.
         for key, value in self.component.surfaces.items():
-            print(value.zmx_surf)
             self.assertTrue(value.zmx_surf is not None)
 
 
