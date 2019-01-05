@@ -1,1 +1,1 @@
-from .zemax import *
+from .system import *

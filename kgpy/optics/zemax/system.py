@@ -5,7 +5,9 @@ import numpy as np
 import os
 import math
 
-__all__ = ['Zemax']
+from .. import System, Component, Surface
+
+__all__ = ['ZmxSystem']
 
 # Notes
 #
@@ -18,7 +20,7 @@ __all__ = ['Zemax']
 # Note that Visual Studio and Python Tools make development easier, however this python script should should run without either installed.
 
 
-class Zemax(object):
+class ZmxSystem(System):
     """
     A class used to interface with a particular Zemax file
     """
@@ -35,7 +37,7 @@ class Zemax(object):
     class SystemNotPresentException(Exception):
         pass
 
-    def __init__(self, model_path):
+    def __init__(self, name, components, model_path):
         """
         Constructor for the Zemax object
 
@@ -52,86 +54,65 @@ class Zemax(object):
 
             {PythonEnv}\Lib\site-packages\win32com\gen_py\*.*
 
+        :param name: Human-readable name of this system
+        :param components: List of components we want to divide the system into. Note that Zemax does not have the
+        concept of components, which is why this list needs to provided, it tells this function how to split up the
+        surfaces in the Zemax model.
         :param model_path: Path to the Zemax model that will be opened when this constructor is called.
-
-
+        :type name: str
+        :type components: list[kgpy.optics.Component]
+        :type model_path: str
         """
 
+        # Save input arguments
+        self.name = name
+        self.components = components
+        self.model_path = model_path
+
         # Create COM connection to Zemax
-        self.TheConnection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")
-        if self.TheConnection is None:
-            raise Zemax.ConnectionException("Unable to intialize COM connection to ZOSAPI")
+        self._connection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")
+        if self._connection is None:
+            raise self.ConnectionException("Unable to intialize COM connection to ZOSAPI")
 
         # Open Zemax application
-        self.TheApplication = self.TheConnection.CreateNewApplication()
-        if self.TheApplication is None:
-            raise Zemax.InitializationException("Unable to acquire ZOSAPI application")
+        self._app = self._connection.CreateNewApplication()
+        if self._app is None:
+            raise self.InitializationException("Unable to acquire ZOSAPI application")
 
-        if self.TheApplication.IsValidLicenseForAPI == False:
-            raise Zemax.LicenseException("License is not valid for ZOSAPI use")
+        # Check if license is valid
+        if self._app.IsValidLicenseForAPI is False:
+            raise self.LicenseException("License is not valid for ZOSAPI use")
 
-        self.TheSystem = self.TheApplication.PrimarySystem
-        if self.TheSystem is None:
-            raise Zemax.SystemNotPresentException("Unable to acquire Primary system")
+        # Check that we can open the primary system object
+        self._sys = self._app.PrimarySystem
+        if self._sys is None:
+            raise self.SystemNotPresentException("Unable to acquire Primary system")
 
-
-
-        # Open zemax model
-        self.OpenFile(model_path, False)
-
-
-
-    def __del__(self):
-        if self.TheApplication is not None:
-            self.TheApplication.CloseApplication()
-            self.TheApplication = None
-
-        self.TheConnection = None
-
-    def OpenFile(self, filepath, saveIfNeeded):
-        if self.TheSystem is None:
-            raise Zemax.SystemNotPresentException("Unable to acquire Primary system")
-        self.TheSystem.LoadFile(filepath, saveIfNeeded)
-
-    def CloseFile(self, save):
-        if self.TheSystem is None:
-            raise Zemax.SystemNotPresentException("Unable to acquire Primary system")
-        self.TheSystem.Close(save)
-
-    def SamplesDir(self):
-        if self.TheApplication is None:
-            raise Zemax.InitializationException("Unable to acquire ZOSAPI application")
-
-        return self.TheApplication.SamplesDir
-
-    def ExampleConstants(self):
-        if self.TheApplication.LicenseStatus is constants.LicenseStatusType_PremiumEdition:
-            return "Premium"
-        elif self.TheApplication.LicenseStatus is constants.LicenseStatusType_ProfessionalEdition:
-            return "Professional"
-        elif self.TheApplication.LicenseStatus is constants.LicenseStatusType_StandardEdition:
-            return "Standard"
-        else:
-            return "Invalid"
+        # Open Zemax model
+        self.open_file(model_path, False)
 
     def raytrace(self, surface_indices, wavl_indices, field_coords_x, field_coords_y, pupil_coords_x, pupil_coords_y):
         """
         Execute an arbitrary raytrace of the system
-
         :param surface_indices: List of surfaces indices where ray positions will be evaluated.
-        :type surface_indices: list
         :param wavl_indices: List of wavelength indices to generate rays
-        :type wavl_indices: List
-        :param field_coords_x: ndarray of normalized field coordinates in the x direction
-        :param field_coords_y: ndarray of normalized field coordinates in the y direction
-        :param pupil_coords_x: ndarray of normalized pupil coordinates in the x direction
-        :param pupil_coords_y: ndarray of normalized pupil coordinates in the y direction
+        :param field_coords_x: array of normalized field coordinates in the x direction
+        :param field_coords_y: array of normalized field coordinates in the y direction
+        :param pupil_coords_x: array of normalized pupil coordinates in the x direction
+        :param pupil_coords_y: array of normalized pupil coordinates in the y direction
+        :type surface_indices: list[int]
+        :type wavl_indices: list[int]
+        :type field_coords_x: numpy.ndarray
+        :type field_coords_y: numpy.ndarray
+        :type pupil_coords_x: numpy.ndarray
+        :type pupil_coords_y: numpy.ndarray
         :return: three ndarrrays of shape [len(surface_indices), len(wavl_indices), len(field_coords_x), len(field_coords_y), len(pupil_coords_x), len(pupil_coords_y)]
         for the vignetting code, x position and y position of every ray in the raytrace.
+        :rtype: numpy.ndarray, numpy.ndarray, numpy.ndarray
         """
 
         # Grab a handle to the zemax system
-        sys = self.TheSystem
+        sys = self._sys
 
         # Deal with shorthand for last surface
         for s, surf in enumerate(surface_indices):
@@ -227,11 +208,11 @@ class Zemax(object):
 
         :param comment_str: Comment string to search for
         :return: Surface matching comment string
-        :rtype: ILDERow
+        :rtype: ZOSAPI.Editors.LDE.ILDERow
         """
 
         # Grab pointer to lens data editor
-        lde = self.TheSystem.LDE
+        lde = self._sys.LDE
 
         # Save the number of surfaces to local variable
         n_surf = lde.NumberOfSurfaces
@@ -247,22 +228,60 @@ class Zemax(object):
 
                 return surf
 
+    def __del__(self):
+        if self._app is not None:
+            self._app.CloseApplication()
+            self._app = None
 
-class TestZemax(TestCase):
+        self._connection = None
+
+    def open_file(self, filepath, saveIfNeeded):
+        if self._sys is None:
+            raise self.SystemNotPresentException("Unable to acquire Primary system")
+        self._sys.LoadFile(filepath, saveIfNeeded)
+
+    def close_file(self, save):
+        if self._sys is None:
+            raise self.SystemNotPresentException("Unable to acquire Primary system")
+        self._sys.Close(save)
+
+    def samples_dir(self):
+        if self._app is None:
+            raise self.InitializationException("Unable to acquire ZOSAPI application")
+
+        return self._app.samples_dir
+
+    def example_constants(self):
+        if self._app.LicenseStatus is constants.LicenseStatusType_PremiumEdition:
+            return "Premium"
+        elif self._app.LicenseStatus is constants.LicenseStatusType_ProfessionalEdition:
+            return "Professional"
+        elif self._app.LicenseStatus is constants.LicenseStatusType_StandardEdition:
+            return "Standard"
+        else:
+            return "Invalid"
+
+
+class TestZmxSystem(TestCase):
 
     test_path = os.path.join(os.path.dirname(__file__), 'test_model.zmx')
 
     def setUp(self):
-        self.zmx = Zemax(self.test_path)
+        name = 'test surface'
+        stop = Component('Stop', [Surface('stop', comment='Stop')])
+        lens = Component('Primary', [Surface('primary', comment='Primary')])
+        img = Component('Detector', [Surface('detector', comment='Detector')])
+
+        self.sys = ZmxSystem(name=name, components=[stop, lens, img], model_path=self.test_path)
 
     def tearDown(self):
 
-        del self.zmx
-        self.zmx = None
+        del self.sys
+        self.sys = None
 
     def test__init(self):
 
-        value = self.zmx.ExampleConstants()
+        value = self.sys.example_constants()
 
         self.assertTrue(value is not None)
 
@@ -287,6 +306,8 @@ class TestZemax(TestCase):
         true_primary_ind = 2
 
         primary_surf = self.zmx.find_surface(primary_comment)
+
+        print(type(primary_surf))
 
         self.assertTrue(primary_surf.SurfaceNumber == true_primary_ind)
 

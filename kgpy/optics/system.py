@@ -1,64 +1,29 @@
 
-from abc import ABC, abstractmethod
+
 from unittest import TestCase
 
-from . import Zemax
-from .zemax.zemax import TestZemax
-from .component import DefaultPrimary
 
 __all__ = ['System']
 
 
-class System(ABC):
+class System:
     """
-    The System class simulates an entire optical system, and is represented as a series of Components
+    The System class simulates an entire optical system, and is represented as a series of Components.
+    This class is intended to be a drop-in replacement for a Zemax system.
     """
 
-    def __init__(self, zmx_path):
+    def __init__(self, name, components):
         """
         This constructor initializes all Components defined in the abstract property component list.
-        :param zmx_path: Full path to Zemax design file
+        :param name: Human-readable name of the system
+        :param components: List of initial components for the system
+        :type name: str
+        :type components: list[kgpy.optics.Component]
         """
 
-        # Save path to variable
-        self.zmx_path = zmx_path
-
-        # Open Zemax object so we can read in the surfaces
-        self.zmx = Zemax(zmx_path)
-
-        # Loop through component dictionary, initialize each object, and place in dictionary for later access
-        self._components = {}
-        for component in self.component_list:
-            c = component(self.zmx)
-            self._components[c.name] = c
-
-
-
-    @property
-    @abstractmethod
-    def name(self):
-        """
-        Name of this system
-        :return: Human-readable name of this system
-        :rtype: str
-        """
-        return 'default system name'
-
-    @property
-    @abstractmethod
-    def component_list(self):
-        """
-        To define a concrete System, we need to define a list of Component objects we would like to initialize
-        :return: list of uninstantiated objects inheriting from Component
-        """
-
-        return [DefaultPrimary]
-
-    @property
-    def components(self):
-        return self._components
-
-    def generate_baffles(self):
+        # Save input arguments to class variables
+        self.name = name
+        self.components = components
 
 
 
