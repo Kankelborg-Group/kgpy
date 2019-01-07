@@ -25,5 +25,25 @@ class Surface:
         self.thickness = thickness
         self.comment = comment
 
+        # Assume that global z coordinate is zero initially. Z-coordinate is set by placing Surface into Component.
+        self._z = 0.
+
+    @property
+    def z(self):
+        """
+        :return: Global z-coordinate of surface
+        :rtype: float
+        """
+        return self._z
+
+    @z.setter
+    def z(self, z):
+        """
+        :param z: New global z-coordinate of surface
+        :type z: float
+        :return: None
+        """
+        self._z = z
+
 
 

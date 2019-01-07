@@ -59,38 +59,7 @@ class Baffle(Component):
 
         return d
 
-    def calc_surface_intersections(self):
-        """
-        The optics model is sequential, so if the baffle is used by rays going in different directions, we need to model
-        the baffle as multiple surfaces. This function calculates which surfaces intersect a baffle
-        :return: List of surface indices which intersect a baffle
-        :rtype: list[int]
-        """
 
-        # Grab pointer to the lens data editor in Zemax
-        lde = self.zmx.TheSystem.LDE
-
-        # Initialize looping variables
-        z = 0       # Test z-coordinate
-        z_is_greater = False    # Flag to store what side of the baffle the test coordinate was on in the last iteration
-        surfaces = []           # List of surface indices which cross a baffle
-
-        # Loop through every surface and keep track of how often we cross the global z coordinate of the baffle
-        for s in range(1, lde.NumberOfSurfaces-1):
-
-            # Update test z-coordinate
-            z += lde.GetSurfaceAt(s).Thickness
-
-            # Check if the updated test coordinate has crossed the baffle coordinate since the last iteration.
-            # If so, append surface to list of intersecting surfaces
-            if z_is_greater:    # Crossing from larger to smaller
-                if z < self.z:
-                    surfaces.append(s)
-            else:               # Crossing from smaller to larger
-                if z > self.z:
-                    surfaces.append(s)
-
-        return surfaces
 
     def insert_into_zmx(self):
 

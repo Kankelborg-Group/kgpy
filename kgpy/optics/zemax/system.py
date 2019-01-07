@@ -6,6 +6,7 @@ import os
 import math
 
 from .. import System, Component, Surface
+from . import ZmxSurface
 
 __all__ = ['ZmxSystem']
 
@@ -90,6 +91,53 @@ class ZmxSystem(System):
 
         # Open Zemax model
         self.open_file(model_path, False)
+
+        # Loop through component list to overwrite Surfaces with ZmxSurfaces
+        for component in components:
+
+            # Loop through each surface in this component, find the corresponding Zemax surface and overwrite the
+            # Surface with a ZmxSurface
+            for s, surf in enumerate(component.surfaces):
+
+                # Find Zemax surface using the comment field of the provided surface
+                z_surf = self.find_surface(surf.comment)
+
+                # Overwrite original Surface
+                component.surfaces[s] = ZmxSurface(surf.name, z_surf)
+
+    def calc_surface_intersections(self, z):
+        """
+        This function is used to determine which surfaces to split when inserting a baffle.
+        The optics model is sequential, so if the baffle is used by rays going in different directions, we need to model
+        the baffle as multiple surfaces.
+        :return: List of surface indices which intersect a baffle
+        :rtype: list[int]
+        """
+
+        # Grab pointer to the lens data editor in Zemax
+        lde = self.sys.TheSystem.LDE
+
+        # Initialize looping variables
+        z = 0  # Test z-coordinate
+        z_is_greater = False  # Flag to store what side of the baffle the test coordinate was on in the last iteration
+        surfaces = []  # List of surface indices which cross a baffle
+
+        # Loop through every surface and keep track of how often we cross the global z coordinate of the baffle
+        for s in range(1, lde.NumberOfSurfaces - 1):
+
+            # Update test z-coordinate
+            z += lde.GetSurfaceAt(s).Thickness
+
+            # Check if the updated test coordinate has crossed the baffle coordinate since the last iteration.
+            # If so, append surface to list of intersecting surfaces
+            if z_is_greater:  # Crossing from larger to smaller
+                if z < self.z:
+                    surfaces.append(s)
+            else:  # Crossing from smaller to larger
+                if z > self.z:
+                    surfaces.append(s)
+
+        return surfaces
 
     def raytrace(self, surface_indices, wavl_indices, field_coords_x, field_coords_y, pupil_coords_x, pupil_coords_y):
         """
@@ -271,8 +319,9 @@ class TestZmxSystem(TestCase):
         stop = Component('Stop', [Surface('stop', comment='Stop')])
         lens = Component('Primary', [Surface('primary', comment='Primary')])
         img = Component('Detector', [Surface('detector', comment='Detector')])
+        self.components = [stop, lens, img]
 
-        self.sys = ZmxSystem(name=name, components=[stop, lens, img], model_path=self.test_path)
+        self.sys = ZmxSystem(name=name, components=self.components, model_path=self.test_path)
 
     def tearDown(self):
 
@@ -281,9 +330,15 @@ class TestZmxSystem(TestCase):
 
     def test__init(self):
 
-        value = self.sys.example_constants()
+        # Check that Zemax instance started correctly
+        self.assertTrue(self.sys.example_constants() is not None)
 
-        self.assertTrue(value is not None)
+        # Check that the zmx_surf field contains a valid object for every surface in every component
+        for orig_comp, zmx_comp in zip(self.components, self.sys.components):
+            for orig_surf, zmx_surf in zip(orig_comp.surfaces, zmx_comp.surfaces):
+
+                # Check that all comment strings are equal
+                self.assertTrue(orig_surf.comment, zmx_surf.comment)
 
     def test_raytrace(self):
 

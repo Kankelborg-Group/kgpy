@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from .. import Surface
 
-__all__ = ['Surface']
+__all__ = ['ZmxSurface']
 
 
 class ZmxSurface(Surface):
@@ -30,3 +30,7 @@ class ZmxSurface(Surface):
     @property
     def thickness(self):
         return self.zmx_surf.Thickness
+
+    @thickness.setter
+    def thickness(self, t):
+        self.zmx_surf.Thickness = t
