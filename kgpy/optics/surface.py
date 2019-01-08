@@ -26,7 +26,7 @@ class Surface:
         self.comment = comment
 
         # Assume that global z coordinate is zero initially. Z-coordinate is set by placing Surface into Component.
-        self._z = 0.
+        self.X =
 
     @property
     def z(self):

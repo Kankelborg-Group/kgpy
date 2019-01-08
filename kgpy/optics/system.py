@@ -82,7 +82,7 @@ class System:
         for surface in self.surfaces:
 
             # Update test z-coordinate
-            z += surface.thickness
+            z = surface.z
 
             # Check if the updated test coordinate has crossed the baffle coordinate since the last iteration.
             # If so, append surface to list of intersecting surfaces
