@@ -1,6 +1,9 @@
 
 from abc import ABC, abstractmethod
 from unittest import TestCase
+import numpy as np
+
+from kgpy.math import CoordinateSystem, VectorSystem
 
 
 __all__ = ['System']
@@ -64,7 +67,7 @@ class System:
 
 
     @abstractmethod
-    def calc_surface_intersections(self, global_z):
+    def calc_surface_intersections(self, baffle_cs: CoordinateSystem):
         """
         This function is used to determine which surfaces to split when inserting a baffle.
         The optics model is sequential, so if the baffle is used by rays going in different directions, we need to model
@@ -74,28 +77,15 @@ class System:
         """
 
         # Initialize looping variables
-        z = 0  # Test z-coordinate
-        z_is_greater = False  # Flag to store what side of the baffle the test coordinate was on in the last iteration
         surfaces = []  # List of surface indices which cross a baffle
 
         # Loop through every surface and keep track of how often we cross the global z coordinate of the baffle
         for surface in self.surfaces:
 
-            # Update test z-coordinate
-            z = surface.z
+            z0 = np.dot(surface.cs.X, baffle_cs.zh)
 
-            # Check if the updated test coordinate has crossed the baffle coordinate since the last iteration.
-            # If so, append surface to list of intersecting surfaces
-            if z_is_greater:  # Crossing from larger to smaller
-                if z < global_z:
-                    surfaces.append(surface)
-                    z_is_greater = False
+            z1 = np.dot(surface.T, baffle_cs.zh)
 
-            else:  # Crossing from smaller to larger
-                if z > global_z:
-                    surfaces.append(surface)
-                    z_is_greater = True
+            if np.sign(z0) != np.sign(z1):
 
-        return surfaces
-
-
+                pass
