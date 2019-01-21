@@ -1,4 +1,6 @@
 
+from unittest import TestCase
+from typing import Union
 import numpy as np
 
 __all__ = ['Vector']
@@ -65,11 +67,72 @@ class Vector:
     def z(self, z):
         self.X[2] = z
 
-    def __mul__(self, other):
+    def __eq__(self, other: 'Vector'):
+        """
+        Test if two Vectors are the same.
+        Two vectors are the same if all their elements are the same.
+        :param other: Another Vector to compare to this vector
+        :return: True if all elements are equal, false otherwise.
+        """
+        return np.all(self.X == other.X)
+
+    def __add__(self, other: 'Vector') -> 'Vector':
+        """
+        Add two vectors together
+        :param other: Another vector
+        :return: The sum of both vectors
+        """
+        if isinstance(other, Vector):
+            X = np.add(self, other)
+            return Vector(X)
+        else:
+            raise TypeError
+
+    def __mul__(self, other: float) -> 'Vector':
+        """
+        Multiplication of a scalar and a vector
+        :param other: A scalar value
+        :return: The original vector where every component has been scaled by other
+        """
         if isinstance(other, float):
-            self.X = other * self.X
+            X = other * self.X
+            return Vector(X)
+        else:
+            raise TypeError
+
+    # Reverse multiplication should behave in the same way as forward multiplication
+    __rmul__ = __mul__
+
+    def __str__(self) -> str:
+        """
+        Print a string representation of the vector
+        :return: The string representation of the underlying numpy.ndarray
+        """
+        return self.X.__str__()
 
 
+class TestVector(TestCase):
 
+    def test__eq__(self):
+
+        # Declare two different vectors
+        v0 = Vector([1, 1, 1])
+        v1 = Vector([1, 1, 0])
+
+        # Assert vector is equal to itself
+        self.assertTrue(v0 == v0)
+
+        # Assert two different vectors are not equal
+        self.assertFalse(v0 == v1)
+
+    def test__add__(self):
+
+        v0 = Vector([1, 0, 0])
+        v1 = Vector([0, 1, 0])
+        v2 = Vector([1, 1, 0])
+
+        v = v0 + v1
+
+        self.assertTrue(v == v2)
 
 

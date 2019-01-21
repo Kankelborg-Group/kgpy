@@ -5,6 +5,7 @@ import numpy as np
 import quaternion
 from . import Vector
 
+__all__ = ['CoordinateSystem', 'GlobalCoordinateSystem']
 
 class CoordinateSystem:
     """
@@ -37,19 +38,28 @@ class CoordinateSystem:
 
     @property
     def xh(self):
-        xh = quaternion.rotate_vectors(self.Q, self.xh_g.X)
+        xh = quaternion.rotate_vectors(self.Q, self.xh_g)
         return Vector(xh)
 
     @property
     def yh(self):
-        yh = quaternion.rotate_vectors(self.Q, self.yh_g.X)
+        yh = quaternion.rotate_vectors(self.Q, self.yh_g)
         return Vector(yh)
 
     @property
     def zh(self):
-        zh = quaternion.rotate_vectors(self.Q, self.zh_g.X)
+        zh = quaternion.rotate_vectors(self.Q, self.zh_g)
         return Vector(zh)
 
+
+class GlobalCoordinateSystem(CoordinateSystem):
+    """
+    The global coordinate system is a coordinate system with no translations or rotations
+    """
+
+    def __init__(self):
+
+        super().__init__([0, 0, 0], [0, 0, 0, 0])
 
 class TestCoordinateSystem(TestCase):
 
