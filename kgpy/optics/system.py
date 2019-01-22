@@ -5,7 +5,7 @@ import numpy as np
 from typing import List
 
 from kgpy.math import CoordinateSystem, VectorSystem
-from . import Baffle, Surface
+from . import Baffle, Surface, Component
 
 
 __all__ = ['System']
@@ -17,14 +17,12 @@ class System:
     This class is intended to be a drop-in replacement for a Zemax system.
     """
 
-    def __init__(self, name, components):
+    def __init__(self, name: str, components: List[Component]):
         """
         Define an optical system by providing a name and a list of Components.
         The surfaces within each Component are added sequentially.
         :param name: Human-readable name of the system
         :param components: List of initial components for the system
-        :type name: str
-        :type components: list[kgpy.optics.Component]
         """
 
         # Save input arguments to class variables
@@ -32,6 +30,34 @@ class System:
         self.components = components
 
         # Create surfaces variable to store list
+        self.surfaces = []
+
+    def append_surface(self, surface: Surface) -> None:
+        """
+        Add the surface to the end of the surface list
+        :param surface: Surface to be appended
+        :return: None
+        """
+
+        self.surfaces.append(surface)
+
+    def append_component(self, component: Component) -> None:
+        """
+        Add the component to the end of the component list.
+        This function implicitly adds each surface inside the component to the surfaces list in order.
+        :param component: component to be added to the component list
+        :return: None
+        """
+
+        # Loop through every surface in the component and add it to the full list of surfaces
+        for surface in component.surfaces:
+
+            self.append_surface(surface)
+
+        # Append this component to the list of components
+        self.components.append(component)
+
+            
 
 
 
@@ -66,7 +92,7 @@ class System:
         # Loop through each surface, shorten it and add the baffle to fill the remaining space
         for surface in surfaces:
 
-            surface
+            pass
 
 
 
