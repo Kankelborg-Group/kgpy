@@ -1,7 +1,7 @@
 
 from unittest import TestCase
 
-from .. import Surface
+from kgpy.optics import Surface
 
 __all__ = ['ZmxSurface']
 

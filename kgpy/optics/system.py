@@ -3,8 +3,9 @@ from abc import ABC, abstractmethod
 from unittest import TestCase
 import numpy as np
 from typing import List
+from copy import deepcopy
 
-from kgpy.math import CoordinateSystem, VectorSystem
+from kgpy.math import CoordinateSystem, GlobalCoordinateSystem
 from . import Baffle, Surface, Component
 
 
@@ -29,8 +30,11 @@ class System:
         self.name = name
         self.components = components
 
+        # Define the coordinate system of the System as the origin of the global coordinate system
+        self.cs = GlobalCoordinateSystem()
+
         # Create surfaces variable to store list
-        self.surfaces = []
+        self.surfaces = []      # type: List[Surface]
 
     def append_surface(self, surface: Surface) -> None:
         """
@@ -48,6 +52,16 @@ class System:
         :param component: component to be added to the component list
         :return: None
         """
+
+        # If the list of components is empty, the coordinate system of the component is the same as the coordinate
+        # system of the System.
+        # Otherwise the coordinate system of the component is the the coordinate system of the last component translated
+        # by the thickness vector of the component
+        if not self.components:
+            component.cs = deepcopy(self.cs)
+        else:
+            last_comp = self.surfaces[-1]
+            surface.cs = last_surf.cs + last_surf.T
 
         # Loop through every surface in the component and add it to the full list of surfaces
         for surface in component.surfaces:

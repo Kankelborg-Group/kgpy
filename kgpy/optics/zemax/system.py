@@ -5,7 +5,7 @@ import numpy as np
 import os
 import math
 
-from .. import System, Component, Surface
+from kgpy.optics import System, Component, Surface
 from . import ZmxSurface
 
 __all__ = ['ZmxSystem']

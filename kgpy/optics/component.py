@@ -1,9 +1,11 @@
 
 from typing import List
 from copy import deepcopy
-from . import Surface
+import astropy.units as u
 
-from kgpy.math import GlobalCoordinateSystem
+from . import Surface
+from kgpy.math import Vector
+from kgpy.math.coordinate_system import GlobalCoordinateSystem
 
 __all__ = ['Component']
 
@@ -28,7 +30,7 @@ class Component:
         self.comment = comment
 
         # Initialize the list of surfaces to an empty list
-        self.surfaces = []
+        self.surfaces = []      # type: List[Surface]
 
         # Initialize the coordinate system to the global coordinate system
         self.cs = GlobalCoordinateSystem()
@@ -37,16 +39,22 @@ class Component:
         for surface in surfaces:
             self.append_surface(surface)
 
-    # @property
-    # def thickness(self):
-    #     """
-    #     Total thickness of the component
-    #     :return: Sum of every surface's thickness
-    #     :rtype: float
-    #     """
-    #     t = 0
-    #     for surface in self.surfaces:
-    #         t += surface.thickness
+    @property
+    def T(self):
+        """
+        Thickness vector
+        :return: Vector pointing from center of a component's front face to the center of a component's back face.
+        """
+
+        # If the component contains at least one surface, return the difference between the vector pointing the back
+        # face of the component and the vector pointing to the front face of the component.
+        # Else, the component contains no surfaces and the thickness is the zero vector.
+        if self.surfaces:
+            s0 = self.surfaces[0]
+            s1 = self.surfaces[-1]
+            return (s1.cs.X + s1.T) - s0.cs.X
+        else:
+            return Vector([0, 0, 0] * u.mm)
 
     def append_surface(self, surface: Surface) -> int:
         """
@@ -62,14 +70,27 @@ class Component:
         # Otherwise the coordinate system of the surface is the coordinate system of the last surface in the list,
         # translated by the thickness vector
         if not self.surfaces:
-            surf_cs = deepcopy(self.cs)
-            surf_cs =
-            surface.cs =
+            surface.cs = deepcopy(self.cs)
+        else:
+            last_surf = self.surfaces[-1]
+            surface.cs = last_surf.cs + last_surf.T
 
         # Append updated surface to list of surfaces
         self.surfaces.append(surface)
 
+    def __str__(self):
+        """
+        :return: String representation of a component
+        """
 
+        # Construct line out of top-level parameters of the component
+        ret = self.name + ', comment = ' + self.comment + ', cs = [' + self.cs.__str__() + ']\n'
+
+        # Append lines for each surface within the component
+        for surface in self.surfaces:
+            ret = ret + '\t' + surface.__str__() + '\n'
+
+        return ret
 
 
 

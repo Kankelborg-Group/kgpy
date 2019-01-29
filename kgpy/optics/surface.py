@@ -2,7 +2,8 @@
 from unittest import TestCase
 import numpy as np
 import quaternion
-
+import astropy.units as u
+from astropy.coordinates import Distance
 
 from kgpy.math import CoordinateSystem, Vector, GlobalCoordinateSystem
 
@@ -15,7 +16,7 @@ class Surface:
     have all the same properties and behaviors.
     """
 
-    def __init__(self, name: str, thickness: float = 0.0, comment: str = ''):
+    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, comment: str = ''):
         """
         Constructor for the Surface class.
         This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
@@ -24,6 +25,10 @@ class Surface:
         :param thickness: Thickness of the surface along the local z-direction, measured in mm
         :param comment: Additional description of this surface
         """
+
+        # Check that the thickness parameter has dimensions of length
+        if not thickness.unit.is_equivalent(u.m):
+            raise TypeError('thickness parameter does not have dimensions of length')
 
         # Save input arguments as class variables
         self.name = name
@@ -34,15 +39,17 @@ class Surface:
         self.cs = GlobalCoordinateSystem()
 
     @property
-    def T(self):
+    def T(self) -> Vector:
         """
         Thickness vector
-        :return: Vector pointing from front face of surface to back face of surface
+        :return: Vector pointing from the center of a surface's front face to the center of a surface's back face
         """
         return self.thickness * self.cs.zh
 
+    def __str__(self) -> str:
+        """
+        :return: String representation of the surface
+        """
 
-
-
-
+        return self.name + ', comment = ' + self.comment + ', thickness = ' + str(self.thickness) + ', cs = [' + self.cs.__str__() + ']'
 
