@@ -41,6 +41,14 @@ class TestCoordinateSystem(TestCase):
         # Check that the two coordinate systems are equal
         self.assertEqual(c0, c1)
 
+        # Define a third coordinate system that has a different translation from the first
+        v2 = Vector([1, 0, 0])
+        q2 = quaternion.from_euler_angles(0, 0, 0)
+        c2 = CoordinateSystem(v2, q2)
+
+        # Check that these two coordinate systems are indeed not equal
+
+
 
 
     def test__add__(self):

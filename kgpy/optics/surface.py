@@ -5,7 +5,8 @@ import quaternion
 import astropy.units as u
 from astropy.coordinates import Distance
 
-from kgpy.math import CoordinateSystem, Vector, GlobalCoordinateSystem
+from kgpy.math import CoordinateSystem, Vector
+from kgpy.math.coordinate_system import GlobalCoordinateSystem
 
 __all__ = ['Surface']
 
