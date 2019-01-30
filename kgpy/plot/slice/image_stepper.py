@@ -11,10 +11,10 @@ class CubeSlicer(object):
         ax.set_title('use scroll wheel to navigate images')
 
         self.X = X
-        self.slices, rows, cols = X.shape
+        self.sh = X.shape
         self.ind = 0
 
-        self.im = ax.imshow(self.X[self.ind, :, :], **kwargs)
+        self.im = ax.imshow(self.X[self.ind,], **kwargs)
         self.update()
 
         self.fig.canvas.mpl_connect('scroll_event', self.onscroll)
@@ -22,13 +22,13 @@ class CubeSlicer(object):
     def onscroll(self, event):
         # print("%s %s" % (event.button, event.step))
         if event.button == 'up':
-            self.ind = numpy.clip(self.ind + 1, 0, self.slices - 1)
+            self.ind = numpy.clip(self.ind + 1, 0, self.sh[0] - 1)
         else:
-            self.ind = numpy.clip(self.ind - 1, 0, self.slices - 1)
+            self.ind = numpy.clip(self.ind - 1, 0, self.sh[0] - 1)
         self.update()
 
     def update(self):
-        self.im.set_data(self.X[self.ind,:, :])
+        self.im.set_data(self.X[self.ind,])
         self.im.autoscale()
         self.ax.set_ylabel('slice %s' % self.ind)
         self.im.axes.figure.canvas.draw()
@@ -38,8 +38,7 @@ class CubeSlicer(object):
         self.ind = 0
         self.update()
 
-
-    def save(self,path:str):
+    def save(self,path: str):
         """
         Method defined to save each image in the cube.  Images are saved in directory "path" in order as i.png
         :param path:

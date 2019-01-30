@@ -142,7 +142,13 @@ py::tuple dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int
 	np::ndarray pycnts = np::from_data(db->cnts, dtype, tshape, tstride, town);
 //	np::ndarray pyihst = np::from_data(db->icmd, dtype, ishape, istride, iown);
 
-	return make_tuple(pydata, pyhist, pyt1, pyt9, pycnts);
+
+	py::tuple tup = make_tuple(pydata, pyhist, pyt1, pyt9, pycnts);
+
+
+//	delete db;
+
+	return tup;
 
 }
 
