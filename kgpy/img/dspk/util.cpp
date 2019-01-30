@@ -113,6 +113,18 @@ DB::DB(float * data, float * gmap, dim3 dsz, dim3 ksz) : data(data), gmap(gmap),
 
 }
 
+DB::~DB() {
+
+	delete hist;
+	delete cumd;
+	delete cnts;
+	delete ihst;
+	delete icmd;
+	delete t1;
+	delete t9;
+
+}
+
 float find_max(float * data, float * gmap, dim3 dsz){
 
 	// split data size into single variables

@@ -8,4 +8,5 @@ BOOST_PYTHON_MODULE(libkgpy){
 	np::initialize();   // only needed if you use numpy in the interface
 
 	py::def("dspk_ndarr", kgpy::img::dspk::dspk_ndarr);
+
 }

@@ -87,6 +87,7 @@ public:
 	vec3 mmin;		// minimum median value along each axis
 
 	DB(float * data, float * gmap, dim3 dsz, dim3 ksz);
+	~DB();
 };
 
 float find_max(float * data, float * gmap, dim3 dsz);
