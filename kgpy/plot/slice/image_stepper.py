@@ -1,5 +1,6 @@
 import numpy
 import matplotlib.pyplot as plt
+import os
 
 
 class CubeSlicer(object):
@@ -37,8 +38,21 @@ class CubeSlicer(object):
         self.ind = 0
         self.update()
 
+    def save(self,path: str):
+        """
+        Method defined to save each image in the cube.  Images are saved in directory "path" in order as i.png
+        :param path:
+        :return:
+        """
+        j = self.ind
+        if not os.path.exists(path):
+            os.makedirs(path)
 
-
+        for i in range(self.slices):
+            self.ind = i
+            self.update()
+            self.fig.savefig(os.path.join(os.path.dirname(path),str(i)+'.png'))
+        self.ind = j
 
 def test_CubeSlicer():
 
