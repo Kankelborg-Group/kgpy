@@ -115,6 +115,21 @@ class Vector:
     # Make the reverse multiplication operation the same as the multiplication operation
     __rmul__ = __mul__
 
+    def dot(self, other: 'Vector') -> Real:
+        """
+        Execute the dot product of this Vector with another Vector
+        :param other: The other Vector to dot this Vector into
+        :return: Result of the dot product
+        """
+
+        # Calculate each component of the product
+        x = self.x * other.x
+        y = self.y * other.y
+        z = self.z * other.z
+
+        # Return the sum of the components
+        return x + y + z
+
     def __str__(self) -> str:
         """
         Print a string representation of the vector
