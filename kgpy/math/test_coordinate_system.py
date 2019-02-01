@@ -29,9 +29,8 @@ class TestCoordinateSystem:
         cs = CoordinateSystem(X, Q)
 
         # Check that x-hat is orthogonal to the other unit vectors
-        assert cs.xh.dot(cs.yh) == pytest.approx(0.0)
-        assert cs.xh.dot(cs.zh) == pytest.approx(0.0)
-
+        assert abs(cs.xh.dot(cs.yh)) < 1e-10
+        assert abs(cs.xh.dot(cs.zh)) < 1e-10
 
     def test__str__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
@@ -65,7 +64,6 @@ class TestCoordinateSystem:
 
         # Check that these two coordinate systems are indeed not equal
         assert cs0 != cs2
-
 
     def test__add__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
