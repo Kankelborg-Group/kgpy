@@ -5,8 +5,9 @@ import numpy as np
 from typing import List
 from copy import deepcopy
 
-from kgpy.math import CoordinateSystem, GlobalCoordinateSystem
-from . import Baffle, Surface, Component
+from kgpy.math import CoordinateSystem
+from kgpy.math.coordinate_system import GlobalCoordinateSystem
+from kgpy.optics import Baffle, Surface, Component
 
 
 __all__ = ['System']
