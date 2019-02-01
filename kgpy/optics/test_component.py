@@ -21,7 +21,7 @@ class TestComponent(TestCase):
     def test__init__(self):
 
         # Test that the origin of Surface 2 is moved forward by a millimeter
-        self.assertEqual(self.comp.surfaces[-1].cs.X.z, 1.0 * u.mm)
+        self.assertEqual(self.comp.surfaces[-1].cs.X.z, 2.0 * u.mm)
 
     def test__str__(self):
 

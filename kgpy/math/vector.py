@@ -1,6 +1,6 @@
 
-from unittest import TestCase
 from typing import Union, List
+from numbers import Real
 import numpy as np
 import astropy.units as u
 
@@ -12,7 +12,7 @@ class Vector:
     Represents a 3D vector
     """
 
-    def __init__(self, X: Union[List[float], np.ndarray, u.Quantity]):
+    def __init__(self, X: Union[List[Real], np.ndarray, u.Quantity]):
         """
         Construct a new vector from a list, array or Quantity, checking for correct shape and size.
         :param X: 1D list, array or Quantity with only three elements
@@ -38,14 +38,6 @@ class Vector:
 
         # Save input to class variable
         self.X = X  # type: u.Quantity
-
-    #
-    # def __array__(self, dtype=None):
-    #     if dtype:
-    #         return self.X.astype(dtype)
-    #     else:
-    #         return self.X
-
 
     @property
     def x(self):
@@ -104,13 +96,13 @@ class Vector:
         else:
             raise TypeError
 
-    def __mul__(self, other: u.Quantity) -> 'Vector':
+    def __mul__(self, other: Union[Real, u.Quantity]) -> 'Vector':
         """
         Multiplication of a scalar and a vector
         :param other: A scalar value
         :return: The original vector where every component has been scaled by other
         """
-        if isinstance(other, u.Quantity):
+        if isinstance(other, (Real, u.Quantity)):
             X = other * self.X
             return Vector(X)
         else:
@@ -122,6 +114,21 @@ class Vector:
 
     # Make the reverse multiplication operation the same as the multiplication operation
     __rmul__ = __mul__
+
+    def dot(self, other: 'Vector') -> Real:
+        """
+        Execute the dot product of this Vector with another Vector
+        :param other: The other Vector to dot this Vector into
+        :return: Result of the dot product
+        """
+
+        # Calculate each component of the product
+        x = self.x * other.x
+        y = self.y * other.y
+        z = self.z * other.z
+
+        # Return the sum of the components
+        return x + y + z
 
     def __str__(self) -> str:
         """

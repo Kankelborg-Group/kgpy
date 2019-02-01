@@ -9,7 +9,6 @@ from kgpy.math import CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem
 from kgpy.optics import Baffle, Surface, Component
 
-
 __all__ = ['System']
 
 

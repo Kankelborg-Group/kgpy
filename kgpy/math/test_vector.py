@@ -1,5 +1,7 @@
 
-from unittest import TestCase
+import pytest
+from typing import List, Union
+from numbers import Real
 import numpy as np
 import astropy.units as u
 
@@ -7,85 +9,166 @@ from kgpy.math import Vector
 
 __all__ = ['TestVector']
 
+t = (0, 1)
 
-class TestVector(TestCase):
 
-    def test__init__(self):
+@pytest.mark.parametrize('x', t)
+@pytest.mark.parametrize('y', t)
+@pytest.mark.parametrize('z', t)
+@pytest.mark.parametrize('unit', [
+    1,
+    u.mm
+])
+class TestVector:
+
+    def test__init__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
         """
-        Test constructor with list, array and quantity input parameters
+        Test the constructor by confirming that the Vector.X property is of the correct type, and that every component
+        of the vector was set to the correct value.
+        :param x: x-component of the Vector
+        :param y: y-component of the Vector
+        :param z: z-component of the Vector
+        :param unit: units associated with the Vector
         :return: None
         """
 
-        # Test list input type
-        v1 = Vector([1, 2, 3])
-        self.assertIsInstance(v1.X, u.Quantity)
+        v = Vector([x, y, z] * unit)
+        assert isinstance(v.X, u.Quantity)
 
-        # Test array input type
-        v2 = Vector(np.array([1, 2, 3]))
-        self.assertIsInstance(v2.X, u.Quantity)
+        assert v.x == x * unit
+        assert v.y == y * unit
+        assert v.z == z * unit
 
-        # Test Quantity input type
-        v3 = Vector([1, 2, 3] * u.m)
-        self.assertIsInstance(v3.X, u.Quantity)
+    def test__eq__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
+        """
+        Test the equality operator of the Vector object.
+        :param x: x-component of the Vector
+        :param y: y-component of the Vector
+        :param z: z-component of the Vector
+        :param unit: units associated with the Vector
+        :return: None
+        """
 
-    def test__eq__(self):
+        # Create two vectors with identical components
+        v0 = Vector([x, y, z] * unit)
+        v1 = Vector([x, y, z] * unit)
 
-        # Declare vectors for equality testing
-        v0 = Vector([1, 1, 1])
-        v1 = Vector([1, 1, 1])
-        v2 = Vector([1, 1, 0])
+        # Check that the two vectors are equal
+        assert v0 == v1
 
-        # Assert vector is equal to itself
-        self.assertEqual(v0, v1)
+        # Create another vector with different components than the first two
+        v2 = Vector([x + 1, y - 1, z] * unit)
 
-        # Assert two different vectors are not equal
-        self.assertNotEqual(v0, v2)
+        # Check that this vector is not equal to the original vector
+        assert v0 != v2
 
-    def test__add__(self):
+    def test__add__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
+        """
+        Check the addition operator of the Vector object.
+        :param x: x-component of the Vector
+        :param y: y-component of the Vector
+        :param z: z-component of the Vector
+        :param unit: units associated with the Vector
+        :return: None
+        """
 
         # Declare two vectors to add together
-        v0 = Vector([1, 0, 0])
-        v1 = Vector([0, 1, 0])
-
-        # Declare vector that is the expected result of adding v0 and v1 together
-        v2 = Vector([1, 1, 0])
+        v0 = Vector([x, y, z] * unit)
+        v1 = Vector([z, y, x] * unit)
 
         # Execute test addition operation
         v = v0 + v1
 
         # Check if the result of the addition operation is what we expected
-        self.assertEqual(v, v2)
+        assert v.x == v0.x + v1.x
+        assert v.y == v0.y + v1.y
+        assert v.z == v0.z + v1.z
 
-    def test__mul__(self):
+    @pytest.mark.parametrize('a', [
+        1,
+        0,
+    ])
+    def test__mul__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity], a: Real):
+        """
+        Test the multiplication operator of the Vector object.
+        :param x: x-component of the Vector
+        :param y: y-component of the Vector
+        :param z: z-component of the Vector
+        :param unit: units associated with the Vector
+        :param a: Factor to scale the Vector by.
+        :return: None
+        """
 
-        # Declare scalar and vector to multiply together
-        a = 2 * u.m
-        v0 = Vector([1, 1, 1])
+        # Append units onto the scalar factor.
+        a = a * unit
 
-        # Declare vector that is the expected result of multiplying a and v0 together
-        v1 = Vector([2, 2, 2] * u.m)
+        # Create vector
+        v0 = Vector([x, y, z] * unit)
 
         # Execute test multiplication operation
         v = a * v0
 
-        # Check if the result is what we expected
-        self.assertEqual(v, v1)
+        # Check that the scalar was multiplied by each component
+        assert v.x == a * v0.x
+        assert v.y == a * v0.y
+        assert v.z == a * v0.z
 
-    def test__array__(self):
+        # Execute reverse multiplication test
+        v = v0 * a
 
-        # Check that dimensionless vector casts to the same value as a numpy array
-        v0 = Vector([1, 1, 1])
-        a0 = v0.__array__()
-        b0 = np.array([1, 1, 1])
-        self.assertTrue(np.all(a0 == b0))
+        # Check that the scalar was multiplied by each component
+        assert v.x == a * v0.x
+        assert v.y == a * v0.y
+        assert v.z == a * v0.z
 
-        # Check that we can make the above test fail by changing the value of the numpy array
-        v0 = Vector([1, 1, 1])
-        a0 = v0.__array__()
-        b0 = np.array([1, 1, 0])
-        self.assertFalse(np.all(a0 == b0))
+    def test_dot(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
 
-        # Check that converting a vector with dimensions throws a TypeError
-        v0 = Vector([1, 1, 1] * u.m)
-        with self.assertRaises(TypeError):
-            v0.__array__()
+        # Create two identical vectors
+        v0 = Vector([x, y, z] * unit)
+        v1 = Vector([x, y, z] * unit)
+
+        # Test that the dot product of two identical vectors is greater than zero
+        r = v0.dot(v1)
+        assert r >= 0 * unit * unit
+
+        # Create a third vector that is antiparallel to the first two by negating the components
+        v2 = Vector([-x, -y, -z] * unit)
+
+        # Check that the dot product between two antiparallel vectors is less than zero
+        r = v0.dot(v2)
+        assert r <= 0 * unit * unit
+
+
+    def test__array__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
+        """
+        Test the capability to cast a Vector to a numpy.ndarray. This operation is only allowed for dimensionless
+        Vectors.
+        :param x: x-component of the Vector
+        :param y: y-component of the Vector
+        :param z: z-component of the Vector
+        :param unit: units associated with the Vector
+        :return: None
+        """
+
+        # If the Vector is dimensionless, we expect to be able to cast it to an np.ndarray, otherwise we expect the
+        # __array__ function to throw a type error.
+        if isinstance(unit, Real):
+
+            # Check that dimensionless vector casts to the same value as a numpy array
+            v0 = Vector([x, y, z] * unit)
+            a0 = v0.__array__()
+            b0 = np.array([x, y, z])
+            assert np.all(a0 == b0)
+
+            # Check that we can make the above test fail by changing the value of the numpy array
+            v0 = Vector([x, y, z] * unit)
+            a0 = v0.__array__()
+            b0 = np.array([x, y, z + 1])
+            assert not np.all(a0 == b0)
+
+        elif isinstance(unit, u.Quantity):
+
+            # Check that converting a vector with dimensions throws a TypeError
+            v0 = Vector([x, y, z] * u.m)
+            with self.assertRaises(TypeError):
+                v0.__array__()

@@ -1,25 +1,36 @@
 
-from unittest import TestCase
+import pytest
 from copy import deepcopy
+from numbers import Real
+import numpy as np
 import quaternion
 
 from kgpy.math import Vector, CoordinateSystem
 
 __all__ = ['TestCoordinateSystem']
 
+x_0 = (0, 1)
+a_0 = (0, np.pi / 4)
 
-class TestCoordinateSystem(TestCase):
 
-    def setUp(self):
+@pytest.mark.parametrize('x', x_0)
+@pytest.mark.parametrize('y', x_0)
+@pytest.mark.parametrize('z', x_0)
+@pytest.mark.parametrize('a', a_0)
+@pytest.mark.parametrize('b', a_0)
+@pytest.mark.parametrize('c', a_0)
+class TestCoordinateSystem:
 
-        self.X = Vector([0, 0, 0])
-        self.Q = quaternion.from_euler_angles(0, 0, 0)
-        self.cs = CoordinateSystem(self.X, self.Q)
+    def test_xh(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
-    def test_xh(self):
+        X = Vector([x, y, z])
+        Q = quaternion.from_euler_angles(a, b, c)
+        cs = CoordinateSystem(X, Q)
+
+
 
         # Check that the returned
-        self.assertTrue(self.cs.xh == Vector([1, 0, 0]))
+        self.assertTrue(cs.xh == Vector([1, 0, 0]))
 
     def test__str__(self):
 
@@ -40,6 +51,14 @@ class TestCoordinateSystem(TestCase):
 
         # Check that the two coordinate systems are equal
         self.assertEqual(c0, c1)
+
+        # Define a third coordinate system that has a different translation from the first
+        v2 = Vector([1, 0, 0])
+        q2 = quaternion.from_euler_angles(0, 0, 0)
+        c2 = CoordinateSystem(v2, q2)
+
+        # Check that these two coordinate systems are indeed not equal
+
 
 
 
