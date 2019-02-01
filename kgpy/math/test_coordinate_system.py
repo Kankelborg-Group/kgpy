@@ -23,50 +23,65 @@ class TestCoordinateSystem:
 
     def test_xh(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
+        # Create a test coordinate system
         X = Vector([x, y, z])
         Q = quaternion.from_euler_angles(a, b, c)
         cs = CoordinateSystem(X, Q)
 
+        # Check that x-hat is orthogonal to the other unit vectors
+        assert cs.xh.dot(cs.yh) == pytest.approx(0.0)
+        assert cs.xh.dot(cs.zh) == pytest.approx(0.0)
 
 
-        # Check that the returned
-        self.assertTrue(cs.xh == Vector([1, 0, 0]))
+    def test__str__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
-    def test__str__(self):
+        # Create a test coordinate system
+        X = Vector([x, y, z])
+        Q = quaternion.from_euler_angles(a, b, c)
+        cs = CoordinateSystem(X, Q)
 
         # Check if returned value is of type string
-        self.assertTrue(isinstance(self.cs.__str__(), str))
+        assert isinstance(cs.__str__(), str)
 
-    def test__eq__(self):
+    def test__eq__(self,  x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
-        # Define first coordinate system
-        v0 = Vector([0, 0, 0])
-        q0 = quaternion.from_euler_angles(0, 0, 0)
-        c0 = CoordinateSystem(v0, q0)
+        # Create a test coordinate system
+        X0 = Vector([x, y, z])
+        Q0 = quaternion.from_euler_angles(a, b, c)
+        cs0 = CoordinateSystem(X0, Q0)
 
         # Define a second coordinate system the same as the first
-        v1 = deepcopy(v0)
-        q1 = deepcopy(q0)
-        c1 = CoordinateSystem(v1, q1)
+        X1 = Vector([x, y, z])
+        Q1 = quaternion.from_euler_angles(a, b, c)
+        cs1 = CoordinateSystem(X1, Q1)
 
         # Check that the two coordinate systems are equal
-        self.assertEqual(c0, c1)
+        assert cs0 == cs1
 
-        # Define a third coordinate system that has a different translation from the first
-        v2 = Vector([1, 0, 0])
-        q2 = quaternion.from_euler_angles(0, 0, 0)
-        c2 = CoordinateSystem(v2, q2)
+        # Define a third coordinate system that is different from the first
+        X2 = Vector([x + 1, y - 1, z])
+        Q2 = quaternion.from_euler_angles(a + np.pi / 2, b - np.pi / 2, c)
+        cs2 = CoordinateSystem(X2, Q2)
 
         # Check that these two coordinate systems are indeed not equal
+        assert cs0 != cs2
 
 
+    def test__add__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
+        # Create a test coordinate system
+        X = Vector([x, y, z])
+        Q = quaternion.from_euler_angles(a, b, c)
+        cs = CoordinateSystem(X, Q)
 
-    def test__add__(self):
+        # Create a test translation vector
+        a = Vector([x + 1, y - 1, -z])
 
-        cs0 = self.cs + Vector([1, 0, 0])
+        # Execute the test addition between coordinate system and vector
+        cs0 = cs + a
 
-        new_cs.Q.x = 1
+        # Check that the translation is what was expected
+        assert cs0.X.x == X.x + a.x
+        assert cs0.X.y == X.y + a.y
+        assert cs0.X.z == X.z + a.z
 
-        print(self.cs)
-        print(new_cs)

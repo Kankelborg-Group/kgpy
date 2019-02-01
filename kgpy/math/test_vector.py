@@ -123,21 +123,27 @@ class TestVector:
 
     def test_dot(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
 
-        # Create two identical vectors
-        v0 = Vector([x, y, z] * unit)
-        v1 = Vector([x, y, z] * unit)
+        # Create two test vectors
+        a = Vector([x, y, z] * unit)
+        b = Vector([x + z, y + x, z + y] * unit)
 
-        # Test that the dot product of two identical vectors is greater than zero
-        r = v0.dot(v1)
-        assert r >= 0 * unit * unit
+        # Test the dot product using the definition
+        r = a.dot(b)
+        assert r == a.x * b.x + a.y * b.y + a.z * b.z
 
-        # Create a third vector that is antiparallel to the first two by negating the components
-        v2 = Vector([-x, -y, -z] * unit)
+    def test_cross(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
 
-        # Check that the dot product between two antiparallel vectors is less than zero
-        r = v0.dot(v2)
-        assert r <= 0 * unit * unit
+        # Create two test vectors
+        a = Vector([x, y, z] * unit)
+        b = Vector([x + z, y + x, z + y] * unit)
 
+        # Execute the test cross product
+        v = a.cross(b)
+
+        # Test the result using the definition of the cross product
+        assert v.x == (a.y * b.z - a.z * b.y)
+        assert v.y == -(a.x * b.z - a.z * b.x)
+        assert v.z == (a.x * b.y - a.y * b.x)
 
     def test__array__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
         """

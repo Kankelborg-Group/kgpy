@@ -122,13 +122,18 @@ class Vector:
         :return: Result of the dot product
         """
 
-        # Calculate each component of the product
-        x = self.x * other.x
-        y = self.y * other.y
-        z = self.z * other.z
+        # Use numpy.ndarray.dot() to calculate the dot product
+        return self.X.dot(other.X)
 
-        # Return the sum of the components
-        return x + y + z
+    def cross(self, other: 'Vector') -> 'Vector':
+        """
+        Calculate the cross product of this Vector with another Vector
+        :param other: Another vector to cross into this Vector
+        :return: A Vector orthogonal to both of the input Vectors.
+        """
+
+        # Use numpy.ndarray.cross() to calculate the cross product
+        return Vector(np.cross(self.X, other.X) * self.X.unit * other.X.unit)
 
     def __str__(self) -> str:
         """
