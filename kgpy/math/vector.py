@@ -63,14 +63,19 @@ class Vector:
     def z(self, z):
         self.X[2] = z
 
-    def __eq__(self, other: 'Vector'):
+    def __eq__(self, other: Union[Real, u.Quantity, 'Vector']):
         """
-        Test if two Vectors are the same.
+        Test if two Vectors are the same or test if every component of this vector is equal to the same scalar value.
         Two vectors are the same if all their elements are the same.
-        :param other: Another Vector to compare to this vector
+        :param other: Another Vector to compare to this vector, or a scalar
         :return: True if all elements are equal, false otherwise.
         """
-        return np.all(self.X == other.X)
+        if isinstance(other, self.__class__):
+            return np.all(self.X == other.X)
+        elif isinstance(other, Real) or isinstance(other, u.Quantity):
+            return np.all(self.X == other)
+        else:
+            raise TypeError('right argument is not a Vector, Quantity or Real type')
 
     def __add__(self, other: 'Vector') -> 'Vector':
         """
@@ -135,12 +140,25 @@ class Vector:
         # Use numpy.ndarray.cross() to calculate the cross product
         return Vector(np.cross(self.X, other.X) * self.X.unit * other.X.unit)
 
+    @property
+    def mag(self):
+        """
+        Compute the magnitude of the Vector
+        :return: L2 norm of the vector
+        """
+
+        return np.linalg.norm(self.X) * self.X.unit
+
     def __str__(self) -> str:
         """
         Print a string representation of the vector
         :return: The string representation of the underlying numpy.ndarray
         """
         return 'vector(' + str(self.X) + ')'
+
+    def __repr__(self) -> str:
+
+        return self.__str__()
 
     def __array__(self, dtype=None) -> np.ndarray:
         """

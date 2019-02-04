@@ -17,7 +17,7 @@ class Component:
     Note that the surfaces within the component do not have to be in order
     """
 
-    def __init__(self, name: str, surfaces: List[Surface], comment: str = ''):
+    def __init__(self, name: str, comment: str = ''):
         """
         Constructor for class kgpy.optics.Component
         :param name: Human-readable name of the component
@@ -35,9 +35,6 @@ class Component:
         # Initialize the coordinate system to the global coordinate system
         self.cs = GlobalCoordinateSystem()
 
-        # Loop through every surface and add it to the list of surfaces within this component
-        for surface in surfaces:
-            self.append_surface(surface)
 
     @property
     def T(self):

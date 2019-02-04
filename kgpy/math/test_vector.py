@@ -9,7 +9,7 @@ from kgpy.math import Vector
 
 __all__ = ['TestVector']
 
-t = (0, 1)
+t = (0, 1, 0.0, 1.0)
 
 
 @pytest.mark.parametrize('x', t)
@@ -61,6 +61,10 @@ class TestVector:
 
         # Check that this vector is not equal to the original vector
         assert v0 != v2
+
+        # If all three components of the Vector is zero check scalar equality
+        if x == y == z:
+            assert v0 == x * unit
 
     def test__add__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
         """
@@ -144,6 +148,17 @@ class TestVector:
         assert v.x == (a.y * b.z - a.z * b.y)
         assert v.y == -(a.x * b.z - a.z * b.x)
         assert v.z == (a.x * b.y - a.y * b.x)
+
+    def test_mag(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
+
+        # Create test vector
+        a = Vector([x, y, z] * unit)
+
+        # Calculate the test magnitude
+        m = a.mag
+
+        # Compare to the definition of magnitude
+        assert m == np.sqrt((x * x + y * y + z * z) * unit * unit)
 
     def test__array__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
         """
