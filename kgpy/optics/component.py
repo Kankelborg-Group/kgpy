@@ -21,7 +21,6 @@ class Component:
         """
         Constructor for class kgpy.optics.Component
         :param name: Human-readable name of the component
-        :param surfaces: List of initial surfaces within the component
         :param comment: Additional description of this component
         """
 

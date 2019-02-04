@@ -77,6 +77,14 @@ class Vector:
         else:
             raise TypeError('right argument is not a Vector, Quantity or Real type')
 
+    def __neg__(self) -> 'Vector':
+        """
+        Reverse the direction of a vector
+        :return: A new vector with the values of each component negated
+        """
+
+        return Vector(-self.X)
+
     def __add__(self, other: 'Vector') -> 'Vector':
         """
         Add two vectors together
@@ -87,19 +95,18 @@ class Vector:
             X = self.X + other.X
             return Vector(X)
         else:
-            raise TypeError
+            return NotImplemented
 
     def __sub__(self, other: 'Vector') -> 'Vector':
         """
-        Add two vectors together
+        Subtract other Vector from this Vector
         :param other: Another vector
-        :return: The sum of both vectors
+        :return: The difference of this Vector and the Vector other
         """
         if isinstance(other, Vector):
-            X = self.X - other.X
-            return Vector(X)
+            return self.__add__(-other)
         else:
-            raise TypeError
+            return NotImplemented
 
     def __mul__(self, other: Union[Real, u.Quantity]) -> 'Vector':
         """
@@ -111,7 +118,7 @@ class Vector:
             X = other * self.X
             return Vector(X)
         else:
-            raise TypeError
+            return NotImplemented
 
     # This is needed to make astropy.units respect our version of the __rmul__ op, for more information see
     # https://stackoverflow.com/a/41948659

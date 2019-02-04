@@ -66,9 +66,52 @@ class TestVector:
         if x == y == z:
             assert v0 == x * unit
 
+    def test__neg__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
+        """
+        Check the negation operation of the Vector object
+        :param x: x-component of the Vector
+        :param y: y-component of the Vector
+        :param z: z-component of the Vector
+        :param unit: units associated with the Vector
+        :return: None
+        """
+
+        # Create test vector
+        v0 = Vector([z, y, x] * unit)
+
+        # Test negation operation
+        v = -v0
+
+        # Assert that every component was negated properly
+        assert v.x == -v0.x
+        assert v.y == -v0.y
+        assert v.z == -v0.z
+
     def test__add__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
         """
         Check the addition operator of the Vector object.
+        :param x: x-component of the Vector
+        :param y: y-component of the Vector
+        :param z: z-component of the Vector
+        :param unit: units associated with the Vector
+        :return: None
+        """
+
+        # Declare two vectors to add together
+        v0 = Vector([x, y, z] * unit)
+        v1 = Vector([z, y, x] * unit)
+
+        # Execute test addition operation
+        v = v0 + v1
+
+        # Check if the result of the addition operation is what we expected
+        assert v.x == v0.x + v1.x
+        assert v.y == v0.y + v1.y
+        assert v.z == v0.z + v1.z
+
+    def test__sub__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
+        """
+        Check the subtraction operator of the Vector object.
         :param x: x-component of the Vector
         :param y: y-component of the Vector
         :param z: z-component of the Vector

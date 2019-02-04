@@ -2,7 +2,7 @@
 from typing import List, Union
 from copy import deepcopy
 import astropy.units as u
-import quaternion
+import quaternion as q
 from . import Vector
 
 __all__ = ['CoordinateSystem', 'GlobalCoordinateSystem']
@@ -18,7 +18,7 @@ class CoordinateSystem:
     yh_g = Vector([0, 1, 0])
     zh_g = Vector([0, 0, 1])
 
-    def __init__(self, X: Union[List[float], u.Quantity, Vector], Q: Union[List[float], quaternion.quaternion]):
+    def __init__(self, X: Union[List[float], u.Quantity, Vector], Q: Union[List[float], q.quaternion]):
         """
         Defines a new coordinate system using a vector (translation) and a quaternion (rotation)
         :param X: Vector pointing from origin of global coordinate system to the origin of this coordinate system
@@ -34,7 +34,7 @@ class CoordinateSystem:
 
         # Convert Q to quaternion if it isn't already
         if isinstance(Q, list):
-            Q = quaternion.quaternion(*Q)
+            Q = q.quaternion(*Q)
 
         # Save input arguments to class variables
         self.X = X
@@ -45,7 +45,7 @@ class CoordinateSystem:
         """
         :return: x-hat unit vector for this coordinate system
         """
-        xh = quaternion.rotate_vectors(self.Q, self.xh_g)
+        xh = q.rotate_vectors(self.Q, self.xh_g)
         return Vector(xh)
 
     @property
@@ -53,7 +53,7 @@ class CoordinateSystem:
         """
         :return: y-hat unit vector for this coordinate system
         """
-        yh = quaternion.rotate_vectors(self.Q, self.yh_g)
+        yh = q.rotate_vectors(self.Q, self.yh_g)
         return Vector(yh)
 
     @property
@@ -61,7 +61,7 @@ class CoordinateSystem:
         """
         :return: z-hat unit vector for this coordinate system
         """
-        zh = quaternion.rotate_vectors(self.Q, self.zh_g)
+        zh = q.rotate_vectors(self.Q, self.zh_g)
         return Vector(zh)
 
     def __str__(self) -> str:
@@ -69,6 +69,27 @@ class CoordinateSystem:
         :return: Human-readable string representation of this coordinate system
         """
         return self.X.__str__() + ', ' +  self.Q.__str__()
+
+    def __eq__(self, other: 'CoordinateSystem') -> bool:
+        """
+        Check if two coordinate systems are equal by checking if the translation vectors are equal and the rotation
+        quaternions are equal.
+        :param other: Another coordinate system to compare
+        :return: True if the two coordinate systems are the same, False if not.
+        """
+
+        # Check that the right operand is an instance of a coordinate system
+        if isinstance(other, CoordinateSystem):
+
+            # Check if the translation and rotation is the same in the other coordinate system
+            a = self.X == other.X
+            b = self.Q == other.Q
+
+            # return True if the translation and rotation is the same for both coordinate systems
+            return a and b
+
+        else:
+            return NotImplemented
 
     def __add__(self, other: Vector) -> 'CoordinateSystem':
         """
@@ -85,22 +106,41 @@ class CoordinateSystem:
             return CoordinateSystem(self.X + other, deepcopy(self.Q))
 
         else:
-            raise ValueError('Only Vectors can be added to a coordinate system')
+            return NotImplemented
 
-    def __eq__(self, other: 'CoordinateSystem') -> bool:
+    # Define the reverse addition operator so that both Vector + CoordinateSystem and CoordinateSystem + Vector are
+    # allowed.
+    __radd__ = __add__
+
+    def __mul__(self, other: q.quaternion) -> 'CoordinateSystem':
         """
-        Check if two coordinate systems are equal by checking if the translation vectors are equal and the rotation
-        quaternions are equal.
-        :param other: Another coordinate system to compare
-        :return: True if the two coordinate systems are the same, False if not.
+        Multiply the coordinate system by the quaternion other.
+        This operation rotates the coordinate system by the quaternion other.
+        :param other: Quaternion to rotate the coordinate system by
+        :return: The rotated coordinate system
         """
 
-        # Check if the translation and rotation is the same in the other coordinate system
-        a = self.X == other.X
-        b = self.Q == other.Q
+        # Check if the right operand is an instance of a q.quaternion
+        if isinstance(other, q.quaternion):
 
-        # return True if the translation and rotation is the same for both coordinate systems
-        return a and b
+            # As in the __add__ function, we deepcopy the Vector object to decouple the new coordinate system
+            return CoordinateSystem(deepcopy(self.X), self.Q * other)
+
+        else:
+            return NotImplemented
+
+    # Note that the reverse multiplication operation is not defined here since quaternion products do not commute
+
+    def __matmul__(self, other: 'CoordinateSystem') -> 'CoordinateSystem':
+        """
+        Compute the composition of two coordinate systems.
+        We define this composition by adding the two translation vectors from each coordinate system and multiplying
+        the two rotation quaternions.
+        :param other: The other cooridn
+        :return:
+        """
+
+        pass
 
 
 class GlobalCoordinateSystem(CoordinateSystem):
@@ -110,6 +150,6 @@ class GlobalCoordinateSystem(CoordinateSystem):
 
     def __init__(self):
 
-        super().__init__([0, 0, 0] * u.mm, quaternion.from_euler_angles(0, 0, 0))
+        super().__init__([0, 0, 0] * u.mm, q.from_euler_angles(0, 0, 0))
 
 
