@@ -21,18 +21,22 @@ class Surface:
     """
 
     def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, comment: str = '',
-                 tilt_dec: CoordinateSystem = gcs(), cs_break: CoordinateSystem = gcs()):
+                 cs_break: CoordinateSystem = gcs(), tilt_dec: CoordinateSystem = gcs()):
         """
         Constructor for the Surface class.
         This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
         place after the call to this function.
         :param name: Human-readable name of the surface
-        :param thickness: Thickness of the surface along the local z-direction, measured in mm
+        :param thickness: Thickness of the surface along the self.cs.zh direction. Must have dimensions of length.
         :param comment: Additional description of this surface
-        :param tilt_dec: Temporary coordinate system break to place the surface, i.e. the coordinate system after this
-        surface ignores this argument.
-        :param cs_break: Permanent coordinate system break at the front face of this surface, i.e. the coordinate system
-        after this surface incorporates this argument
+        :param cs_break: CoordinateSystem applied to the surface the modifies the current CoordinateSystem.
+        The main use of this argument is to change the direction of propagation for the beam.
+        This argument is similar to the Coordinate Break surface in Zemax.
+        In this implementation a Surface can have a coordinate break instead of needing to define a second surface.
+        :param tilt_dec: CoordinateSystem applied only to the front face of the surface that leaves the current
+        CoordinateSystem unchanged.
+        The main use of this argument is to decenter/offset an optic but leave the direction of propagation unchanged.
+        This argument is similar to the tilt/decenter feature in Zemax.
         """
 
         # Check that the thickness parameter has the units attribute
@@ -71,14 +75,49 @@ class Surface:
         return self.thickness * self.cs.zh
 
     @property
+    def cs(self) -> CoordinateSystem:
+        """
+        Defined as the CoordinateSystem of the back face of the previous Surface composed with the coordinate break of
+        this Surface.
+        This is the CoordinateSystem used to calculate the thickness Vector and the location of the back face of the
+        Surface.
+        :return: Current CoordinateSystem of the Surface.
+        """
+
+        # If there is no previous Surface than the CoordinateSystem of this Surface is the same as the CoordinateSystem
+        # of the global Component.
+        # Otherwise the CoordinateSystem of this Surface is the composition of the previous Surface's CoordinateSystem
+        # and the coordinate break of this Surface.
+        if self.previous_surf is None:
+
+            # If there is no global Component, return the global CoordinateSystem (no translation, no rotation)
+            # Otherwise return the CoordinateSystem of the Component.
+            if self.component is None:
+
+                # Global CoordinateSystem
+                return gcs()
+
+            else:
+
+                # Component CoordinateSystem
+                return self.component.cs
+
+        else:
+
+            # Old current coordinate system composed with this Surface's coordinate break.
+            return self.cs_break @ self.previous_surf.back_cs
+
+    @property
     def front_cs(self) -> CoordinateSystem:
 
-         return self.component.cs @ (self.previous_surf.back_cs @ (self.cs_break @ self.tilt_dec) )
+        return (self.tilt_dec @ self.cs_break) @ self.previous_surf.back_cs
+
+        # return self.previous_surf.back_cs @ (self.cs_break @ self.tilt_dec)
 
     @property
     def back_cs(self) -> CoordinateSystem:
 
-        pass
+        return self.cs + self.T
 
     def __str__(self) -> str:
         """
