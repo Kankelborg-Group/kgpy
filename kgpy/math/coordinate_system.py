@@ -18,12 +18,17 @@ class CoordinateSystem:
     yh_g = Vector([0, 1, 0])
     zh_g = Vector([0, 0, 1])
 
-    def __init__(self, X: Union[List[float], u.Quantity, Vector], Q: Union[List[float], q.quaternion]):
+    def __init__(self, X: Union[List[float], u.Quantity, Vector], Q: Union[List[float], q.quaternion],
+                 translation_first = True):
         """
-        Defines a new coordinate system using a vector (translation) and a quaternion (rotation)
+        Defines a new coordinate system using a vector (translation) and a quaternion (rotation).
+        Rotations and translations are performed using the current orientation of the coordinate system, this means
+        that the order of the rotation and translation matters.
         :param X: Vector pointing from origin of global coordinate system to the origin of this coordinate system
         :param Q: Quaternion representing the 3D rotation of this coordinate system with respect to the global
         coordinate system.
+        :param translation_first: flag to indicate whether the translation operation should occur before the rotation
+        operation.
         """
 
         # Convert X to vector if it isn't already
@@ -39,6 +44,11 @@ class CoordinateSystem:
         # Save input arguments to class variables
         self.X = X
         self.Q = Q
+
+        # If the translation operation occurs first, we do not have to rotate the translation Vector.
+        # Otherwise, if the rotation operation occurs first, we do have to rotate the translation Vector.
+        if not translation_first:
+            self.X = q.rotate_vectors(self.Q, self.X)
 
     @property
     def xh(self) -> Vector:
@@ -134,13 +144,20 @@ class CoordinateSystem:
     def __matmul__(self, other: 'CoordinateSystem') -> 'CoordinateSystem':
         """
         Compute the composition of two coordinate systems.
+        We define this composition
         We define this composition by adding the two translation vectors from each coordinate system and multiplying
         the two rotation quaternions.
-        :param other: The other cooridn
-        :return:
+        This function can be interpreted as translating/rotating other by self.
+        :param other: The other coordinate system to be transformed
+        :return: A new coordinate system representing the composition of self and other.
         """
 
-        pass
+        X = self.X + q.rotate_vectors(self.Q, other.X)
+        Q = self.Q * other.Q
+
+        # Return a coordinate system with translation before rotation because we don't want an additional modification
+        # of the translation vector.
+        return CoordinateSystem(X, Q)
 
 
 class GlobalCoordinateSystem(CoordinateSystem):

@@ -22,6 +22,13 @@ a_0 = (0, np.pi / 4)
 @pytest.mark.parametrize('c', a_0)
 class TestCoordinateSystem:
 
+    def test__init__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
+
+        # Create a test coordinate system
+        X = Vector([x, y, z])
+        Q = q.from_euler_angles(a, b, c)
+        cs = CoordinateSystem(X, Q)
+
     def test_xh(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
         # Create a test coordinate system
@@ -123,3 +130,7 @@ class TestCoordinateSystem:
         assert abs(qt.x) < err
         assert abs(qt.y) < err
         assert abs(qt.z) < err
+
+    def test__matmul__(self):
+
+        pass
