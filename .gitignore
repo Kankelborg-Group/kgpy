@@ -38,3 +38,4 @@
 workspace.xml
 /Debug/
 /Release/
+*/.idea/
