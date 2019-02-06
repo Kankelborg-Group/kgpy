@@ -170,6 +170,19 @@ class Vector:
 
         return np.linalg.norm(self.X) * self.X.unit
 
+    def isclose(self, other: 'Vector'):
+        """
+        Check if two Vectors have the same components to within some tolerance
+        :param other: Another vector to compare against
+        :return: True if the two vectors are nearly the same, False otherwise.
+        """
+
+        # Take the difference of the two values so that we can compare to zero. This lets us use the np.isclose()
+        # function and not care about the units of self or other (as long as they're compatible of course).
+        x = self - other
+
+        return np.isclose(x.X.value, [0, 0, 0]).all()
+
     def __str__(self) -> str:
         """
         Print a string representation of the vector

@@ -194,6 +194,7 @@ class TestVector:
         assert v.z == (a.x * b.y - a.y * b.x)
 
     a_0 = (0, np.pi / 4)
+
     @pytest.mark.parametrize('a', a_0)
     @pytest.mark.parametrize('b', a_0)
     @pytest.mark.parametrize('c', a_0)
@@ -222,6 +223,24 @@ class TestVector:
 
         # Compare to the definition of magnitude
         assert m == np.sqrt((x * x + y * y + z * z) * unit * unit)
+
+    def test_isclose(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
+
+        # Create test vector
+        a = Vector([x, y, z] * unit)
+
+        # Create second vector with small changes
+        err = 1e-17
+        b = Vector([x + err, y - err, z] * unit)
+
+        # Test if the two Vectors have close to the same value
+        assert a.isclose(b)
+
+        # Create a third Vector with large changes
+        c = Vector([x + 1, y + 1, z + 1] * unit)
+
+        # Test that the two vectors are not close
+        assert not a.isclose(c)
 
     def test__array__(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
         """

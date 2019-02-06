@@ -37,18 +37,16 @@ class TestSurface:
         :return: None
         """
 
-        print(type(u.mm))
-
         # Give each surface some arbitrary thickness
         t = 1 * u.mm
 
         # Define a 90-degree coordinate break
         X = Vector([0, 0, 0] * u.mm)
-        Q = q.from_euler_angles(np.pi/2, 0, 0)
+        Q = q.from_euler_angles(0, np.pi/4, 0)
         cs = CoordinateSystem(X, Q)
 
         # Define the four test surfaces to arrange into a square
-        s1 = Surface('Surface 1', thickness=t, cs_break=cs)
+        s1 = Surface('Surface 1', thickness=t)
         s2 = Surface('Surface 2', thickness=t, cs_break=cs)
         s3 = Surface('Surface 3', thickness=t, cs_break=cs)
         s4 = Surface('Surface 4', thickness=t, cs_break=cs)
@@ -58,7 +56,15 @@ class TestSurface:
         s3.previous_surf = s2
         s4.previous_surf = s3
 
+        print()
         print(s1.cs)
+        print(s1.back_cs)
+        print()
         print(s2.cs)
+        print(s2.back_cs)
+        print()
         print(s3.cs)
+        print(s3.back_cs)
+        print()
         print(s4.cs)
+        print(s4.back_cs)

@@ -1,6 +1,7 @@
 
 from typing import List, Union
 from copy import deepcopy
+import numpy as np
 import astropy.units as u
 import quaternion as q
 from . import Vector
@@ -155,6 +156,13 @@ class CoordinateSystem:
         # of the translation vector.
         return CoordinateSystem(X, Q)
 
+    def isclose(self, other: 'CoordinateSystem'):
+
+        a = self.X.isclose(other.X)
+
+        b = np.isclose(self.Q, other.Q).all()
+
+        return a and b
 
 class GlobalCoordinateSystem(CoordinateSystem):
     """

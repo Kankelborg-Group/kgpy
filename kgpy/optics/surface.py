@@ -95,22 +95,24 @@ class Surface:
             if self.component is None:
 
                 # Global CoordinateSystem
-                return gcs()
+                current_cs = gcs()
 
             else:
 
                 # Component CoordinateSystem
-                return self.component.cs
+                current_cs = self.component.cs
 
         else:
 
             # Old current coordinate system composed with this Surface's coordinate break.
-            return self.previous_surf.back_cs @ self.cs_break
+            current_cs = self.previous_surf.back_cs @ self.cs_break
+
+        return current_cs @ self.cs_break
 
     @property
     def front_cs(self) -> CoordinateSystem:
 
-        return  self.previous_surf.back_cs @ (self.cs_break @ self.tilt_dec)
+        return self.previous_surf.back_cs @ (self.cs_break @ self.tilt_dec)
 
 
     @property

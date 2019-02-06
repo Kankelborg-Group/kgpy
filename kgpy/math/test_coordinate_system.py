@@ -125,12 +125,7 @@ class TestCoordinateSystem:
 
         # If multiplication operation is correct, the quaternion attribute of the new coordinate system should be nearly
         # equal to the zero rotation quaternion
-        qt = cs2.Q - GlobalCoordinateSystem().Q     # type: q.quaternion
-        err = 1e-15
-        assert abs(qt.w) < err
-        assert abs(qt.x) < err
-        assert abs(qt.y) < err
-        assert abs(qt.z) < err
+        assert np.isclose(cs2.Q, GlobalCoordinateSystem().Q)
 
     def test__matmul__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
@@ -147,21 +142,30 @@ class TestCoordinateSystem:
         # Execute test matmul operation
         cs3 = cs2 @ cs1
 
-        # If the composition operator is correct, the translation should be equal to the translation of the global
-        # coordinate system (the zero vector)
-        v = cs3.X - GlobalCoordinateSystem().X  # type: Vector
-        err = 1e-15
-        assert abs(v.x) < err * u.mm
-        assert abs(v.y) < err * u.mm
-        assert abs(v.z) < err * u.mm
+        # If the composition operator is correct, the resulting coordinate system should be equal to the global
+        # coordinate system
+        assert cs3.isclose(GlobalCoordinateSystem())
 
-        # We also need to check that the rotation is equal to the rotation of the global coordinate system
-        qt = cs3.Q - GlobalCoordinateSystem().Q     # type: q.quaternion
-        assert abs(qt.w) < err
-        assert abs(qt.x) < err
-        assert abs(qt.y) < err
-        assert abs(qt.z) < err
+    def test_isclose(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
+        # Create first test coordinate system
+        X1 = Vector([x, y, z] * u.mm)
+        Q1 = q.from_euler_angles(a, b, c)
+        cs1 = CoordinateSystem(X1, Q1)
 
+        # Create second test coordinate system
+        err = 1e-17
+        X2 = Vector([x + err, y - err, z] * u.mm)
+        Q2 = q.from_euler_angles(a + err, b - err, c)
+        cs2 = CoordinateSystem(X2, Q2)
 
+        # Check that the two coordinate systems are nearly equal
+        assert cs1.isclose(cs2)
 
+        # Create a third test coordinate system to verify that isclose returns False correctly
+        X3 = Vector([x + 1, y - 1, z] * u.mm)
+        Q3 = q.from_euler_angles(a + np.pi/4, b + np.pi/4, c + np.pi/4)
+        cs3 = CoordinateSystem(X3, Q3)
+
+        # Check that the first and third coordinate systems are not nearly equal
+        assert not cs1.isclose(cs3)
