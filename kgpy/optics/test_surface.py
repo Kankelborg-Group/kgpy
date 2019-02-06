@@ -2,8 +2,11 @@
 import pytest
 from numbers import Real
 from typing import Union
+import numpy as np
 import astropy.units as u
+import quaternion as q
 
+from kgpy.math import Vector, CoordinateSystem
 from kgpy.optics import Surface
 
 
@@ -34,10 +37,28 @@ class TestSurface:
         :return: None
         """
 
+        print(type(u.mm))
+
         # Give each surface some arbitrary thickness
         t = 1 * u.mm
 
-        # Define
+        # Define a 90-degree coordinate break
+        X = Vector([0, 0, 0] * u.mm)
+        Q = q.from_euler_angles(np.pi/2, 0, 0)
+        cs = CoordinateSystem(X, Q)
 
+        # Define the four test surfaces to arrange into a square
+        s1 = Surface('Surface 1', thickness=t, cs_break=cs)
+        s2 = Surface('Surface 2', thickness=t, cs_break=cs)
+        s3 = Surface('Surface 3', thickness=t, cs_break=cs)
+        s4 = Surface('Surface 4', thickness=t, cs_break=cs)
 
-        s1 = Surface('Surface 1', thickness=t, )
+        # Link each surface properly
+        s2.previous_surf = s1
+        s3.previous_surf = s2
+        s4.previous_surf = s3
+
+        print(s1.cs)
+        print(s2.cs)
+        print(s3.cs)
+        print(s4.cs)

@@ -105,14 +105,13 @@ class Surface:
         else:
 
             # Old current coordinate system composed with this Surface's coordinate break.
-            return self.cs_break @ self.previous_surf.back_cs
+            return self.previous_surf.back_cs @ self.cs_break
 
     @property
     def front_cs(self) -> CoordinateSystem:
 
-        return (self.tilt_dec @ self.cs_break) @ self.previous_surf.back_cs
+        return  self.previous_surf.back_cs @ (self.cs_break @ self.tilt_dec)
 
-        # return self.previous_surf.back_cs @ (self.cs_break @ self.tilt_dec)
 
     @property
     def back_cs(self) -> CoordinateSystem:

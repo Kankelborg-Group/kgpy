@@ -3,6 +3,7 @@ from typing import Union, List
 from numbers import Real
 import numpy as np
 import astropy.units as u
+import quaternion as q
 
 __all__ = ['Vector']
 
@@ -122,7 +123,7 @@ class Vector:
 
     # This is needed to make astropy.units respect our version of the __rmul__ op, for more information see
     # https://stackoverflow.com/a/41948659
-    __array_priority__ = 10000000
+    __array_priority__ = 10000000000
 
     # Make the reverse multiplication operation the same as the multiplication operation
     __rmul__ = __mul__
@@ -146,6 +147,19 @@ class Vector:
 
         # Use numpy.ndarray.cross() to calculate the cross product
         return Vector(np.cross(self.X, other.X) * self.X.unit * other.X.unit)
+
+    def rotate(self, Q: q.quaternion):
+        """
+        Rotate self by the quaternion Q
+        :param Q: Quaternion describing the rotation of the vector
+        :return: Rotated vector
+        """
+
+        # quaternion.rotate_vectors operates on numpy.ndarray types (not astropy.units.Quantity types), so we need to
+        # explicitly include the unit
+        x = q.rotate_vectors(Q, self.X) * self.X.unit
+
+        return Vector(x)
 
     @property
     def mag(self):

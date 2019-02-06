@@ -4,6 +4,7 @@ from typing import List, Union
 from numbers import Real
 import numpy as np
 import astropy.units as u
+import quaternion as q
 
 from kgpy.math import Vector
 
@@ -191,6 +192,25 @@ class TestVector:
         assert v.x == (a.y * b.z - a.z * b.y)
         assert v.y == -(a.x * b.z - a.z * b.x)
         assert v.z == (a.x * b.y - a.y * b.x)
+
+    a_0 = (0, np.pi / 4)
+    @pytest.mark.parametrize('a', a_0)
+    @pytest.mark.parametrize('b', a_0)
+    @pytest.mark.parametrize('c', a_0)
+    def test_rotate(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real, unit: Union[Real, u.Quantity]):
+
+        # Create test vector
+        X1 = Vector([x, y, z] * unit)
+
+        # Create forward and inverse rotation quaternions
+        Q1 = q.from_euler_angles(a, b, c)
+        Q2 = q.from_euler_angles(-c, -b, -a)
+
+        # Rotate and unrotate the vector
+        X2 = X1.rotate(Q1).rotate(Q2)
+
+        # Check that the result is very close to the original vector
+        assert (X2 - X1).mag < 1e-15 * unit
 
     def test_mag(self, x: Real, y: Real, z: Real, unit: Union[Real, u.Quantity]):
 

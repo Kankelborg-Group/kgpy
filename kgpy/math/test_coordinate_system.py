@@ -4,6 +4,7 @@ from copy import deepcopy
 from numbers import Real
 import numpy as np
 import quaternion as q
+import astropy.units as u
 
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem
@@ -131,6 +132,36 @@ class TestCoordinateSystem:
         assert abs(qt.y) < err
         assert abs(qt.z) < err
 
-    def test__matmul__(self):
+    def test__matmul__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
-        pass
+        # Create first test coordinate system
+        X1 = Vector([x, y, z] * u.mm)
+        Q1 = q.from_euler_angles(a, b, c)
+        cs1 = CoordinateSystem(X1, Q1)
+
+        # Create second test coordinate system
+        X2 = Vector([-x, -y, -z] * u.mm)
+        Q2 = q.from_euler_angles(-c, -b, -a)
+        cs2 = CoordinateSystem(X2, Q2, translation_first=False)
+
+        # Execute test matmul operation
+        cs3 = cs2 @ cs1
+
+        # If the composition operator is correct, the translation should be equal to the translation of the global
+        # coordinate system (the zero vector)
+        v = cs3.X - GlobalCoordinateSystem().X  # type: Vector
+        err = 1e-15
+        assert abs(v.x) < err * u.mm
+        assert abs(v.y) < err * u.mm
+        assert abs(v.z) < err * u.mm
+
+        # We also need to check that the rotation is equal to the rotation of the global coordinate system
+        qt = cs3.Q - GlobalCoordinateSystem().Q     # type: q.quaternion
+        assert abs(qt.w) < err
+        assert abs(qt.x) < err
+        assert abs(qt.y) < err
+        assert abs(qt.z) < err
+
+
+
+

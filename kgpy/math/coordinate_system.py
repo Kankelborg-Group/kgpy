@@ -48,31 +48,28 @@ class CoordinateSystem:
         # If the translation operation occurs first, we do not have to rotate the translation Vector.
         # Otherwise, if the rotation operation occurs first, we do have to rotate the translation Vector.
         if not translation_first:
-            self.X = q.rotate_vectors(self.Q, self.X)
+            self.X = self.X.rotate(self.Q)
 
     @property
     def xh(self) -> Vector:
         """
         :return: x-hat unit vector for this coordinate system
         """
-        xh = q.rotate_vectors(self.Q, self.xh_g)
-        return Vector(xh)
+        return self.xh_g.rotate(self.Q)
 
     @property
     def yh(self) -> Vector:
         """
         :return: y-hat unit vector for this coordinate system
         """
-        yh = q.rotate_vectors(self.Q, self.yh_g)
-        return Vector(yh)
+        return self.yh_g.rotate(self.Q)
 
     @property
     def zh(self) -> Vector:
         """
         :return: z-hat unit vector for this coordinate system
         """
-        zh = q.rotate_vectors(self.Q, self.zh_g)
-        return Vector(zh)
+        return self.zh_g.rotate(self.Q)
 
     def __str__(self) -> str:
         """
@@ -144,15 +141,14 @@ class CoordinateSystem:
     def __matmul__(self, other: 'CoordinateSystem') -> 'CoordinateSystem':
         """
         Compute the composition of two coordinate systems.
-        We define this composition
-        We define this composition by adding the two translation vectors from each coordinate system and multiplying
-        the two rotation quaternions.
         This function can be interpreted as translating/rotating other by self.
+
         :param other: The other coordinate system to be transformed
         :return: A new coordinate system representing the composition of self and other.
         """
 
-        X = self.X + q.rotate_vectors(self.Q, other.X)
+        # Compute new system attributes
+        X = self.X + other.X.rotate(self.Q)
         Q = self.Q * other.Q
 
         # Return a coordinate system with translation before rotation because we don't want an additional modification
