@@ -143,7 +143,6 @@ class CoordinateSystem:
         """
         Compute the composition of two coordinate systems.
         This function can be interpreted as translating/rotating other by self.
-
         :param other: The other coordinate system to be transformed
         :return: A new coordinate system representing the composition of self and other.
         """
@@ -156,10 +155,18 @@ class CoordinateSystem:
         # of the translation vector.
         return CoordinateSystem(X, Q)
 
-    def isclose(self, other: 'CoordinateSystem'):
+    def isclose(self, other: 'CoordinateSystem') -> bool:
+        """
+        Check if CoordinateSystem other is nearly equal to self.
+        This function checks if both the translation vector and the rotation quaternion in both systems are equal.
+        :param other: Another CoordinateSystem to compare to
+        :return: True if the CoordinateSystems are nearly equal, false otherwise
+        """
 
+        # Compare the vectors
         a = self.X.isclose(other.X)
 
+        # Compare the quaternions
         b = np.isclose(self.Q, other.Q).all()
 
         return a and b

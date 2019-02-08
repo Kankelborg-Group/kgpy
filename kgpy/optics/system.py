@@ -18,55 +18,31 @@ class System:
     This class is intended to be a drop-in replacement for a Zemax system.
     """
 
-    def __init__(self, name: str, components: List[Component]):
+    def __init__(self, name: str, comment: str = ''):
         """
-        Define an optical system by providing a name and a list of Components.
-        The surfaces within each Component are added sequentially.
+        Define an optical system by providing a name.
         :param name: Human-readable name of the system
-        :param components: List of initial components for the system
+        :param comment: Additional information about the system.
         """
 
         # Save input arguments to class variables
         self.name = name
-        self.components = components
+        self.comment = comment
 
-        # Define the coordinate system of the System as the origin of the global coordinate system
-        self.cs = GlobalCoordinateSystem()
-
-        # Create surfaces variable to store list
-        self.surfaces = []      # type: List[Surface]
-
-    def append_surface(self, surface: Surface) -> None:
-        """
-        Add the surface to the end of the surface list
-        :param surface: Surface to be appended
-        :return: None
-        """
-
-        self.surfaces.append(surface)
+        # Initialize empty list of components
+        self.components = []        # type: List[Component]
 
     def append_component(self, component: Component) -> None:
         """
         Add the component to the end of the component list.
-        This function implicitly adds each surface inside the component to the surfaces list in order.
         :param component: component to be added to the component list
         :return: None
         """
 
-        # If the list of components is empty, the coordinate system of the component is the same as the coordinate
-        # system of the System.
-        # Otherwise the coordinate system of the component is the the coordinate system of the last component translated
-        # by the thickness vector of the component
-        if not self.components:
-            component.cs = deepcopy(self.cs)
-        else:
-            last_comp = self.surfaces[-1]
-            surface.cs = last_surf.cs + last_surf.T
-
-        # Loop through every surface in the component and add it to the full list of surfaces
-        for surface in component.surfaces:
-
-            self.append_surface(surface)
+        # If the system contains at least one component, set the populate the previous surface attribute of the
+        # component we are adding to the list.
+        if self.components:
+            component.previous_component = self.components[-1]
 
         # Append this component to the list of components
         self.components.append(component)
@@ -74,22 +50,6 @@ class System:
             
 
 
-
-
-    # @property
-    # def surfaces(self):
-    #     """
-    #     List of all surfaces in the system, in order.
-    #     This is done by concatenating all surfaces from each component together.
-    #     :return: List of all surfaces in the system
-    #     :rtype: list[kgpy.optics.Surface]
-    #     """
-    #     s = []
-    #     for component in self.components:
-    #         for surface in component.surfaces:
-    #             s.append(surface)
-    #
-    #     return s
 
     def add_baffle(self, baffle_cs: CoordinateSystem) -> Baffle:
         """

@@ -4,8 +4,8 @@ from copy import deepcopy
 import astropy.units as u
 
 from . import Surface
-from kgpy.math import Vector
-from kgpy.math.coordinate_system import GlobalCoordinateSystem
+from kgpy.math import Vector, CoordinateSystem
+from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 
 __all__ = ['Component']
 
@@ -14,62 +14,97 @@ class Component:
     """
     An optical component is a collection of one or more surfaces such as the tips/tilts, clear aperture, and the optical
     surface of an optical element.
-    Note that the surfaces within the component do not have to be in order
+    A Component is part of a System, the hierarchy is as follows: System -> Component -> Surface.
+    Note that the surfaces within the component do not have to be contiguous.
+    Note: If the surfaces within a component are not contiguous, it is not clear what is meant by rotating or
+    translating the Component.
     """
 
-    def __init__(self, name: str, comment: str = ''):
+    def __init__(self, name: str, comment: str = '', cs_break: CoordinateSystem = gcs()):
         """
         Constructor for class kgpy.optics.Component
         :param name: Human-readable name of the component
         :param comment: Additional description of this component
+        :param cs_break: Coordinate system that is applied to the component, and permanently modifies the current
+        Coordinate system.
+        This feature can be used to rotate and translate the whole component, with all the surfaces within.
         """
 
         # Save arguments as class variables
         self.name = name
         self.comment = comment
+        self.cs_break = cs_break
 
         # Initialize the list of surfaces to an empty list
         self.surfaces = []      # type: List[Surface]
 
-        # Initialize the coordinate system to the global coordinate system
-        self.cs = GlobalCoordinateSystem()
-
+        # Attributes to be set by the System class, usually System.append_component(), unless we're making a Component
+        # out of non-contiguous surfaces.
+        self.previous_component = None  # type: 'Component'
 
     @property
-    def T(self):
+    def previous_cs(self) -> CoordinateSystem:
+        """
+        The coordinate system of the component before this component in the optical system.
+        This is the coordinate system that this component will be attached to.
+        :return: The coordinate system of the last component in the optical system.
+        """
+
+        # If this previous component has not been defined, the previous coordinate system is at the origin.
+        # Otherwise the previous coordinate system
+        if self.previous_component is None:
+
+            return gcs()
+
+        elif self.surfaces:
+
+            return self.previous_component.back_cs
+
+    @property
+    def cs(self) -> CoordinateSystem:
+        """
+        :return: Coordinate system of the component, including the coordinate break.
+        """
+
+        return self.previous_cs @ self.cs_break
+
+    @property
+    def back_cs(self) -> CoordinateSystem:
+        """
+        :return: Coordinate system of the back face of the component.
+        """
+
+        # If the component contains at least one surface, the coordinate system of the back face is the same as the
+        # back face in the last surface in the component.
+        # Otherwise the component is empty and the back face is the same as the front face.
+        if self.surfaces:
+            return self.surfaces[-1].back_cs
+        else:
+            return self.cs
+
+    @property
+    def T(self) -> Vector:
         """
         Thickness vector
         :return: Vector pointing from center of a component's front face to the center of a component's back face.
         """
 
-        # If the component contains at least one surface, return the difference between the vector pointing the back
-        # face of the component and the vector pointing to the front face of the component.
-        # Else, the component contains no surfaces and the thickness is the zero vector.
-        if self.surfaces:
-            s0 = self.surfaces[0]
-            s1 = self.surfaces[-1]
-            return (s1.cs.X + s1.T) - s0.cs.X
-        else:
-            return Vector([0, 0, 0] * u.mm)
+        return self.back_cs.X - self.cs.X
 
     def append_surface(self, surface: Surface) -> int:
         """
         Add provided surface to the specified list of surfaces.
-        Currently, the main reason for this method is to ensure that the global coordinate of each surface is set
-        correctly.
-        :param surface:
+        :param surface: Surface to add to the end of the component
         :return:
         """
 
-        # If the list of surfaces is empty, the coordinate system of the surface is the same as the coordinate system of
-        # the component.
-        # Otherwise the coordinate system of the surface is the coordinate system of the last surface in the list,
-        # translated by the thickness vector
-        if not self.surfaces:
-            surface.cs = deepcopy(self.cs)
-        else:
-            last_surf = self.surfaces[-1]
-            surface.cs = last_surf.cs + last_surf.T
+        # If there is already at least one surface in the component, populate the previous_surf attribute in this
+        # surface
+        if self.surfaces:
+            surface.previous_surf = self.surfaces[-1]
+
+        # Add a pointer to this component to the surface
+        surface.component = self
 
         # Append updated surface to list of surfaces
         self.surfaces.append(surface)

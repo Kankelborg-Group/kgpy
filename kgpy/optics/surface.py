@@ -75,13 +75,11 @@ class Surface:
         return self.thickness * self.cs.zh
 
     @property
-    def cs(self) -> CoordinateSystem:
+    def previous_cs(self) -> CoordinateSystem:
         """
-        Defined as the CoordinateSystem of the back face of the previous Surface composed with the coordinate break of
-        this Surface.
-        This is the CoordinateSystem used to calculate the thickness Vector and the location of the back face of the
-        Surface.
-        :return: Current CoordinateSystem of the Surface.
+        The coordinate system of the surface before this surface in the optical system.
+        This is the coordinate system that this surface will be "attached" to.
+        :return: The last CoordinateSystem in the optical system
         """
 
         # If there is no previous Surface than the CoordinateSystem of this Surface is the same as the CoordinateSystem
@@ -95,28 +93,54 @@ class Surface:
             if self.component is None:
 
                 # Global CoordinateSystem
-                current_cs = gcs()
+                cs = gcs()
 
             else:
 
                 # Component CoordinateSystem
-                current_cs = self.component.cs
+                cs = self.component.cs
 
         else:
 
             # Old current coordinate system composed with this Surface's coordinate break.
-            current_cs = self.previous_surf.back_cs @ self.cs_break
+            cs = self.previous_surf.back_cs
 
-        return current_cs @ self.cs_break
+        return cs
+
+
+
+    @property
+    def cs(self) -> CoordinateSystem:
+        """
+        Defined as the CoordinateSystem of the back face of the previous Surface composed with the coordinate break of
+        this Surface.
+        This is the CoordinateSystem used to calculate the thickness Vector and the location of the back face of the
+        Surface.
+        :return: Current CoordinateSystem of the Surface.
+        """
+
+        return self.previous_cs @ self.cs_break
 
     @property
     def front_cs(self) -> CoordinateSystem:
+        """
+        Coordinate system of the front face of the Surface.
+        This coordinate system depends on the tilt/decenter parameter, and is used for describing the shape/orientation
+        of a surface.
+        :return: Coordinate system of the front face of self.
+        """
 
-        return self.previous_surf.back_cs @ (self.cs_break @ self.tilt_dec)
+        return self.previous_cs @ (self.cs_break @ self.tilt_dec)
 
 
     @property
     def back_cs(self) -> CoordinateSystem:
+        """
+        Coordinate system of the back face of the surface.
+        Found by translating the coordinate system of the front face (without the tilt/decenter) by the thickness
+        vector.
+        :return: Coordinate system of the back face of the surface.
+        """
 
         return self.cs + self.T
 
