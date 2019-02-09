@@ -55,16 +55,43 @@ class Surface:
         self.cs_break = cs_break
 
         # Attributes to be set by Component.append_surface()
-        # These are links to the previous surface in the component and the overall component itself.
+        # These are links to the previous surface in the component, previous surface in the system, and a link to the
+        # root component.
         # These are used to recursively calculate properties of this surface instead of explicitly updating
         # this surface.
         # For example if the thickness of an earlier surface changes, we would have to remember to update this surface
         # with a new global position.
         # However if we calculate the global position by adding up the thickness of all previous surfaces, it is not
         # necessary to remember to update anything.
-        self.previous_surf = None   # type: 'Surface'
-        self.component = None       # type 'Component'
+        self.previous_surf_in_system = None         # type: 'Surface'
+        self.previous_surf_in_component = None      # type: 'Surface'
+        self.component = None                       # type 'Component'
 
+    @property
+    def system_index(self):
+        """
+        :return: The index of this surface within the overall optical system
+        """
+
+        # If there is not a surface before this surface in the system, the index is zero, otherwise the system index is
+        # the index of the previous surface in the system incremented by one.
+        if self.previous_surf_in_system is None:
+            return 0
+        else:
+            return self.previous_surf_in_system.system_index + 1
+
+    @property
+    def component_index(self):
+        """
+        :return: The index of this surface within it's component
+        """
+
+        # If there is not another surface in this component, the index is zero, otherwise the component index is the
+        # index of the previous surface in the component incremented by one
+        if self.previous_surf_in_component is None:
+            return 0
+        else:
+            return self.previous_surf_in_component.component_index + 1
 
     @property
     def T(self) -> Vector:
