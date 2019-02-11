@@ -56,8 +56,8 @@ class Surface:
         self.cs_break = cs_break
 
         # Attributes to be set by Component.append_surface()
-        # These are links to the previous/next surface in the component, previous/next surface in the system, and a link to the
-        # root component.
+        # These are links to the previous/next surface in the component, previous/next surface in the system, and a link
+        # to the root component.
         # These are used to recursively calculate properties of this surface instead of explicitly updating
         # this surface.
         # For example if the thickness of an earlier surface changes, we would have to remember to update this surface

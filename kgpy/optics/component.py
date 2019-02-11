@@ -40,9 +40,18 @@ class Component:
         self.first_surface = None   # type: Surface
 
     @property
-    def last_surface(self):
+    def surfaces(self):
 
+        surf = self.first_surface
+        surfaces = []
 
+        while surf is not None:
+
+            surfaces.append(surf)
+
+            surf = surf.next_surf_in_component
+
+        return surfaces
 
     @property
     def T(self) -> Vector:
@@ -51,25 +60,33 @@ class Component:
         :return: Vector pointing from center of a component's front face to the center of a component's back face.
         """
 
-        return self.back_cs.X - self.cs.X
+        # Subtract translation vector from the back face of the last surface in the component from the translation
+        # vector to the first surface of the component.
+        return self.surfaces[-1].back_cs.X - self.surfaces[0].front_cs.X
 
-    def append_surface(self, surface: Surface) -> int:
+    def append_surface(self, s: Surface) -> int:
         """
-        Add provided surface to the specified list of surfaces.
-        :param surface: Surface to add to the end of the component
-        :return:
+        Add provided surface to the end of the list of surfaces.
+        :param s: Surface to add to the end of the component
+        :return: None
         """
 
-        # If there is already at least one surface in the component, populate the previous_surf attribute in this
-        # surface
+        # Link the surface to this component instance
+        s.component = self
+
+        # If the list of surfaces is not empty, add this surface to the end.
         if self.surfaces:
-            surface.previous_surf = self.surfaces[-1]
 
-        # Add a pointer to this component to the surface
-        surface.component = self
+            # Grab pointer to the last surface in the component
+            last_surf = self.surfaces[-1]
 
-        # Append updated surface to list of surfaces
-        self.surfaces.append(surface)
+            # Link up last surface and the new surface appropriately
+            s.prev_surf_in_component = last_surf
+            last_surf.next_surf_in_component = s
+
+        # Otherwise s is the first surface in the component
+        else:
+            self.first_surface = s
 
     def __str__(self):
         """
@@ -77,7 +94,7 @@ class Component:
         """
 
         # Construct line out of top-level parameters of the component
-        ret = self.name + ', comment = ' + self.comment + ', cs = [' + self.cs.__str__() + ']\n'
+        ret = self.name + ', comment = ' + self.comment + ']\n'
 
         # Append lines for each surface within the component
         for surface in self.surfaces:

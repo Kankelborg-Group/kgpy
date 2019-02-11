@@ -23,13 +23,21 @@ class TestComponent:
         assert c.comment == ''  # Default comment is the empty string
         assert not c.surfaces   # The list of surfaces should be empty to start
 
-    def test__str__(self):
+    @pytest.mark.parametrize('t1', t)
+    @pytest.mark.parametrize('t2', t)
+    def test_T(self, t1: u.Quantity, t2: u.Quantity):
 
-        # Create default test Component
+        # Define two test surfaces and an empty component
+        s1 = Surface('Surface 1', thickness=t1*u.mm)
+        s2 = Surface('Surface 2', thickness=t2*u.mm)
+
+        # Add the two surfaces to an empty Component
         c = Component('test')
+        c.append_surface(s1)
+        c.append_surface(s2)
 
-        # Test that the return value is of type string
-        assert isinstance(c.__str__(), str)
+        # Check that the thickness of the component is equal to the sum of the surface thicknesses
+        assert c.T.mag == (t1 + t2) * u.mm
 
     @pytest.mark.parametrize('t1', t)
     @pytest.mark.parametrize('t2', t)
@@ -54,18 +62,10 @@ class TestComponent:
         # Check that the z-translation of the surface is equal to the thickness of the first surface
         assert c.surfaces[1].cs.X.z == t1*u.mm
 
-    @pytest.mark.parametrize('t1', t)
-    @pytest.mark.parametrize('t2', t)
-    def test_T(self, t1: u.Quantity, t2: u.Quantity):
+    def test__str__(self):
 
-        # Define two test surfaces and an empty component
-        s1 = Surface('Surface 1', thickness=t1*u.mm)
-        s2 = Surface('Surface 2', thickness=t2*u.mm)
-
-        # Add the two surfaces to an empty Component
+        # Create default test Component
         c = Component('test')
-        c.append_surface(s1)
-        c.append_surface(s2)
 
-        # Check that the thickness of the component is equal to the sum of the surface thicknesses
-        assert c.T.mag == (t1 + t2) * u.mm
+        # Test that the return value is of type string
+        assert isinstance(c.__str__(), str)

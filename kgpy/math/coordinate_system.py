@@ -76,7 +76,9 @@ class CoordinateSystem:
         """
         :return: Human-readable string representation of this coordinate system
         """
-        return self.X.__str__() + ', ' +  self.Q.__str__()
+        return 'CoordinateSystem{' + self.X.__str__() + ', ' + self.Q.__str__() + '}'
+
+    __repr__ = __str__
 
     def __eq__(self, other: 'CoordinateSystem') -> bool:
         """
