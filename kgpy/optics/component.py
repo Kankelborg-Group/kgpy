@@ -35,12 +35,15 @@ class Component:
         self.comment = comment
         self.cs_break = cs_break
 
-        # Initialize the list of surfaces to an empty list
-        self.surfaces = []      # type: List[Surface]
+        # The surfaces within the component are stored as a linked list.
+        # This attribute is a pointer to the first element of this list
+        self.first_surface = None   # type: Surface
 
         # Attributes to be set by the System class, usually System.append_component(), unless we're making a Component
         # out of non-contiguous surfaces.
-        self.previous_component = None  # type: 'Component'
+        # These attributes are links to the previous/next component in the chain of components.
+        # self.component_prev = None  # type: Component
+        # self.component_next = None  # type: Component
 
     @property
     def previous_cs(self) -> CoordinateSystem:
@@ -50,9 +53,13 @@ class Component:
         :return: The coordinate system of the last component in the optical system.
         """
 
+        if self.component_prev is not None:
+
+            pass
+
         # If this previous component has not been defined, the previous coordinate system is at the origin.
         # Otherwise the previous coordinate system
-        if self.previous_component is None:
+        if self.component_prev is None:
 
             return gcs()
 

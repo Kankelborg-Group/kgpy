@@ -8,7 +8,7 @@ import quaternion as q
 
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics import Surface
+from kgpy.optics import Surface, Component
 
 
 class TestSurface:
@@ -23,6 +23,86 @@ class TestSurface:
         # Check that providing a thickness with units of seconds that a TypeError is raised
         with pytest.raises(TypeError):
             Surface('test', thickness=1 * unit)
+
+    def test_system_index(self):
+        """
+        Check that the system index is being calculated correctly by adding several surfaces and checking the indices.
+        :return: None
+        """
+
+        # Give each surface some arbitrary thickness
+        t = 1 * u.mm
+
+        # Define three test surfaces
+        s1 = Surface('s1', thickness=t)
+        s2 = Surface('s2', thickness=t)
+        s3 = Surface('s3', thickness=t)
+
+        # Set the system links correctly
+        s2.system_surf_previous = s1
+        s3.system_surf_previous = s2
+
+        # Check that the indices are calculated correctly
+        assert s1.system_index is 0
+        assert s2.system_index is 1
+        assert s3.system_index is 2
+
+    def test_component_index(self):
+        """
+        Check that the component index is being calculated correctly by adding several surfaces and checking the
+        indices.
+        :return: None
+        """
+
+        # Give each surface some arbitrary thickness
+        t = 1 * u.mm
+
+        # Define three test surfaces
+        s1 = Surface('s1', thickness=t)
+        s2 = Surface('s2', thickness=t)
+        s3 = Surface('s3', thickness=t)
+
+        # Set the system links correctly
+        s2.previous_surf_in_component = s1
+        s3.previous_surf_in_component = s2
+
+        # Check that the indices are calculated correctly
+        assert s1.component_index is 0
+        assert s2.component_index is 1
+        assert s3.component_index is 2
+
+    def test_T(self):
+        """
+        Test that the thickness vector is pointing in the direction of global z-hat by default
+        :return: None
+        """
+
+        # Create test surface
+        s1 = Surface('s1', thickness=1*u.mm)
+
+        # Check that the thickness vector is in the global z-hat direction
+        assert s1.T == Vector([0, 0, 1] * u.mm)
+
+        # Check that the thickness vector is not in the global x-hat direction
+        assert s1.T != Vector([1, 0, 0] * u.mm)
+
+    def test_previous_cs(self):
+
+        # Give each surface some arbitrary thickness
+        t = 1 * u.mm
+
+        # Define three test surfaces
+        s1 = Surface('s1', thickness=t)
+        s2 = Surface('s2', thickness=t)
+        s3 = Surface('s3', thickness=t)
+
+        # Check that the surfaces return the global coordinate system by default
+        assert s1.previous_cs == gcs()
+
+        # Add the last two surfaces to a new component
+        c1 = Component('c1')
+        c1.append_surface(s2)
+
 
     def test_cs(self):
         """
@@ -68,7 +148,7 @@ class TestSurface:
         cs = CoordinateSystem(X, Q)
 
         # Create two test surfaces, the second will have the nonzero tilt/dec system
-        t = 1*u.mm
+        t = 1 * u.mm
         s1 = Surface('s1', thickness=t, cs_break=cs)
         s2 = Surface('s2', thickness=t, tilt_dec=cs)
 

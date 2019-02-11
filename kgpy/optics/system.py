@@ -48,7 +48,17 @@ class System:
         self.components.append(component)
 
             
+    def zipper_component(self, component: Component, indices: List[int]) -> None:
+        """
+        Places the surfaces within a component in the system locations specified by indices.
+        This function allows for the use of non-sequential components.
+        :param component: Component to zipper into the system
+        :param indices: Index for each surface in the component describing where in the system that surface should be
+        inserted
+        :return: None
+        """
 
+        pass
 
 
     def add_baffle(self, baffle_cs: CoordinateSystem) -> Baffle:

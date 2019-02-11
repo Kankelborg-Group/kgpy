@@ -8,6 +8,7 @@ import astropy.units as u
 from astropy.coordinates import Distance
 
 
+import kgpy.optics
 from kgpy.math import CoordinateSystem, Vector
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 
@@ -55,7 +56,7 @@ class Surface:
         self.cs_break = cs_break
 
         # Attributes to be set by Component.append_surface()
-        # These are links to the previous surface in the component, previous surface in the system, and a link to the
+        # These are links to the previous/next surface in the component, previous/next surface in the system, and a link to the
         # root component.
         # These are used to recursively calculate properties of this surface instead of explicitly updating
         # this surface.
@@ -63,9 +64,11 @@ class Surface:
         # with a new global position.
         # However if we calculate the global position by adding up the thickness of all previous surfaces, it is not
         # necessary to remember to update anything.
-        self.previous_surf_in_system = None         # type: 'Surface'
-        self.previous_surf_in_component = None      # type: 'Surface'
-        self.component = None                       # type 'Component'
+        self.prev_surf_in_system = None        # type: Surface
+        self.next_surf_in_system = None        # type: Surface
+        self.prev_surf_in_component = None     # type: Surface
+        self.next_surf_in_component = None     # type: Surface
+        self.component = None               # type: kgpy.optics.Component
 
     @property
     def system_index(self):
@@ -75,10 +78,10 @@ class Surface:
 
         # If there is not a surface before this surface in the system, the index is zero, otherwise the system index is
         # the index of the previous surface in the system incremented by one.
-        if self.previous_surf_in_system is None:
+        if self.prev_surf_in_system is None:
             return 0
         else:
-            return self.previous_surf_in_system.system_index + 1
+            return self.prev_surf_in_system.system_index + 1
 
     @property
     def component_index(self):
@@ -88,10 +91,10 @@ class Surface:
 
         # If there is not another surface in this component, the index is zero, otherwise the component index is the
         # index of the previous surface in the component incremented by one
-        if self.previous_surf_in_component is None:
+        if self.prev_surf_in_component is None:
             return 0
         else:
-            return self.previous_surf_in_component.component_index + 1
+            return self.prev_surf_in_component.component_index + 1
 
     @property
     def T(self) -> Vector:
@@ -106,35 +109,27 @@ class Surface:
         """
         The coordinate system of the surface before this surface in the optical system.
         This is the coordinate system that this surface will be "attached" to.
+        There is a hierarchy to this function as follows: last surface in system -> last surface in component -> first
+        surface in component -> first surface in system.
+        So the coordinate system previous to this surface is determined by the hierarchy above.
         :return: The last CoordinateSystem in the optical system
         """
 
-        # If there is no previous Surface than the CoordinateSystem of this Surface is the same as the CoordinateSystem
-        # of the global Component.
-        # Otherwise the CoordinateSystem of this Surface is the composition of the previous Surface's CoordinateSystem
-        # and the coordinate break of this Surface.
-        if self.previous_surf is None:
+        if self.prev_surf_in_system is not None:
 
-            # If there is no global Component, return the global CoordinateSystem (no translation, no rotation)
-            # Otherwise return the CoordinateSystem of the Component.
-            if self.component is None:
+            return self.prev_surf_in_system.back_cs
 
-                # Global CoordinateSystem
-                cs = gcs()
+        elif self.prev_surf_in_component is not None:
 
-            else:
+            return self.prev_surf_in_component.back_cs
 
-                # Component CoordinateSystem
-                cs = self.component.cs
+        elif self.component is not None:
+
+            return self.component.cs_break
 
         else:
 
-            # Old current coordinate system composed with this Surface's coordinate break.
-            cs = self.previous_surf.back_cs
-
-        return cs
-
-
+            return gcs()
 
     @property
     def cs(self) -> CoordinateSystem:
