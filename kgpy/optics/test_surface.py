@@ -39,8 +39,8 @@ class TestSurface:
         s3 = Surface('s3', thickness=t)
 
         # Set the system links correctly
-        s2.system_surf_previous = s1
-        s3.system_surf_previous = s2
+        s2.prev_surf_in_system = s1
+        s3.prev_surf_in_system = s2
 
         # Check that the indices are calculated correctly
         assert s1.system_index is 0
@@ -63,8 +63,8 @@ class TestSurface:
         s3 = Surface('s3', thickness=t)
 
         # Set the system links correctly
-        s2.previous_surf_in_component = s1
-        s3.previous_surf_in_component = s2
+        s2.prev_surf_in_component = s1
+        s3.prev_surf_in_component = s2
 
         # Check that the indices are calculated correctly
         assert s1.component_index is 0
@@ -94,17 +94,44 @@ class TestSurface:
         # Define three test surfaces
         s1 = Surface('s1', thickness=t)
         s2 = Surface('s2', thickness=t)
-        s3 = Surface('s3', thickness=t)
 
         # Check that the surfaces return the global coordinate system by default
         assert s1.previous_cs == gcs()
 
         # Add the last two surfaces to a new component
-        c1 = Component('c1')
-        c1.append_surface(s2)
+
 
 
     def test_cs(self):
+        """
+        Test the front coordinate system.
+        Two surfaces, one with no tilt/dec and one with tilt/dec.
+        Check that Surface 2 is rotated relative to Surface 1 and also that the thickness vector of Surface 2 is
+        parallel to Surface 1.
+        :return: None
+        """
+
+        # Create test coordinate system
+        X = Vector([0, 0, 0] * u.mm)
+        Q = q.from_euler_angles(0, np.pi / 2, 0)
+        cs = CoordinateSystem(X, Q)
+
+        # Create two test surfaces, the second will have the nonzero tilt/dec system
+        t = 1 * u.mm
+        s1 = Surface('s1', thickness=t, cs_break=cs)
+        s2 = Surface('s2', thickness=t, tilt_dec=cs)
+
+        # link up the surfaces
+        s2.previous_surf = s1
+
+        # Check that the front coordinate system has rotated the full 180 degrees
+        assert np.isclose(s2.cs.Q, q.from_euler_angles(0, np.pi, 0))
+
+        # Check that the thickness vector points in the x-hat direction
+        assert s2.back_cs.isclose(cs + Vector([2, 0, 0] * u.mm))
+
+
+    def test_front_cs(self):
         """
         Test the coordinate break feature of the Surface class.
         This test defines four surfaces, each with a 90-degree rotation.
@@ -133,33 +160,6 @@ class TestSurface:
 
         assert s4.back_cs.X.isclose(X)
 
-    def test_front_cs(self):
-        """
-        Test the front coordinate system.
-        Two surfaces, one with no tilt/dec and one with tilt/dec.
-        Check that Surface 2 is rotated relative to Surface 1 and also that the thickness vector of Surface 2 is
-        parallel to Surface 1.
-        :return: None
-        """
-
-        # Create test coordinate system
-        X = Vector([0, 0, 0] * u.mm)
-        Q = q.from_euler_angles(0, np.pi/2, 0)
-        cs = CoordinateSystem(X, Q)
-
-        # Create two test surfaces, the second will have the nonzero tilt/dec system
-        t = 1 * u.mm
-        s1 = Surface('s1', thickness=t, cs_break=cs)
-        s2 = Surface('s2', thickness=t, tilt_dec=cs)
-
-        # link up the surfaces
-        s2.previous_surf = s1
-
-        # Check that the front coordinate system has rotated the full 180 degrees
-        assert np.isclose(s2.front_cs.Q, q.from_euler_angles(0, np.pi, 0))
-
-        # Check that the thickness vector points in the x-hat direction
-        assert s2.back_cs.isclose(cs + Vector([2, 0, 0] * u.mm))
 
     def test_back_cs(self):
         """

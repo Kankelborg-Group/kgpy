@@ -68,7 +68,7 @@ class Surface:
         self.next_surf_in_system = None        # type: Surface
         self.prev_surf_in_component = None     # type: Surface
         self.next_surf_in_component = None     # type: Surface
-        self.component = None               # type: kgpy.optics.Component
+        self.component = None                  # type: kgpy.optics.Component
 
     @property
     def system_index(self):
@@ -76,12 +76,13 @@ class Surface:
         :return: The index of this surface within the overall optical system
         """
 
-        # If there is not a surface before this surface in the system, the index is zero, otherwise the system index is
-        # the index of the previous surface in the system incremented by one.
-        if self.prev_surf_in_system is None:
-            return 0
-        else:
+        # If there is already a previous surface in the system, the index of this surface is the index of the previous
+        # surface incremented by one.
+        # Otherwise, there is not a previous surface in the system and this is the first surface, so the index is zero.
+        if self.prev_surf_in_system is not None:
             return self.prev_surf_in_system.system_index + 1
+        else:
+            return 0
 
     @property
     def component_index(self):
@@ -117,42 +118,60 @@ class Surface:
 
         if self.prev_surf_in_system is not None:
 
-            return self.prev_surf_in_system.back_cs
+            cs = self.prev_surf_in_system.back_cs
 
-        elif self.prev_surf_in_component is not None:
+            if self.component is not None:
 
-            return self.prev_surf_in_component.back_cs
+                if self.prev_surf_in_component is not None:
 
-        elif self.component is not None:
+                    return cs
 
-            return self.component.cs_break
+                else:
+
+                    return cs @ self.component.cs_break
+
+            else:
+
+                return cs
 
         else:
 
-            return gcs()
+            if self.component is not None:
+
+                if self.prev_surf_in_component is not None:
+
+                    return self.prev_surf_in_component.back_cs
+
+                else:
+
+                    return self.component.cs_break
+
+            else:
+
+                return gcs()
 
     @property
     def cs(self) -> CoordinateSystem:
         """
-        Defined as the CoordinateSystem of the back face of the previous Surface composed with the coordinate break of
-        this Surface.
-        This is the CoordinateSystem used to calculate the thickness Vector and the location of the back face of the
-        Surface.
-        :return: Current CoordinateSystem of the Surface.
+        This coordinate system is the system associated with the face of a surface.
+        For example: if the surface is a parabola, then the axis of rotation of the parabola would pass through the
+        origin of this coordinate system.
+        :return: Coordinate system of the surface face
         """
 
-        return self.previous_cs @ self.cs_break
+        return self.previous_cs @ (self.cs_break @ self.tilt_dec)
 
     @property
     def front_cs(self) -> CoordinateSystem:
         """
-        Coordinate system of the front face of the Surface.
-        This coordinate system depends on the tilt/decenter parameter, and is used for describing the shape/orientation
-        of a surface.
-        :return: Coordinate system of the front face of self.
+        Coordinate system of the surface ignoring the local tilt/decenter of the surface.
+        This is the coordinate system used to attach surfaces together.
+        For example: if we needed to tilt a surface but keep the direction of propagation the same, this coordinate
+        system is the original coordinate system of the surface.
+        :return: Coordinate system of the surface face ignoring tilt/decenter.
         """
 
-        return self.previous_cs @ (self.cs_break @ self.tilt_dec)
+        return self.previous_cs @ self.cs_break
 
 
     @property
@@ -164,7 +183,7 @@ class Surface:
         :return: Coordinate system of the back face of the surface.
         """
 
-        return self.cs + self.T
+        return self.front_cs + self.T
 
     def __str__(self) -> str:
         """
@@ -174,3 +193,7 @@ class Surface:
         return self.name + ', comment = ' + self.comment + ', thickness = ' + str(self.thickness) + ', cs = [' \
                + self.cs.__str__() + ']'
 
+
+    def __repr__(self):
+
+        return self.__str__()

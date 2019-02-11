@@ -39,55 +39,10 @@ class Component:
         # This attribute is a pointer to the first element of this list
         self.first_surface = None   # type: Surface
 
-        # Attributes to be set by the System class, usually System.append_component(), unless we're making a Component
-        # out of non-contiguous surfaces.
-        # These attributes are links to the previous/next component in the chain of components.
-        # self.component_prev = None  # type: Component
-        # self.component_next = None  # type: Component
-
     @property
-    def previous_cs(self) -> CoordinateSystem:
-        """
-        The coordinate system of the component before this component in the optical system.
-        This is the coordinate system that this component will be attached to.
-        :return: The coordinate system of the last component in the optical system.
-        """
+    def last_surface(self):
 
-        if self.component_prev is not None:
 
-            pass
-
-        # If this previous component has not been defined, the previous coordinate system is at the origin.
-        # Otherwise the previous coordinate system
-        if self.component_prev is None:
-
-            return gcs()
-
-        elif self.surfaces:
-
-            return self.previous_component.back_cs
-
-    @property
-    def cs(self) -> CoordinateSystem:
-        """
-        :return: Coordinate system of the component, including the coordinate break.
-        """
-
-        return self.previous_cs @ self.cs_break
-
-    @property
-    def back_cs(self) -> CoordinateSystem:
-        """
-        :return: Coordinate system of the back face of the component.
-        """
-
-        # If the component contains at least one surface, the coordinate system of the back face is the same as the
-        # back face in the last surface in the component.
-        # Otherwise the component is empty and the back face is the same as the front face.
-        if self.surfaces:
-            return self.surfaces[-1].back_cs
-        else:
-            return self.cs
 
     @property
     def T(self) -> Vector:
