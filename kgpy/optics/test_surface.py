@@ -151,7 +151,6 @@ class TestSurface:
         # Check that the thickness vector points in the x-hat direction
         assert s2.back_cs.isclose(cs + Vector([2, 0, 0] * u.mm))
 
-
     def test_front_cs(self):
         """
         Test the coordinate break feature of the Surface class.
@@ -183,7 +182,6 @@ class TestSurface:
 
         # Check that the translation vector of the last surface is close to the origin
         assert s4.back_cs.X.isclose(X)
-
 
     def test_back_cs(self):
         """

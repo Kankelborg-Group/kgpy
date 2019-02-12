@@ -7,7 +7,7 @@ import quaternion as q
 import astropy.units as u
 
 from kgpy.math import Vector, CoordinateSystem
-from kgpy.math.coordinate_system import GlobalCoordinateSystem
+from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 
 __all__ = ['TestCoordinateSystem']
 
@@ -125,7 +125,7 @@ class TestCoordinateSystem:
 
         # If multiplication operation is correct, the quaternion attribute of the new coordinate system should be nearly
         # equal to the zero rotation quaternion
-        assert np.isclose(cs2.Q, GlobalCoordinateSystem().Q)
+        assert np.isclose(cs2.Q, gcs().Q)
 
     def test__matmul__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
@@ -144,7 +144,38 @@ class TestCoordinateSystem:
 
         # If the composition operator is correct, the resulting coordinate system should be equal to the global
         # coordinate system
-        assert cs3.isclose(GlobalCoordinateSystem())
+        assert cs3.isclose(gcs())
+
+    @pytest.mark.parametrize('tf', (True, False))
+    def test_inverse(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real, tf: bool):
+
+        # Create test coordinate system
+        X1 = Vector([x, y, z] * u.mm)
+        Q1 = q.from_euler_angles(a, b, c)
+        cs1 = CoordinateSystem(X1, Q1, translation_first=tf)
+
+        # Compose a coordinate system and its inverse
+        cs2 = cs1 @ cs1.inverse
+        cs3 = cs1.inverse @ cs1
+
+        # Assert that the result is the global coordinate system
+        assert cs2.isclose(gcs())
+        assert cs3.isclose(gcs())
+
+    @pytest.mark.parametrize('tf', (True, False))
+    def test_inverse(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real, tf: bool):
+
+        # Create test coordinate system
+        X1 = Vector([x, y, z] * u.mm)
+        Q1 = q.from_euler_angles(a, b, c)
+        cs1 = CoordinateSystem(X1, Q1, translation_first=tf)
+
+        # Create two new coordinate systems that are multiples of the original coordinate system
+        cs2 = cs1 @ cs1
+        cs3 = cs2 @ cs1
+
+        # Check that we can compute the difference between two coordinate systems
+        assert cs3.diff(cs2).isclose(cs1)
 
     def test_isclose(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
@@ -169,3 +200,20 @@ class TestCoordinateSystem:
 
         # Check that the first and third coordinate systems are not nearly equal
         assert not cs1.isclose(cs3)
+
+
+def test_xy_intercept():
+
+    # Define vectors to help manipulate coordinate systems
+    z = Vector([0, 0, 1] * u.mm)
+    x = Vector([1, 0, 0] * u.mm)
+
+    # Define three test coordinate systems
+    c1 = gcs() + z
+    c2 = c1 + z
+    c3 = c2 + z + x
+
+    # Test that the intercepts for each coordinate system are computed correctly
+    assert c1.xy_intercept(c2.X, c3.X) is None
+    assert c2.xy_intercept(c1.X, c3.X) == Vector([0.5, 0, 2] * u.mm)
+    assert c3.xy_intercept(c1.X, c2.X) is None

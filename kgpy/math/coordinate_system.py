@@ -20,7 +20,7 @@ class CoordinateSystem:
     zh_g = Vector([0, 0, 1])
 
     def __init__(self, X: Union[List[float], u.Quantity, Vector], Q: Union[List[float], q.quaternion],
-                 translation_first = True):
+                 translation_first: bool = True):
         """
         Defines a new coordinate system using a vector (translation) and a quaternion (rotation).
         Rotations and translations are performed using the current orientation of the coordinate system, this means
@@ -45,6 +45,7 @@ class CoordinateSystem:
         # Save input arguments to class variables
         self.X = X      # type: Vector
         self.Q = Q      # type: q.quaternion
+        self.translation_first = translation_first
 
         # If the translation operation occurs first, we do not have to rotate the translation Vector.
         # Otherwise, if the rotation operation occurs first, we do have to rotate the translation Vector.
@@ -157,6 +158,31 @@ class CoordinateSystem:
         # of the translation vector.
         return CoordinateSystem(X, Q)
 
+    @property
+    def inverse(self):
+        """
+        Compute the inverse of this coordinate system.
+        The inverse is defined as the coordinate system that when composed with this coordinate system, equals the
+        global coordinate system (no rotations / no translations).
+        :return: The inverse of this coordinate system.
+        """
+
+        # Invert attributes
+        X = -self.X
+        Q = self.Q.conj()
+
+        return CoordinateSystem(X, Q, translation_first=False)
+
+    def diff(self, other: 'CoordinateSystem'):
+        """
+        Calculate the difference between this coordinate system and another coordinate system.
+        In other words: what coordinate system would need to be composed with other to result in this coordinate system.
+        :param other: The other coordinate system to remove from this coordinate system
+        :return: New coordinate system representing the difference between the two coordinate systems.
+        """
+
+        return self @ other.inverse
+
     def isclose(self, other: 'CoordinateSystem') -> bool:
         """
         Check if CoordinateSystem other is nearly equal to self.
@@ -172,6 +198,42 @@ class CoordinateSystem:
         b = np.isclose(self.Q, other.Q).all()
 
         return a and b
+
+    def xy_intercept(self, v1: Vector, v2: Vector) -> Union[Vector, None]:
+        """
+        Determine the point where the line formed by x1 and x2 intercepts the x-y plane of this coordinate system.
+        This function is based off of the code provided in this answer: https://stackoverflow.com/a/18543221
+        :param v1: Start-point of the line
+        :param v2: End-point of the lien
+        :return: Vector pointing from the origin of this coordinate system to the point of intersection, or None if an
+        intersection cannot be found.
+        """
+
+        # Change parameter names to be the same as the stackoverflow answer cited above
+        epsilon=1e-6 * v1.X.unit
+        p0 = v1
+        p1 = v2
+        p_co = self.X
+        p_no = self.zh
+
+        # Compute vector from start to end point
+        u = p1 - p0
+
+        #
+        dot = p_no.dot(u)
+
+        if abs(dot) > epsilon:
+
+            w = p0 - p_co
+            fac = -p_no.dot(w) / dot
+            if (fac >= 0.0) and (fac <= 1.0):
+
+                u = fac * u
+
+                return p0 + u
+
+        return None
+
 
 class GlobalCoordinateSystem(CoordinateSystem):
     """

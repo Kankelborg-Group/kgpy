@@ -1,6 +1,7 @@
 
 import numpy as np
 from typing import List
+import quaternion as q
 
 from kgpy.math import CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem
@@ -97,7 +98,6 @@ class System:
 
         pass
 
-
     def add_baffle(self, baffle_cs: CoordinateSystem) -> Baffle:
         """
         Add a baffle to the system at the specified coordinate system across the x-y plane.
@@ -107,13 +107,13 @@ class System:
         :return: Pointer to Baffle component
         """
 
-        # Calculate the list of surfaces that we need to split
-        surfaces = self.calc_surface_intersections(baffle_cs)
+        for surf in self.surfaces:
 
-        # Loop through each surface, shorten it and add the baffle to fill the remaining space
-        for surface in surfaces:
+            intercept = baffle_cs.xy_intercept(surf.front_cs.X, surf.back_cs.X)
 
-            pass
+            if intercept is not None:
+
+                pass
 
 
     def calc_surface_intersections(self, baffle_cs: CoordinateSystem) -> List[Surface]:
