@@ -43,8 +43,8 @@ class CoordinateSystem:
             Q = q.quaternion(*Q)
 
         # Save input arguments to class variables
-        self.X = X
-        self.Q = Q
+        self.X = X      # type: Vector
+        self.Q = Q      # type: q.quaternion
 
         # If the translation operation occurs first, we do not have to rotate the translation Vector.
         # Otherwise, if the rotation operation occurs first, we do have to rotate the translation Vector.
@@ -76,7 +76,7 @@ class CoordinateSystem:
         """
         :return: Human-readable string representation of this coordinate system
         """
-        return 'CoordinateSystem{' + self.X.__str__() + ', ' + self.Q.__str__() + '}'
+        return 'CoordinateSystem(' + self.X.__str__() + ', ' + self.Q.__str__() + ')'
 
     __repr__ = __str__
 

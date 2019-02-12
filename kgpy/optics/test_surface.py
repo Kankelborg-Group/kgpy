@@ -94,13 +94,32 @@ class TestSurface:
         # Define three test surfaces
         s1 = Surface('s1', thickness=t)
         s2 = Surface('s2', thickness=t)
+        s3 = Surface('s3', thickness=t)
 
         # Check that the surfaces return the global coordinate system by default
         assert s1.previous_cs == gcs()
 
-        # Add the last two surfaces to a new component
+        # Add the three surfaces to two components, with the second component getting two surfaces
+        cs = gcs() * q.from_euler_angles(0, np.pi/2, 0)
+        c1 = Component('c1')
+        c2 = Component('c2', cs_break=cs)
+        c1.append_surface(s1)
+        c2.append_surface(s2)
+        c2.append_surface(s3)
 
+        # Check that the coordinate systems are correct for independent components
+        assert s1.previous_cs.isclose(gcs())
+        assert s2.previous_cs.isclose(cs)
+        assert s3.previous_cs.isclose(cs + (t * cs.xh_g))
 
+        # Simulate placing the components into a system
+        s2.prev_surf_in_system = s1
+        s3.prev_surf_in_system = s2
+
+        # Check that the coordinate systems are correct for the two components appended together
+        assert s1.previous_cs.isclose(gcs())
+        assert s2.previous_cs.isclose(cs + t * cs.zh_g)
+        assert s3.previous_cs.isclose(cs + t * cs.zh_g + t * cs.xh_g)
 
     def test_cs(self):
         """
@@ -121,8 +140,10 @@ class TestSurface:
         s1 = Surface('s1', thickness=t, cs_break=cs)
         s2 = Surface('s2', thickness=t, tilt_dec=cs)
 
-        # link up the surfaces
-        s2.previous_surf = s1
+        # Add the two test surfaces to a component
+        c = Component('c')
+        c.append_surface(s1)
+        c.append_surface(s2)
 
         # Check that the front coordinate system has rotated the full 180 degrees
         assert np.isclose(s2.cs.Q, q.from_euler_angles(0, np.pi, 0))
@@ -153,11 +174,14 @@ class TestSurface:
         s3 = Surface('Surface 3', thickness=t, cs_break=cs)
         s4 = Surface('Surface 4', thickness=t, cs_break=cs)
 
-        # Link each surface properly
-        s2.previous_surf = s1
-        s3.previous_surf = s2
-        s4.previous_surf = s3
+        # Add the test surfaces to a component
+        c = Component('c')
+        c.append_surface(s1)
+        c.append_surface(s2)
+        c.append_surface(s3)
+        c.append_surface(s4)
 
+        # Check that the translation vector of the last surface is close to the origin
         assert s4.back_cs.X.isclose(X)
 
 

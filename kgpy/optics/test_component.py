@@ -23,6 +23,23 @@ class TestComponent:
         assert c.comment == ''  # Default comment is the empty string
         assert not c.surfaces   # The list of surfaces should be empty to start
 
+    def test_surfaces(self):
+
+        # Define test surfaces
+        t = 1 * u.mm
+        s1 = Surface('s1', thickness=t)
+        s2 = Surface('s2', thickness=t)
+        s3 = Surface('s3', thickness=t)
+
+        # Construct component out of surfaces
+        c = Component('c')
+        c.append_surface(s1)
+        c.append_surface(s2)
+        c.append_surface(s3)
+
+        # Check that the list of surfaces is returned correctly
+        assert c.surfaces == [s1, s2, s3]
+
     @pytest.mark.parametrize('t1', t)
     @pytest.mark.parametrize('t2', t)
     def test_T(self, t1: u.Quantity, t2: u.Quantity):

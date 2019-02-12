@@ -103,7 +103,7 @@ class Surface:
         Thickness vector
         :return: Vector pointing from the center of a surface's front face to the center of a surface's back face
         """
-        return self.thickness * self.cs.zh
+        return self.thickness * self.front_cs.zh
 
     @property
     def previous_cs(self) -> CoordinateSystem:
@@ -190,8 +190,8 @@ class Surface:
         :return: String representation of the surface
         """
 
-        return self.name + ', comment = ' + self.comment + ', thickness = ' + str(self.thickness) + ', cs = [' \
-               + self.cs.__str__() + ']'
+        return 'surface(' + self.name + ', comment = ' + self.comment + ', thickness = ' + str(self.thickness) \
+               + ', ' + self.cs.__str__() + ')'
 
 
     def __repr__(self):

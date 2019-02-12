@@ -40,15 +40,22 @@ class Component:
         self.first_surface = None   # type: Surface
 
     @property
-    def surfaces(self):
+    def surfaces(self) -> List[Surface]:
+        """
+        :return: An in-order list of all the surfaces in the component
+        """
 
+        # Initialize variables
         surf = self.first_surface
         surfaces = []
 
+        # Follow links to next surface to construct list of surfaces, until link is None
         while surf is not None:
 
+            # Append this surface to the list of surfaces to be returned
             surfaces.append(surf)
 
+            # Select the next surface in the component
             surf = surf.next_surf_in_component
 
         return surfaces
@@ -64,7 +71,7 @@ class Component:
         # vector to the first surface of the component.
         return self.surfaces[-1].back_cs.X - self.surfaces[0].front_cs.X
 
-    def append_surface(self, s: Surface) -> int:
+    def append_surface(self, s: Surface):
         """
         Add provided surface to the end of the list of surfaces.
         :param s: Surface to add to the end of the component
@@ -88,7 +95,7 @@ class Component:
         else:
             self.first_surface = s
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         :return: String representation of a component
         """
