@@ -163,7 +163,7 @@ class TestCoordinateSystem:
         assert cs3.isclose(gcs())
 
     @pytest.mark.parametrize('tf', (True, False))
-    def test_inverse(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real, tf: bool):
+    def test_diff(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real, tf: bool):
 
         # Create test coordinate system
         X1 = Vector([x, y, z] * u.mm)

@@ -205,8 +205,8 @@ class CoordinateSystem:
         This function is based off of the code provided in this answer: https://stackoverflow.com/a/18543221
         :param v1: Start-point of the line
         :param v2: End-point of the lien
-        :return: Vector pointing from the origin of this coordinate system to the point of intersection, or None if an
-        intersection cannot be found.
+        :return: Vector pointing from the origin of the global coordinate system to the point of intersection, or None
+        if an intersection cannot be found.
         """
 
         # Change parameter names to be the same as the stackoverflow answer cited above

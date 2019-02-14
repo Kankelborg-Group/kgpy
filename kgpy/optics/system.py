@@ -98,7 +98,7 @@ class System:
 
         pass
 
-    def add_baffle(self, baffle_cs: CoordinateSystem) -> Baffle:
+    def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem) -> Baffle:
         """
         Add a baffle to the system at the specified coordinate system across the x-y plane.
         This function automatically calculates how many times the raypath crosses the baffle plane, and constructs the
@@ -107,14 +107,48 @@ class System:
         :return: Pointer to Baffle component
         """
 
+        # Create new component to store the baffle
+        baffle = Component(baffle_name)
+
+        # Define variable to track how many times the system intersected the
+        baffle_pass = 0
+
+        # Loop through all surfaces in the system to see if any intersect with a baffle
         for surf in self.surfaces:
 
+            # Compute the intersection between the thickness vector and the x-y plane of the baffle, if it exists.
             intercept = baffle_cs.xy_intercept(surf.front_cs.X, surf.back_cs.X)
 
+            # If the intercept exists, insert the new baffle
             if intercept is not None:
 
-                pass
+                # Grab pointer to the surface after the current surface in the system
+                next_surf = surf.next_surf_in_system
 
+                # Compute the new thickness vectors for both to
+                t1 = intercept - surf.front_cs.X  # New thickness of original surface
+                t2 = surf.back_cs.X - intercept   # Thickness of new surface to be added after the baffle
+
+                # Modify the original surface to have the correct thickness
+                surf.thickness = t1.mag
+
+                # Calculate the tilt/decenter required to put the baffle in the correct place
+                cs = baffle_cs.diff(surf.front_cs)
+
+                # Create new baffle surface
+                baffle_surf = Surface(baffle_name + ', pass = ' + str(baffle_pass), thickness=t2.mag, tilt_dec=cs)
+
+                # Link the new baffle surface into the system
+                surf.next_surf_in_system = baffle_surf
+                baffle_surf.next_surf_in_system = next_surf
+                baffle_surf.prev_surf_in_system = surf
+                next_surf.prev_surf_in_system = baffle_surf
+
+                # Insert new baffle surface into baffle component
+                baffle.append_surface(baffle_surf)
+
+        # Insert new baffle component into system
+        self.components.append(baffle)
 
     def calc_surface_intersections(self, baffle_cs: CoordinateSystem) -> List[Surface]:
         """
