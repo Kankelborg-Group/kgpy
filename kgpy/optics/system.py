@@ -4,7 +4,7 @@ from typing import List
 import quaternion as q
 
 from kgpy.math import CoordinateSystem
-from kgpy.math.coordinate_system import GlobalCoordinateSystem
+from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import Baffle, Surface, Component
 
 __all__ = ['System']
@@ -98,7 +98,7 @@ class System:
 
         pass
 
-    def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem) -> Baffle:
+    def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem) -> Component:
         """
         Add a baffle to the system at the specified coordinate system across the x-y plane.
         This function automatically calculates how many times the raypath crosses the baffle plane, and constructs the
@@ -130,60 +130,33 @@ class System:
                 t2 = surf.back_cs.X - intercept   # Thickness of new surface to be added after the baffle
 
                 # Modify the original surface to have the correct thickness
-                surf.thickness = t1.mag
+                surf.thickness = t1.dot(surf.front_cs.zh)
 
                 # Calculate the tilt/decenter required to put the baffle in the correct place
-                cs = baffle_cs.diff(surf.front_cs)
+                cs = baffle_cs.diff(surf.back_cs)
 
                 # Create new baffle surface
-                baffle_surf = Surface(baffle_name + ', pass = ' + str(baffle_pass), thickness=t2.mag, tilt_dec=cs)
+                baffle_thickness = t2.dot(surf.front_cs.zh)
+                baffle_surf = Surface(baffle_name, comment='pass = ' + str(baffle_pass), thickness=baffle_thickness,
+                                      tilt_dec=cs)
 
                 # Link the new baffle surface into the system
                 surf.next_surf_in_system = baffle_surf
                 baffle_surf.next_surf_in_system = next_surf
                 baffle_surf.prev_surf_in_system = surf
-                next_surf.prev_surf_in_system = baffle_surf
+                if next_surf is not None:
+                    next_surf.prev_surf_in_system = baffle_surf
 
                 # Insert new baffle surface into baffle component
                 baffle.append_surface(baffle_surf)
 
+                # Update the number of baffle passes
+                baffle_pass += 1
+
         # Insert new baffle component into system
         self.components.append(baffle)
 
-    def calc_surface_intersections(self, baffle_cs: CoordinateSystem) -> List[Surface]:
-        """
-        This function is used to determine which surfaces to split when inserting a baffle.
-        The optics model is sequential, so if the baffle is used by rays going in different directions, we need to model
-        the baffle as multiple surfaces.
-        :return: List of surface indices which intersect a baffle
-        """
-
-        # Initialize looping variables
-        surfaces = []  # List of surface indices which cross a baffle
-
-        # Loop through every surface and keep track of how often we cross the global z coordinate of the baffle
-        for surface in self.surfaces:
-            print(baffle_cs.zh)
-
-            # Component of front face of surface perpendicular to baffle surface
-            z0 = surface.front_cs.X.dot(baffle_cs.zh)
-            print(surface.front_cs.X)
-            print(z0)
-            print(np.sign(z0))
-
-            # Component of back face of surface perpendicular to baffle surface
-            z1 = surface.back_cs.X.dot(baffle_cs.zh)
-            print(surface.back_cs.X)
-            print(z1)
-            print(np.sign(z1))
-
-            # If the two components above have different signs, the surface passes through the baffle surface
-            if np.sign(z0) != np.sign(z1):
-
-                # If there is an intersection, add it to the list of surfaces
-                surfaces.append(surface)
-
-        return surfaces
+        return baffle
 
     def __str__(self) -> str:
         """

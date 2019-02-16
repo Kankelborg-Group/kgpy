@@ -190,7 +190,7 @@ class Surface:
         :return: String representation of the surface
         """
 
-        return 'surface(' + self.name + ', comment = ' + self.comment + ', thickness = ' + str(self.thickness) \
+        return 'surface(' + self.name + ', thickness = ' + str(self.thickness) \
                + ', ' + self.cs.__str__() + ')'
 
 

@@ -38,4 +38,8 @@
 workspace.xml
 /Debug/
 /Release/
-*/.idea/
+.idea/
+
+# Pytest files
+.pytest_cache/
+.cache/

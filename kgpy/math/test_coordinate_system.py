@@ -170,12 +170,20 @@ class TestCoordinateSystem:
         Q1 = q.from_euler_angles(a, b, c)
         cs1 = CoordinateSystem(X1, Q1, translation_first=tf)
 
+        # Create a second test coordinate system
+        # During testing, I found that this coordinate system needed to be independent of the first, to make non-
+        # communative transformations.
+        X2 = Vector([x + y, x - y, z] * u.mm)
+        Q2 = q.from_euler_angles(a, 2 * b, 3 * c)
+        cs2 = CoordinateSystem(X2, Q2)
+
         # Create two new coordinate systems that are multiples of the original coordinate system
-        cs2 = cs1 @ cs1
         cs3 = cs2 @ cs1
+        cs4 = cs1 @ cs2
 
         # Check that we can compute the difference between two coordinate systems
         assert cs3.diff(cs2).isclose(cs1)
+        assert cs4.diff(cs1).isclose(cs2)
 
     def test_isclose(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 

@@ -169,7 +169,7 @@ class CoordinateSystem:
 
         # Invert attributes
         X = -self.X
-        Q = self.Q.conj()
+        Q = self.Q.conjugate()
 
         return CoordinateSystem(X, Q, translation_first=False)
 
@@ -181,7 +181,7 @@ class CoordinateSystem:
         :return: New coordinate system representing the difference between the two coordinate systems.
         """
 
-        return self @ other.inverse
+        return other.inverse @ self
 
     def isclose(self, other: 'CoordinateSystem') -> bool:
         """

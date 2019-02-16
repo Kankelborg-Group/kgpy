@@ -101,7 +101,7 @@ class Component:
         """
 
         # Construct line out of top-level parameters of the component
-        ret = self.name + ', comment = ' + self.comment + ']\n'
+        ret = self.name + self.comment + ']\n'
 
         # Append lines for each surface within the component
         for surface in self.surfaces:
