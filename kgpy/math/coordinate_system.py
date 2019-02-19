@@ -210,7 +210,8 @@ class CoordinateSystem:
         """
 
         # Change parameter names to be the same as the stackoverflow answer cited above
-        epsilon=1e-6 * v1.X.unit
+        unit = v1.X.unit
+        epsilon=1e-6 * unit
         p0 = v1
         p1 = v2
         p_co = self.X

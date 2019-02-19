@@ -9,6 +9,7 @@ from kgpy.optics import Surface, Component, System
 from kgpy.math import Vector
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 
+
 class TestSystem:
 
     def test_surfaces(self):
@@ -32,7 +33,7 @@ class TestSystem:
         sys.append_component(c2)
 
         # Check that the surfaces were linked up correctly
-        assert sys.surfaces == [s1, s2]
+        assert sys.surfaces[1:] == [s1, s2]
 
     def test_append_component(self):
 
@@ -55,11 +56,12 @@ class TestSystem:
         sys.append_component(c2)
 
         # Check that the surfaces were linked up correctly
-        assert sys.first_surface == s1
+        assert sys.first_surface.next_surf_in_system == s1
         assert s1.next_surf_in_system == s2
         assert s2.prev_surf_in_system == s1
 
     b = (0, np.pi/4, np.pi/2)
+
     @pytest.mark.parametrize('b', b)
     def test_add_baffle(self, b: float):
 

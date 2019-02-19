@@ -40,13 +40,8 @@ class Surface:
         This argument is similar to the tilt/decenter feature in Zemax.
         """
 
-        # Check that the thickness parameter has the units attribute
-        if not isinstance(thickness, u.Quantity):
-            raise TypeError('thickness parameter must be an astropy.units.Quantity')
-
-        # Check that the thickness parameter has dimensions of length
-        if not thickness.unit.is_equivalent(u.m):
-            raise TypeError('thickness parameter does not have dimensions of length')
+        # Initialize private variables
+        self._thickness = 0 * u.mm
 
         # Save input arguments as class variables
         self.name = name
@@ -55,7 +50,7 @@ class Surface:
         self.tilt_dec = tilt_dec
         self.cs_break = cs_break
 
-        # Attributes to be set by Component.append_surface()
+        # Attributes to be set by kgpy.optics.Component.append_surface()
         # These are links to the previous/next surface in the component, previous/next surface in the system, and a link
         # to the root component.
         # These are used to recursively calculate properties of this surface instead of explicitly updating
@@ -70,8 +65,16 @@ class Surface:
         self.next_surf_in_component = None     # type: Surface
         self.component = None                  # type: kgpy.optics.Component
 
+        # Attributes to be set by kgpy.optics.System.append_component()
+        self.sys = None         # type: kgpy.optics.System
+
+        # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
+        self.is_active = False
+        self.is_image = False
+        self.is_stop = False
+
     @property
-    def system_index(self):
+    def system_index(self) -> int:
         """
         :return: The index of this surface within the overall optical system
         """
@@ -85,7 +88,7 @@ class Surface:
             return 0
 
     @property
-    def component_index(self):
+    def component_index(self) -> int:
         """
         :return: The index of this surface within it's component
         """
@@ -98,12 +101,53 @@ class Surface:
             return self.prev_surf_in_component.component_index + 1
 
     @property
+    def thickness(self) -> u.Quantity:
+        """
+        :return: The distance between the front and back of this surface.
+        """
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, t: u.Quantity) -> None:
+        """
+        Set the
+        :param t:
+        :return:
+        """
+
+        # Check that the thickness parameter has the units attribute
+        if not isinstance(t, u.Quantity):
+            raise TypeError('thickness parameter must be an astropy.units.Quantity')
+
+        # Check that the thickness parameter has dimensions of length
+        if not t.unit.is_equivalent(u.m):
+            raise TypeError('thickness parameter does not have dimensions of length')
+
+        self._thickness = t
+
+    @property
     def T(self) -> Vector:
         """
         Thickness vector
         :return: Vector pointing from the center of a surface's front face to the center of a surface's back face
         """
         return self.thickness * self.front_cs.zh
+
+    @property
+    def is_object(self) -> bool:
+        """
+        Method to check if this is the object surface.
+        The object surface is defined to be the first surface in the system.
+        :return:
+        """
+
+        if self.sys is not None:
+
+            if self.sys.first_surface is self:
+
+                return True
+
+        return False
 
     @property
     def previous_cs(self) -> CoordinateSystem:
@@ -193,7 +237,6 @@ class Surface:
         return 'surface(' + self.name + ', thickness = ' + str(self.thickness) \
                + ', ' + self.cs.__str__() + ')'
 
-
-    def __repr__(self):
+    def __repr__(self) -> str:
 
         return self.__str__()

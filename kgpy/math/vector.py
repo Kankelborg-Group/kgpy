@@ -109,13 +109,13 @@ class Vector:
         else:
             return NotImplemented
 
-    def __mul__(self, other: Union[Real, u.Quantity]) -> 'Vector':
+    def __mul__(self, other: Union[Real, u.Quantity, u.Unit]) -> 'Vector':
         """
         Multiplication of a scalar and a vector
         :param other: A scalar value
         :return: The original vector where every component has been scaled by other
         """
-        if isinstance(other, (Real, u.Quantity)):
+        if isinstance(other, (Real, u.Quantity, u.Unit)):
             X = other * self.X
             return Vector(X)
         else:

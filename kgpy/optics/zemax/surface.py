@@ -1,5 +1,5 @@
 
-from unittest import TestCase
+import astropy.units as u
 
 from kgpy.optics import Surface
 
@@ -13,24 +13,51 @@ class ZmxSurface(Surface):
     the Surface superclass.
     """
 
-    def __init__(self, name, zmx_surf):
+    def __init__(self, zmx_surf: 'ZOSAPI.Editors.LDE.ILDERow', length_units: u.Unit):
         """
-        Constructor for ZmxSurface object. Currently only saves arguments to class variables
+        Constructor for ZmxSurface object.
         :param zmx_surf: Pointer to the zmx_surf to wrap this class around
-        :type zmx_surf:
         """
 
-        self.name = name
-        self.zmx_surf = zmx_surf
+        # Save arguments to class variables
+        self._zmx_surf = zmx_surf
+        self._u = length_units
+
+    @property
+    def name(self) -> str:
+        """
+        Grab the name section of the comment string
+        :return: Human-readable name of the surface
+        """
 
     @property
     def comment(self):
-        return self.zmx_surf.Comment
+        return self._zmx_surf.Comment
+
+    @property
+    def _comment_str(self) -> str:
+        """
+        Grab the entire comment string from Zemax, so we can split it up into self.name and self.comment.
+        This lets us be consistent with the surface interface and also express the concept of a surface name and comment
+        in Zemax.
+        In Zemax the syntax is <name>:<comment>
+        :return: Zemax comment string
+        """
+        return self._zmx_surf.Comment
+
+    @property
+    def system_index(self):
+        """
+        :return: The index of this surface within the overall optical system
+        """
+        return self._zmx_surf.RowIndex
+
+
 
     @property
     def thickness(self):
-        return self.zmx_surf.Thickness
+        return self._zmx_surf.Thickness
 
     @thickness.setter
     def thickness(self, t):
-        self.zmx_surf.Thickness = t
+        self._zmx_surf.Thickness = t

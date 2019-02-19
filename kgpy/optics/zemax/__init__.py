@@ -1,4 +1,4 @@
 import sys
-if sys.platform is 'win32':
+if sys.platform == 'win32':
     from .surface import *
     from .system import *

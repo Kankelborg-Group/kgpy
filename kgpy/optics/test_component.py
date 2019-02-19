@@ -21,7 +21,18 @@ class TestComponent:
         # Check initial properties of the object
         assert c.name == name   # Name equal to the name we set it to
         assert c.comment == ''  # Default comment is the empty string
+        assert c.first_surface is None
         assert not c.surfaces   # The list of surfaces should be empty to start
+
+    def test__init__matching(self):
+
+        # Create a new component to test the matching surface feature
+        name = 'test'
+        c = Component(name, matching_surf=True)
+
+        # Check that the matching surface has been created as expected
+        assert c.first_surface is not None
+        assert c.first_surface.name == name
 
     def test_surfaces(self):
 

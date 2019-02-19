@@ -20,7 +20,7 @@ class Component:
     translating the Component.
     """
 
-    def __init__(self, name: str, comment: str = '', cs_break: CoordinateSystem = gcs()):
+    def __init__(self, name: str, comment: str = '', cs_break: CoordinateSystem = gcs(), matching_surf=False):
         """
         Constructor for class kgpy.optics.Component
         :param name: Human-readable name of the component
@@ -28,6 +28,9 @@ class Component:
         :param cs_break: Coordinate system that is applied to the component, and permanently modifies the current
         Coordinate system.
         This feature can be used to rotate and translate the whole component, with all the surfaces within.
+        :param matching_surf: Flag which allows for the component to populated with single surface with the same name as
+        the component.
+        This feature is a shorthand for creating one-surface components.
         """
 
         # Save arguments as class variables
@@ -38,6 +41,11 @@ class Component:
         # The surfaces within the component are stored as a linked list.
         # This attribute is a pointer to the first element of this list
         self.first_surface = None   # type: Surface
+
+        # If the matching surface flag is set, create the matching surface and add it to the component.
+        if matching_surf:
+            s = Surface(name)
+            self.append_surface(s)
 
     @property
     def surfaces(self) -> List[Surface]:

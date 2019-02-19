@@ -8,13 +8,13 @@ import quaternion as q
 
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics import Surface, Component
+from kgpy.optics import Surface, Component, System
 
 
 class TestSurface:
 
     @pytest.mark.parametrize('unit', [1, u.s, u.m / u.s, u.dimensionless_unscaled])
-    def test__init__(self, unit: Union[Real, u.Unit]):
+    def test_thickness(self, unit: Union[Real, u.Unit]):
         """
         Check that the Constructor will only accept thicknesses with dimensions of length
         :return: None
@@ -85,6 +85,14 @@ class TestSurface:
 
         # Check that the thickness vector is not in the global x-hat direction
         assert s1.T != Vector([1, 0, 0] * u.mm)
+
+    def test_is_object(self):
+
+        # Create a new test system
+        s = System('s')
+
+        # Check that the first surface in the system reports that it is the object surface
+        assert s.first_surface.is_object
 
     def test_previous_cs(self):
 

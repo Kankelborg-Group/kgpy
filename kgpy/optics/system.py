@@ -2,6 +2,7 @@
 import numpy as np
 from typing import List
 import quaternion as q
+import astropy.units as u
 
 from kgpy.math import CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
@@ -28,8 +29,13 @@ class System:
         self.comment = comment
 
         # Initialize attributes to be set as surfaces are added.
-        self.first_surface = None
+        self.first_surface = None   # type: Surface
         self.components = []        # type: List[Component]
+
+        # Initialize the object as the first surface in the system
+        obj_comp = Component('Object', matching_surf=True)
+        obj_comp.first_surface.thickness = np.inf * u.mm        # The object defaults to being at infinity
+        self.append_component(obj_comp)
 
     @property
     def surfaces(self) -> List[Surface]:
@@ -65,6 +71,9 @@ class System:
             # Set two-way link
             surf.prev_surf_in_system = surf.prev_surf_in_component
             surf.next_surf_in_system = surf.next_surf_in_component
+
+            # Link the surfaces to this system instance
+            surf.sys = self
 
         # If the system already contains at least one surface
         if self.first_surface is not None:
@@ -103,7 +112,9 @@ class System:
         Add a baffle to the system at the specified coordinate system across the x-y plane.
         This function automatically calculates how many times the raypath crosses the baffle plane, and constructs the
         appropriate amount of baffle surfaces
-        :param baffle_cs: Coordinate system of the baffle
+        :param baffle_name: Human-readable name of the baffle
+        :param baffle_cs: Coordinate system where the baffle will be placed.
+        This function assumes that the baffle lies the x-y plane of this coordinate system.
         :return: Pointer to Baffle component
         """
 
@@ -157,6 +168,10 @@ class System:
         self.components.append(baffle)
 
         return baffle
+
+    def to_zemax(self):
+
+        pass
 
     def __str__(self) -> str:
         """
