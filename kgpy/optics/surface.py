@@ -160,11 +160,15 @@ class Surface:
         :return: The last CoordinateSystem in the optical system
         """
 
+        # If this is the first surface in the system
         if self.prev_surf_in_system is not None:
 
+            # Grab a pointer to the coordinate system of the back of the previous surface
             cs = self.prev_surf_in_system.back_cs
 
+            # If this is the first surface in the component
             if self.component is not None:
+
 
                 if self.prev_surf_in_component is not None:
 
