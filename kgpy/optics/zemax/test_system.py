@@ -37,6 +37,7 @@ def sys(components: List[Component]):
 
 class TestZmxSystem:
 
+    # Define location of a test Zemax file
     test_path = os.path.join(os.path.dirname(__file__), 'test_model.zmx')
 
     def test__init__(self, components: List[Component], sys: ZmxSystem):
@@ -88,17 +89,32 @@ class TestZmxSystem:
         surf = sys.find_surface(unmatching_comment)
         assert surf is None
 
-    s = [
-        'Dummy',
-        'Obscuration.SpiderFront',
-        'Primary.tilt_dec',
-        'FieldStop.aper',
-    ]
+    @pytest.mark.parametrize('s, tok', [
+        ('Dummy',               (None, 'Dummy', None)),
+        ('Spider.Front',        ('Spider', 'Front', None)),
+        ('Primary.tilt_dec',    (None, 'Primary', 'tilt_dec')),
+        ('Baffle1.Pass1.aper',  ('Baffle1', 'Pass1', 'aper')),
+    ])
+    def test_parse_comments(self, s, tok):
 
-    @pytest.mark.parametrize('s', s)
-    def test_parse_comments(self, s):
+        # Check that the output from the comment parsing is as expected
+        assert tok == ZmxSystem.parse_comment(s)
 
-        ZmxSystem.parse_comment(s)
+    @pytest.mark.parametrize('cs, is_camel', [
+        ("camel",       False),
+        ("camelCase",   True),
+        ("CamelCase",   True),
+        ("CAMELCASE",   False),
+        ("camelcase",   False),
+        ("Camelcase",   True),
+        ("Case",        True),
+        ("CAMELcase",   True),
+    ])
+    def test_is_camel_case(self, cs, is_camel):
+        assert ZmxSystem.is_camel_case(cs) is is_camel
+
+
+
 
 
 

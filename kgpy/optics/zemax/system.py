@@ -199,7 +199,7 @@ class ZmxSystem(System):
 
         return V, X, Y
 
-    def find_surface(self, comment: str) -> 'ZOSAPI.Editors.ILDERow':
+    def find_surface(self, comment: str) -> ZOSAPI.Editors.LDE.ILDERow:
         """
         Find the surface matching the provided comment string
 
@@ -225,31 +225,105 @@ class ZmxSystem(System):
 
                 return surf
 
-    @staticmethod
-    def parse_comment(comment_str: str):
+    def build_sys_from_comments(self):
 
+        self._sys.L
+
+    @staticmethod
+    def parse_comment(comment_str: str) -> Tuple[str, str, str]:
+        """
+        Split a comment string into Zemax input tokens.
+        To read in a Zemax file, the user can give hints as to what component, surface, or surface attribute each Zemax
+        `ZOSAPI.Editors.LDE.ILDERow` corresponds to.
+        The syntax of these hints is relatively simple: `ComponentStr.SurfaceStr.attr_str`.
+        Notice that the components and surfaces use camel case, and the attributes use snake case.
+        This distinction allows the user to not have to specify all three strings if they don't need to.
+        If there is no attribute string (`ComponentStr.SurfaceStr`, `SurfaceStr`), the associated
+        `ZOSAPI.Editors.LDE.ILDERow` is the main row for this surface.
+        If there is no component string (`SurfaceStr.attr_str`, `SurfaceStr`), this surface is not part of an overall
+        component.
+        Note that there has to always be a `SurfaceStr`.
+        :param comment_str: String to be parsed into tokens
+        :return: Three values, corresponding to the component, surface and surface attribute tokens.
+        """
+
+        # Initialize return variables
+        comp_name = None    # type: str
+        attr_name = None    # type: str
+
+        # Split the input string at the delimiters
         s = comment_str.split('.')
 
+        # If there is only one token, it must be the SurfaceStr token.
         if len(s) == 1:
 
-            pass
+            # Ensure that the token is a surface string by checking that it is camel case
+            if ZmxSystem.is_camel_case(s[0]):
+                surf_name = s[0]
+            else:
+                raise ValueError('Surface name should be camel case')
 
+        # Else if there are two tokens, it can be either ComponentStr.SurfaceStr or SurfaceStr.attr_str
         elif len(s) == 2:
 
-            pass
+            # If the second token is camel case, it is a surface token
+            if ZmxSystem.is_camel_case(s[1]):
 
+                # Then the first token should also be camel case, to match with a component string
+                if ZmxSystem.is_camel_case(s[0]):
+                    comp_name = s[0]
+                    surf_name = s[1]
+                else:
+                    raise ValueError('Component name should be camel case')
+
+            # Else the second token uses snake case and it is an attribute token
+            else:
+
+                # Then the first token should be camel case, to match with surface string
+                if ZmxSystem.is_camel_case(s[0]):
+                    surf_name = s[0]
+                    attr_name = s[1]
+                else:
+                    raise ValueError('Surface name should be camel case')
+
+        # Else if there are three tokens, it must be ComponentStr.SurfaceStr.attr_str
         elif len(s) == 3:
 
-            pass
+            # Ensure that the component string is camel case
+            if ZmxSystem.is_camel_case(s[0]):
+                comp_name = s[0]
+            else:
+                raise ValueError('Component name should be camel case')
 
+            # Ensure that the surface string is camel case
+            if ZmxSystem.is_camel_case(s[1]):
+                surf_name = s[1]
+            else:
+                raise ValueError('Surface name should be camel case')
+
+            # Ensure that the attribute string is camel case
+            if not ZmxSystem.is_camel_case(s[2]):
+                attr_name = s[2]
+            else:
+                raise ValueError('Attribute name should be snake case')
+
+        # Else there are not 1, 2 or 3 tokens and the string is undefined
         else:
+            raise ValueError('Incorrect number of tokens')
 
-            pass
+        return comp_name, surf_name, attr_name
 
     @staticmethod
     def is_camel_case(s: str):
+        """
+        Utility function to determine whether a given string is camel case.
+        This is defined to be: A string that has both lowercase and capital letters, and has no underscores.
+        This function is based off of this stackoverflow answer: https://stackoverflow.com/a/10182901
+        :param s: String to be checked
+        :return: True if the string is an camel case string.
+        """
 
-        pass
+        return s != s.lower() and s != s.upper() and "_" not in s
 
     def __del__(self):
         if self.app is not None:
@@ -258,7 +332,7 @@ class ZmxSystem(System):
 
         self._connection = None
 
-    def _init_sys(self) -> ZOSAPI.ZOSAPI_Connection:
+    def _init_sys(self) -> ZOSAPI.IOpticalSystem:
 
         # Create COM connection to Zemax
         connection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")

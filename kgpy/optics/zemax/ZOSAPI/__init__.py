@@ -1,5 +1,6 @@
 from . import Editors
 
-from .ZOSAPI_Connection import *
-from .IZOSAPI_Application import *
+from .SystemType import *
 from .IOpticalSystem import *
+from .IZOSAPI_Application import *
+from .ZOSAPI_Connection import *
