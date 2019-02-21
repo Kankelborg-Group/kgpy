@@ -3,6 +3,7 @@ from typing import List
 from copy import deepcopy
 import astropy.units as u
 
+import kgpy.optics
 from . import Surface
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
@@ -39,8 +40,9 @@ class Component:
         self.cs_break = cs_break
 
         # The surfaces within the component are stored as a linked list.
-        # This attribute is a pointer to the first element of this list
+        # This attribute is a pointer to the first element of this list.
         self.first_surface = None   # type: Surface
+        self.sys = None             # type: kgpy.optics.System
 
         # If the matching surface flag is set, create the matching surface and add it to the component.
         if matching_surf:

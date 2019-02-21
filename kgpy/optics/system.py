@@ -65,15 +65,15 @@ class System:
         :return: None
         """
 
+        # Link the system to the component
+        component.sys = self
+
         # Loop through the surfaces in the component and set the system links to be the same as the component links.
         for surf in component.surfaces:
 
             # Set two-way link
             surf.prev_surf_in_system = surf.prev_surf_in_component
             surf.next_surf_in_system = surf.next_surf_in_component
-
-            # Link the surfaces to this system instance
-            surf.sys = self
 
         # If the system already contains at least one surface
         if self.first_surface is not None:

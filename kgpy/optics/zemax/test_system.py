@@ -88,4 +88,17 @@ class TestZmxSystem:
         surf = sys.find_surface(unmatching_comment)
         assert surf is None
 
+    s = [
+        'Dummy',
+        'Obscuration.SpiderFront',
+        'Primary.tilt_dec',
+        'FieldStop.aper',
+    ]
+
+    @pytest.mark.parametrize('s', s)
+    def test_parse_comments(self, s):
+
+        ZmxSystem.parse_comment(s)
+
+
 

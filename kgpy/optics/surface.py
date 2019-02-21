@@ -65,9 +65,6 @@ class Surface:
         self.next_surf_in_component = None     # type: Surface
         self.component = None                  # type: kgpy.optics.Component
 
-        # Attributes to be set by kgpy.optics.System.append_component()
-        self.sys = None         # type: kgpy.optics.System
-
         # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
         self.is_active = False
         self.is_image = False
@@ -141,9 +138,9 @@ class Surface:
         :return:
         """
 
-        if self.sys is not None:
+        if self.component.sys is not None:
 
-            if self.sys.first_surface is self:
+            if self.component.sys.first_surface is self:
 
                 return True
 

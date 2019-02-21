@@ -1,14 +1,13 @@
 
 from win32com.client.gencache import EnsureDispatch, EnsureModule
 from win32com.client import CastTo, constants
-from unittest import TestCase
 from typing import List, Union, Tuple
 from numbers import Real
 import numpy as np
-import math
+import astropy.units as u
 
 from kgpy.optics import System, Component, Surface
-from . import ZmxSurface
+from kgpy.optics.zemax import ZmxSurface, ZOSAPI
 
 __all__ = ['ZmxSystem']
 
@@ -18,7 +17,7 @@ class ZmxSystem(System):
     A class used to interface with a particular Zemax file
     """
 
-    def __init__(self, name: str, components: List[Component], model_path: str):
+    def __init__(self, name: str, model_path: str):
         """
         Constructor for the Zemax object
 
@@ -44,29 +43,12 @@ class ZmxSystem(System):
 
         # Save input arguments
         self.name = name
-        self.components = components
         self.model_path = model_path
 
+        # Initialize the connection to the Zemax system
+        self._sys = self._init_sys()
+
         self.first_surface = None
-
-        # Create COM connection to Zemax
-        self._connection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")
-        if self._connection is None:
-            raise self.ConnectionException("Unable to intialize COM connection to ZOSAPI")
-
-        # Open Zemax application
-        self._app = self._connection.CreateNewApplication()
-        if self._app is None:
-            raise self.InitializationException("Unable to acquire ZOSAPI application")
-
-        # Check if license is valid
-        if self._app.IsValidLicenseForAPI is False:
-            raise self.LicenseException("License is not valid for ZOSAPI use")
-
-        # Check that we can open the primary system object
-        self._sys = self._app.PrimarySystem
-        if self._sys is None:
-            raise self.SystemNotPresentException("Unable to acquire Primary system")
 
         # Open Zemax model
         self.open_file(model_path, False)
@@ -81,8 +63,10 @@ class ZmxSystem(System):
                 # Find Zemax surface using the comment field of the provided surface
                 z_surf = self.find_surface(surf.comment)
 
+                print(type(z_surf))
+
                 # Overwrite original Surface
-                component.surfaces[s] = ZmxSurface(surf.name, z_surf, self._sys)
+                component.surfaces[s] = ZmxSurface(z_surf, u.mm)
 
     @property
     def surfaces(self) -> List[ZmxSurface]:
@@ -241,12 +225,61 @@ class ZmxSystem(System):
 
                 return surf
 
+    @staticmethod
+    def parse_comment(comment_str: str):
+
+        s = comment_str.split('.')
+
+        if len(s) == 1:
+
+            pass
+
+        elif len(s) == 2:
+
+            pass
+
+        elif len(s) == 3:
+
+            pass
+
+        else:
+
+            pass
+
+    @staticmethod
+    def is_camel_case(s: str):
+
+        pass
+
     def __del__(self):
-        if self._app is not None:
-            self._app.CloseApplication()
-            self._app = None
+        if self.app is not None:
+            self.app.CloseApplication()
+            self.app = None
 
         self._connection = None
+
+    def _init_sys(self) -> ZOSAPI.ZOSAPI_Connection:
+
+        # Create COM connection to Zemax
+        connection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")
+        if connection is None:
+            raise self.ConnectionException("Unable to intialize COM connection to ZOSAPI")
+
+        # Open Zemax application
+        app = connection.CreateNewApplication()
+        if app is None:
+            raise self.InitializationException("Unable to acquire ZOSAPI application")
+
+        # Check if license is valid
+        if app.IsValidLicenseForAPI is False:
+            raise self.LicenseException("License is not valid for ZOSAPI use")
+
+        # Check that we can open the primary system object
+        sys = self.app.PrimarySystem
+        if sys is None:
+            raise self.SystemNotPresentException("Unable to acquire Primary system")
+
+        return sys
 
     def open_file(self, filepath, saveIfNeeded):
         if self._sys is None:
@@ -259,17 +292,17 @@ class ZmxSystem(System):
         self._sys.Close(save)
 
     def samples_dir(self):
-        if self._app is None:
+        if self.app is None:
             raise self.InitializationException("Unable to acquire ZOSAPI application")
 
-        return self._app.samples_dir
+        return self.app.samples_dir
 
     def example_constants(self):
-        if self._app.LicenseStatus is constants.LicenseStatusType_PremiumEdition:
+        if self.app.LicenseStatus is constants.LicenseStatusType_PremiumEdition:
             return "Premium"
-        elif self._app.LicenseStatus is constants.LicenseStatusType_ProfessionalEdition:
+        elif self.app.LicenseStatus is constants.LicenseStatusType_ProfessionalEdition:
             return "Professional"
-        elif self._app.LicenseStatus is constants.LicenseStatusType_StandardEdition:
+        elif self.app.LicenseStatus is constants.LicenseStatusType_StandardEdition:
             return "Standard"
         else:
             return "Invalid"

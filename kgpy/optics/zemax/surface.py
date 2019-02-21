@@ -1,7 +1,9 @@
 
+from typing import List
 import astropy.units as u
 
 from kgpy.optics import Surface
+from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 
 __all__ = ['ZmxSurface']
 
@@ -13,7 +15,7 @@ class ZmxSurface(Surface):
     the Surface superclass.
     """
 
-    def __init__(self, zmx_surf: 'ZOSAPI.Editors.LDE.ILDERow', length_units: u.Unit):
+    def __init__(self, zmx_surf: List[ILDERow], length_units: u.Unit):
         """
         Constructor for ZmxSurface object.
         :param zmx_surf: Pointer to the zmx_surf to wrap this class around
@@ -51,8 +53,6 @@ class ZmxSurface(Surface):
         :return: The index of this surface within the overall optical system
         """
         return self._zmx_surf.RowIndex
-
-
 
     @property
     def thickness(self):
