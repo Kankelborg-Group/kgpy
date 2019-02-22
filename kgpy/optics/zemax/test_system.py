@@ -113,7 +113,9 @@ class TestZmxSystem:
     def test_is_camel_case(self, cs, is_camel):
         assert ZmxSystem.is_camel_case(cs) is is_camel
 
+    def test_get_lens_units(self, sys: ZmxSystem):
 
+        print(sys.get_lens_units())
 
 
 

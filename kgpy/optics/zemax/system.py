@@ -359,6 +359,30 @@ class ZmxSystem(System):
 
         return s != s.lower() and s != s.upper() and "_" not in s
 
+    def get_lens_units(self):
+
+        units = self._sys.SystemData.Units.LensUnits
+
+        if units == constants.ZemaxSystemUnits_Millimeters:
+
+            return u.mm
+
+        elif units == constants.ZemaxSystemUnits_Centimeters:
+
+            return u.cm
+
+        elif units == constants.ZemaxSystemUnits_Inches:
+
+            return u.inches
+
+        elif units == constants.ZemaxSystemUnits_Meters:
+
+            return u.m
+
+        else:
+
+            raise ValueError('Unrecognized units')
+
     def __del__(self):
 
         if self._app is not None:

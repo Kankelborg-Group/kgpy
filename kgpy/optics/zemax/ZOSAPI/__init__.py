@@ -1,4 +1,5 @@
 from . import Editors
+from . import SystemData
 
 from .SystemType import *
 from .IOpticalSystem import *
