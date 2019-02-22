@@ -15,22 +15,16 @@ class ZmxSurface(Surface):
     the Surface superclass.
     """
 
-    def __init__(self, zmx_surf: List[ILDERow], length_units: u.Unit):
+    def __init__(self, name: str, zmx_surf: ILDERow, length_units: u.Unit):
         """
         Constructor for ZmxSurface object.
         :param zmx_surf: Pointer to the zmx_surf to wrap this class around
         """
 
         # Save arguments to class variables
+        self.name = name
         self._zmx_surf = zmx_surf
         self._u = length_units
-
-    @property
-    def name(self) -> str:
-        """
-        Grab the name section of the comment string
-        :return: Human-readable name of the surface
-        """
 
     @property
     def comment(self):

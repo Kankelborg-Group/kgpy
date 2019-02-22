@@ -46,27 +46,27 @@ class ZmxSystem(System):
         self.model_path = model_path
 
         # Initialize the connection to the Zemax system
-        self._sys = self._init_sys()
+        self._init_sys()
 
         self.first_surface = None
 
         # Open Zemax model
         self.open_file(model_path, False)
 
-        # Loop through component list to overwrite Surfaces with ZmxSurfaces
-        for component in components:
-
-            # Loop through each surface in this component, find the corresponding Zemax surface and overwrite the
-            # Surface with a ZmxSurface
-            for s, surf in enumerate(component.surfaces):
-
-                # Find Zemax surface using the comment field of the provided surface
-                z_surf = self.find_surface(surf.comment)
-
-                print(type(z_surf))
-
-                # Overwrite original Surface
-                component.surfaces[s] = ZmxSurface(z_surf, u.mm)
+        # # Loop through component list to overwrite Surfaces with ZmxSurfaces
+        # for component in components:
+        #
+        #     # Loop through each surface in this component, find the corresponding Zemax surface and overwrite the
+        #     # Surface with a ZmxSurface
+        #     for s, surf in enumerate(component.surfaces):
+        #
+        #         # Find Zemax surface using the comment field of the provided surface
+        #         z_surf = self.find_surface(surf.comment)
+        #
+        #         print(type(z_surf))
+        #
+        #         # Overwrite original Surface
+        #         component.surfaces[s] = ZmxSurface(z_surf, u.mm)
 
     @property
     def surfaces(self) -> List[ZmxSurface]:
@@ -227,7 +227,41 @@ class ZmxSystem(System):
 
     def build_sys_from_comments(self):
 
-        self._sys.L
+        # Allocate a dictionary to store the components parsed by this function
+        components = {}
+
+        # Grab pointer to lens data editor
+        lde = self._sys.LDE
+
+        # Save the number of surfaces to local variable
+        n_surf = lde.NumberOfSurfaces
+
+        # Loop through every surface and look for a match to the comment string
+        for s in range(n_surf):
+
+            # Save the pointer to this surface
+            zmx_surf = lde.GetSurfaceAt(s)
+
+            # Parse the comment associated with this surface into tokens
+            comp_str, surf_str, attr_str = self.parse_comment(zmx_surf.Comment)
+
+            # If there is no component provided, assume the surface belongs to the main component
+            if comp_str is None:
+                comp_str = 'Main'
+
+            # Initialize the component from the token if we have not seen it already
+            if comp_str not in components:
+                components[comp_str] = Component(comp_str)
+
+            # Store a pointer to the token for later
+            comp = components[comp_str]
+
+            # Initialize the surface from token if we have not seen it already
+            if any([srf.name == surf_str for srf in comp.surfaces]):
+
+                # comp.append_surface(ZmxSurface(surf_str, None, ))
+                pass
+
 
     @staticmethod
     def parse_comment(comment_str: str) -> Tuple[str, str, str]:
@@ -326,34 +360,33 @@ class ZmxSystem(System):
         return s != s.lower() and s != s.upper() and "_" not in s
 
     def __del__(self):
-        if self.app is not None:
-            self.app.CloseApplication()
-            self.app = None
+
+        if self._app is not None:
+            self._app.CloseApplication()
+            self._app = None
 
         self._connection = None
 
-    def _init_sys(self) -> ZOSAPI.IOpticalSystem:
+    def _init_sys(self) -> None:
 
         # Create COM connection to Zemax
-        connection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")
-        if connection is None:
+        self._connection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")   # type: ZOSAPI.ZOSAPI_Connection
+        if self._connection is None:
             raise self.ConnectionException("Unable to intialize COM connection to ZOSAPI")
 
         # Open Zemax application
-        app = connection.CreateNewApplication()
-        if app is None:
+        self._app = self._connection.CreateNewApplication()
+        if self._app is None:
             raise self.InitializationException("Unable to acquire ZOSAPI application")
 
         # Check if license is valid
-        if app.IsValidLicenseForAPI is False:
+        if self._app.IsValidLicenseForAPI is False:
             raise self.LicenseException("License is not valid for ZOSAPI use")
 
         # Check that we can open the primary system object
-        sys = self.app.PrimarySystem
-        if sys is None:
+        self._sys = self._app.PrimarySystem
+        if self._sys is None:
             raise self.SystemNotPresentException("Unable to acquire Primary system")
-
-        return sys
 
     def open_file(self, filepath, saveIfNeeded):
         if self._sys is None:
@@ -366,17 +399,17 @@ class ZmxSystem(System):
         self._sys.Close(save)
 
     def samples_dir(self):
-        if self.app is None:
+        if self._app is None:
             raise self.InitializationException("Unable to acquire ZOSAPI application")
 
-        return self.app.samples_dir
+        return self._app.SamplesDir
 
     def example_constants(self):
-        if self.app.LicenseStatus is constants.LicenseStatusType_PremiumEdition:
+        if self._app.LicenseStatus is constants.LicenseStatusType_PremiumEdition:
             return "Premium"
-        elif self.app.LicenseStatus is constants.LicenseStatusType_ProfessionalEdition:
+        elif self._app.LicenseStatus is constants.LicenseStatusType_ProfessionalEdition:
             return "Professional"
-        elif self.app.LicenseStatus is constants.LicenseStatusType_StandardEdition:
+        elif self._app.LicenseStatus is constants.LicenseStatusType_StandardEdition:
             return "Standard"
         else:
             return "Invalid"

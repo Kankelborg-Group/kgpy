@@ -230,6 +230,19 @@ class Surface:
 
         return self.front_cs + self.T
 
+    def __eq__(self, other: 'Surface'):
+        """
+        Check if two surface are equal by comparing all of their attributes
+        :param other: The other surface to check against this one.
+        :return: True if the two surfaces have the same values for all attributes, false otherwise.
+        """
+        a = self.name == other.name
+        b = self.comment == other.comment
+        c = self.cs == other.cs
+        d = self.thickness == other.thickness
+
+        return a and b and c and d
+
     def __str__(self) -> str:
         """
         :return: String representation of the surface

@@ -5,6 +5,7 @@ from typing import Union
 import numpy as np
 import astropy.units as u
 import quaternion as q
+from copy import deepcopy
 
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
@@ -209,6 +210,47 @@ class TestSurface:
 
         # Check that the back surface is two millimeters from the origin in each axis
         assert s.back_cs.isclose(cs + X)
+
+    def test__eq__(self):
+
+        # Give each surface some arbitrary thickness
+        t = 1 * u.mm
+
+        # Define a 90-degree coordinate break
+        X = Vector([0, 0, 0] * u.mm)
+        Q = q.from_euler_angles(0, np.pi/2, 0)
+        cs = CoordinateSystem(X, Q)
+
+        # Define the four test surfaces to arrange into a square
+        s1 = Surface('Surface 1', thickness=t)
+        s2 = Surface('Surface 2', thickness=t, cs_break=cs)
+        s3 = Surface('Surface 3', thickness=t, cs_break=cs)
+        s4 = Surface('Surface 4', thickness=t, cs_break=cs)
+
+        # Add the test surfaces to a component
+        c1 = Component('c1')
+        c1.append_surface(s1)
+        c1.append_surface(s2)
+        c1.append_surface(s3)
+        c1.append_surface(s4)
+
+        # Make a deepcopy of the component for testing
+        c2 = deepcopy(c1)
+
+        # Check for equality between the copies
+        assert c1.surfaces[0] == c2.surfaces[0]
+        assert c1.surfaces[1] == c2.surfaces[1]
+        assert c1.surfaces[2] == c2.surfaces[2]
+        assert c1.surfaces[3] == c2.surfaces[3]
+
+        # Check that the first surface is not equal to the other three
+        assert c1.surfaces[0] != c1.surfaces[1]
+        assert c1.surfaces[0] != c1.surfaces[2]
+        assert c1.surfaces[0] != c1.surfaces[3]
+
+        # Modify some parameters in the copy, and check that the surfaces are not equal
+        c2.surfaces[0].name = 'foo'
+        assert c1.surfaces[0] != c2.surfaces[0]
 
     def test__str__(self):
 

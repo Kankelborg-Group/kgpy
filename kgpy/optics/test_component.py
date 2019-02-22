@@ -90,6 +90,22 @@ class TestComponent:
         # Check that the z-translation of the surface is equal to the thickness of the first surface
         assert c.surfaces[1].cs.X.z == t1*u.mm
 
+    def test__contains__(self):
+
+        # Define two test surfaces
+        s1 = Surface('foo')
+        s2 = Surface('bar')
+
+        # Create test Component and add surfaces
+        c = Component('test')
+        c.append_surface(s1)
+        c.append_surface(s2)
+
+        # Check that the component contains the expected strings
+        assert s1 in c
+        assert s2 in c
+        assert Surface('baz') not in c
+
     def test__str__(self):
 
         # Create default test Component

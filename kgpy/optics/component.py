@@ -105,6 +105,15 @@ class Component:
         else:
             self.first_surface = s
 
+    def __contains__(self, item: str) -> bool:
+        """
+        Check if this component contains a surface with the name item
+        :param item: string to check
+        :return: True if the component contains a surface with the name item.
+        """
+
+        return any(surf == item for surf in self.surfaces)
+
     def __str__(self) -> str:
         """
         :return: String representation of a component

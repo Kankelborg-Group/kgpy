@@ -1,4 +1,5 @@
 
+from typing import Tuple
 from kgpy.optics.zemax import ZOSAPI
 
 __all__ = ['ILensDataEditor']
@@ -17,35 +18,35 @@ class ILensDataEditor:
     RowToSurfaceOffset = None                   # type: int
     StopSurface = None                          # type: int
 
-    def AddRow(self) -> ZOSAPI.Editors.IEditorRow:
+    def AddRow(self) -> 'ZOSAPI.Editors.IEditorRow':
         pass
 
-    def AddSurface(self) -> ZOSAPI.Editors.LDE.ILDERow:
+    def AddSurface(self) -> 'ZOSAPI.Editors.LDE.ILDERow':
         pass
 
     def CopySurfaces(self, fromSurfaceNumber: int, NumberOfSurfaces: int, toSurfaceNumber: int) -> int:
         pass
 
-    def CopySurfaceFrom(self, fromEditor: ZOSAPI.Editors.LDE.ILensDataEditor, fromSurfaceNumber: int,
+    def CopySurfaceFrom(self, fromEditor: 'ZOSAPI.Editors.LDE.ILensDataEditor', fromSurfaceNumber: int,
                         NumberOfSurfaces: int, toSurfaceNumber: int) -> int:
         pass
 
-    def DeleteAllRows(self):
+    def DeleteAllRows(self) -> int:
         pass
 
-    def DeleteRowAt(self):
+    def DeleteRowAt(self, pos: int) -> bool:
         pass
 
-    def DeleteRowsAt(self):
+    def DeleteRowsAt(self, pos: int, numberOfRows: int) -> int:
         pass
 
-    def FindLabel(self):
+    def FindLabel(self, label: int, Surface: int) -> bool:
         pass
 
-    def GetApodization(self):
+    def GetApodization(self, px: float, py: float) -> float:
         pass
 
-    def GetFirstOrderData(self):
+    def GetFirstOrderData(self) -> Tuple[float, float, float, float, float]:
         pass
 
     def GetGlass(self):
@@ -69,7 +70,7 @@ class ILensDataEditor:
     def GetSag(self):
         pass
 
-    def GetSurfaceAt(self):
+    def GetSurfaceAt(self, surfaceNumber: int) -> 'ZOSAPI.Editors.LDE.ILDERow':
         pass
 
     def GetTool_AddCoatingsToAllSurfaces(self):

@@ -30,7 +30,7 @@ def components():
 
 @pytest.fixture
 def sys(components: List[Component]):
-    sys = ZmxSystem('Test System', components=components, model_path=TestZmxSystem.test_path)
+    sys = ZmxSystem('Test System', model_path=TestZmxSystem.test_path)
 
     return sys
 
@@ -45,12 +45,12 @@ class TestZmxSystem:
         # Check that the Zemax instance started correctly
         assert sys.example_constants() is not None
 
-        # Check that the zmx_surf field contains a valid object for every surface in every component
-        for orig_comp, zmx_comp in zip(components, sys.components):
-            for orig_surf, zmx_surf in zip(orig_comp.surfaces, zmx_comp.surfaces):
-
-                # Check that all comment strings are equal
-                assert orig_surf.comment == zmx_surf.comment
+        # # Check that the zmx_surf field contains a valid object for every surface in every component
+        # for orig_comp, zmx_comp in zip(components, sys.components):
+        #     for orig_surf, zmx_surf in zip(orig_comp.surfaces, zmx_comp.surfaces):
+        #
+        #         # Check that all comment strings are equal
+        #         assert orig_surf.comment == zmx_surf.comment
 
     def test_raytrace(self, sys: ZmxSystem):
 
@@ -95,7 +95,7 @@ class TestZmxSystem:
         ('Primary.tilt_dec',    (None, 'Primary', 'tilt_dec')),
         ('Baffle1.Pass1.aper',  ('Baffle1', 'Pass1', 'aper')),
     ])
-    def test_parse_comments(self, s, tok):
+    def test_parse_comment(self, s, tok):
 
         # Check that the output from the comment parsing is as expected
         assert tok == ZmxSystem.parse_comment(s)
