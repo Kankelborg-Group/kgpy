@@ -4,6 +4,7 @@ import math
 import os
 from typing import List
 import numpy as np
+import astropy.units as u
 
 from kgpy.optics import Surface, Component, ZmxSystem
 
@@ -113,9 +114,25 @@ class TestZmxSystem:
     def test_is_camel_case(self, cs, is_camel):
         assert ZmxSystem.is_camel_case(cs) is is_camel
 
-    def test_get_lens_units(self, sys: ZmxSystem):
+    def test_lens_units(self, sys: ZmxSystem):
 
-        print(sys.get_lens_units())
+        # Check that Zemax uses millimeters as default
+        assert sys.lens_units == u.mm
+
+        # Check inches
+        sys.lens_units = u.imperial.inch
+        assert sys.lens_units == u.imperial.inch
+
+        # Check centimeters
+        sys.lens_units = u.cm
+        assert sys.lens_units == u.cm
+
+        # Check meters
+        sys.lens_units = u.m
+        assert sys.lens_units == u.m
+
+
+
 
 
 

@@ -256,11 +256,11 @@ class ZmxSystem(System):
             # Store a pointer to the token for later
             comp = components[comp_str]
 
-            # Initialize the surface from token if we have not seen it already
+            # Check to see if this surface has already been seen
             if any([srf.name == surf_str for srf in comp.surfaces]):
 
-                # comp.append_surface(ZmxSurface(surf_str, None, ))
-                pass
+                # Initialize the surface if it has not been already and add it to the component
+                comp.append_surface(ZmxSurface(surf_str, None, self.lens_units))
 
 
     @staticmethod
@@ -359,36 +359,57 @@ class ZmxSystem(System):
 
         return s != s.lower() and s != s.upper() and "_" not in s
 
-    def get_lens_units(self):
+    @property
+    def lens_units(self) -> u.Unit:
+        """
+        Extract the units used by the Lens Data Editor
+        :return: Astropy units instance corresponding to the units used by Zemax
+        """
 
         units = self._sys.SystemData.Units.LensUnits
 
         if units == constants.ZemaxSystemUnits_Millimeters:
-
             return u.mm
-
         elif units == constants.ZemaxSystemUnits_Centimeters:
-
             return u.cm
-
         elif units == constants.ZemaxSystemUnits_Inches:
-
-            return u.inches
-
+            return u.imperial.inch
         elif units == constants.ZemaxSystemUnits_Meters:
-
             return u.m
-
         else:
-
             raise ValueError('Unrecognized units')
 
-    def __del__(self):
+    @lens_units.setter
+    def lens_units(self, units: u.Unit) -> None:
+        """
+        Set the units used by Zemax using the astropy units package
+        :param units: New units for Zemax to use
+        :return: None
+        """
 
+        if units == u.mm:
+            self._sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Millimeters
+        elif units == u.cm:
+            self._sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Centimeters
+        elif units == u.imperial.inch:
+            self._sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Inches
+        elif units == u.m:
+            self._sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Meters
+        else:
+            raise ValueError('Unrecognized units')
+
+    def __del__(self) -> None:
+        """
+        Delete this instance of Zemax
+        :return: None
+        """
+
+        # Close application
         if self._app is not None:
             self._app.CloseApplication()
             self._app = None
 
+        # Close connection
         self._connection = None
 
     def _init_sys(self) -> None:
