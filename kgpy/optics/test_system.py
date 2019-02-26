@@ -33,7 +33,7 @@ class TestSystem:
         sys.append_component(c2)
 
         # Check that the surfaces were linked up correctly
-        assert sys.surfaces[1:] == [s1, s2]
+        assert sys.surfaces == [s1, s2]
 
     def test_append_component(self):
 
@@ -56,7 +56,7 @@ class TestSystem:
         sys.append_component(c2)
 
         # Check that the surfaces were linked up correctly
-        assert sys.first_surface.next_surf_in_system == s1
+        assert sys.first_surface == s1
         assert s1.next_surf_in_system == s2
         assert s2.prev_surf_in_system == s1
 

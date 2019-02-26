@@ -1,5 +1,5 @@
 
-from typing import List
+from typing import List, Dict
 import astropy.units as u
 
 from kgpy.optics import Surface
@@ -21,37 +21,16 @@ class ZmxSurface(Surface):
         :param zmx_surf: Pointer to the zmx_surf to wrap this class around
         """
 
-        # Save arguments to class variables
-        self.name = name
-        self._zmx_surf = zmx_surf
-        self._u = length_units
+        # Call the superclass to initialize most of the class variables.
+        super().__init__(name)
 
-    @property
-    def comment(self):
-        return self._zmx_surf.Comment
+        # Save remaining arguments to class variables
+        self.zmx_surf = zmx_surf
+        self.u = length_units
 
-    @property
-    def _comment_str(self) -> str:
-        """
-        Grab the entire comment string from Zemax, so we can split it up into self.name and self.comment.
-        This lets us be consistent with the surface interface and also express the concept of a surface name and comment
-        in Zemax.
-        In Zemax the syntax is <name>:<comment>
-        :return: Zemax comment string
-        """
-        return self._zmx_surf.Comment
-
-    @property
-    def system_index(self):
-        """
-        :return: The index of this surface within the overall optical system
-        """
-        return self._zmx_surf.RowIndex
+        # Initialize class variables
+        self.attr_surfaces = {}        # type: Dict[str, ILDERow]
 
     @property
     def thickness(self):
-        return self._zmx_surf.Thickness
-
-    @thickness.setter
-    def thickness(self, t):
-        self._zmx_surf.Thickness = t
+        return self.zmx_surf.Thickness

@@ -33,9 +33,9 @@ class System:
         self.components = []        # type: List[Component]
 
         # Initialize the object as the first surface in the system
-        obj_comp = Component('Object', matching_surf=True)
-        obj_comp.first_surface.thickness = np.inf * u.mm        # The object defaults to being at infinity
-        self.append_component(obj_comp)
+        # obj_comp = Component('Object', matching_surf=True)
+        # obj_comp.first_surface.thickness = np.inf * u.mm        # The object defaults to being at infinity
+        # self.append_component(obj_comp)
 
     @property
     def surfaces(self) -> List[Surface]:
@@ -58,6 +58,22 @@ class System:
 
         return surfaces
 
+    def append_surface(self, surface: Surface) -> None:
+
+        # If there is at least one surface in the system, append the new surface after the last surface
+        if self.surfaces:
+
+            # Store pointer to the current last surface in the system, so we can link the current system to it.
+            last_surf = self.surfaces[-1]
+
+            # Set the two-way link between the current last surface and the new surface
+            last_surf.next_surf_in_system = surface
+            surface.prev_surf_in_system = last_surf
+
+        # Otherwise, the system is empty and this surface is the first surface.
+        else:
+            self.first_surface = surface
+
     def append_component(self, component: Component) -> None:
         """
         Add the component and all its surfaces to the end of an optical system.
@@ -68,29 +84,9 @@ class System:
         # Link the system to the component
         component.sys = self
 
-        # Loop through the surfaces in the component and set the system links to be the same as the component links.
+        # Loop through the surfaces in the component add them to the back of the system
         for surf in component.surfaces:
-
-            # Set two-way link
-            surf.prev_surf_in_system = surf.prev_surf_in_component
-            surf.next_surf_in_system = surf.next_surf_in_component
-
-        # If the system already contains at least one surface
-        if self.first_surface is not None:
-
-            # Store pointers to the last surface currently in the system and to the first surface in the new component.
-            last_surf = self.surfaces[-1]
-            new_surf = component.surfaces[0]
-
-            # Link the last surface in the system to the first surface in the component
-            last_surf.next_surf_in_system = new_surf
-            new_surf.prev_surf_in_system = last_surf
-
-        # Otherwise the system contains no surfaces
-        else:
-
-            # Set the first surface in the system to the first surface in the component
-            self.first_surface = component.first_surface
+            self.append_surface(surf)
 
         # Append this component to the list of components
         self.components.append(component)

@@ -53,20 +53,7 @@ class ZmxSystem(System):
         # Open Zemax model
         self.open_file(model_path, False)
 
-        # # Loop through component list to overwrite Surfaces with ZmxSurfaces
-        # for component in components:
-        #
-        #     # Loop through each surface in this component, find the corresponding Zemax surface and overwrite the
-        #     # Surface with a ZmxSurface
-        #     for s, surf in enumerate(component.surfaces):
-        #
-        #         # Find Zemax surface using the comment field of the provided surface
-        #         z_surf = self.find_surface(surf.comment)
-        #
-        #         print(type(z_surf))
-        #
-        #         # Overwrite original Surface
-        #         component.surfaces[s] = ZmxSurface(z_surf, u.mm)
+
 
     @property
     def surfaces(self) -> List[ZmxSurface]:
@@ -260,7 +247,28 @@ class ZmxSystem(System):
             if any([srf.name == surf_str for srf in comp.surfaces]):
 
                 # Initialize the surface if it has not been already and add it to the component
-                comp.append_surface(ZmxSurface(surf_str, None, self.lens_units))
+                # Note that the zmx_surf argument is not defined since we don't know it yet.
+                surf = ZmxSurface(surf_str, None, self.lens_units)
+                comp.append_surface(surf)
+
+            # If the attribute is None, this is the main ILDERow for this surface
+            if attr_str is None:
+                surf.zmx_surf = zmx_surf
+
+            # Otherwise the attribute is not None and this IDLERow will be placed into a dictionary, where the key
+            # is the attribute that this ILDERow corresponds to.
+            else:
+
+                # If we have npt seen this attribute string before, add the IDLERow to the dictionary.
+                if attr_str not in surf.attr_surfaces:
+                    surf.attr_surfaces[attr_str] = zmx_surf
+
+                # If we've seen this attribute before, that is incorrect syntax.
+                else:
+                    raise ValueError('Attribute already defined')
+
+
+
 
 
     @staticmethod
