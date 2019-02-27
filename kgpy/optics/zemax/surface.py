@@ -2,6 +2,8 @@
 from typing import List, Dict
 import astropy.units as u
 
+from kgpy.math import CoordinateSystem
+from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import Surface
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
@@ -73,11 +75,19 @@ class ZmxSurface(Surface):
         self._get_attr_row('thickness').Thickness = float(t / self.u)
 
     @property
-    def cs_break(self):
+    def cs_break(self) -> CoordinateSystem:
 
         row = self._get_attr_row('cs_break')
 
         if row.Type == ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak:
-            row.
+            settings = row.GetSurfaceTypeSettings(ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak)
+
+            print(settings)
+
+        return gcs()
+
+    @property
+    def tilt_dec(self) -> CoordinateSystem:
+        return gcs()
 
 

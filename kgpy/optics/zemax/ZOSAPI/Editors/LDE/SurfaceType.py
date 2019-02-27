@@ -1,4 +1,5 @@
 
+from enum import IntEnum
 from win32com.client import constants
 
 __all__ = ['SurfaceType']
@@ -7,309 +8,313 @@ __all__ = ['SurfaceType']
 class SurfaceType:
 
     @property
-    def ABCD(self) -> int:
+    def ABCD(self) -> 'SurfaceType':
         return constants.SurfaceType_ABCD
 
     @property
-    def AlternateEven(self) -> int:
+    def AlternateEven(self) -> 'SurfaceType':
         return constants.SurfaceType_AlternateEven
 
     @property
-    def AlternateOdd(self) -> int:
+    def AlternateOdd(self) -> 'SurfaceType':
         return constants.SurfaceType_AlternateOdd
 
     @property
-    def AnnularZernikeSag(self) -> int:
+    def AnnularZernikeSag(self) -> 'SurfaceType':
         return constants.SurfaceType_AnnularZernikeSag
 
     @property
-    def Atmospheric(self) -> int:
+    def Atmospheric(self) -> 'SurfaceType':
         return constants.SurfaceType_Atmospheric
 
     @property
-    def Biconic(self) -> int:
+    def Biconic(self) -> 'SurfaceType':
         return constants.SurfaceType_Biconic
 
     @property
-    def BiconicZernike(self) -> int:
+    def BiconicZernike(self) -> 'SurfaceType':
         return constants.SurfaceType_BiconicZernike
 
     @property
-    def Binary1(self) -> int:
+    def Binary1(self) -> 'SurfaceType':
         return constants.SurfaceType_Binary1
 
     @property
-    def Binary2(self) -> int:
+    def Binary2(self) -> 'SurfaceType':
         return constants.SurfaceType_Binary2
 
     @property
-    def Binary3(self) -> int:
+    def Binary3(self) -> 'SurfaceType':
         return constants.SurfaceType_Binary3
 
     @property
-    def Binary4(self) -> int:
+    def Binary4(self) -> 'SurfaceType':
         return constants.SurfaceType_Binary4
 
     @property
-    def BirefringentIn(self) -> int:
+    def BirefringentIn(self) -> 'SurfaceType':
         return constants.SurfaceType_BirefringentIn
 
     @property
-    def BirefringentOut(self) -> int:
+    def BirefringentOut(self) -> 'SurfaceType':
         return constants.SurfaceType_BirefringentOut
 
     @property
-    def BlackBoxLens(self) -> int:
+    def BlackBoxLens(self) -> 'SurfaceType':
         return constants.SurfaceType_BlackBoxLens
 
     @property
-    def ChebyShv(self) -> int:
+    def ChebyShv(self) -> 'SurfaceType':
         return constants.SurfaceType_ChebyShv
 
     @property
-    def Conjugate(self) -> int:
+    def Conjugate(self) -> 'SurfaceType':
         return constants.SurfaceType_Conjugate
 
     @property
-    def CoordinateBreak(self) -> int:
+    def CoordinateBreak(self) -> 'SurfaceType':
         return constants.SurfaceType_CoordinateBreak
 
     @property
-    def CubicSpline(self) -> int:
+    def CubicSpline(self) -> 'SurfaceType':
         return constants.SurfaceType_CubicSpline
 
     @property
-    def CylinderFrensel(self) -> int:
+    def CylinderFrensel(self) -> 'SurfaceType':
         return constants.SurfaceType_CylinderFrensel
 
     @property
-    def Data(self) -> int:
+    def Data(self) -> 'SurfaceType':
         return constants.SurfaceType_Data
 
     @property
-    def DiffractionGrating(self) -> int:
+    def DiffractionGrating(self) -> 'SurfaceType':
         return constants.SurfaceType_DiffractionGrating
 
     @property
-    def EllipticalGrating1(self) -> int:
+    def EllipticalGrating1(self) -> 'SurfaceType':
         return constants.SurfaceType_EllipticalGrating1
 
     @property
-    def EllipticalGrating2(self) -> int:
+    def EllipticalGrating2(self) -> 'SurfaceType':
         return constants.SurfaceType_EllipticalGrating2
 
     @property
-    def EvenAspheric(self) -> int:
+    def EvenAspheric(self) -> 'SurfaceType':
         return constants.SurfaceType_EvenAspheric
 
     @property
-    def ExtendedToroidalGrating(self) -> int:
+    def ExtendedToroidalGrating(self) -> 'SurfaceType':
         return constants.SurfaceType_ExtendedToroidalGrating
 
     @property
-    def ExtendedAsphere(self) -> int:
+    def ExtendedAsphere(self) -> 'SurfaceType':
         return constants.SurfaceType_ExtendedAsphere
 
     @property
-    def ExtendedCubicSpline(self) -> int:
+    def ExtendedCubicSpline(self) -> 'SurfaceType':
         return constants.SurfaceType_ExtendedCubicSpline
 
     @property
-    def ExtendedFresnel(self) -> int:
+    def ExtendedFresnel(self) -> 'SurfaceType':
         return constants.SurfaceType_ExtendedFresnel
 
     @property
-    def ExtendedOddAsphere(self) -> int:
+    def ExtendedOddAsphere(self) -> 'SurfaceType':
         return constants.SurfaceType_ExtendedOddAsphere
 
     @property
-    def ExtendedPolynomial(self) -> int:
+    def ExtendedPolynomial(self) -> 'SurfaceType':
         return constants.SurfaceType_ExtendedPolynomial
 
     @property
-    def Fresnel(self) -> int:
+    def Fresnel(self) -> 'SurfaceType':
         return constants.SurfaceType_Fresnel
 
     @property
-    def GeneralizedFresnel(self) -> int:
+    def GeneralizedFresnel(self) -> 'SurfaceType':
         return constants.SurfaceType_GeneralizedFresnel
 
     @property
-    def Gradient1(self) -> int:
+    def Gradient1(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient1
 
     @property
-    def Gradient2(self) -> int:
+    def Gradient2(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient2
 
     @property
-    def Gradient3(self) -> int:
+    def Gradient3(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient3
 
     @property
-    def Gradient4(self) -> int:
+    def Gradient4(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient4
 
     @property
-    def Gradient5(self) -> int:
+    def Gradient5(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient5
 
     @property
-    def Gradient6(self) -> int:
+    def Gradient6(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient6
 
     @property
-    def Gradient7(self) -> int:
+    def Gradient7(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient7
 
     @property
-    def Gradient9(self) -> int:
+    def Gradient9(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient9
 
     @property
-    def Gradient10(self) -> int:
+    def Gradient10(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient10
 
     @property
-    def Gradient12(self) -> int:
+    def Gradient12(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradient12
 
     @property
-    def Gradium(self) -> int:
+    def Gradium(self) -> 'SurfaceType':
         return constants.SurfaceType_Gradium
 
     @property
-    def GridGradient(self) -> int:
+    def GridGradient(self) -> 'SurfaceType':
         return constants.SurfaceType_GridGradient
 
     @property
-    def GridPhase(self) -> int:
+    def GridPhase(self) -> 'SurfaceType':
         return constants.SurfaceType_GridPhase
 
     @property
-    def GridSag(self) -> int:
+    def GridSag(self) -> 'SurfaceType':
         return constants.SurfaceType_GridSag
 
     @property
-    def Hologram1(self) -> int:
+    def Hologram1(self) -> 'SurfaceType':
         return constants.SurfaceType_Hologram1
 
     @property
-    def Hologram2(self) -> int:
+    def Hologram2(self) -> 'SurfaceType':
         return constants.SurfaceType_Hologram2
 
     @property
-    def Irregular(self) -> int:
+    def Irregular(self) -> 'SurfaceType':
         return constants.SurfaceType_Irregular
 
     @property
-    def JonesMatrix(self) -> int:
+    def JonesMatrix(self) -> 'SurfaceType':
         return constants.SurfaceType_JonesMatrix
 
     @property
-    def OddAsphere(self) -> int:
+    def OddAsphere(self) -> 'SurfaceType':
         return constants.SurfaceType_OddAsphere
 
     @property
-    def OddCosine(self) -> int:
+    def OddCosine(self) -> 'SurfaceType':
         return constants.SurfaceType_OddCosine
 
     @property
-    def OpticallyFabricatedHologram(self) -> int:
+    def OpticallyFabricatedHologram(self) -> 'SurfaceType':
         return constants.SurfaceType_OpticallyFabricatedHologram
 
     @property
-    def Paraxial(self) -> int:
+    def Paraxial(self) -> 'SurfaceType':
         return constants.SurfaceType_Paraxial
 
     @property
-    def ParaxialXY(self) -> int:
+    def ParaxialXY(self) -> 'SurfaceType':
         return constants.SurfaceType_ParaxialXY
 
     @property
-    def Periodic(self) -> int:
+    def Periodic(self) -> 'SurfaceType':
         return constants.SurfaceType_Periodic
 
     @property
-    def Polynomial(self) -> int:
+    def Polynomial(self) -> 'SurfaceType':
         return constants.SurfaceType_Polynomial
 
     @property
-    def QTypeAsphere(self) -> int:
+    def QTypeAsphere(self) -> 'SurfaceType':
         return constants.SurfaceType_QTypeAsphere
 
     @property
-    def RadialGrating(self) -> int:
+    def RadialGrating(self) -> 'SurfaceType':
         return constants.SurfaceType_RadialGrating
 
     @property
-    def RadialNurbs(self) -> int:
+    def RadialNurbs(self) -> 'SurfaceType':
         return constants.SurfaceType_RadialNurbs
 
     @property
-    def RetroReflect(self) -> int:
+    def RetroReflect(self) -> 'SurfaceType':
         return constants.SurfaceType_RetroReflect
 
     @property
-    def SlideSurface(self) -> int:
+    def SlideSurface(self) -> 'SurfaceType':
         return constants.SurfaceType_SlideSurface
 
     @property
-    def Standard(self) -> int:
+    def Standard(self) -> 'SurfaceType':
         return constants.SurfaceType_Standard
 
     @property
-    def Superconic(self) -> int:
+    def Superconic(self) -> 'SurfaceType':
         return constants.SurfaceType_Superconic
 
     @property
-    def Tilted(self) -> int:
+    def Tilted(self) -> 'SurfaceType':
         return constants.SurfaceType_Tilted
 
     @property
-    def Toroidal(self) -> int:
+    def Toroidal(self) -> 'SurfaceType':
         return constants.SurfaceType_Toroidal
 
     @property
-    def ToroidalGrat(self) -> int:
+    def ToroidalGrat(self) -> 'SurfaceType':
         return constants.SurfaceType_
 
     @property
-    def ToroidalHologram(self) -> int:
+    def ToroidalHologram(self) -> 'SurfaceType':
         return constants.SurfaceType_ToroidalGrat
 
     @property
-    def ToroidalNurbs(self) -> int:
+    def ToroidalNurbs(self) -> 'SurfaceType':
         return constants.SurfaceType_ToroidalNurbs
 
     @property
-    def UserDefined(self) -> int:
+    def UserDefined(self) -> 'SurfaceType':
         return constants.SurfaceType_UserDefined
 
     @property
-    def VariableLineSpaceGrating(self) -> int:
+    def VariableLineSpaceGrating(self) -> 'SurfaceType':
         return constants.SurfaceType_VariableLineSpaceGrating
 
     @property
-    def ZernikeAnnularPhase(self) -> int:
+    def ZernikeAnnularPhase(self) -> 'SurfaceType':
         return constants.SurfaceType_ZernikeAnnularPhase
 
     @property
-    def ZernikeFringePhase(self) -> int:
+    def ZernikeFringePhase(self) -> 'SurfaceType':
         return constants.SurfaceType_ZernikeFringePhase
 
     @property
-    def ZernikeFringeSag(self) -> int:
+    def ZernikeFringeSag(self) -> 'SurfaceType':
         return constants.SurfaceType_ZernikeFringeSag
 
     @property
-    def ZernikeStandardPhase(self) -> int:
+    def ZernikeStandardPhase(self) -> 'SurfaceType':
         return constants.SurfaceType_ZernikeStandardPhase
 
     @property
-    def ZernikeStandardSag(self) -> int:
+    def ZernikeStandardSag(self) -> 'SurfaceType':
         return constants.SurfaceType_ZernikeStandardSag
 
     @property
-    def ZonePlate(self) -> int:
+    def ZonePlate(self) -> 'SurfaceType':
         return constants.SurfaceType_ZonePlate
+
+
+# Make singleton class
+SurfaceType = SurfaceType()

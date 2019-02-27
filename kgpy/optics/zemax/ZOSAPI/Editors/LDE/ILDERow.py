@@ -23,8 +23,18 @@ class ILDERow:
     TiltDecenterData = None     # type: ZOSAPI.Editors.LDE.ILDETiltDecenterData
     Type = None                 # type: ZOSAPI.Editors.LDE.SurfaceType
 
-    def AvailableSurfaceTypes(self) -> List[int]:
+    def AvailableSurfaceTypes(self) -> List['ZOSAPI.Editors.LDE.SurfaceType']:
         pass
 
-    def ChangeType(self, settings: ZOSAPI.Editors.LDE.ISurfaceTypeSettings):
+    def ChangeType(self, settings: 'ZOSAPI.Editors.LDE.ISurfaceTypeSettings') -> bool:
+        pass
+
+    def GetCellAt(self, pos: int) -> 'ZOSAPI.Editors.IEditorCell':
+        pass
+
+    def GetSurfaceCell(self, col: 'ZOSAPI.Editors.LDE.SurfaceColumn') -> 'ZOSAPI.Editors.IEditorCell':
+        pass
+
+    def GetSurfaceTypeSettings(self, type: 'ZOSAPI.Editors.LDE.SurfaceType'
+                               ) -> 'ZOSAPI.Editors.LDE.ISurfaceTypeSettings':
         pass

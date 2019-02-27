@@ -1,0 +1,2 @@
+class IEditorCell:
+    pass
