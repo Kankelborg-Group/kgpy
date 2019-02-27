@@ -1,6 +1,6 @@
 
-from win32com.client.gencache import EnsureDispatch, EnsureModule
-from win32com.client import CastTo, constants
+from win32com.client.gencache import EnsureDispatch
+from win32com.client import constants
 from typing import List, Union, Tuple
 from numbers import Real
 import numpy as np
@@ -35,9 +35,6 @@ class ZmxSystem(System):
             `{PythonEnv}/Lib/site-packages/win32com/gen_py/*.*`
 
         :param name: Human-readable name of this system
-        :param components: List of components we want to divide the system into. Note that Zemax does not have the
-        concept of components, which is why this list needs to provided, it tells this function how to split up the
-        surfaces in the Zemax model.
         :param model_path: Path to the Zemax model that will be opened when this constructor is called.
         """
 
@@ -45,38 +42,48 @@ class ZmxSystem(System):
         self.name = name
         self.model_path = model_path
 
+        # Initialize other attributes
+        self.comment = ''
+
+        # Initialize attributes to be set as surfaces are added.
+        self.first_surface = None   # type: Surface
+        self.components = []        # type: List[Component]
+
         # Initialize the connection to the Zemax system
         self._init_sys()
-
-        self.first_surface = None
 
         # Open Zemax model
         self.open_file(model_path, False)
 
+        # Read Zemax model
+        self.build_sys_from_comments()
 
 
-    @property
-    def surfaces(self) -> List[ZmxSurface]:
 
-        # Allocate space for the list to be returned from this function
-        surfaces = []
 
-        # Grab pointer to lens data editor
-        lde = self._sys.LDE
 
-        # Save the number of surfaces to local variable
-        n_surf = lde.NumberOfSurfaces
-
-        # Loop through every surface and look for a match to the comment string
-        for s in range(n_surf):
-
-            # Save the pointer to this surface
-            surf = lde.GetSurfaceAt(s)
-
-            # Add to the return list
-            surfaces.append(surf)
-
-        return surfaces
+    # @property
+    # def surfaces(self) -> List[ZmxSurface]:
+    #
+    #     # Allocate space for the list to be returned from this function
+    #     surfaces = []
+    #
+    #     # Grab pointer to lens data editor
+    #     lde = self._sys.LDE
+    #
+    #     # Save the number of surfaces to local variable
+    #     n_surf = lde.NumberOfSurfaces
+    #
+    #     # Loop through every surface and look for a match to the comment string
+    #     for s in range(n_surf):
+    #
+    #         # Save the pointer to this surface
+    #         surf = lde.GetSurfaceAt(s)
+    #
+    #         # Add to the return list
+    #         surfaces.append(surf)
+    #
+    #     return surfaces
 
     def raytrace(self, surface_indices: List[int], wavl_indices: List[int],
                  field_coords_x: Union[List[Real], np.ndarray], field_coords_y: Union[List[Real], np.ndarray],
@@ -244,24 +251,29 @@ class ZmxSystem(System):
             comp = components[comp_str]
 
             # Check to see if this surface has already been seen
-            if any([srf.name == surf_str for srf in comp.surfaces]):
+            if not any([srf.name == surf_str for srf in comp.surfaces]):
 
                 # Initialize the surface if it has not been already and add it to the component
                 # Note that the zmx_surf argument is not defined since we don't know it yet.
-                surf = ZmxSurface(surf_str, None, self.lens_units)
-                comp.append_surface(surf)
+                new_surf = ZmxSurface(surf_str, None, self.lens_units)
+                comp.append_surface(new_surf)
 
-            # If the attribute is None, this is the main ILDERow for this surface
+            # Find this surface in the list of surfaces
+            surf = next(srf for srf in comp.surfaces if srf.name == surf_str)   # type: ZmxSurface
+
+            # If the attribute is None, this is the main ILDERow for this surface. At this point we can add the surface
+            # to the system.
             if attr_str is None:
-                surf.zmx_surf = zmx_surf
+                surf.row = zmx_surf
+                self.append_surface(surf)
 
             # Otherwise the attribute is not None and this IDLERow will be placed into a dictionary, where the key
             # is the attribute that this ILDERow corresponds to.
             else:
 
-                # If we have npt seen this attribute string before, add the IDLERow to the dictionary.
-                if attr_str not in surf.attr_surfaces:
-                    surf.attr_surfaces[attr_str] = zmx_surf
+                # If we have not seen this attribute string before, add the IDLERow to the dictionary.
+                if attr_str not in surf.attr_rows:
+                    surf.attr_rows[attr_str] = zmx_surf
 
                 # If we've seen this attribute before, that is incorrect syntax.
                 else:
@@ -376,13 +388,13 @@ class ZmxSystem(System):
 
         units = self._sys.SystemData.Units.LensUnits
 
-        if units == constants.ZemaxSystemUnits_Millimeters:
+        if units == ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters:
             return u.mm
-        elif units == constants.ZemaxSystemUnits_Centimeters:
+        elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Centimeters:
             return u.cm
-        elif units == constants.ZemaxSystemUnits_Inches:
+        elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Inches:
             return u.imperial.inch
-        elif units == constants.ZemaxSystemUnits_Meters:
+        elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Meters:
             return u.m
         else:
             raise ValueError('Unrecognized units')
@@ -425,7 +437,7 @@ class ZmxSystem(System):
         # Create COM connection to Zemax
         self._connection = EnsureDispatch("ZOSAPI.ZOSAPI_Connection")   # type: ZOSAPI.ZOSAPI_Connection
         if self._connection is None:
-            raise self.ConnectionException("Unable to intialize COM connection to ZOSAPI")
+            raise self.ConnectionException("Unable to initialize COM connection to ZOSAPI")
 
         # Open Zemax application
         self._app = self._connection.CreateNewApplication()

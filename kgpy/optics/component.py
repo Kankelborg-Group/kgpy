@@ -128,6 +128,8 @@ class Component:
 
         return ret
 
+    __repr__ = __str__
+
 
 
 

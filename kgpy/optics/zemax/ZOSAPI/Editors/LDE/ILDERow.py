@@ -1,4 +1,5 @@
 
+from typing import List
 from kgpy.optics.zemax import ZOSAPI
 
 __all__ = ['ILDERow']
@@ -22,3 +23,8 @@ class ILDERow:
     TiltDecenterData = None     # type: ZOSAPI.Editors.LDE.ILDETiltDecenterData
     Type = None                 # type: ZOSAPI.Editors.LDE.SurfaceType
 
+    def AvailableSurfaceTypes(self) -> List[int]:
+        pass
+
+    def ChangeType(self, settings: ZOSAPI.Editors.LDE.ISurfaceTypeSettings):
+        pass

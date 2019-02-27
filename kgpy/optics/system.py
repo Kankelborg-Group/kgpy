@@ -59,6 +59,11 @@ class System:
         return surfaces
 
     def append_surface(self, surface: Surface) -> None:
+        """
+        Add a surface to the end of an optical system
+        :param surface: The surface to be added
+        :return: None
+        """
 
         # If there is at least one surface in the system, append the new surface after the last surface
         if self.surfaces:

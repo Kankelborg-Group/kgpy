@@ -46,6 +46,8 @@ class TestZmxSystem:
         # Check that the Zemax instance started correctly
         assert sys.example_constants() is not None
 
+        print(sys)
+
         # # Check that the zmx_surf field contains a valid object for every surface in every component
         # for orig_comp, zmx_comp in zip(components, sys.components):
         #     for orig_surf, zmx_surf in zip(orig_comp.surfaces, zmx_comp.surfaces):
