@@ -2,6 +2,8 @@ from .ILDEApertureData import *
 from .ILDERow import *
 from .ILensDataEditor import *
 from .ILDETiltDecenterData import *
+from .ILDECoatingData import *
 from .ISurfaceTypeSettings import *
+from .ISurface import *
 from .SurfaceType import *
 from .SurfaceColumn import *

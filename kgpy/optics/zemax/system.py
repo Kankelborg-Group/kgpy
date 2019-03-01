@@ -84,7 +84,6 @@ class ZmxSystem(System):
     #         surfaces.append(surf)
     #
     #     return surfaces
-
     def raytrace(self, surface_indices: List[int], wavl_indices: List[int],
                  field_coords_x: Union[List[Real], np.ndarray], field_coords_y: Union[List[Real], np.ndarray],
                  pupil_coords_x: Union[List[Real], np.ndarray], pupil_coords_y: Union[List[Real], np.ndarray]
