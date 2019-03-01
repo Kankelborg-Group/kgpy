@@ -35,11 +35,14 @@
 *.o
 
 # Pycharm files
-workspace.xml
-/Debug/
-/Release/
 .idea/
 
 # Pytest files
 .pytest_cache/
 .cache/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Mac OSX aliases
+*alias
