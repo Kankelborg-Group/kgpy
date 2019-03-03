@@ -1,6 +1,6 @@
 
 import numpy as np
-from typing import List
+from typing import List, Dict, Union
 import quaternion as q
 import astropy.units as u
 
@@ -28,35 +28,57 @@ class System:
         self.name = name
         self.comment = comment
 
-        # Initialize attributes to be set as surfaces are added.
-        self.first_surface = None   # type: Surface
-        self.components = []        # type: List[Component]
+        # Initialize the object surface.
+        # This surface is not usually considered in the list of surfaces, since it often has infinite thickness.
+        # Therefore there is a separate pointer for this surface, instead of it being the self.first_surface.
+        self.obj_surface = Surface('Object', thickness=np.inf * u.mm)
+        self.obj_surface.is_object = True
 
-        # Initialize the object as the first surface in the system
-        # obj_comp = Component('Object', matching_surf=True)
-        # obj_comp.first_surface.thickness = np.inf * u.mm        # The object defaults to being at infinity
-        # self.append_component(obj_comp)
+        # Initialize attributes to be set as surfaces are added.
+        self.surfaces = []     # type: List[Surface]
 
     @property
-    def surfaces(self) -> List[Surface]:
+    def first_surface(self) -> Union[Surface, None]:
         """
-        :return: An in-order list of all the surfaces in the system
+        :return: The first optical surface in the system if it exists, otherwise return None
         """
 
-        # Initialize variables
-        surf = self.first_surface
-        surfaces = []
+        # If there is at least one surface in the list, return the first element of the list
+        if self.surfaces:
+            return self.surfaces[0]
 
-        # Follow links to next surface to construct list of surfaces, until link is None
-        while surf is not None:
+        # Otherwise the list is empty, and we return None
+        else:
+            return None
 
-            # Append this surface to the list of surfaces to be returned
-            surfaces.append(surf)
+    @property
+    def components(self) -> Dict[str, Component]:
+        """
+        :return: A Dictionary with all the Components in the system as values and their names as the keys.
+        """
 
-            # Select the next surface in the component
-            surf = surf.next_surf_in_system
+        # Allocate space to store the new dictionary
+        comp = {}
 
-        return surfaces
+        # Loop through all the surfaces in the system
+        for surf in self.surfaces.values():
+
+            # Add this surface's component to the dictionary if it's not already there.
+            if surf.component.name not in comp:
+                comp[surf.component.name] = surf.component
+
+        return comp
+
+    def insert_surface(self, surface: Surface, index: int) -> None:
+        """
+        Insert a surface into the specified position index the system
+        :param surface: Surface object to be added to the system
+        :param index: Index that we want the object to be placed at
+        :return: None
+        """
+
+        surface.sys = self
+        self.surfaces.insert(index, surface)
 
     def append_surface(self, surface: Surface) -> None:
         """
@@ -65,19 +87,8 @@ class System:
         :return: None
         """
 
-        # If there is at least one surface in the system, append the new surface after the last surface
-        if self.surfaces:
-
-            # Store pointer to the current last surface in the system, so we can link the current system to it.
-            last_surf = self.surfaces[-1]
-
-            # Set the two-way link between the current last surface and the new surface
-            last_surf.next_surf_in_system = surface
-            surface.prev_surf_in_system = last_surf
-
-        # Otherwise, the system is empty and this surface is the first surface.
-        else:
-            self.first_surface = surface
+        surface.sys = self
+        self.surfaces.append(surface)
 
     def append_component(self, component: Component) -> None:
         """
@@ -92,9 +103,6 @@ class System:
         # Loop through the surfaces in the component add them to the back of the system
         for surf in component.surfaces:
             self.append_surface(surf)
-
-        # Append this component to the list of components
-        self.components.append(component)
             
     def zipper_component(self, component: Component, indices: List[int]) -> None:
         """
@@ -115,7 +123,7 @@ class System:
         appropriate amount of baffle surfaces
         :param baffle_name: Human-readable name of the baffle
         :param baffle_cs: Coordinate system where the baffle will be placed.
-        This function assumes that the baffle lies the x-y plane of this coordinate system.
+        This function assumes that the baffle lies in the x-y plane of this coordinate system.
         :return: Pointer to Baffle component
         """
 
@@ -125,17 +133,17 @@ class System:
         # Define variable to track how many times the system intersected the
         baffle_pass = 0
 
+        # Make a copy of the surfaces list so we don't try to iterate over and write to the same list
+        old_surfaces = self.surfaces.copy()
+
         # Loop through all surfaces in the system to see if any intersect with a baffle
-        for surf in self.surfaces:
+        for surf in old_surfaces:
 
             # Compute the intersection between the thickness vector and the x-y plane of the baffle, if it exists.
             intercept = baffle_cs.xy_intercept(surf.front_cs.X, surf.back_cs.X)
 
             # If the intercept exists, insert the new baffle
             if intercept is not None:
-
-                # Grab pointer to the surface after the current surface in the system
-                next_surf = surf.next_surf_in_system
 
                 # Compute the new thickness vectors for both to
                 t1 = intercept - surf.front_cs.X  # New thickness of original surface
@@ -153,20 +161,13 @@ class System:
                                       tilt_dec=cs)
 
                 # Link the new baffle surface into the system
-                surf.next_surf_in_system = baffle_surf
-                baffle_surf.next_surf_in_system = next_surf
-                baffle_surf.prev_surf_in_system = surf
-                if next_surf is not None:
-                    next_surf.prev_surf_in_system = baffle_surf
+                self.insert_surface(baffle_surf, surf.system_index + 1)
 
                 # Insert new baffle surface into baffle component
                 baffle.append_surface(baffle_surf)
 
                 # Update the number of baffle passes
                 baffle_pass += 1
-
-        # Insert new baffle component into system
-        self.components.append(baffle)
 
         return baffle
 
@@ -181,6 +182,8 @@ class System:
 
         # Construct line out of top-level parameters of the component
         ret = self.name + ', comment = ' + self.comment + '\n'
+
+        ret += '\t' + self.obj_surface.__str__() + '\n'
 
         # Append lines for each surface within the component
         for surface in self.surfaces:

@@ -14,8 +14,8 @@ class TestSurface:
 
         # Check the index of the Primary surface
         primary_comment = 'Primary'
-        true_primary_ind = 2
-        primary_surf = sys.find_surface(primary_comment)
+        true_primary_ind = 3
+        primary_surf = sys._find_surface(primary_comment)
 
         print(primary_surf)
         assert primary_surf.SurfaceNumber == true_primary_ind

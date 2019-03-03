@@ -1,7 +1,8 @@
 
+import os
 from win32com.client.gencache import EnsureDispatch
 from win32com.client import constants
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict
 from numbers import Real
 import numpy as np
 import astropy.units as u
@@ -47,43 +48,23 @@ class ZmxSystem(System):
 
         # Initialize attributes to be set as surfaces are added.
         self.first_surface = None   # type: Surface
-        self.components = []        # type: List[Component]
+        self.components = {}        # type: Dict[str, Component]
 
         # Initialize the connection to the Zemax system
         self._init_sys()
 
         # Open Zemax model
-        self.open_file(model_path, False)
+        if os.path.exists(model_path):
+            self._open_file(model_path, False)
 
         # Read Zemax model
-        self.build_sys_from_comments()
+        self._build_sys_from_comments()
 
 
+    def insert_surface(self, surface: Surface, index: int):
 
-
-
-    # @property
-    # def surfaces(self) -> List[ZmxSurface]:
-    #
-    #     # Allocate space for the list to be returned from this function
-    #     surfaces = []
-    #
-    #     # Grab pointer to lens data editor
-    #     lde = self._sys.LDE
-    #
-    #     # Save the number of surfaces to local variable
-    #     n_surf = lde.NumberOfSurfaces
-    #
-    #     # Loop through every surface and look for a match to the comment string
-    #     for s in range(n_surf):
-    #
-    #         # Save the pointer to this surface
-    #         surf = lde.GetSurfaceAt(s)
-    #
-    #         # Add to the return list
-    #         surfaces.append(surf)
-    #
-    #     return surfaces
+        pass
+    
     def raytrace(self, surface_indices: List[int], wavl_indices: List[int],
                  field_coords_x: Union[List[Real], np.ndarray], field_coords_y: Union[List[Real], np.ndarray],
                  pupil_coords_x: Union[List[Real], np.ndarray], pupil_coords_y: Union[List[Real], np.ndarray]
@@ -192,7 +173,7 @@ class ZmxSystem(System):
 
         return V, X, Y
 
-    def find_surface(self, comment: str) -> ZOSAPI.Editors.LDE.ILDERow:
+    def _find_surface(self, comment: str) -> ZOSAPI.Editors.LDE.ILDERow:
         """
         Find the surface matching the provided comment string
 
@@ -218,7 +199,7 @@ class ZmxSystem(System):
 
                 return surf
 
-    def build_sys_from_comments(self):
+    def _build_sys_from_comments(self):
 
         # Allocate a dictionary to store the components parsed by this function
         components = {}
@@ -236,7 +217,7 @@ class ZmxSystem(System):
             zmx_surf = lde.GetSurfaceAt(s)
 
             # Parse the comment associated with this surface into tokens
-            comp_str, surf_str, attr_str = self.parse_comment(zmx_surf.Comment)
+            comp_str, surf_str, attr_str = self._parse_comment(zmx_surf.Comment)
 
             # If there is no component provided, assume the surface belongs to the main component
             if comp_str is None:
@@ -260,30 +241,45 @@ class ZmxSystem(System):
             # Find this surface in the list of surfaces
             surf = next(srf for srf in comp.surfaces if srf.name == surf_str)   # type: ZmxSurface
 
-            # If the attribute is None, this is the main ILDERow for this surface. At this point we can add the surface
-            # to the system.
-            if attr_str is None:
-                surf.row = zmx_surf
-                self.append_surface(surf)
+            # If the surface index is greater than zero, this is not the object surface
+            if s > 0:
 
-            # Otherwise the attribute is not None and this IDLERow will be placed into a dictionary, where the key
-            # is the attribute that this ILDERow corresponds to.
-            else:
+                # If the attribute is None, this is the main ILDERow for this surface. At this point we can add the
+                # surface to the system.
+                if attr_str is None:
+                    surf.row = zmx_surf
+                    self.append_surface(surf)
 
-                # If we have not seen this attribute string before, add the IDLERow to the dictionary.
-                if attr_str not in surf.attr_rows:
-                    surf.attr_rows[attr_str] = zmx_surf
-
-                # If we've seen this attribute before, that is incorrect syntax.
+                # Otherwise the attribute is not None and this IDLERow will be placed into a dictionary, where the key
+                # is the attribute that this ILDERow corresponds to.
                 else:
-                    raise ValueError('Attribute already defined')
 
+                    # If we have not seen this attribute string before, add the IDLERow to the dictionary.
+                    if attr_str not in surf.attr_rows:
+                        surf.attr_rows[attr_str] = zmx_surf
 
+                    # If we've seen this attribute before, that is incorrect syntax.
+                    else:
+                        raise ValueError('Attribute already defined')
 
+            # Otherwise the surface index is zero and this is the object surface
+            elif s == 0:
 
+                # If this surface is specified as the object, save it as the object surface attribute
+                if comp.name == 'Object':
+                    surf.row = zmx_surf
+                    self.obj_surface = surf
+
+                # Otherwise, this is a syntax error.
+                else:
+                    raise ValueError('First surface in system not specified as object')
+
+            # Should not expect s < 0
+            else:
+                raise ValueError('Invalid Zemax surface index')
 
     @staticmethod
-    def parse_comment(comment_str: str) -> Tuple[str, str, str]:
+    def _parse_comment(comment_str: str) -> Tuple[str, str, str]:
         """
         Split a comment string into Zemax input tokens.
         To read in a Zemax file, the user can give hints as to what component, surface, or surface attribute each Zemax
@@ -452,12 +448,12 @@ class ZmxSystem(System):
         if self._sys is None:
             raise self.SystemNotPresentException("Unable to acquire Primary system")
 
-    def open_file(self, filepath, saveIfNeeded):
+    def _open_file(self, filepath, saveIfNeeded):
         if self._sys is None:
             raise self.SystemNotPresentException("Unable to acquire Primary system")
         self._sys.LoadFile(filepath, saveIfNeeded)
 
-    def close_file(self, save):
+    def _close_file(self, save):
         if self._sys is None:
             raise self.SystemNotPresentException("Unable to acquire Primary system")
         self._sys.Close(save)

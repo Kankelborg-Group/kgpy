@@ -50,25 +50,93 @@ class Surface:
         self.tilt_dec = tilt_dec
         self.cs_break = cs_break
 
-        # Attributes to be set by kgpy.optics.Component.append_surface()
-        # These are links to the previous/next surface in the component, previous/next surface in the system, and a link
-        # to the root component.
-        # These are used to recursively calculate properties of this surface instead of explicitly updating
-        # this surface.
-        # For example if the thickness of an earlier surface changes, we would have to remember to update this surface
-        # with a new global position.
-        # However if we calculate the global position by adding up the thickness of all previous surfaces, it is not
-        # necessary to remember to update anything.
-        self.prev_surf_in_system = None        # type: Surface
-        self.next_surf_in_system = None        # type: Surface
-        self.prev_surf_in_component = None     # type: Surface
-        self.next_surf_in_component = None     # type: Surface
-        self.component = None                  # type: kgpy.optics.Component
+        # Attributes to be set by the Component and System classes
+        self.component = None                   # type: kgpy.optics.Component
+        self.sys = None                         # type: kgpy.optics.System
 
         # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
         self.is_active = False
         self.is_image = False
         self.is_stop = False
+        self.is_object = False
+
+    @property
+    def prev_surf_in_system(self) -> Union['Surface', None]:
+        """
+        :return: The surface before this surface in the system
+        """
+
+        # If the system is defined, find the previous surface
+        if self.sys is not None:
+            return self._relative_list_element(self.sys.surfaces, -1)
+
+        # Otherwise there is no system defined and we return none
+        else:
+            return None
+
+    @property
+    def next_surf_in_system(self) -> Union['Surface', None]:
+        """
+        :return: The surface after this surface in the system
+        """
+
+        # If the system is defined, find the next surface
+        if self.sys is not None:
+            return self._relative_list_element(self.sys.surfaces, 1)
+
+        # Otherwise there is no system defined and we return none
+        else:
+            return None
+
+    @property
+    def prev_surf_in_component(self) -> Union['Surface', None]:
+        """
+        :return: The surface before this surface in the component.
+        """
+
+        # If the component is defined, find the previous surface
+        if self.component is not None:
+            return self._relative_list_element(self.component.surfaces, -1)
+
+        # Otherwise there is no component defined and we return none
+        else:
+            return None
+
+    @property
+    def next_surf_in_component(self) -> Union['Surface', None]:
+        """
+        :return: The surface after this surface in the component
+        """
+
+        # If the component is defined, find the next surface
+        if self.component is not None:
+            return self._relative_list_element(self.component.surfaces, 1)
+
+        # Otherwise there is no component defined and we return none
+        else:
+            return None
+
+    def _relative_list_element(self, list: List['Surface'], rel_index: int) -> Union['Surface', None]:
+        """
+        Finds the surface from a relative index to this surface for a given list of surfaces.
+        :param list: The list of surfaces to index through
+        :param rel_index: The index relative to this surface that we are interested in.
+        :return: The surface at the given relative index if it exists, none otherwise.
+        """
+
+        # Find the index of this surface
+        ind = self._find_self_in_list(list)
+
+        # Compute the global index of the surface that we are interested int
+        new_ind = ind + rel_index
+
+        # If the global index is a valid index, return the surface at that index.
+        if 0 <= new_ind < len(list):
+            return list[new_ind]
+
+        # Otherwise, the global index is not valid, and we return None.
+        else:
+            return None
 
     @property
     def system_index(self) -> int:
@@ -76,13 +144,8 @@ class Surface:
         :return: The index of this surface within the overall optical system
         """
 
-        # If there is already a previous surface in the system, the index of this surface is the index of the previous
-        # surface incremented by one.
-        # Otherwise, there is not a previous surface in the system and this is the first surface, so the index is zero.
-        if self.prev_surf_in_system is not None:
-            return self.prev_surf_in_system.system_index + 1
-        else:
-            return 0
+        return self._find_self_in_list(self.sys.surfaces)
+
 
     @property
     def component_index(self) -> int:
@@ -90,12 +153,36 @@ class Surface:
         :return: The index of this surface within it's component
         """
 
-        # If there is not another surface in this component, the index is zero, otherwise the component index is the
-        # index of the previous surface in the component incremented by one
-        if self.prev_surf_in_component is None:
-            return 0
+        return self._find_self_in_list(self.component.surfaces)
+
+    def _find_self_in_list(self, list: List['Surface']) -> Union[int, None]:
+        """
+        Find the index of this surface in the provided list
+        :param list: List to be searched for this surface
+        :return: The index of the surface if it exists in the list, None otherwise.
+        """
+
+        # Make an empty list to store the indices matching this surface
+        ind = []
+
+        # Loop through the provided list to check for any matches
+        for s, surf in enumerate(list):
+
+            # If there are any matches append the index to our list of indices
+            if self == surf:
+                ind.append(s)
+
+        # If there were no matching surfaces found, return None
+        if len(ind) == 0:
+            return None
+
+        # If there was one matching surface found, return it's index
+        elif len(ind) == 1:
+            return ind[0]
+
+        # Otherwise, there was more than one matching surface found, and this is unexpected
         else:
-            return self.prev_surf_in_component.component_index + 1
+            raise ValueError('More than one surface matches in list')
 
     @property
     def thickness(self) -> u.Quantity:
@@ -131,22 +218,6 @@ class Surface:
         return self.thickness * self.front_cs.zh
 
     @property
-    def is_object(self) -> bool:
-        """
-        Method to check if this is the object surface.
-        The object surface is defined to be the first surface in the system.
-        :return:
-        """
-
-        if self.component.sys is not None:
-
-            if self.component.sys.first_surface is self:
-
-                return True
-
-        return False
-
-    @property
     def previous_cs(self) -> CoordinateSystem:
         """
         The coordinate system of the surface before this surface in the optical system.
@@ -157,42 +228,55 @@ class Surface:
         :return: The last CoordinateSystem in the optical system
         """
 
-        # If this is the first surface in the system
+        # If this is not the first surface in the system
         if self.prev_surf_in_system is not None:
 
             # Grab a pointer to the coordinate system of the back of the previous surface
             cs = self.prev_surf_in_system.back_cs
 
-            # If this is the first surface in the component
+            # If this surface belongs to a component
             if self.component is not None:
 
-
+                # If this is not the first surface in the component
                 if self.prev_surf_in_component is not None:
 
+                    # Return the coordinate system of the back of the previous surface
                     return cs
 
+                # Otherwise this is the first surface in the component
                 else:
 
+                    # And we return the coordinate system of the back of the previous surface, composed with the
+                    # coordinate break of this component
                     return cs @ self.component.cs_break
 
+            # Otherwise, this surface is not associated with a component, and we can just return the coordinate system
+            # of the back of the previous surface
             else:
-
                 return cs
 
+        # Otherwise this is the first surface in the system
         else:
 
+            # If this surface belongs to a component
             if self.component is not None:
 
+                # If this is not the first surface in the component
                 if self.prev_surf_in_component is not None:
 
+                    # Return the coordinate system of the back of the previous surface in the component
                     return self.prev_surf_in_component.back_cs
 
+                # Otherwise, this is the first surface in the component
                 else:
 
+                    # And we return the coordinate break of this component
                     return self.component.cs_break
 
+            # Otherwise this surface does not belong to a component
             else:
 
+                # And it lives at the origin
                 return gcs()
 
     @property
@@ -238,19 +322,24 @@ class Surface:
         """
         a = self.name == other.name
         b = self.comment == other.comment
-        c = self.cs == other.cs
         d = self.thickness == other.thickness
+        e = self.component == other.component
 
-        return a and b and c and d
+        return a and b and d and e
 
     def __str__(self) -> str:
         """
         :return: String representation of the surface
         """
 
-        return 'surface(' + self.name + ', thickness = ' + str(self.thickness) \
-               + ', ' + self.cs.__str__() + ')'
+        # Only populate the component name string if the component exists
+        if self.component is not None:
+            comp_name = self.component.name + '.'
+        else:
+            comp_name = ''
 
-    def __repr__(self) -> str:
+        # Construct the return string
+        return 'surface(' + comp_name + '.' + self.name + ', thickness = ' + str(self.thickness) \
+               + ', ' + self.previous_cs.__str__() + ')'
 
-        return self.__str__()
+    __repr__ = __str__

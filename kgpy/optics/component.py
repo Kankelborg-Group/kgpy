@@ -1,5 +1,5 @@
 
-from typing import List
+from typing import List, Union
 from copy import deepcopy
 import astropy.units as u
 
@@ -41,8 +41,7 @@ class Component:
 
         # The surfaces within the component are stored as a linked list.
         # This attribute is a pointer to the first element of this list.
-        self.first_surface = None   # type: Surface
-        self.sys = None             # type: kgpy.optics.System
+        self.surfaces = []          # type: List[Surface]
 
         # If the matching surface flag is set, create the matching surface and add it to the component.
         if matching_surf:
@@ -50,25 +49,18 @@ class Component:
             self.append_surface(s)
 
     @property
-    def surfaces(self) -> List[Surface]:
+    def first_surface(self) -> Union[Surface, None]:
         """
-        :return: An in-order list of all the surfaces in the component
+        :return: The first surface in the component if it exists, otherwise return None
         """
 
-        # Initialize variables
-        surf = self.first_surface
-        surfaces = []
+        # If the list of surfaces is not empty, return the first element
+        if self.surfaces:
+            return self.surfaces[0]
 
-        # Follow links to next surface to construct list of surfaces, until link is None
-        while surf is not None:
-
-            # Append this surface to the list of surfaces to be returned
-            surfaces.append(surf)
-
-            # Select the next surface in the component
-            surf = surf.next_surf_in_component
-
-        return surfaces
+        # Otherwise return None
+        else:
+            return None
 
     @property
     def T(self) -> Vector:
@@ -81,29 +73,37 @@ class Component:
         # vector to the first surface of the component.
         return self.surfaces[-1].back_cs.X - self.surfaces[0].front_cs.X
 
-    def append_surface(self, s: Surface):
+    def append_surface(self, surface: Surface) -> None:
         """
         Add provided surface to the end of the list of surfaces.
-        :param s: Surface to add to the end of the component
+        :param surface: Surface to add to the end of the component
         :return: None
         """
 
         # Link the surface to this component instance
-        s.component = self
+        surface.component = self
 
-        # If the list of surfaces is not empty, add this surface to the end.
-        if self.surfaces:
+        # Append to the list of surfaces
+        self.surfaces.append(surface)
 
-            # Grab pointer to the last surface in the component
-            last_surf = self.surfaces[-1]
+    def __eq__(self, other: 'Component') -> bool:
+        """
+        Check if two components are equal
+        :param other: The other component to compare to this one.
+        :return: True if the two components are equal, False otherwise.
+        """
 
-            # Link up last surface and the new surface appropriately
-            s.prev_surf_in_component = last_surf
-            last_surf.next_surf_in_component = s
+        if other is not None:
 
-        # Otherwise s is the first surface in the component
+            # Compare component name and comment for now.
+            a = self.name == other.name
+            b = self.comment == other.comment
+
+            return a and b
+
         else:
-            self.first_surface = s
+
+            return False
 
     def __contains__(self, item: str) -> bool:
         """

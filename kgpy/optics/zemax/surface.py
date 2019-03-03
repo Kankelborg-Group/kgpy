@@ -144,8 +144,8 @@ class ZmxSurface(Surface):
                 data.Order = 1
 
             # Update the translation
-            data.Decenter_X = cs.X.x
-            data.Decenter_Y = cs.X.y
+            data.Decenter_X = cs.X.x / self.u
+            data.Decenter_Y = cs.X.y / self.u
 
             # Update the rotation
             a, b, c = as_xyz_intrinsic_tait_bryan_angles(cs.Q)
@@ -155,7 +155,6 @@ class ZmxSurface(Surface):
 
         else:
             raise ValueError('Surface does not contain a coordinate break attribute')
-
 
 
     @property

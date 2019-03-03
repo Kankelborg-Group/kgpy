@@ -39,9 +39,11 @@ class TestSurface:
         s2 = Surface('s2', thickness=t)
         s3 = Surface('s3', thickness=t)
 
-        # Set the system links correctly
-        s2.prev_surf_in_system = s1
-        s3.prev_surf_in_system = s2
+        # Add the three test surfaces to a system
+        sys = System('sys')
+        sys.append_surface(s1)
+        sys.append_surface(s2)
+        sys.append_surface(s3)
 
         # Check that the indices are calculated correctly
         assert s1.system_index is 0
@@ -63,9 +65,11 @@ class TestSurface:
         s2 = Surface('s2', thickness=t)
         s3 = Surface('s3', thickness=t)
 
-        # Set the system links correctly
-        s2.prev_surf_in_component = s1
-        s3.prev_surf_in_component = s2
+        # Add the three test surfaces to a component
+        c = Component('c')
+        c.append_surface(s1)
+        c.append_surface(s2)
+        c.append_surface(s3)
 
         # Check that the indices are calculated correctly
         assert s1.component_index is 0
@@ -93,7 +97,7 @@ class TestSurface:
         s = System('s')
 
         # Check that the first surface in the system reports that it is the object surface
-        assert s.first_surface.is_object
+        assert s.obj_surface.is_object
 
     def test_previous_cs(self):
 
@@ -121,9 +125,10 @@ class TestSurface:
         assert s2.previous_cs.isclose(cs)
         assert s3.previous_cs.isclose(cs + (t * cs.xh_g))
 
-        # Simulate placing the components into a system
-        s2.prev_surf_in_system = s1
-        s3.prev_surf_in_system = s2
+        # Place the components into a test system
+        sys = System('sys')
+        sys.append_component(c1)
+        sys.append_component(c2)
 
         # Check that the coordinate systems are correct for the two components appended together
         assert s1.previous_cs.isclose(gcs())

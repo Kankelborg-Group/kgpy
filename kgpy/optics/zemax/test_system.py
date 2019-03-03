@@ -9,7 +9,7 @@ import astropy.units as u
 from kgpy.optics import Surface, Component, ZmxSystem
 
 
-@pytest.fixture
+@pytest.fixture(scope='class')
 def components():
     # Define a stop component and surface
     stop = Component('Stop')
@@ -29,7 +29,7 @@ def components():
     return components
 
 
-@pytest.fixture
+@pytest.fixture(scope='class')
 def sys(components: List[Component]):
     sys = ZmxSystem('Test System', model_path=TestZmxSystem.test_path)
 
@@ -83,17 +83,18 @@ class TestZmxSystem:
 
         # Check that we can locate the primary surface
         primary_comment = 'Primary'
-        true_primary_ind = 2
-        primary_surf = sys.find_surface(primary_comment)
+        true_primary_ind = 3
+        primary_surf = sys._find_surface(primary_comment)
         assert primary_surf.SurfaceNumber == true_primary_ind
 
         # Check that a comment matching none of the surfaces returns no surface
         unmatching_comment = 'asdfasdf'
-        surf = sys.find_surface(unmatching_comment)
+        surf = sys._find_surface(unmatching_comment)
         assert surf is None
 
     @pytest.mark.parametrize('s, tok', [
         ('Dummy',               (None, 'Dummy', None)),
+        ('Dummy.Dummy', ('Dummy', 'Dummy', None)),
         ('Spider.Front',        ('Spider', 'Front', None)),
         ('Primary.tilt_dec',    (None, 'Primary', 'tilt_dec')),
         ('Baffle1.Pass1.aper',  ('Baffle1', 'Pass1', 'aper')),
@@ -101,7 +102,7 @@ class TestZmxSystem:
     def test_parse_comment(self, s, tok):
 
         # Check that the output from the comment parsing is as expected
-        assert tok == ZmxSystem.parse_comment(s)
+        assert tok == ZmxSystem._parse_comment(s)
 
     @pytest.mark.parametrize('cs, is_camel', [
         ("camel",       False),

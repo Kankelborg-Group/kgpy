@@ -2,7 +2,7 @@
 import pytest
 import astropy.units as u
 
-from kgpy.optics import Surface, Component
+from kgpy.optics import Surface, Component, System
 from kgpy.math.coordinate_system import GlobalCoordinateSystem
 
 __all__ = ['TestComponent']
@@ -56,13 +56,17 @@ class TestComponent:
     def test_T(self, t1: u.Quantity, t2: u.Quantity):
 
         # Define two test surfaces and an empty component
-        s1 = Surface('Surface 1', thickness=t1*u.mm)
-        s2 = Surface('Surface 2', thickness=t2*u.mm)
+        s1 = Surface('s1', thickness=t1*u.mm)
+        s2 = Surface('s2', thickness=t2*u.mm)
 
         # Add the two surfaces to an empty Component
-        c = Component('test')
+        c = Component('c')
         c.append_surface(s1)
         c.append_surface(s2)
+
+        # # Add the component to a test system
+        # sys = System('sys')
+        # sys.append_component(c)
 
         # Check that the thickness of the component is equal to the sum of the surface thicknesses
         assert c.T.mag == (t1 + t2) * u.mm
