@@ -11,61 +11,13 @@ from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 
 
 class TestSystem:
+    b = (0, np.pi / 4, np.pi / 2)
 
-    def test_surfaces(self):
+    @pytest.fixture(params=b)
+    def system(self, request):
 
-        # Give each surface some arbitrary thickness
-        t = 1 * u.mm
-
-        # Construct the first component
-        c1 = Component('c1')
-        s1 = Surface('s1', thickness=t)
-        c1.append_surface(s1)
-
-        # Construct the second component
-        c2 = Component('c2')
-        s2 = Surface('s2', thickness=t)
-        c2.append_surface(s2)
-
-        # Create a new optical system and append both components
-        sys = System('sys')
-        sys.append_component(c1)
-        sys.append_component(c2)
-
-        # Check that the surfaces were linked up correctly
-        assert sys.surfaces == [s1, s2]
-
-    def test_append_component(self):
-
-        # Give each surface some arbitrary thickness
-        t = 1 * u.mm
-
-        # Construct the first component
-        c1 = Component('c1')
-        s1 = Surface('s1', thickness=t)
-        c1.append_surface(s1)
-
-        # Construct the second component
-        c2 = Component('c2')
-        s2 = Surface('s2', thickness=t)
-        c2.append_surface(s2)
-
-        # Create a new optical system and append both components
-        sys = System('sys')
-        sys.append_component(c1)
-        sys.append_component(c2)
-
-        # Check that the surfaces were linked up correctly
-        assert sys.first_surface == s1
-        assert s1.next_surf_in_system == s2
-        assert s2.prev_surf_in_system == s1
-
-    b = (0, np.pi/4, np.pi/2)
-
-    @pytest.mark.parametrize('b', b)
-    def test_add_baffle(self, b: float):
-
-        Q = euler(0, b, 0)
+        # Define parametrized coordinate system
+        Q = euler(0, request.param, 0)
         cs = gcs() * Q
 
         # Give each surface some arbitrary thickness
@@ -90,26 +42,118 @@ class TestSystem:
         sys.append_component(c1)
         sys.append_component(c2)
 
+        return sys
+
+    def test_obj_surface(self, system):
+
+        # Check that the object surface is an instance of the surface class
+        assert isinstance(system.obj_surface, Surface)
+
+        # Check that the object surface has the appropriate name string
+        assert system.obj_surface.name == system.object_str
+
+        # Check that the surface reports that it is the object.
+        assert system.obj_surface.is_object
+
+    def test_surfaces(self, system):
+
+        # Check that the surfaces attribute is populated
+        assert system.surfaces
+
+        # For every surface in the list, check that it is a valid surface
+        for surf in system.surfaces:
+
+            # Check that each element is an instance of the Surface class
+            assert isinstance(surf, Surface)
+
+    def test_components(self, system):
+
+        # Check that the components attribute is populated
+        assert system.components
+
+        # For every component in the list, check that it is a valid component
+        for name, comp in system.components.items():
+
+            # Check that the key is a string
+            assert isinstance(name, str)
+
+            # Check that the value is a Component
+            assert isinstance(comp, Component)
+
+    @pytest.mark.parametrize('i', (0, 1, 2, -1, -2))
+    def test_insert_surface(self, system, i: int):
+
+        # Create new test surface to insert
+        s_test = Surface('s_test')
+
+        # Insert the test surface into the system
+        system.insert_surface(s_test, i)
+
+        # Check that the pointer to the system was set correctly
+        assert s_test.sys == system
+
+        # If the index is greater than zero, we expect the test surface to be at the same index within the surface list.
+        if i >= 0:
+            assert system.surfaces[i] == s_test
+
+        # Otherwise, the index is less than zero, and the test surface is one index before the insertion index.
+        # This is because index=-1 doesn't refer to the same element in the new and old list, i.e. the insert function
+        # places the element before the list.
+        else:
+            assert system.surfaces[i - 1] == s_test
+
+    def test_append_surface(self, system):
+
+        # Create new test surface to insert
+        s_test = Surface('s_test')
+
+        # Insert the test surface into the system
+        system.append_surface(s_test)
+
+        # Check that the pointer to the system was set correctly
+        assert s_test.sys == system
+
+        # Check that the test surface is the last surface in the system.
+        assert system.surfaces[-1] == s_test
+
+    def test_append_component(self, system):
+
+        # Construct test component
+        c_test = Component('c_test')
+        s_test = Surface('s_test')
+        c_test.append_surface(s_test)
+
+        # Append component to system
+        system.append_component(c_test)
+
+        # Check that the component is in the system components dict.
+        assert system.components[c_test.name] == c_test
+
+        # Check that the test surface is the last surface in the system
+        assert system.surfaces[-1] == s_test
+
+    def test_add_baffle(self, system):
+
         # Create a copy of the system for later comparison
-        old_sys = deepcopy(sys)
+        old_sys = deepcopy(system)
 
         # Create coordinate system for the location of the test surface
         bcs = gcs() + Vector([0, 0, 0.5] * u.mm)
 
         # Add a a baffle at the coordinate system specified by bcs
-        baffle = sys.add_baffle('b1', baffle_cs=bcs)
+        baffle = system.add_baffle('b1', baffle_cs=bcs)
 
         # Check to see if a baffle was added for this angle of b
         if baffle.first_surface is not None:
 
             # Check that all the original surfaces have not moved, and that the two new surfaces are at the location we
             # specified.
-            assert sys.surfaces[0].cs.isclose(old_sys.surfaces[0].cs)
-            assert sys.surfaces[1].cs.isclose(bcs)
-            assert sys.surfaces[2].cs.isclose(old_sys.surfaces[1].cs)
-            assert sys.surfaces[3].cs.isclose(old_sys.surfaces[2].cs)
-            assert sys.surfaces[4].cs.isclose(old_sys.surfaces[3].cs)
-            assert sys.surfaces[5].cs.isclose(bcs)
+            assert system.surfaces[0].cs.isclose(old_sys.surfaces[0].cs)
+            assert system.surfaces[1].cs.isclose(bcs)
+            assert system.surfaces[2].cs.isclose(old_sys.surfaces[1].cs)
+            assert system.surfaces[3].cs.isclose(old_sys.surfaces[2].cs)
+            assert system.surfaces[4].cs.isclose(old_sys.surfaces[3].cs)
+            assert system.surfaces[5].cs.isclose(bcs)
 
         else:
 

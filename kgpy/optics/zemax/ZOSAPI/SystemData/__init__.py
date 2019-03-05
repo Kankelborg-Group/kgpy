@@ -1,3 +1,4 @@
-from .ISystemData import ISystemData
-from .ISDUnitsData import ISDUnitsData
-from .ZemaxSystemUnits import ZemaxSystemUnits
+from .ISystemData import *
+from .ISDUnitsData import *
+from .ZemaxSystemUnits import *
+from .ZemaxApertureType import *

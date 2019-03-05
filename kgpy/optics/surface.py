@@ -1,11 +1,8 @@
 
-from unittest import TestCase
-from numbers import Real
 from typing import Union, List, Tuple
 import numpy as np
 import quaternion as q
 import astropy.units as u
-from astropy.coordinates import Distance
 
 
 import kgpy.optics
@@ -116,23 +113,23 @@ class Surface:
         else:
             return None
 
-    def _relative_list_element(self, list: List['Surface'], rel_index: int) -> Union['Surface', None]:
+    def _relative_list_element(self, surf_list: List['Surface'], rel_index: int) -> Union['Surface', None]:
         """
         Finds the surface from a relative index to this surface for a given list of surfaces.
-        :param list: The list of surfaces to index through
+        :param surf_list: The list of surfaces to index through
         :param rel_index: The index relative to this surface that we are interested in.
         :return: The surface at the given relative index if it exists, none otherwise.
         """
 
         # Find the index of this surface
-        ind = self._find_self_in_list(list)
+        ind = self._find_self_in_list(surf_list)
 
         # Compute the global index of the surface that we are interested int
         new_ind = ind + rel_index
 
         # If the global index is a valid index, return the surface at that index.
-        if 0 <= new_ind < len(list):
-            return list[new_ind]
+        if 0 <= new_ind < len(surf_list):
+            return surf_list[new_ind]
 
         # Otherwise, the global index is not valid, and we return None.
         else:
@@ -146,7 +143,6 @@ class Surface:
 
         return self._find_self_in_list(self.sys.surfaces)
 
-
     @property
     def component_index(self) -> int:
         """
@@ -155,10 +151,10 @@ class Surface:
 
         return self._find_self_in_list(self.component.surfaces)
 
-    def _find_self_in_list(self, list: List['Surface']) -> Union[int, None]:
+    def _find_self_in_list(self, surf_list: List['Surface']) -> Union[int, None]:
         """
         Find the index of this surface in the provided list
-        :param list: List to be searched for this surface
+        :param surf_list: List to be searched for this surface
         :return: The index of the surface if it exists in the list, None otherwise.
         """
 
@@ -166,7 +162,7 @@ class Surface:
         ind = []
 
         # Loop through the provided list to check for any matches
-        for s, surf in enumerate(list):
+        for s, surf in enumerate(surf_list):
 
             # If there are any matches append the index to our list of indices
             if self == surf:
@@ -218,7 +214,7 @@ class Surface:
         return self.thickness * self.front_cs.zh
 
     @property
-    def previous_cs(self) -> CoordinateSystem:
+    def _previous_cs(self) -> CoordinateSystem:
         """
         The coordinate system of the surface before this surface in the optical system.
         This is the coordinate system that this surface will be "attached" to.
@@ -288,7 +284,7 @@ class Surface:
         :return: Coordinate system of the surface face
         """
 
-        return self.previous_cs @ (self.cs_break @ self.tilt_dec)
+        return self._previous_cs @ (self.cs_break @ self.tilt_dec)
 
     @property
     def front_cs(self) -> CoordinateSystem:
@@ -300,8 +296,7 @@ class Surface:
         :return: Coordinate system of the surface face ignoring tilt/decenter.
         """
 
-        return self.previous_cs @ self.cs_break
-
+        return self._previous_cs @ self.cs_break
 
     @property
     def back_cs(self) -> CoordinateSystem:
@@ -334,12 +329,12 @@ class Surface:
 
         # Only populate the component name string if the component exists
         if self.component is not None:
-            comp_name = self.component.name + '.'
+            comp_name = self.component.name
         else:
             comp_name = ''
 
         # Construct the return string
         return 'surface(' + comp_name + '.' + self.name + ', thickness = ' + str(self.thickness) \
-               + ', ' + self.previous_cs.__str__() + ')'
+               + ', ' + self._previous_cs.__str__() + ')'
 
     __repr__ = __str__

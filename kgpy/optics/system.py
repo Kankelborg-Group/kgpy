@@ -17,6 +17,8 @@ class System:
     This class is intended to be a drop-in replacement for a Zemax system.
     """
 
+    object_str = 'Object'
+
     def __init__(self, name: str, comment: str = ''):
         """
         Define an optical system by providing a name.
@@ -31,7 +33,7 @@ class System:
         # Initialize the object surface.
         # This surface is not usually considered in the list of surfaces, since it often has infinite thickness.
         # Therefore there is a separate pointer for this surface, instead of it being the self.first_surface.
-        self.obj_surface = Surface('Object', thickness=np.inf * u.mm)
+        self.obj_surface = Surface(self.object_str, thickness=np.inf * u.mm)
         self.obj_surface.is_object = True
 
         # Initialize attributes to be set as surfaces are added.
@@ -61,7 +63,7 @@ class System:
         comp = {}
 
         # Loop through all the surfaces in the system
-        for surf in self.surfaces.values():
+        for surf in self.surfaces:
 
             # Add this surface's component to the dictionary if it's not already there.
             if surf.component.name not in comp:
@@ -170,10 +172,6 @@ class System:
                 baffle_pass += 1
 
         return baffle
-
-    def to_zemax(self):
-
-        pass
 
     def __str__(self) -> str:
         """

@@ -30,7 +30,7 @@ def components():
 
 
 @pytest.fixture(scope='class')
-def sys(components: List[Component]):
+def system(components: List[Component]):
     sys = ZmxSystem('Test System', model_path=TestZmxSystem.test_path)
 
     return sys
@@ -41,21 +41,22 @@ class TestZmxSystem:
     # Define location of a test Zemax file
     test_path = os.path.join(os.path.dirname(__file__), 'test_model.zmx')
 
-    def test__init__(self, components: List[Component], sys: ZmxSystem):
+    def test__init__(self, components: List[Component], system):
 
         # Check that the Zemax instance started correctly
-        assert sys.example_constants() is not None
+        assert system.example_constants() is not None
 
-        print(sys)
+        print(system)
 
-        # # Check that the zmx_surf field contains a valid object for every surface in every component
-        # for orig_comp, zmx_comp in zip(components, sys.components):
-        #     for orig_surf, zmx_surf in zip(orig_comp.surfaces, zmx_comp.surfaces):
-        #
-        #         # Check that all comment strings are equal
-        #         assert orig_surf.comment == zmx_surf.comment
+        # Check that all the surfaces are defined
+        for surface in system.surfaces:
+            assert surface is not None
 
-    def test_raytrace(self, sys: ZmxSystem):
+    def test_overwrite_system(self):
+
+        pass
+
+    def test_raytrace(self, system):
 
         # Surface we want to raytrace to is the last surface
         surf_indices = [-1]
@@ -70,7 +71,7 @@ class TestZmxSystem:
         py = [0.0]
 
         # Execute the test raytrace
-        V, X, Y = sys.raytrace(surf_indices, wavl_indices, fx, fy, px, py)
+        V, X, Y = system.raytrace(surf_indices, wavl_indices, fx, fy, px, py)
 
         # Check that the ray was not vignetted
         assert V[0] == 0
@@ -79,17 +80,17 @@ class TestZmxSystem:
         assert np.isclose(X[0], 0)
         assert np.isclose(Y[0], 100 * np.sin(np.radians(1.0)), rtol=1e-3)
 
-    def test_find_surface(self, sys: ZmxSystem):
+    def test_find_surface(self, system):
 
         # Check that we can locate the primary surface
         primary_comment = 'Primary'
         true_primary_ind = 3
-        primary_surf = sys._find_surface(primary_comment)
+        primary_surf = system._find_surface(primary_comment)
         assert primary_surf.SurfaceNumber == true_primary_ind
 
         # Check that a comment matching none of the surfaces returns no surface
         unmatching_comment = 'asdfasdf'
-        surf = sys._find_surface(unmatching_comment)
+        surf = system._find_surface(unmatching_comment)
         assert surf is None
 
     @pytest.mark.parametrize('s, tok', [
@@ -117,22 +118,22 @@ class TestZmxSystem:
     def test_is_camel_case(self, cs, is_camel):
         assert ZmxSystem.is_camel_case(cs) is is_camel
 
-    def test_lens_units(self, sys: ZmxSystem):
+    def test_lens_units(self, system):
 
         # Check that Zemax uses millimeters as default
-        assert sys.lens_units == u.mm
+        assert system.lens_units == u.mm
 
         # Check inches
-        sys.lens_units = u.imperial.inch
-        assert sys.lens_units == u.imperial.inch
+        system.lens_units = u.imperial.inch
+        assert system.lens_units == u.imperial.inch
 
         # Check centimeters
-        sys.lens_units = u.cm
-        assert sys.lens_units == u.cm
+        system.lens_units = u.cm
+        assert system.lens_units == u.cm
 
         # Check meters
-        sys.lens_units = u.m
-        assert sys.lens_units == u.m
+        system.lens_units = u.m
+        assert system.lens_units == u.m
 
 
 

@@ -3,12 +3,15 @@ import os
 from win32com.client.gencache import EnsureDispatch
 from win32com.client import constants
 from typing import List, Union, Tuple, Dict
+from collections import OrderedDict
 from numbers import Real
 import numpy as np
 import astropy.units as u
 
+from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import System, Component, Surface
 from kgpy.optics.zemax import ZmxSurface, ZOSAPI
+from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 
 __all__ = ['ZmxSystem']
 
@@ -45,26 +48,68 @@ class ZmxSystem(System):
 
         # Initialize other attributes
         self.comment = ''
-
-        # Initialize attributes to be set as surfaces are added.
-        self.first_surface = None   # type: Surface
-        self.components = {}        # type: Dict[str, Component]
+        self.surfaces = []          # type: List[ZmxSurface]
+        self.obj_surface = None     # type: ZmxSurface
 
         # Initialize the connection to the Zemax system
         self._init_sys()
 
-        # Open Zemax model
+        # If the model path exists, open it
         if os.path.exists(model_path):
-            self._open_file(model_path, False)
+            self.zmx_sys.LoadFile(model_path, saveIfNeeded=False)
+
+        # Otherwise, the model path does not exist, and we open a new file.
+        else:
+            self.zmx_sys.New(saveIfNeeded=False)
 
         # Read Zemax model
-        self._build_sys_from_comments()
+        self._init_surfaces()
 
+    def overwrite_system(self, system: System) -> None:
 
-    def insert_surface(self, surface: Surface, index: int):
+        self.delete_all_surfaces()
+
+    def insert_surface(self, surf: Surface, index: int) -> None:
+        """
+        Insert a new surface at the specified index in the model
+        :param surf: Surface to insert into the model
+        :param index: Index where the surface will be placed in the model
+        :return: None
+        """
+
+        # Calculate the index of the Zemax row from the surface
+        zmx_index = self.surfaces[index].first_row_ind
+
+        # Create main LDE row
+        row = self.zmx_sys.LDE.InsertNewSurfaceAt(zmx_index)
+
+        # Place this row into an attributes dictionary
+        attrs = OrderedDict()
+        attrs[ZmxSurface.main_str] = row
+
+        # Create surface to wrap around LDE row
+        zmx_surf = ZmxSurface(surf.name, attrs, self.lens_units)
+
+        # Set surface attributes
+        zmx_surf.thickness = surf.thickness
+        zmx_surf.cs_break = surf.cs_break
+        # zmx_surf.tilt_dec = surf.tilt_dec
+
+        # Call superclass method to insert this surface into the list of surfaces
+        super().insert_surface(zmx_surf, index)
+
+    def delete_surface(self, index: int):
 
         pass
-    
+
+    def delete_all_surfaces(self) -> None:
+        """
+        Remove all the surfaces in the lens data editor
+        :return:
+        """
+
+        self.zmx_sys.LDE.DeleteAllRows()
+
     def raytrace(self, surface_indices: List[int], wavl_indices: List[int],
                  field_coords_x: Union[List[Real], np.ndarray], field_coords_y: Union[List[Real], np.ndarray],
                  pupil_coords_x: Union[List[Real], np.ndarray], pupil_coords_y: Union[List[Real], np.ndarray]
@@ -83,7 +128,7 @@ class ZmxSystem(System):
         """
 
         # Grab a handle to the zemax system
-        sys = self._sys
+        sys = self.zmx_sys
 
         # Deal with shorthand for last surface
         for s, surf in enumerate(surface_indices):
@@ -183,7 +228,7 @@ class ZmxSystem(System):
         """
 
         # Grab pointer to lens data editor
-        lde = self._sys.LDE
+        lde = self.zmx_sys.LDE
 
         # Save the number of surfaces to local variable
         n_surf = lde.NumberOfSurfaces
@@ -199,84 +244,102 @@ class ZmxSystem(System):
 
                 return surf
 
-    def _build_sys_from_comments(self):
+    def _syntax_tree_from_comments(self) -> 'OrderedDict[str, Tuple[Component, OrderedDict[str, ILDERow]]]':
+        """
+        Reads through a Zemax file and constructs a syntax tree of all the components, surfaces and attributes.
+        This function is necessary to parse all the attributes into a single structure, to more easily construct a
+        ZmxSurface object.
+        :return: A dictionary where the keys are the names of surfaces and the values are a tuple with the zeroth element
+        being the component associated with the surface, and the first element being a dictionary of attributes (where
+        the key is the attribute name and the value is the Zemax row associated with the attribute).
+        """
 
         # Allocate a dictionary to store the components parsed by this function
-        components = {}
+        components = {}                 # type: Dict[str, Component]
+        surfaces = OrderedDict()        # type: OrderedDict[str, Tuple[Component, OrderedDict[str, ILDERow]]]
 
         # Grab pointer to lens data editor
-        lde = self._sys.LDE
+        lde = self.zmx_sys.LDE
 
         # Save the number of surfaces to local variable
-        n_surf = lde.NumberOfSurfaces
+        n_rows = lde.NumberOfSurfaces
 
         # Loop through every surface and look for a match to the comment string
-        for s in range(n_surf):
+        for r in range(n_rows):
 
             # Save the pointer to this surface
-            zmx_surf = lde.GetSurfaceAt(s)
+            zmx_row = lde.GetSurfaceAt(r)
 
             # Parse the comment associated with this surface into tokens
-            comp_str, surf_str, attr_str = self._parse_comment(zmx_surf.Comment)
+            comp_str, surf_str, attr_str = self._parse_comment(zmx_row.Comment)
 
             # If there is no component provided, assume the surface belongs to the main component
             if comp_str is None:
                 comp_str = 'Main'
 
-            # Initialize the component from the token if we have not seen it already
+            # Initialize the component node from the token if we have not seen it already
             if comp_str not in components:
                 components[comp_str] = Component(comp_str)
 
-            # Store a pointer to the token for later
+            # Store a pointer to the component node for later
             comp = components[comp_str]
 
-            # Check to see if this surface has already been seen
-            if not any([srf.name == surf_str for srf in comp.surfaces]):
+            # Initialize the surface node from the token if we have not seen it already
+            if surf_str not in surfaces:
+                surfaces[surf_str] = (comp, OrderedDict())
 
-                # Initialize the surface if it has not been already and add it to the component
-                # Note that the zmx_surf argument is not defined since we don't know it yet.
-                new_surf = ZmxSurface(surf_str, None, self.lens_units)
-                comp.append_surface(new_surf)
+            # Store a pointer to the surface node for later
+            surf = surfaces[surf_str]
 
-            # Find this surface in the list of surfaces
-            surf = next(srf for srf in comp.surfaces if srf.name == surf_str)   # type: ZmxSurface
+            # If there is no attribute provided, assume this is the main attribute
+            if attr_str is None:
+                attr_str = 'main'
 
-            # If the surface index is greater than zero, this is not the object surface
-            if s > 0:
+            # Throw error if this attribute has been seen already
+            if attr_str in surf[1]:
+                raise ValueError('More than one row with attr', attr_str)
 
-                # If the attribute is None, this is the main ILDERow for this surface. At this point we can add the
-                # surface to the system.
-                if attr_str is None:
-                    surf.row = zmx_surf
-                    self.append_surface(surf)
+            # Store the attribute string and the LDE row as key value pairs
+            surf[1][attr_str] = zmx_row
 
-                # Otherwise the attribute is not None and this IDLERow will be placed into a dictionary, where the key
-                # is the attribute that this ILDERow corresponds to.
-                else:
+        return surfaces
 
-                    # If we have not seen this attribute string before, add the IDLERow to the dictionary.
-                    if attr_str not in surf.attr_rows:
-                        surf.attr_rows[attr_str] = zmx_surf
+    def _init_surfaces(self) -> None:
+        """
+        Read the provided Zemax model file and initialize then self.surfaces attribute.
+        :return: None
+        """
 
-                    # If we've seen this attribute before, that is incorrect syntax.
-                    else:
-                        raise ValueError('Attribute already defined')
+        # Parse the Zemax file and construct a dictionary of surfaces
+        surfaces_dict = self._syntax_tree_from_comments()
 
-            # Otherwise the surface index is zero and this is the object surface
-            elif s == 0:
+        # Loop through the surfaces dictionary, construct a new Zemax surface, and append it to self.surfaces.
+        for surf_name, surf_params in surfaces_dict.items():
 
-                # If this surface is specified as the object, save it as the object surface attribute
-                if comp.name == 'Object':
-                    surf.row = zmx_surf
+            # Extract the component associated with the surface, and the attributes dictionary
+            component = surf_params[0]
+            attrs_dict = surf_params[1]
+
+            # Read the attributes dictionary into a ZmxSurface object
+            surf = ZmxSurface(surf_name, attrs_dict, self.lens_units)
+
+            # Attach the surface to the component and to the system
+            component.append_surface(surf)
+
+            # If the object surface has not yet been set, this is the first surface and it should be the object surface.
+            if self.obj_surface is None:
+
+                # If this is the object surface, update the object surface class attribute.
+                if component.name == System.object_str:
                     self.obj_surface = surf
 
-                # Otherwise, this is a syntax error.
+                # Otherwise, this is not the object surface, and something is wrong
                 else:
-                    raise ValueError('First surface in system not specified as object')
+                    raise ValueError('Expected first surface to be object surface')
 
-            # Should not expect s < 0
+            # Otherwise, the object surface has been found, and we can just add surfaces normally.
             else:
-                raise ValueError('Invalid Zemax surface index')
+                self.append_surface(surf)
 
     @staticmethod
     def _parse_comment(comment_str: str) -> Tuple[str, str, str]:
@@ -381,7 +444,7 @@ class ZmxSystem(System):
         :return: Astropy units instance corresponding to the units used by Zemax
         """
 
-        units = self._sys.SystemData.Units.LensUnits
+        units = self.zmx_sys.SystemData.Units.LensUnits
 
         if units == ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters:
             return u.mm
@@ -403,13 +466,13 @@ class ZmxSystem(System):
         """
 
         if units == u.mm:
-            self._sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Millimeters
+            self.zmx_sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Millimeters
         elif units == u.cm:
-            self._sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Centimeters
+            self.zmx_sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Centimeters
         elif units == u.imperial.inch:
-            self._sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Inches
+            self.zmx_sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Inches
         elif units == u.m:
-            self._sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Meters
+            self.zmx_sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Meters
         else:
             raise ValueError('Unrecognized units')
 
@@ -444,25 +507,9 @@ class ZmxSystem(System):
             raise self.LicenseException("License is not valid for ZOSAPI use")
 
         # Check that we can open the primary system object
-        self._sys = self._app.PrimarySystem
-        if self._sys is None:
+        self.zmx_sys = self._app.PrimarySystem
+        if self.zmx_sys is None:
             raise self.SystemNotPresentException("Unable to acquire Primary system")
-
-    def _open_file(self, filepath, saveIfNeeded):
-        if self._sys is None:
-            raise self.SystemNotPresentException("Unable to acquire Primary system")
-        self._sys.LoadFile(filepath, saveIfNeeded)
-
-    def _close_file(self, save):
-        if self._sys is None:
-            raise self.SystemNotPresentException("Unable to acquire Primary system")
-        self._sys.Close(save)
-
-    def samples_dir(self):
-        if self._app is None:
-            raise self.InitializationException("Unable to acquire ZOSAPI application")
-
-        return self._app.SamplesDir
 
     def example_constants(self):
         if self._app.LicenseStatus is constants.LicenseStatusType_PremiumEdition:
