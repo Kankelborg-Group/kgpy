@@ -1,5 +1,5 @@
 
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Iterable
 import numpy as np
 import quaternion as q
 import astropy.units as u
@@ -40,6 +40,11 @@ class Surface:
         # Initialize private variables
         self._thickness = 0 * u.mm
 
+
+        # Attributes to be set by the Component and System classes
+        self.component = None                   # type: kgpy.optics.Component
+        self.sys = None                         # type: kgpy.optics.System
+
         # Save input arguments as class variables
         self.name = name
         self.thickness = thickness
@@ -47,15 +52,78 @@ class Surface:
         self.tilt_dec = tilt_dec
         self.cs_break = cs_break
 
-        # Attributes to be set by the Component and System classes
-        self.component = None                   # type: kgpy.optics.Component
-        self.sys = None                         # type: kgpy.optics.System
-
         # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
         self.is_active = False
-        self.is_image = False
-        self.is_stop = False
-        self.is_object = False
+
+    @property
+    def is_object(self) -> bool:
+        """
+        :return: True if this is the object surface in a system, False otherwise.
+        If this surface is not associated with a system, this function returns False.
+        """
+
+        # If the surface is part of the system, check if it is the object surface
+        if self.sys is not None:
+            return self.sys.object == self
+
+        # Otherwise, the surface is not part of a system, and we assume that it is not an object surface.
+        else:
+            return False
+
+    @property
+    def is_image(self) -> bool:
+        """
+        :return: True if this is the image surface in a system, False otherwise.
+        If this surface is not associated with a system, this function returns False.
+        """
+
+        # If the surface is part of the system, check if it is the image surface
+        if self.sys is not None:
+            return self.sys.image == self
+
+        # Otherwise, the surface is not part of a system, and we assume that it is not an image surface.
+        else:
+            return False
+
+    @property
+    def is_stop(self) -> bool:
+        """
+        :return: True if this is the stop surface in a system, False otherwise.
+        If this surface is not associated with a system, this function returns False.
+        """
+
+        # If the surface is part of the system, check if it is the stop surface
+        if self.sys is not None:
+            return self.sys.stop == self
+
+        # Otherwise, the surface is not part of a system, and we assume that it is not an stop surface.
+        else:
+            return False
+
+    @is_stop.setter
+    def is_stop(self, val) -> None:
+        """
+        Set whether this surface is the stop surface for the system.
+        Note that if this surface is no longer the stop surface, the new stop surface is the first surface in the
+        system.
+        :param val: True if this surface is the new stop surface, False if this surface is no longer the stop surface.
+        :return: None
+        """
+
+        # If the surface is part of the system, set/unset this surface as the stop surface
+        if self.sys is not None:
+
+            # If this surface is the new stop, we set the stop surface in the optical system to this surface
+            if val:
+                self.sys.stop = self
+
+            # If we don't want this surface to be the stop anymore, set the first surface in the system to be the stop.
+            else:
+                self.sys.stop = self.sys[0]
+
+        # Otherwise, the surface is not part of a system, and we assume that it is not an stop surface.
+        else:
+            raise ValueError('Cannot set isolated surface as stop surface')
 
     @property
     def prev_surf_in_system(self) -> Union['Surface', None]:
@@ -65,7 +133,7 @@ class Surface:
 
         # If the system is defined, find the previous surface
         if self.sys is not None:
-            return self._relative_list_element(self.sys.surfaces, -1)
+            return self._relative_list_element(self.sys, -1)
 
         # Otherwise there is no system defined and we return none
         else:
@@ -79,7 +147,7 @@ class Surface:
 
         # If the system is defined, find the next surface
         if self.sys is not None:
-            return self._relative_list_element(self.sys.surfaces, 1)
+            return self._relative_list_element(self.sys, 1)
 
         # Otherwise there is no system defined and we return none
         else:
@@ -93,7 +161,7 @@ class Surface:
 
         # If the component is defined, find the previous surface
         if self.component is not None:
-            return self._relative_list_element(self.component.surfaces, -1)
+            return self._relative_list_element(self.component, -1)
 
         # Otherwise there is no component defined and we return none
         else:
@@ -107,7 +175,7 @@ class Surface:
 
         # If the component is defined, find the next surface
         if self.component is not None:
-            return self._relative_list_element(self.component.surfaces, 1)
+            return self._relative_list_element(self.component, 1)
 
         # Otherwise there is no component defined and we return none
         else:
@@ -124,16 +192,17 @@ class Surface:
         # Find the index of this surface
         ind = self._find_self_in_list(surf_list)
 
-        # Compute the global index of the surface that we are interested int
-        new_ind = ind + rel_index
+        if ind is not None:
 
-        # If the global index is a valid index, return the surface at that index.
-        if 0 <= new_ind < len(surf_list):
-            return surf_list[new_ind]
+            # Compute the global index of the surface that we are interested int
+            new_ind = ind + rel_index
 
-        # Otherwise, the global index is not valid, and we return None.
-        else:
-            return None
+            # If the global index is a valid index, return the surface at that index.
+            if 0 <= new_ind < len(surf_list):
+                return surf_list[new_ind]
+
+        # Otherwise, the relative list element does not exist, and we return None.
+        return None
 
     @property
     def system_index(self) -> int:
@@ -141,7 +210,7 @@ class Surface:
         :return: The index of this surface within the overall optical system
         """
 
-        return self._find_self_in_list(self.sys.surfaces)
+        return self._find_self_in_list(self.sys)
 
     @property
     def component_index(self) -> int:
@@ -149,7 +218,7 @@ class Surface:
         :return: The index of this surface within it's component
         """
 
-        return self._find_self_in_list(self.component.surfaces)
+        return self._find_self_in_list(self.component)
 
     def _find_self_in_list(self, surf_list: List['Surface']) -> Union[int, None]:
         """
@@ -227,29 +296,36 @@ class Surface:
         # If this is not the first surface in the system
         if self.prev_surf_in_system is not None:
 
-            # Grab a pointer to the coordinate system of the back of the previous surface
-            cs = self.prev_surf_in_system.back_cs
+            # If the previous surface in the system is not the object system
+            if not self.prev_surf_in_system.is_object:
 
-            # If this surface belongs to a component
-            if self.component is not None:
+                # Grab a pointer to the coordinate system of the back of the previous surface
+                cs = self.prev_surf_in_system.back_cs
 
-                # If this is not the first surface in the component
-                if self.prev_surf_in_component is not None:
+                # If this surface belongs to a component
+                if self.component is not None:
 
-                    # Return the coordinate system of the back of the previous surface
+                    # If this is not the first surface in the component
+                    if self.prev_surf_in_component is not None:
+
+                        # Return the coordinate system of the back of the previous surface
+                        return cs
+
+                    # Otherwise this is the first surface in the component
+                    else:
+
+                        # And we return the coordinate system of the back of the previous surface, composed with the
+                        # coordinate break of this component
+                        return cs @ self.component.cs_break
+
+                # Otherwise, this surface is not associated with a component, and we can just return the coordinate
+                # system of the back of the previous surface
+                else:
                     return cs
 
-                # Otherwise this is the first surface in the component
-                else:
-
-                    # And we return the coordinate system of the back of the previous surface, composed with the
-                    # coordinate break of this component
-                    return cs @ self.component.cs_break
-
-            # Otherwise, this surface is not associated with a component, and we can just return the coordinate system
-            # of the back of the previous surface
+            # If the previous surface in the system is the object surface.
             else:
-                return cs
+                return gcs()
 
         # Otherwise this is the first surface in the system
         else:

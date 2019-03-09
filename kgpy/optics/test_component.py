@@ -22,7 +22,7 @@ class TestComponent:
         assert c.name == name   # Name equal to the name we set it to
         assert c.comment == ''  # Default comment is the empty string
         assert c.first_surface is None
-        assert not c.surfaces   # The list of surfaces should be empty to start
+        assert not c._surfaces   # The list of surfaces should be empty to start
 
     def test__init__matching(self):
 
@@ -49,7 +49,7 @@ class TestComponent:
         c.append_surface(s3)
 
         # Check that the list of surfaces is returned correctly
-        assert c.surfaces == [s1, s2, s3]
+        assert c._surfaces == [s1, s2, s3]
 
     @pytest.mark.parametrize('t1', t)
     @pytest.mark.parametrize('t2', t)
@@ -86,13 +86,13 @@ class TestComponent:
         c.append_surface(s1)
 
         # Check that the translation of the surface is zero
-        assert c.surfaces[0].cs.X == 0
+        assert c._surfaces[0].cs.X == 0
 
         # Add the second surface to the component
         c.append_surface(s2)
 
         # Check that the z-translation of the surface is equal to the thickness of the first surface
-        assert c.surfaces[1].cs.X.z == t1*u.mm
+        assert c._surfaces[1].cs.X.z == t1 * u.mm
 
     def test__contains__(self):
 

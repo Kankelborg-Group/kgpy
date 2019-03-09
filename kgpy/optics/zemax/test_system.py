@@ -6,8 +6,8 @@ from typing import List
 import numpy as np
 import astropy.units as u
 
-from kgpy.optics import Surface, Component, ZmxSystem
-
+from kgpy.optics import Surface, Component, System, ZmxSystem, ZmxSurface
+from kgpy.optics.test_system import system
 
 @pytest.fixture(scope='class')
 def components():
@@ -30,8 +30,9 @@ def components():
 
 
 @pytest.fixture(scope='class')
-def system(components: List[Component]):
-    sys = ZmxSystem('Test System', model_path=TestZmxSystem.test_path)
+def zmx_system(components: List[Component]):
+    # sys = ZmxSystem('Test System', model_path=TestZmxSystem.test_path)
+    sys = ZmxSystem('Test System')
 
     return sys
 
@@ -41,22 +42,33 @@ class TestZmxSystem:
     # Define location of a test Zemax file
     test_path = os.path.join(os.path.dirname(__file__), 'test_model.zmx')
 
-    def test__init__(self, components: List[Component], system):
+    def test__init__(self, zmx_system: ZmxSystem):
+
+        print(zmx_system)
 
         # Check that the Zemax instance started correctly
-        assert system.example_constants() is not None
-
-        print(system)
+        assert zmx_system.example_constants() is not None
 
         # Check that all the surfaces are defined
-        for surface in system.surfaces:
-            assert surface is not None
+        for surface in zmx_system:
+            assert isinstance(surface, ZmxSurface)
 
-    def test_overwrite_system(self):
+        # Check the object surface
+        assert zmx_system.object.component.name == ZmxSystem.object_str
 
-        pass
+        # Check the object surface
+        assert zmx_system.stop.component.name == ZmxSystem.main
 
-    def test_raytrace(self, system):
+        # Check the object surface
+        assert zmx_system.image.component.name == ZmxSystem.object_str
+
+    def test_overwrite_system(self, system: System, zmx_system: ZmxSystem):
+
+        zmx_system.overwrite_system(system)
+
+        print(zmx_system)
+
+    def test_raytrace(self, zmx_system: ZmxSystem):
 
         # Surface we want to raytrace to is the last surface
         surf_indices = [-1]
@@ -71,7 +83,7 @@ class TestZmxSystem:
         py = [0.0]
 
         # Execute the test raytrace
-        V, X, Y = system.raytrace(surf_indices, wavl_indices, fx, fy, px, py)
+        V, X, Y = zmx_system.raytrace(surf_indices, wavl_indices, fx, fy, px, py)
 
         # Check that the ray was not vignetted
         assert V[0] == 0
@@ -80,17 +92,17 @@ class TestZmxSystem:
         assert np.isclose(X[0], 0)
         assert np.isclose(Y[0], 100 * np.sin(np.radians(1.0)), rtol=1e-3)
 
-    def test_find_surface(self, system):
+    def test_find_surface(self, zmx_system: ZmxSystem):
 
         # Check that we can locate the primary surface
         primary_comment = 'Primary'
         true_primary_ind = 3
-        primary_surf = system._find_surface(primary_comment)
+        primary_surf = zmx_system._find_surface(primary_comment)
         assert primary_surf.SurfaceNumber == true_primary_ind
 
         # Check that a comment matching none of the surfaces returns no surface
         unmatching_comment = 'asdfasdf'
-        surf = system._find_surface(unmatching_comment)
+        surf = zmx_system._find_surface(unmatching_comment)
         assert surf is None
 
     @pytest.mark.parametrize('s, tok', [
@@ -118,22 +130,22 @@ class TestZmxSystem:
     def test_is_camel_case(self, cs, is_camel):
         assert ZmxSystem.is_camel_case(cs) is is_camel
 
-    def test_lens_units(self, system):
+    def test_lens_units(self, zmx_system: ZmxSystem):
 
         # Check that Zemax uses millimeters as default
-        assert system.lens_units == u.mm
+        assert zmx_system.lens_units == u.mm
 
         # Check inches
-        system.lens_units = u.imperial.inch
-        assert system.lens_units == u.imperial.inch
+        zmx_system.lens_units = u.imperial.inch
+        assert zmx_system.lens_units == u.imperial.inch
 
         # Check centimeters
-        system.lens_units = u.cm
-        assert system.lens_units == u.cm
+        zmx_system.lens_units = u.cm
+        assert zmx_system.lens_units == u.cm
 
         # Check meters
-        system.lens_units = u.m
-        assert system.lens_units == u.m
+        zmx_system.lens_units = u.m
+        assert zmx_system.lens_units == u.m
 
 
 

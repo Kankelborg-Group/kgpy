@@ -41,9 +41,9 @@ class TestSurface:
 
         # Add the three test surfaces to a system
         sys = System('sys')
-        sys.append_surface(s1)
-        sys.append_surface(s2)
-        sys.append_surface(s3)
+        sys.append(s1)
+        sys.append(s2)
+        sys.append(s3)
 
         # Check that the indices are calculated correctly
         assert s1.system_index is 0
@@ -97,7 +97,7 @@ class TestSurface:
         s = System('s')
 
         # Check that the first surface in the system reports that it is the object surface
-        assert s.obj_surface.is_object
+        assert s.object.is_object
 
     def test_previous_cs(self):
 
@@ -243,19 +243,19 @@ class TestSurface:
         c2 = deepcopy(c1)
 
         # Check for equality between the copies
-        assert c1.surfaces[0] == c2.surfaces[0]
-        assert c1.surfaces[1] == c2.surfaces[1]
-        assert c1.surfaces[2] == c2.surfaces[2]
-        assert c1.surfaces[3] == c2.surfaces[3]
+        assert c1._surfaces[0] == c2._surfaces[0]
+        assert c1._surfaces[1] == c2._surfaces[1]
+        assert c1._surfaces[2] == c2._surfaces[2]
+        assert c1._surfaces[3] == c2._surfaces[3]
 
         # Check that the first surface is not equal to the other three
-        assert c1.surfaces[0] != c1.surfaces[1]
-        assert c1.surfaces[0] != c1.surfaces[2]
-        assert c1.surfaces[0] != c1.surfaces[3]
+        assert c1._surfaces[0] != c1._surfaces[1]
+        assert c1._surfaces[0] != c1._surfaces[2]
+        assert c1._surfaces[0] != c1._surfaces[3]
 
         # Modify some parameters in the copy, and check that the surfaces are not equal
-        c2.surfaces[0].name = 'foo'
-        assert c1.surfaces[0] != c2.surfaces[0]
+        c2._surfaces[0].name = 'foo'
+        assert c1._surfaces[0] != c2._surfaces[0]
 
     def test__str__(self):
 

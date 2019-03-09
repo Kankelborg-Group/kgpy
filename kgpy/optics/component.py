@@ -1,5 +1,5 @@
 
-from typing import List, Union
+from typing import List, Union, Dict
 from copy import deepcopy
 import astropy.units as u
 
@@ -41,7 +41,7 @@ class Component:
 
         # The surfaces within the component are stored as a linked list.
         # This attribute is a pointer to the first element of this list.
-        self.surfaces = []          # type: List[Surface]
+        self._surfaces = []          # type: List[Surface]
 
         # If the matching surface flag is set, create the matching surface and add it to the component.
         if matching_surf:
@@ -55,8 +55,8 @@ class Component:
         """
 
         # If the list of surfaces is not empty, return the first element
-        if self.surfaces:
-            return self.surfaces[0]
+        if self._surfaces:
+            return self._surfaces[0]
 
         # Otherwise return None
         else:
@@ -71,7 +71,7 @@ class Component:
 
         # Subtract translation vector from the back face of the last surface in the component from the translation
         # vector to the first surface of the component.
-        return self.surfaces[-1].back_cs.X - self.surfaces[0].front_cs.X
+        return self._surfaces[-1].back_cs.X - self._surfaces[0].front_cs.X
 
     def append_surface(self, surface: Surface) -> None:
         """
@@ -84,7 +84,22 @@ class Component:
         surface.component = self
 
         # Append to the list of surfaces
-        self.surfaces.append(surface)
+        self._surfaces.append(surface)
+
+    @property
+    def _surfaces_dict(self) -> Dict[str, Surface]:
+        """
+        :return: A dictionary where the key is the surface name and the value is the surface.
+        """
+
+        # Allocate space for result
+        d = {}
+
+        # Loop through surfaces and add to dict
+        for surf in self._surfaces:
+            d[surf.name] = surf
+
+        return d
 
     def __eq__(self, other: 'Component') -> bool:
         """
@@ -112,7 +127,42 @@ class Component:
         :return: True if the component contains a surface with the name item.
         """
 
-        return any(surf == item for surf in self.surfaces)
+        return any(surf == item for surf in self._surfaces)
+
+    def __getitem__(self, item: Union[int, str]) -> Surface:
+        """
+        Gets the surface at index i within the component, or the surface with the name item
+        Accessed using the square bracket operator, e.g. surf = sys[i]
+        :param item: Surface index or name of surface
+        :return: Surface specified by item
+        """
+
+        # If the item is an integer, use it to access the surface list
+        if isinstance(item, int):
+            return self._surfaces.__getitem__(item)
+
+        # If the item is a string, use it to access the surfaces dictionary.
+        elif isinstance(item, str):
+            return self._surfaces_dict.__getitem__(item)
+
+        # Otherwise, the item is neither an int nor string and we throw an error.
+        else:
+            raise ValueError('Item is of an unrecognized type')
+
+    def __delitem__(self, key: int):
+
+        self[key].component = None
+
+        self._surfaces.__delitem__(key)
+
+    def __iter__(self):
+
+        return self._surfaces.__iter__()
+
+    @property
+    def __len__(self):
+
+        return self._surfaces.__len__
 
     def __str__(self) -> str:
         """
@@ -123,7 +173,7 @@ class Component:
         ret = self.name + self.comment + ']\n'
 
         # Append lines for each surface within the component
-        for surface in self.surfaces:
+        for surface in self._surfaces:
             ret = ret + '\t' + surface.__str__() + '\n'
 
         return ret

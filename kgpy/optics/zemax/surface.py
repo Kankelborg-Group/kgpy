@@ -1,6 +1,6 @@
 
 from win32com.client import CastTo
-from typing import List, Dict, Union, Type, Any
+from typing import List, Dict, Union, Type, Any, Tuple, Iterator
 import astropy.units as u
 from collections import OrderedDict
 from enum import IntEnum, auto
@@ -48,34 +48,67 @@ class ZmxSurface(Surface):
         thickness_str:          AttrPriority.thickness
     }
 
-    # noinspection PyMissingConstructor
-    def __init__(self, name: str, attr_rows: 'OrderedDict[str, ILDERow]', length_units: u.Unit):
+    @staticmethod
+    def from_surface(surf: Surface) -> 'ZmxSurface':
         """
-        Constructor for ZmxSurface object.
-        :param attr_rows: A Dictionary of attributes where the key is the attribute name and the value is the ILDERow
-        associated with the attribute.
-        Note that this structure should contain a main attribute/row, which is the default a
-        :param length_units: The units that this row uses for distance measurements.
+        Convert a Surface object to ZmxSurface object
+        :param surf: Surface object to convert
+        :return: A new ZmxSurface object equal to the provided Surface object
         """
 
-        # Check that the attribute rows has a main field
-        if self.main_str not in attr_rows:
-            raise ValueError('attr_rows must contain a main field')
+        # Construct new ZmxSurface
+        zmx_surf = ZmxSurface(surf.name)
 
-        # Initialize attribute dictionary
-        self._attr_rows_var = OrderedDict()  # type: OrderedDict[str, ILDERow]
+        # Copy remaining attributes
+        zmx_surf.comment = surf.comment
+        zmx_surf.thickness = surf.thickness
+        zmx_surf.cs_break = surf.cs_break
+        zmx_surf.tilt_dec = surf.tilt_dec
+        zmx_surf.component = surf.component
+        zmx_surf.sys = surf.sys                 # type: kgpy.optics.ZmxSystem
+        zmx_surf.is_stop = surf.is_stop
 
-        # Save arguments to class variables
-        self.name = name
-        self._attr_rows = attr_rows
-        self.u = length_units
+        return zmx_surf
 
-        # Initialize other attributes
-        self.comment = ''
+    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, comment: str = '',
+                 cs_break: CoordinateSystem = gcs(), tilt_dec: CoordinateSystem = gcs()):
+        """
+        Constructor for the ZmxSurface class.
+        This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
+        place after the call to this function.
+        :param name: Human-readable name of the surface
+        :param thickness: Thickness of the surface along the self.cs.zh direction. Must have dimensions of length.
+        :param comment: Additional description of this surface
+        :param cs_break: CoordinateSystem applied to the surface the modifies the current CoordinateSystem.
+        The main use of this argument is to change the direction of propagation for the beam.
+        This argument is similar to the Coordinate Break surface in Zemax.
+        In this implementation a Surface can have a coordinate break instead of needing to define a second surface.
+        :param tilt_dec: CoordinateSystem applied only to the front face of the surface that leaves the current
+        CoordinateSystem unchanged.
+        The main use of this argument is to decenter/offset an optic but leave the direction of propagation unchanged.
+        This argument is similar to the tilt/decenter feature in Zemax.
+        """
 
-        # Attributes to be set by Component and System classes
-        self.component = None                   # type: Component
-        self.sys = None                         # type: kgpy.optics.ZmxSystem
+        # Initialize list of ILDERows associated with class attributes.
+        # This needs to be before the superclass constructor so properties such as thickness are defined
+        self._attr_rows = {}
+
+        # Call superclass constructor
+        super().__init__(name, thickness, comment, cs_break, tilt_dec)
+
+        # Override the type of the system pointer
+        self.sys = None     # type: kgpy.optics.ZmxSystem
+
+    @staticmethod
+    def from_attr_dict(surf_name: str, attr_dict: Dict[str, ILDERow]) -> 'ZmxSurface':
+
+        # Construct new ZmxSurface
+        zmx_surf = ZmxSurface(surf_name)
+
+        # Set the attribute surfaces with the provided value
+        zmx_surf._attr_rows = attr_dict
+
+        return zmx_surf
 
     @property
     def thickness(self) -> u.Quantity:
@@ -83,13 +116,22 @@ class ZmxSurface(Surface):
         :return: Thickness of the surface in lens units
         """
 
+        # Get value stored in private variable using superclass
+        t1 = super().thickness
+
         # If there is a thickness row defined, return the value from that row
         if self.thickness_str in self._attr_rows:
-            return self._attr_rows[self.thickness_str].Thickness * self.u
+            t2 = self._attr_rows[self.thickness_str].Thickness * self.sys.lens_units
 
         # Otherwise, return the thickness value from the main row.
         else:
-            return self._attr_rows[self.main_str].Thickness * self.u
+            t2 = self._attr_rows[self.main_str].Thickness * self.sys.lens_units
+
+        # Compare the value stored in this class with the value stored in Zemax and verify that they are the same.
+        if t1 != t2:
+            raise ValueError('Synchronization error between Zemax and Python, thicknesses do not match', t1, t2)
+
+        return t1
 
     @thickness.setter
     def thickness(self, t: u.Quantity) -> None:
@@ -99,13 +141,19 @@ class ZmxSurface(Surface):
         :return: None
         """
 
-        # If there is a thickness row defined, update the value from that row
-        if self.thickness_str in self._attr_rows:
-            self._attr_rows[self.thickness_str].Thickness = float(t / self.u)
+        # Update private variable using superclass
+        Surface.thickness.fset(self, t)
 
-        # Otherwise, update the thickness value from the main row.
-        else:
-            self._attr_rows[self.main_str].Thickness = float(t / self.u)
+        # Update thickness of Zemax row if this surface is connected to a system.
+        if self.sys is not None:
+
+            # If there is a thickness row defined, update the value from that row
+            if self.thickness_str in self._attr_rows:
+                self._attr_rows[self.thickness_str].Thickness = float(t / self.sys.lens_units)
+
+            # Otherwise, update the thickness value from the main row.
+            else:
+                self._attr_rows[self.main_str].Thickness = float(t / self.sys.lens_units)
 
     @property
     def cs_break(self) -> CoordinateSystem:
@@ -117,6 +165,7 @@ class ZmxSurface(Surface):
         If the coordinate break does not exist, it returns the identity coordinate system.
         :return: A coordinate system representing a Zemax coordinate break.
         """
+        # return self._cs_break
 
         # If a cs_break row is defined, convert to a CoordinateSystem object and return.
         if self.cs_break_str in self._attr_rows:
@@ -156,35 +205,41 @@ class ZmxSurface(Surface):
         :return: None
         """
 
-        # If there is not already a coordinate break row defined, create it
-        if self.cs_break_str not in self._attr_rows:
-            self._insert_attr_row(self.cs_break_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
+        # Update private variable
+        self._cs_break = cs
 
-        # Find the Zemax LDE row corresponding to the coordinate break for this surface
-        row = self._attr_rows[self.cs_break_str]
+        # Update coordinate break row if we're connected to a optics system
+        if self.sys is not None:
 
-        # Extract the tip/tilt/decenter data from the Zemax row
-        data = self._ISurfaceCoordinateBreak_data(row)
+            # If there is not already a coordinate break row defined, create it
+            if self.cs_break_str not in self._attr_rows:
+                self._insert_attr_row(self.cs_break_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
 
-        # Check that we have a coordinate system that is compatible with a coordinate break
-        if cs.X.z != 0:
-            raise ValueError('Nonzero z-translation')
+            # Find the Zemax LDE row corresponding to the coordinate break for this surface
+            row = self._attr_rows[self.cs_break_str]
 
-        # Update the order
-        if cs.translation_first:
-            data.Order = 0
-        else:
-            data.Order = 1
+            # Extract the tip/tilt/decenter data from the Zemax row
+            data = self._ISurfaceCoordinateBreak_data(row)
 
-        # Update the translation
-        data.Decenter_X = cs.X.x / self.u
-        data.Decenter_Y = cs.X.y / self.u
+            # Check that we have a coordinate system that is compatible with a coordinate break
+            if cs.X.z != 0:
+                raise ValueError('Nonzero z-translation')
 
-        # Update the rotation
-        a, b, c = as_xyz_intrinsic_tait_bryan_angles(cs.Q)
-        data.TiltAbout_X = a
-        data.TiltAbout_Y = b
-        data.TiltAbout_Z = c
+            # Update the order
+            if cs.translation_first:
+                data.Order = 0
+            else:
+                data.Order = 1
+
+            # Update the translation
+            data.Decenter_X = cs.X.x / self.u
+            data.Decenter_Y = cs.X.y / self.u
+
+            # Update the rotation
+            a, b, c = as_xyz_intrinsic_tait_bryan_angles(cs.Q)
+            data.TiltAbout_X = a
+            data.TiltAbout_Y = b
+            data.TiltAbout_Z = c
 
     @staticmethod
     def _ISurfaceCoordinateBreak_data(row: ILDERow) -> ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak:
@@ -208,25 +263,19 @@ class ZmxSurface(Surface):
             raise ValueError('Row is not of type', ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak.__name__)
 
     @property
-    def tilt_dec(self) -> CoordinateSystem:
-
-        # Find the LDE row corresponding to tilt/decenter
-        row = self._get_attr_row('tilt_dec')
-
-        if row is not self._row:
-
-            # Find the LDE row corresponding to tilt/decenter return
-            ret = self._get_attr_row('tilt_dec_return')
-
-    @property
-    def _attr_rows(self) -> 'OrderedDict[str, ILDERow]':
+    def _attr_rows(self) -> 'Dict[str, ILDERow]':
         """
-        :return: An ordered dict of attributes, where the attribute name is the key and the Zemax row is the value.
+        The attr_rows are stored internally as a list, but need to be accessed as a dict
+        :return: A dict of attributes, where the attribute name is the key and the Zemax row is the value.
         """
-        return self._attr_rows_var
+        ret = OrderedDict()
+        for name, row in self._attr_rows_list:
+            ret[name] = row
+
+        return ret
 
     @_attr_rows.setter
-    def _attr_rows(self, attr_rows: 'OrderedDict[str, ILDERow]') -> None:
+    def _attr_rows(self, attr_rows: 'Dict[str, ILDERow]') -> None:
         """
         Write to the ordered dict of attributes, checking that all the Zemax rows are consecutive and that the surfaces
         are ordered in the correct priority
@@ -235,69 +284,101 @@ class ZmxSurface(Surface):
         """
 
         # Initial vales for the last index and last priority
-        last_ind = -1
+        last_ind = None     # type: Union[int, None]
         last_pri = -1
 
+        # Space to store result of converting dict to list
+        attr_rows_list = []         # type: List[Tuple[str, ILDERow]]
+
         # Loop through all the attributes in the dictionary and check that each element is consecutive and in ascending
-        # priority.
-        for attr, row in self._attr_rows.items():
+        # priority, and add to list of surfaces
+        for attr, row in attr_rows.items():
 
             # Extract the index and priority values for comparison
-            ind = row.RowIndex
+            ind = row.SurfaceNumber
             pri = self.priority_dict[attr]
 
             # Check that this index is one greater than the previous index
-            if ind != last_ind + 1:
-                raise ValueError('Non-consecutive attribute rows')
+            if last_ind is not None:
+                if ind != last_ind + 1:
+                    raise ValueError('Non-consecutive attribute rows')
 
             # Check that this priority is greater than or equal to the previous priority
             if pri < last_pri:
                 raise ValueError('Higher priority surface before lower priority surface')
 
-        # If there were no errors raised in the previous loop, we are free to write to the variable
-        self._attr_rows_var = attr_rows
+            # Add attribute to list
+            attr_rows_list.append((attr, row))
 
-    def _insert_attr_row(self, attr_name: str, row_type: Type[Any] = ZOSAPI.Editors.LDE.ISurfaceStandard) -> None:
+            # Update persistent variable to compare at the next loop iteration
+            last_ind = ind
+            last_pri = pri
+
+        # Update private storage variable
+        self._attr_rows_list = attr_rows_list
+
+    def insert(self, attr_name: str, row_type: Type[Any] = ZOSAPI.Editors.LDE.ISurfaceStandard) -> None:
         """
         Insert a new attribute row, with it's position specified by the priority of the attribute
         :param attr_name: Name of the attribute, determines priority
         :param row_type: The type of ILDErow that should be associated with the attribute
-        :return:
+        :return: None
         """
 
-        # Check that the attribute doesn't already have an associated Zemax row
-        if attr_name in self._attr_rows:
-            raise ValueError('Attribute already defined')
+        # Initialize the index variable for the case when there are no attribute rows in the list
+        i = 0
 
-        # Extract the priority of the provided attribute
-        pri = self.priority_dict[attr_name]
+        # Initialize the row index variable so we know if its been set
+        row_ind = None
 
-        # Create a new ordered dict to store the result.
-        # Since OrderedDict does not have an insert method, we create a new instance and insert the new surface as
-        # we're copying all the keys/values
-        attr_rows = OrderedDict()
+        # If there is at least one row in the surface, locate where the new row should go based on priority
+        if self._attr_rows_list:
 
-        # Loop through all the attributes, find where the new attribute should go, and insert the new attribute
-        for attr, row in self._attr_rows.items():
+            # Check that the attribute doesn't already have an associated Zemax row
+            if attr_name in self._attr_rows:
+                raise ValueError('Attribute already defined')
 
-            # If the priority of the provided attribute is less than the current row, this is the correct index for
-            # the new attribute row.
-            if pri < self.priority_dict[attr]:
+            # Extract the priority of the provided attribute
+            pri = self.priority_dict[attr_name]
 
-                # Insert a new row at the index of the current row
-                new_row = self.sys.zmx_sys.LDE.InsertNewSurfaceAt(row.RowIndex)
+            # Loop through all the attributes, find where the new attribute should go, and insert the new attribute
+            for i, item in enumerate(self._attr_rows_list):
 
-                # Change the type of the row to the requested type
-                new_row.ChangeType(new_row.GetSurfaceTypeSettings(row_type))
+                # Extract name and ILDE row from tuple
+                attr, row = item
 
-                # Add the new row to the attribute dict
-                attr_rows[attr_name] = new_row
+                # If the priority of the provided attribute is less than the current row, this is the correct index for
+                # the new attribute row.
+                if pri < self.priority_dict[attr]:
 
-            # Populate the new dict with key/value pairs from the old dict
-            attr_rows[attr] = row
+                    # Insert a new row at the index of the current row
+                    row_ind = row.RowIndex
 
-        # Update the attribute row dictionary
-        self._attr_rows = attr_rows
+                    # Stop the loop so we don't keep adding surfaces
+                    break
+
+            # If the row index was not set in the previous loop, set it to the last element in the loop
+            if row_ind is None:
+                row_ind = self.last_row_ind + 1
+
+        # Otherwise, there are no rows in the surface and we have to locate our position based off of the previous
+        # surface.
+        else:
+
+            # Insert a new row at the index after the last row in the previous surface
+            row_ind = self.prev_surf_in_system.last_row_ind + 1
+
+        # Create a new Zemax row based off of the index
+        new_row = self.sys.zos_sys.LDE.InsertNewSurfaceAt(row_ind)
+
+        # Change the type of the row to the requested type
+        new_row.ChangeType(new_row.GetSurfaceTypeSettings(row_type))
+
+        # Update the row with the correct control comment.
+        new_row.Comment = self.component.name + '.' + self.name + '.' + attr_name
+
+        # Add the new row to the attribute list
+        self._attr_rows_list.insert(i, (attr_name, new_row))
 
     @property
     def _attr_rows_indices(self) -> List[int]:
@@ -311,23 +392,117 @@ class ZmxSurface(Surface):
 
         # Loop over all items in the dictionary and append row index to output
         for _, row in self._attr_rows.items():
-            indices.append(row.RowIndex)
+            indices.append(row.SurfaceNumber)
 
         return indices
 
     @property
-    def first_row_ind(self):
+    def first_row_ind(self) -> Union[int, None]:
         """
-        :return: The index of the first row of this surface in the Zemax file.
+        :return: The index of the first row of this surface in the Zemax file if it exists, otherwise return None.
         """
-        return self._attr_rows_indices[0]
+        if self._attr_rows_indices:
+            return self._attr_rows_indices[0]
+        else:
+            return None
 
     @property
-    def last_row_ind(self):
+    def last_row_ind(self) -> Union[int, None]:
         """
-        :return: The index of the last row of this surface in the Zemax file.
+        :return: The index of the last row of this surface in the Zemax file if it exists, otherwise return None.
         """
-        return self._attr_rows_indices[-1]
+        if self._attr_rows_indices:
+            return self._attr_rows_indices[-1]
+        else:
+            return None
+
+    def __getitem__(self, item: Union[int, str]) -> ILDERow:
+        """
+        Gets the ILDERow at index item within the surface, or the ILDERow with the name item
+        :param item: Surface index or name of surface
+        :return: ILDERow specified by item
+        """
+
+        # If the item is an integer, use it to access the attribute row list
+        # Note that the row is located at index 1 in the tuple
+        if isinstance(item, int):
+            return self._attr_rows_list.__getitem__(item).__getitem__(1)
+
+        # If the item is a string, use it to access the surfaces dictionary.
+        elif isinstance(item, str):
+            return self._attr_rows.__getitem__(item)
+
+        # Otherwise, the item is neither an int nor string and we throw an error.
+        else:
+            raise ValueError('Item is of an unrecognized type')
+
+    def __setitem__(self, key: Union[int, str], value: ILDERow):
+
+        # If the key is an int, set the item at the index
+        if isinstance(key, int):
+
+            # Make copy of current contents
+            old_val = self._attr_rows_list.__getitem__(key)
+
+            # Make new tuple, with new value for row
+            new_val = (old_val[0], value)
+
+            # Set the list element with our new value
+            self._attr_rows_list.__setitem__(key, new_val)
+
+        # If the item is a string, find the index of the value and call this function again
+        elif isinstance(key, str):
+
+            # Find instance of attribute row using key
+            attr = self[key]
+
+            # Find index of this attribute row in the list
+            ind = self._attr_rows_list.index((key, attr))
+
+            # Recursively call this function to set using index
+            self.__setitem__(ind, value)
+
+        # Otherwise, the item is neither an int nor string and we throw an error.
+        else:
+            raise ValueError('Item is of an unrecognized type')
+
+    def __delitem__(self, key: int):
+
+        self._attr_rows_list.__delitem__(key)
+
+    def __iter__(self) -> Iterator[Tuple[str,ILDERow]]:
+
+        return self._attr_rows_list.__iter__()
+
+    def __len__(self):
+
+        return self._attr_rows_list.__len__()
+
+    # def __del__(self) -> None:
+    #     """
+    #     Delete method for the surface.
+    #     Removes all ILDERows associated with the surface from the LDE
+    #     :return: None
+    #     """
+    #
+    #     rows = self.attr_rows.copy()
+    #
+    #     for attr, row in rows.items():
+    #
+    #         print('---------------')
+    #         print(self.sys.zos_sys.LDE)
+    #         self.sys.zos_sys.LDE.RemoveSurfaceAt(row.SurfaceNumber)
+    #         print(row.SurfaceData)
+    #
+    #         self._attr_rows_var.move_to_end(attr,)
+    #
+    #         del self._attr_rows_var[attr]
+
+
+
+
+
+
 
 
 
