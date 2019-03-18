@@ -117,7 +117,7 @@ class ZmxSurface(Surface):
         """
 
         # Get value stored in private variable using superclass
-        t1 = super().thickness
+        # t1 = super().thickness
 
         # If there is a thickness row defined, return the value from that row
         if self.thickness_str in self._attr_rows:
@@ -127,11 +127,12 @@ class ZmxSurface(Surface):
         else:
             t2 = self._attr_rows[self.main_str].Thickness * self.sys.lens_units
 
-        # Compare the value stored in this class with the value stored in Zemax and verify that they are the same.
-        if t1 != t2:
-            raise ValueError('Synchronization error between Zemax and Python, thicknesses do not match', t1, t2)
+        # # Compare the value stored in this class with the value stored in Zemax and verify that they are the same.
+        # if t1 != t2:
+        #     print(self.name)
+        #     raise ValueError('Synchronization error between Zemax and Python, thicknesses do not match', t1, t2)
 
-        return t1
+        return t2
 
     @thickness.setter
     def thickness(self, t: u.Quantity) -> None:

@@ -40,14 +40,14 @@ class System:
         obj = Surface(self.object_str, thickness=np.inf * u.mm)
 
         # Create stop surface and append it to the system.
-        stop = Surface(self.stop_str)
+        self.stop = Surface(self.stop_str)
 
         # Create image surface
-        image = Surface(self.image_str)
+        image = Surface(self.image_str, thickness=np.inf * u.mm)
 
         # Add the three surfaces to the system
         self.append(obj)
-        self.append(stop)
+        self.append(self.stop)
         self.append(image)
 
     @property
@@ -63,6 +63,40 @@ class System:
         :return: The image surface within the system
         """
         return self[-1]
+
+    @property
+    def stop(self) -> Surface:
+        """
+        :return: The stop surface within the system
+        """
+        return next(s for s in self if s.is_stop)
+
+    @stop.setter
+    def stop(self, surf: Surface):
+        """
+        Set the stop surface to the surface provided
+        :param surf: Surface to set as the new stop
+        :return: None
+        """
+
+        for s in self:
+
+            if s is surf:
+
+                pass
+
+        # Check if the provided surface is part of this system
+        if surf.sys == self:
+
+            # There can only be one surface, so make sure to update the previous stop surface
+            self.stop.is_stop = False
+
+            # Update the new stop surface
+            surf.
+
+        # Otherwise the provided surface is not part of the system and this function call doesn't make sense.
+        else:
+            raise ValueError('Cannot set stop to surface not in system')
 
     @property
     def components(self) -> Dict[str, Component]:

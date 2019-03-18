@@ -56,11 +56,11 @@ class TestZmxSystem:
         # Check the object surface
         assert zmx_system.object.component.name == ZmxSystem.object_str
 
-        # Check the object surface
-        assert zmx_system.stop.component.name == ZmxSystem.main
+        # Check the stop surface
+        assert zmx_system.stop.component.name == ZmxSystem.main_str
 
-        # Check the object surface
-        assert zmx_system.image.component.name == ZmxSystem.object_str
+        # Check the image surface
+        assert zmx_system.image.component.name == ZmxSystem.main_str
 
     def test_overwrite_system(self, system: System, zmx_system: ZmxSystem):
 

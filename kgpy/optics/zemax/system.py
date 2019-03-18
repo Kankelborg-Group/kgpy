@@ -62,6 +62,13 @@ class ZmxSystem(System):
         self._init_system_from_zmx()
 
     @property
+    def stop(self):
+
+        stop_row = next(row for row in self._rows if row.IsStop)
+
+        stop_surf = next(surf for surf in self if surf.)
+
+    @property
     def num_surfaces(self) -> int:
         """
         :return: The number of surfaces in the system
@@ -233,6 +240,32 @@ class ZmxSystem(System):
 
                 return surf
 
+    @property
+    def _rows(self):
+        """
+        :return: A list of all the ILDERows (ZOSAPI Surfaces) in the ZOSAPI System.
+        """
+
+        # Grab pointer to lens data editor
+        lde = self.zos_sys.LDE
+
+        # Save the number of surfaces to local variable
+        n_rows = lde.NumberOfSurfaces
+
+        # Allocate space for return variable
+        rows = []
+
+        # Loop through every surface and look for a match to the comment string
+        for r in range(n_rows):
+
+            # Grab pointer to this row
+            row = lde.GetSurfaceAt(r)
+
+            # Append row to the list of rows
+            rows.append(row)
+
+        return rows
+
     def _syntax_tree_from_comments(self) -> 'OrderedDict[str, Tuple[Component, OrderedDict[str, ILDERow]]]':
         """
         Reads through a Zemax file and constructs a syntax tree of all the components, surfaces and attributes.
@@ -247,17 +280,8 @@ class ZmxSystem(System):
         components = {}                 # type: Dict[str, Component]
         surfaces = OrderedDict()        # type: OrderedDict[str, Tuple[Component, OrderedDict[str, ILDERow]]]
 
-        # Grab pointer to lens data editor
-        lde = self.zos_sys.LDE
-
-        # Save the number of surfaces to local variable
-        n_rows = lde.NumberOfSurfaces
-
         # Loop through every surface and look for a match to the comment string
-        for r in range(n_rows):
-
-            # Save the pointer to this surface
-            zmx_row = lde.GetSurfaceAt(r)
+        for r, zmx_row in enumerate(self._rows):
 
             # Parse the comment associated with this surface into tokens
             comp_str, surf_str, attr_str = self._parse_comment(zmx_row.Comment)

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import unittest
 import numpy as np
-from ndcube import NDCube
+from kgpy.ndcube.ndcube import NDCube
 import astropy
 import astropy.units as u
 import matplotlib.pyplot as plt

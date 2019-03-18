@@ -40,7 +40,6 @@ class Surface:
         # Initialize private variables
         self._thickness = 0 * u.mm
 
-
         # Attributes to be set by the Component and System classes
         self.component = None                   # type: kgpy.optics.Component
         self.sys = None                         # type: kgpy.optics.System
