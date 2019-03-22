@@ -6,4 +6,4 @@ class SurfaceType:
     pass
 
 
-SurfaceType = SurfaceType()
+# SurfaceType = SurfaceType()

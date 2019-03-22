@@ -230,7 +230,7 @@ class ZmxSurface(Surface):
             data = self._ISurfaceCoordinateBreak_data(row)
 
             # Construct vector from decenter parameters
-            X = Vector([data.Decenter_X, data.Decenter_Y, 0] * self.u)
+            X = Vector([data.Decenter_X, data.Decenter_Y, 0] * self.sys.lens_units)
 
             # Construct rotation quaternion from tilt parameters
             Q = from_xyz_intrinsic_tait_bryan_angles(data.TiltAbout_X, data.TiltAbout_Y, data.TiltAbout_Z)

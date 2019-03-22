@@ -8,4 +8,4 @@ class Paraxial(SurfaceType):
     pass
 
 
-Paraxial = Paraxial()
+# Paraxial = Paraxial()

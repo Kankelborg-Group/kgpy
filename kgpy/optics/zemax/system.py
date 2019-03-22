@@ -61,6 +61,20 @@ class ZmxSystem(System):
         # Initialize the system from the new design
         self._init_system_from_zmx()
 
+    @staticmethod
+    def from_file(name: str, filename: str) -> 'ZmxSystem':
+
+        # Load the a blank system
+        sys = ZmxSystem(name)
+
+        # Open the file
+        sys.zos_sys.LoadFile(filename, saveIfNeeded=False)
+
+        # Read the file into the system
+        sys._init_system_from_zmx()
+
+        return sys
+
     @property
     def num_surfaces(self) -> int:
         """
@@ -330,6 +344,8 @@ class ZmxSystem(System):
         Read the current Zemax model and initialize the list of surfaces
         :return: None
         """
+
+        self._surfaces = []
 
         # Parse the Zemax file and construct a list of surfaces parameters
         surfaces_dict = self._syntax_tree_from_comments()

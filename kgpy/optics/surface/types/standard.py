@@ -8,4 +8,4 @@ class Standard(SurfaceType):
     pass
 
 
-Standard = Standard()
+# Standard = Standard()
