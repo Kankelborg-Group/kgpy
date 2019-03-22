@@ -62,13 +62,6 @@ class ZmxSystem(System):
         self._init_system_from_zmx()
 
     @property
-    def stop(self):
-
-        stop_row = next(row for row in self._rows if row.IsStop)
-
-        stop_surf = next(surf for surf in self if surf.)
-
-    @property
     def num_surfaces(self) -> int:
         """
         :return: The number of surfaces in the system

@@ -53,6 +53,7 @@ class Surface:
 
         # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
         self.is_active = False
+        self.is_stop = False
 
     @property
     def is_object(self) -> bool:
@@ -83,46 +84,6 @@ class Surface:
         # Otherwise, the surface is not part of a system, and we assume that it is not an image surface.
         else:
             return False
-
-    @property
-    def is_stop(self) -> bool:
-        """
-        :return: True if this is the stop surface in a system, False otherwise.
-        If this surface is not associated with a system, this function returns False.
-        """
-
-        # If the surface is part of the system, check if it is the stop surface
-        if self.sys is not None:
-            return self.sys.stop == self
-
-        # Otherwise, the surface is not part of a system, and we assume that it is not an stop surface.
-        else:
-            return False
-
-    @is_stop.setter
-    def is_stop(self, val) -> None:
-        """
-        Set whether this surface is the stop surface for the system.
-        Note that if this surface is no longer the stop surface, the new stop surface is the first surface in the
-        system.
-        :param val: True if this surface is the new stop surface, False if this surface is no longer the stop surface.
-        :return: None
-        """
-
-        # If the surface is part of the system, set/unset this surface as the stop surface
-        if self.sys is not None:
-
-            # If this surface is the new stop, we set the stop surface in the optical system to this surface
-            if val:
-                self.sys.stop = self
-
-            # If we don't want this surface to be the stop anymore, set the first surface in the system to be the stop.
-            else:
-                self.sys.stop = self.sys[0]
-
-        # Otherwise, the surface is not part of a system, and we assume that it is not an stop surface.
-        else:
-            raise ValueError('Cannot set isolated surface as stop surface')
 
     @property
     def prev_surf_in_system(self) -> Union['Surface', None]:
@@ -410,6 +371,6 @@ class Surface:
 
         # Construct the return string
         return 'surface(' + comp_name + '.' + self.name + ', thickness = ' + str(self.thickness) \
-               + ', ' + self._previous_cs.__str__() + ')'
+               + ', ' + self._previous_cs.__str__() + ', is_stop = ' + str(self.is_stop) + ')'
 
     __repr__ = __str__

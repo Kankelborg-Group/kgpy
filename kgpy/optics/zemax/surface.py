@@ -28,6 +28,7 @@ class ZmxSurface(Surface):
     tilt_dec_str = 'tilt_dec'
     tilt_dec_return_str = 'tilt_dec_return'
     thickness_str = 'thickness'
+    stop_str = 'stop'
 
     class AttrPriority(IntEnum):
         """
@@ -109,6 +110,23 @@ class ZmxSurface(Surface):
         zmx_surf._attr_rows = attr_dict
 
         return zmx_surf
+
+    @property
+    def is_stop(self) -> bool:
+        """
+        :return: True if this surface contains a stop row, False otherwise
+        """
+        return self._attr_rows[self.main_str].IsStop
+
+    @is_stop.setter
+    def is_stop(self, val: bool):
+        """
+        Set the stop surface to the provided value
+        :param val: True if this surface is the stop surface, False otherwise
+        :return: None
+        """
+        if self.main_str in self._attr_rows:
+            self._attr_rows[self.main_str].IsStop = val
 
     @property
     def thickness(self) -> u.Quantity:

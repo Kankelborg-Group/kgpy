@@ -39,15 +39,18 @@ class System:
         # Create the object surface.
         obj = Surface(self.object_str, thickness=np.inf * u.mm)
 
-        # Create stop surface and append it to the system.
-        self.stop = Surface(self.stop_str)
+        # Create stop surface.
+        stop = Surface(self.stop_str)
+
+        # Flag the surface to be the stop
+        stop.is_stop = True
 
         # Create image surface
         image = Surface(self.image_str, thickness=np.inf * u.mm)
 
         # Add the three surfaces to the system
         self.append(obj)
-        self.append(self.stop)
+        self.append(stop)
         self.append(image)
 
     @property
@@ -79,24 +82,23 @@ class System:
         :return: None
         """
 
+        # Loop through all the surfaces in the system and find the provided surface
         for s in self:
 
+            # Check if this is the provided surface
             if s is surf:
 
-                pass
+                # There can only be one surface, so make sure to update the previous stop surface
+                self.stop.is_stop = False
 
-        # Check if the provided surface is part of this system
-        if surf.sys == self:
+                # Update the new stop surface
+                surf.is_stop = True
 
-            # There can only be one surface, so make sure to update the previous stop surface
-            self.stop.is_stop = False
+                # Return once we found the stop surface so we can use the end of the loop as a control statement.
+                return
 
-            # Update the new stop surface
-            surf.
-
-        # Otherwise the provided surface is not part of the system and this function call doesn't make sense.
-        else:
-            raise ValueError('Cannot set stop to surface not in system')
+        # If the loop exits the provided surface is not part of the system and this function call doesn't make sense.
+        raise ValueError('Cannot set stop to surface not in system')
 
     @property
     def components(self) -> Dict[str, Component]:
