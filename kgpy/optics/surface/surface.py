@@ -1,5 +1,5 @@
 
-from typing import Union, List, Tuple, Iterable
+from typing import Union, List, Tuple, Iterable, Type
 import numpy as np
 import quaternion as q
 import astropy.units as u
@@ -8,6 +8,7 @@ import astropy.units as u
 import kgpy.optics
 from kgpy.math import CoordinateSystem, Vector
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
+from kgpy.optics.surface.types import SurfaceType, Standard
 
 __all__ = ['Surface']
 
@@ -53,7 +54,53 @@ class Surface:
 
         # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
         self.is_active = False
-        self.is_stop = False
+        self._is_stop = False
+        self._radius = np.inf * u.mm    # type: u.Quantity
+        self._type = Standard           # type: Standard
+
+    @property
+    def type(self):
+        """
+        Get the surface type: standard, paraxial, etc.
+
+        :return: The type of this surface
+        """
+        return self._type
+
+    @type.setter
+    def type(self, val: SurfaceType) -> None:
+        """
+        Set the surface type of the surface.
+
+        :param val: New surface type.
+        :return: None
+        """
+        self._type = val
+
+    @property
+    def radius(self) -> u.Quantity:
+        """
+        Get the radius of curvature for this surface
+
+        :return: The radius of curvature
+        """
+        return self._radius
+
+    @radius.setter
+    def radius(self, val: u.Quantity) -> None:
+        """
+        Set the radius of curvature of the front face of the surface
+
+        :param val: New radius of curvature. Must have units of length.
+        :return: None
+        """
+        if not isinstance(val, u.Quantity):
+            raise ValueError('Radius is of type astropy.units.Quantity')
+
+        if not val.unit.is_equivalent(u.m):
+            raise ValueError('Radius must have dimensions of length')
+
+        self._radius = val
 
     @property
     def is_object(self) -> bool:
@@ -69,6 +116,25 @@ class Surface:
         # Otherwise, the surface is not part of a system, and we assume that it is not an object surface.
         else:
             return False
+
+    @property
+    def is_stop(self) -> bool:
+        """
+        Check if a surface is the stop surface in the optical system.
+
+        :return: True if the surface is the stop, False otherwise.
+        """
+        return self._is_stop
+
+    @is_stop.setter
+    def is_stop(self, val: bool) -> None:
+        """
+        Set/unset this surface to be the stop surface.
+
+        :param val: New value for the flag.
+        :return: None
+        """
+        self._is_stop = val
 
     @property
     def is_image(self) -> bool:
@@ -219,9 +285,9 @@ class Surface:
     @thickness.setter
     def thickness(self, t: u.Quantity) -> None:
         """
-        Set the
-        :param t:
-        :return:
+        Set the thickness of the surface
+        :param t: New surface thickness. Must have units of length
+        :return: None
         """
 
         # Check that the thickness parameter has the units attribute

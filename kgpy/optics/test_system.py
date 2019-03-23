@@ -21,7 +21,7 @@ def system(request):
     cs = gcs() * Q
 
     # Give each surface some arbitrary thickness
-    t = 1 * u.mm
+    t = 1 * u.mm    # type: u.Quantity
 
     # Construct the first component
     c1 = Component('c1', cs_break=cs)
@@ -39,8 +39,12 @@ def system(request):
 
     # Create a new optical system and append both components
     sys = System('sys')
-    sys.append_component(c1)
-    sys.append_component(c2)
+
+    # Insert all surfaces before the image surface
+    sys.insert(s1, -1)
+    sys.insert(s2, -1)
+    sys.insert(s3, -1)
+    sys.insert(s4, -1)
 
     return sys
 
@@ -137,6 +141,8 @@ class TestSystem:
 
     def test_add_baffle(self, system):
 
+        print(system)
+
         # Create a copy of the system for later comparison
         old_sys = deepcopy(system)
 
@@ -152,11 +158,14 @@ class TestSystem:
             # Check that all the original surfaces have not moved, and that the two new surfaces are at the location we
             # specified.
             assert system._surfaces[0].cs.isclose(old_sys._surfaces[0].cs)
-            assert system._surfaces[1].cs.isclose(bcs)
-            assert system._surfaces[2].cs.isclose(old_sys._surfaces[1].cs)
-            assert system._surfaces[3].cs.isclose(old_sys._surfaces[2].cs)
+            assert system._surfaces[1].cs.isclose(old_sys._surfaces[1].cs)
+            assert system._surfaces[2].cs.isclose(old_sys._surfaces[2].cs)
+            assert system._surfaces[3].cs.isclose(bcs)
             assert system._surfaces[4].cs.isclose(old_sys._surfaces[3].cs)
-            assert system._surfaces[5].cs.isclose(bcs)
+            assert system._surfaces[5].cs.isclose(old_sys._surfaces[4].cs)
+            assert system._surfaces[6].cs.isclose(old_sys._surfaces[5].cs)
+            assert system._surfaces[7].cs.isclose(bcs)
+            assert system._surfaces[8].cs.isclose(old_sys._surfaces[6].cs)
 
         else:
 

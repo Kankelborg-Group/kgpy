@@ -62,12 +62,6 @@ class TestZmxSystem:
         # Check the image surface
         assert zmx_system.image.component.name == ZmxSystem.main_str
 
-    def test_overwrite_system(self, system: System, zmx_system: ZmxSystem):
-
-        zmx_system.overwrite_system(system)
-
-        print(zmx_system)
-
     def test_raytrace(self, zmx_system: ZmxSystem):
 
         # Surface we want to raytrace to is the last surface

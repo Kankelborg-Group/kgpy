@@ -14,6 +14,7 @@ __all__ = ['System']
 class System:
     """
     The System class simulates an entire optical system, and is represented as a series of Components.
+
     This class is intended to be a drop-in replacement for a Zemax system.
     """
 
@@ -25,6 +26,7 @@ class System:
     def __init__(self, name: str, comment: str = ''):
         """
         Define an optical system by providing a name.
+
         :param name: Human-readable name of the system
         :param comment: Additional information about the system.
         """
@@ -46,12 +48,19 @@ class System:
         stop.is_stop = True
 
         # Create image surface
-        image = Surface(self.image_str, thickness=np.inf * u.mm)
+        image = Surface(self.image_str)
 
         # Add the three surfaces to the system
         self.append(obj)
         self.append(stop)
         self.append(image)
+
+    @property
+    def surfaces(self) -> List[Surface]:
+        """
+        :return: The private list of surfaces
+        """
+        return self._surfaces
 
     @property
     def object(self) -> Surface:
@@ -72,7 +81,18 @@ class System:
         """
         :return: The stop surface within the system
         """
-        return next(s for s in self if s.is_stop)
+
+        # Return the first surface specified as the stop surface
+        try:
+            return next(s for s in self if s.is_stop)
+
+        # If there is no surface specified as the stop surface, select the first non-object surface and set it to the
+        # stop surface
+        except StopIteration:
+            self.surfaces[1].is_stop = True
+
+            # Recursive call to find new stop surface
+            return self.stop
 
     @stop.setter
     def stop(self, surf: Surface):
@@ -112,9 +132,12 @@ class System:
         # Loop through all the surfaces in the system
         for surf in self._surfaces:
 
-            # Add this surface's component to the dictionary if it's not already there.
-            if surf.component.name not in comp:
-                comp[surf.component.name] = surf.component
+            # If this surface is associated with a component
+            if surf.component is not None:
+
+                # Add this surface's component to the dictionary if it's not already there.
+                if surf.component.name not in comp:
+                    comp[surf.component.name] = surf.component
 
         return comp
 
@@ -229,12 +252,12 @@ class System:
 
         return d
 
-    @property
-    def _all_surfaces(self) -> List[Surface]:
-        """
-        :return: A list of all surfaces in the object, including the object and image surfaces
-        """
-        return [self.object] + self._surfaces + [self.image]
+    # @property
+    # def _all_surfaces(self) -> List[Surface]:
+    #     """
+    #     :return: A list of all surfaces in the object, including the object and image surfaces
+    #     """
+    #     return [self.object] + self._surfaces + [self.image]
 
     def __getitem__(self, item: Union[int, str]) -> Surface:
         """

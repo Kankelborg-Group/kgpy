@@ -112,11 +112,44 @@ class ZmxSurface(Surface):
         return zmx_surf
 
     @property
+    def radius(self) -> u.Quantity:
+        """
+        Get radius of curvature this optic, in the units of the Zemax system
+
+        :return: Radius of curvature
+        """
+        return self._attr_rows[self.main_str].Radius * self.sys.lens_units
+
+    @radius.setter
+    def radius(self, val: u.Quantity) -> None:
+        """
+        Set the radius of curvature for this surface.
+
+        :param val: New radius of curvature, must have units of length
+        :return: None
+        """
+
+        if not isinstance(val, u.Quantity):
+            raise ValueError('Radius is of type astropy.units.Quantity')
+
+        if not val.unit.is_equivalent(u.m):
+            raise ValueError('Radius must have dimensions of length')
+
+        self._radius = val
+
+    @property
     def is_stop(self) -> bool:
         """
         :return: True if this surface contains a stop row, False otherwise
         """
-        return self._attr_rows[self.main_str].IsStop
+
+        # If the surface is part of a ZOS system, return the stop flag of the main surface
+        if self.sys is not None:
+            return self._attr_rows[self.main_str].IsStop
+
+        # Otherwise this surface is not part of a ZOS system and is not the stop
+        else:
+            return False
 
     @is_stop.setter
     def is_stop(self, val: bool):
@@ -125,8 +158,9 @@ class ZmxSurface(Surface):
         :param val: True if this surface is the stop surface, False otherwise
         :return: None
         """
-        if self.main_str in self._attr_rows:
-            self._attr_rows[self.main_str].IsStop = val
+
+        # The surface can only be the stop if
+        self._attr_rows[self.main_str].IsStop = val
 
     @property
     def thickness(self) -> u.Quantity:

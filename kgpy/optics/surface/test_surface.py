@@ -46,9 +46,9 @@ class TestSurface:
         sys.append(s3)
 
         # Check that the indices are calculated correctly
-        assert s1.system_index is 0
-        assert s2.system_index is 1
-        assert s3.system_index is 2
+        assert s1.system_index is 3
+        assert s2.system_index is 4
+        assert s3.system_index is 5
 
     def test_component_index(self):
         """
