@@ -302,6 +302,7 @@ class System:
         ret = self.name + ', comment = ' + self.comment + '\n'
         # Append lines for each surface within the component
         for surface in self._surfaces:
+            print('here')
             ret = ret + '\t' + surface.__str__() + '\n'
 
         return ret
