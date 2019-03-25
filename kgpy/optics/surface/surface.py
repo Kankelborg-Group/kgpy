@@ -52,6 +52,11 @@ class Surface:
         self.tilt_dec = tilt_dec
         self.cs_break = cs_break
 
+        self.prev_surf_in_system = None
+        self.next_surf_in_system = None
+        self.prev_surf_in_component = None
+        self.next_surf_in_component = None
+
         # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
         self.is_active = False
         self._is_stop = False
@@ -151,61 +156,56 @@ class Surface:
         else:
             return False
 
-    @property
-    def prev_surf_in_system(self) -> Union['Surface', None]:
-        """
-        :return: The surface before this surface in the system
-        """
-
-        # If the system is defined, find the previous surface
-        if self.sys is not None:
-            return self._relative_list_element(self.sys, -1)
-
-        # Otherwise there is no system defined and we return none
-        else:
-            return None
-
-    @property
-    def next_surf_in_system(self) -> Union['Surface', None]:
-        """
-        :return: The surface after this surface in the system
-        """
-
-        # If the system is defined, find the next surface
-        if self.sys is not None:
-            return self._relative_list_element(self.sys, 1)
-
-        # Otherwise there is no system defined and we return none
-        else:
-            return None
-
-    @property
-    def prev_surf_in_component(self) -> Union['Surface', None]:
-        """
-        :return: The surface before this surface in the component.
-        """
-
-        # If the component is defined, find the previous surface
-        if self.component is not None:
-            return self._relative_list_element(self.component, -1)
-
-        # Otherwise there is no component defined and we return none
-        else:
-            return None
-
-    @property
-    def next_surf_in_component(self) -> Union['Surface', None]:
-        """
-        :return: The surface after this surface in the component
-        """
-
-        # If the component is defined, find the next surface
-        if self.component is not None:
-            return self._relative_list_element(self.component, 1)
-
-        # Otherwise there is no component defined and we return none
-        else:
-            return None
+    # @property
+    # def prev_surf_in_system(self) -> Union['Surface', None]:
+    #     """
+    #     :return: The surface before this surface in the system
+    #     """
+    #     return self._prev_surf_in_system
+    #
+    # @prev_surf_in_system.setter
+    #
+    # @property
+    # def next_surf_in_system(self) -> Union['Surface', None]:
+    #     """
+    #     :return: The surface after this surface in the system
+    #     """
+    #
+    #     # If the system is defined, find the next surface
+    #     if self.sys is not None:
+    #         return self._relative_list_element(self.sys, 1)
+    #
+    #     # Otherwise there is no system defined and we return none
+    #     else:
+    #         return None
+    #
+    # @property
+    # def prev_surf_in_component(self) -> Union['Surface', None]:
+    #     """
+    #     :return: The surface before this surface in the component.
+    #     """
+    #
+    #     # If the component is defined, find the previous surface
+    #     if self.component is not None:
+    #         return self._relative_list_element(self.component, -1)
+    #
+    #     # Otherwise there is no component defined and we return none
+    #     else:
+    #         return None
+    #
+    # @property
+    # def next_surf_in_component(self) -> Union['Surface', None]:
+    #     """
+    #     :return: The surface after this surface in the component
+    #     """
+    #
+    #     # If the component is defined, find the next surface
+    #     if self.component is not None:
+    #         return self._relative_list_element(self.component, 1)
+    #
+    #     # Otherwise there is no component defined and we return none
+    #     else:
+    #         return None
 
     def _relative_list_element(self, surf_list: List['Surface'], rel_index: int) -> Union['Surface', None]:
         """
@@ -418,11 +418,11 @@ class Surface:
         :return: True if the two surfaces have the same values for all attributes, false otherwise.
         """
         a = self.name == other.name
-        b = self.comment == other.comment
-        d = self.thickness == other.thickness
+        # b = self.comment == other.comment
+        # d = self.thickness == other.thickness
         e = self.component == other.component
 
-        return a and b and d and e
+        return a and e
 
     def __str__(self) -> str:
         """

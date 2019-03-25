@@ -152,6 +152,16 @@ class System:
         # Set the system pointer
         surface.sys = self
 
+        # Set the link to the surface before the new surface
+        if index > 0:
+            self[index - 1].next_surf_in_system = surface
+            surface.prev_surf_in_system = self[index - 1]
+
+        # Set the link to the surface after the new surface
+        if index < len(self):
+            self[index].next_surf_in_system = surface
+            surface.prev_surf_in_system = self[index]
+
         # Add the surface to the list of surfaces
         self._surfaces.insert(index, surface)
 
@@ -164,6 +174,11 @@ class System:
 
         # Update link from surface to system
         surface.sys = self
+
+        # Link to the previous surface in the system
+        if len(self) > 0:
+            self[-1].next_surf_in_system = surface
+            surface.prev_surf_in_system = self[-1]
 
         # Append surface to the list of surfaces
         self._surfaces.append(surface)
@@ -302,7 +317,6 @@ class System:
         ret = self.name + ', comment = ' + self.comment + '\n'
         # Append lines for each surface within the component
         for surface in self._surfaces:
-            print('here')
             ret = ret + '\t' + surface.__str__() + '\n'
 
         return ret

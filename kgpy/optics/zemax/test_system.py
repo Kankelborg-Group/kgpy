@@ -1,5 +1,6 @@
 
 import pytest
+import cProfile
 import math
 import os
 from typing import List
@@ -44,8 +45,6 @@ class TestZmxSystem:
 
     def test__init__(self, zmx_system: ZmxSystem):
 
-        print(zmx_system)
-
         # Check that the Zemax instance started correctly
         assert zmx_system.example_constants() is not None
 
@@ -66,7 +65,13 @@ class TestZmxSystem:
 
         sys = ZmxSystem.from_file('test', self.test_path)
 
+        pr = cProfile.Profile()
+        pr.enable()
+
         print(sys)
+
+        pr.disable()
+        pr.print_stats(sort="cumtime")
 
     def test_raytrace(self, zmx_system: ZmxSystem):
 

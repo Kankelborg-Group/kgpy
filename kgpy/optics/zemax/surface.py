@@ -49,28 +49,6 @@ class ZmxSurface(Surface):
         thickness_str:          AttrPriority.thickness
     }
 
-    @staticmethod
-    def from_surface(surf: Surface) -> 'ZmxSurface':
-        """
-        Convert a Surface object to ZmxSurface object
-        :param surf: Surface object to convert
-        :return: A new ZmxSurface object equal to the provided Surface object
-        """
-
-        # Construct new ZmxSurface
-        zmx_surf = ZmxSurface(surf.name)
-
-        # Copy remaining attributes
-        zmx_surf.comment = surf.comment
-        zmx_surf.thickness = surf.thickness
-        zmx_surf.cs_break = surf.cs_break
-        zmx_surf.tilt_dec = surf.tilt_dec
-        zmx_surf.component = surf.component
-        zmx_surf.sys = surf.sys                 # type: kgpy.optics.ZmxSystem
-        zmx_surf.is_stop = surf.is_stop
-
-        return zmx_surf
-
     def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, comment: str = '',
                  cs_break: CoordinateSystem = gcs(), tilt_dec: CoordinateSystem = gcs()):
         """
@@ -94,11 +72,39 @@ class ZmxSurface(Surface):
         # This needs to be before the superclass constructor so properties such as thickness are defined
         self._attr_rows = {}
 
+        # Initialize private variables associated with each property
+        self._thickness = None
+        self._cs_break = None
+        self._is_stop = None
+        self._radius = None
+
         # Call superclass constructor
         super().__init__(name, thickness, comment, cs_break, tilt_dec)
 
         # Override the type of the system pointer
         self.sys = None     # type: kgpy.optics.ZmxSystem
+
+    @staticmethod
+    def from_surface(surf: Surface) -> 'ZmxSurface':
+        """
+        Convert a Surface object to ZmxSurface object
+        :param surf: Surface object to convert
+        :return: A new ZmxSurface object equal to the provided Surface object
+        """
+
+        # Construct new ZmxSurface
+        zmx_surf = ZmxSurface(surf.name)
+
+        # Copy remaining attributes
+        zmx_surf.comment = surf.comment
+        zmx_surf.thickness = surf.thickness
+        zmx_surf.cs_break = surf.cs_break
+        zmx_surf.tilt_dec = surf.tilt_dec
+        zmx_surf.component = surf.component
+        zmx_surf.sys = surf.sys                 # type: kgpy.optics.ZmxSystem
+        zmx_surf.is_stop = surf.is_stop
+
+        return zmx_surf
 
     @staticmethod
     def from_attr_dict(surf_name: str, attr_dict: Dict[str, ILDERow]) -> 'ZmxSurface':
@@ -118,7 +124,12 @@ class ZmxSurface(Surface):
 
         :return: Radius of curvature
         """
-        return self._attr_rows[self.main_str].Radius * self.sys.lens_units
+
+        # If value unpopulated, read from Zemax
+        if self._radius is None:
+            self._radius = self._attr_rows[self.main_str].Radius * self.sys.lens_units
+
+        return self._radius
 
     @radius.setter
     def radius(self, val: u.Quantity) -> None:
@@ -136,6 +147,7 @@ class ZmxSurface(Surface):
             raise ValueError('Radius must have dimensions of length')
 
         self._radius = val
+        self._attr_rows[self.main_str].Radius = float(val / self.sys.lens_units)
 
     @property
     def is_stop(self) -> bool:
@@ -145,7 +157,12 @@ class ZmxSurface(Surface):
 
         # If the surface is part of a ZOS system, return the stop flag of the main surface
         if self.sys is not None:
-            return self._attr_rows[self.main_str].IsStop
+
+            # If the stop state has not been populated, read from zemax
+            if self._is_stop is None:
+                self._is_stop = self._attr_rows[self.main_str].IsStop
+
+            return self._is_stop
 
         # Otherwise this surface is not part of a ZOS system and is not the stop
         else:
@@ -161,6 +178,7 @@ class ZmxSurface(Surface):
 
         # The surface can only be the stop if
         self._attr_rows[self.main_str].IsStop = val
+        self._is_stop = val
 
     @property
     def thickness(self) -> u.Quantity:
@@ -168,23 +186,18 @@ class ZmxSurface(Surface):
         :return: Thickness of the surface in lens units
         """
 
-        # Get value stored in private variable using superclass
-        # t1 = super().thickness
+        # If value has not been populated, read from Zemax
+        if self._thickness is None:
 
-        # If there is a thickness row defined, return the value from that row
-        if self.thickness_str in self._attr_rows:
-            t2 = self._attr_rows[self.thickness_str].Thickness * self.sys.lens_units
+            # If there is a thickness row defined, return the value from that row
+            if self.thickness_str in self._attr_rows:
+                self._thickness = self._attr_rows[self.thickness_str].Thickness * self.sys.lens_units
 
-        # Otherwise, return the thickness value from the main row.
-        else:
-            t2 = self._attr_rows[self.main_str].Thickness * self.sys.lens_units
+            # Otherwise, return the thickness value from the main row.
+            else:
+                self._thickness = self._attr_rows[self.main_str].Thickness * self.sys.lens_units
 
-        # # Compare the value stored in this class with the value stored in Zemax and verify that they are the same.
-        # if t1 != t2:
-        #     print(self.name)
-        #     raise ValueError('Synchronization error between Zemax and Python, thicknesses do not match', t1, t2)
-
-        return t2
+        return self._thickness
 
     @thickness.setter
     def thickness(self, t: u.Quantity) -> None:
@@ -194,8 +207,8 @@ class ZmxSurface(Surface):
         :return: None
         """
 
-        # Update private variable using superclass
-        Surface.thickness.fset(self, t)
+        # Update private variable
+        self._thickness = t
 
         # Update thickness of Zemax row if this surface is connected to a system.
         if self.sys is not None:
@@ -218,37 +231,40 @@ class ZmxSurface(Surface):
         If the coordinate break does not exist, it returns the identity coordinate system.
         :return: A coordinate system representing a Zemax coordinate break.
         """
-        # return self._cs_break
 
-        # If a cs_break row is defined, convert to a CoordinateSystem object and return.
-        if self.cs_break_str in self._attr_rows:
+        if self._cs_break is None:
 
-            # Find the Zemax LDE row corresponding to the coordinate break for this surface
-            row = self._attr_rows[self.cs_break_str]
+            # If a cs_break row is defined, convert to a CoordinateSystem object and return.
+            if self.cs_break_str in self._attr_rows:
 
-            # Extract the tip/tilt/decenter data from the Zemax row
-            data = self._ISurfaceCoordinateBreak_data(row)
+                # Find the Zemax LDE row corresponding to the coordinate break for this surface
+                row = self._attr_rows[self.cs_break_str]
 
-            # Construct vector from decenter parameters
-            X = Vector([data.Decenter_X, data.Decenter_Y, 0] * self.sys.lens_units)
+                # Extract the tip/tilt/decenter data from the Zemax row
+                data = self._ISurfaceCoordinateBreak_data(row)
 
-            # Construct rotation quaternion from tilt parameters
-            Q = from_xyz_intrinsic_tait_bryan_angles(data.TiltAbout_X, data.TiltAbout_Y, data.TiltAbout_Z)
+                # Construct vector from decenter parameters
+                X = Vector([data.Decenter_X, data.Decenter_Y, 0] * self.sys.lens_units)
 
-            # Determine which order the tilts/decenters should be executed
-            if data.Order == 0:
-                translation_first = True
+                # Construct rotation quaternion from tilt parameters
+                Q = from_xyz_intrinsic_tait_bryan_angles(data.TiltAbout_X, data.TiltAbout_Y, data.TiltAbout_Z)
+
+                # Determine which order the tilts/decenters should be executed
+                if data.Order == 0:
+                    translation_first = True
+                else:
+                    translation_first = False
+
+                # Create new coordinate system representing the Zemax coordinate break
+                cs = CoordinateSystem(X, Q, translation_first=translation_first)
+
+                self._cs_break = cs
+
+            # Otherwise just return a identity coordinate system
             else:
-                translation_first = False
+                self._cs_break = gcs()
 
-            # Create new coordinate system representing the Zemax coordinate break
-            cs = CoordinateSystem(X, Q, translation_first=translation_first)
-
-            return cs
-
-        # Otherwise just return a identity coordinate system
-        else:
-            return gcs()
+        return self._cs_break
 
     @cs_break.setter
     def cs_break(self, cs: CoordinateSystem) -> None:
@@ -266,7 +282,7 @@ class ZmxSurface(Surface):
 
             # If there is not already a coordinate break row defined, create it
             if self.cs_break_str not in self._attr_rows:
-                self._insert_attr_row(self.cs_break_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
+                self.insert(self.cs_break_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
 
             # Find the Zemax LDE row corresponding to the coordinate break for this surface
             row = self._attr_rows[self.cs_break_str]

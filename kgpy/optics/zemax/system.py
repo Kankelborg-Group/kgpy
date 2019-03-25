@@ -45,6 +45,11 @@ class ZmxSystem(System):
         # Call superclass constructor
         super().__init__(name, comment)
 
+        # Initialize private variables
+        self._lens_units = None
+        self._thickness = None
+        self._cs_break = None
+
         # Clear the list of surfaces that was populated by the superclass constructor.
         # This list will be rebuilt from the Zemax file.
         self._surfaces = []         # type: List[ZmxSurface]
@@ -520,18 +525,23 @@ class ZmxSystem(System):
         :return: Astropy units instance corresponding to the units used by Zemax
         """
 
-        units = self.zos_sys.SystemData.Units.LensUnits
+        # If the units have been read from the Zemax file previously
+        if self._lens_units is None:
 
-        if units == ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters:
-            return u.mm
-        elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Centimeters:
-            return u.cm
-        elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Inches:
-            return u.imperial.inch
-        elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Meters:
-            return u.m
-        else:
-            raise ValueError('Unrecognized units')
+            units = self.zos_sys.SystemData.Units.LensUnits
+
+            if units == ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters:
+                self._lens_units = u.mm
+            elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Centimeters:
+                self._lens_units = u.cm
+            elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Inches:
+                self._lens_units = u.imperial.inch
+            elif units == ZOSAPI.SystemData.ZemaxSystemUnits.Meters:
+                self._lens_units = u.m
+            else:
+                raise ValueError('Unrecognized units')
+
+        return self._lens_units
 
     @lens_units.setter
     def lens_units(self, units: u.Unit) -> None:
@@ -541,6 +551,10 @@ class ZmxSystem(System):
         :return: None
         """
 
+        # Update storage variable
+        self._lens_units = units
+
+        # Update Zemax
         if units == u.mm:
             self.zos_sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Millimeters
         elif units == u.cm:
