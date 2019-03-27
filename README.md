@@ -4,6 +4,13 @@ Software libraries shared between Kankelborg-Group projects.
 
 ## Installation
 
+### Python Dependencies
+Shapely needs to be installed using the wheel file on Windows.
+Download the file [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#shapely), and install using:
+```
+python -m pip install Shapely-1.6.4.post1-cp37-cp37m-win_amd64.whl
+```
+
 ### PGI Compiler
 This software relies on openACC, which is currently best supported by the PGI compiler.
 The community version of this compiler can be downloaded from [here](https://www.pgroup.com/products/community.htm]), and installed using the following commands.
