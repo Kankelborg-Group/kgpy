@@ -52,54 +52,54 @@ class CoordinateSystem:
         if not translation_first:
             self.X = self.X.rotate(self.Q)
 
-    @property
-    def Q(self) -> q.quaternion:
-        """
-        Quaternion representing the orientation of the coordinate system
-
-        :return: An instance of a quaternion
-        """
-        return self._Q
-
-    @Q.setter
-    def Q(self, val: q.quaternion) -> None:
-        """
-        Set the orientation of the coordinate system
-
-        :param val: A quaternion representing the new orientation.
-        :return: None
-        """
-
-        # Update private variable storing value
-        self._Q = val
-
-        self._xh = self.xh_g.rotate(self._Q)
-        self._yh = self.yh_g.rotate(self._Q)
-        self._zh = self.zh_g.rotate(self._Q)
+    # @property
+    # def Q(self) -> q.quaternion:
+    #     """
+    #     Quaternion representing the orientation of the coordinate system
+    #
+    #     :return: An instance of a quaternion
+    #     """
+    #     return self._Q
+    #
+    # @Q.setter
+    # def Q(self, val: q.quaternion) -> None:
+    #     """
+    #     Set the orientation of the coordinate system
+    #
+    #     :param val: A quaternion representing the new orientation.
+    #     :return: None
+    #     """
+    #
+    #     # Update private variable storing value
+    #     self._Q = val
+    #
+    #     self._xh = self.xh_g.rotate(self._Q)
+    #     self._yh = self.yh_g.rotate(self._Q)
+    #     self._zh = self.zh_g.rotate(self._Q)
 
     @property
     def xh(self) -> Vector:
         """
         :return: x-hat unit vector for this coordinate system
         """
-        # return self.xh_g.rotate(self.Q)
-        return self._xh
+        return self.xh_g.rotate(self.Q)
+        # return self._xh
 
     @property
     def yh(self) -> Vector:
         """
         :return: y-hat unit vector for this coordinate system
         """
-        # return self.yh_g.rotate(self.Q)
-        return self._yh
+        return self.yh_g.rotate(self.Q)
+        # return self._yh
 
     @property
     def zh(self) -> Vector:
         """
         :return: z-hat unit vector for this coordinate system
         """
-        # return self.zh_g.rotate(self.Q)
-        return self._zh
+        return self.zh_g.rotate(self.Q)
+        # return self._zh
 
     def __str__(self) -> str:
         """

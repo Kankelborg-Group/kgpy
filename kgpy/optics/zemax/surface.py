@@ -24,29 +24,41 @@ class ZmxSurface(Surface):
     """
 
     main_str = 'main'
-    cs_break_str = 'cs_break'
-    tilt_dec_str = 'tilt_dec'
-    tilt_dec_return_str = 'tilt_dec_return'
+    # cs_break_str = 'cs_break'
+    # tilt_dec_str = 'tilt_dec'
+    before_surf_cs_break_str = 'before_surf_cs_break'
+    after_surf_cs_break_str = 'after_surf_cs_break'
+    # tilt_dec_return_str = 'tilt_dec_return'
     thickness_str = 'thickness'
     stop_str = 'stop'
+    aper_str = 'aper'
+    mech_aper_str = 'mech_aper'
 
     class AttrPriority(IntEnum):
         """
         Enumeration class to describe the priority that each attribute gets when the surface is written to file.
         """
-        cs_break = auto()
-        tilt_dec = auto()
+        # cs_break = auto()
+        # tilt_dec = auto()
+        before_surf_cs_break = auto()
         main = auto()
-        tilt_dec_return = auto()
+        aper = main
+        mech_aper = main
+        # tilt_dec_return = auto()
+        after_surf_cs_break = auto()
         thickness = auto()
 
     # Dictionary that maps the attribute strings to their priority level
     priority_dict = {
-        main_str:               AttrPriority.main,
-        cs_break_str:           AttrPriority.cs_break,
-        tilt_dec_str:           AttrPriority.tilt_dec,
-        tilt_dec_return_str:    AttrPriority.tilt_dec_return,
-        thickness_str:          AttrPriority.thickness
+        main_str:                   AttrPriority.main,
+        # cs_break_str:           AttrPriority.cs_break,
+        # tilt_dec_str:           AttrPriority.tilt_dec,
+        # tilt_dec_return_str:    AttrPriority.tilt_dec_return,
+        before_surf_cs_break_str:   AttrPriority.before_surf_cs_break,
+        after_surf_cs_break_str:    AttrPriority.after_surf_cs_break,
+        thickness_str:              AttrPriority.thickness,
+        aper_str:                   AttrPriority.aper,
+        mech_aper_str:              AttrPriority.mech_aper
     }
 
     def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, comment: str = '',
@@ -72,17 +84,17 @@ class ZmxSurface(Surface):
         # This needs to be before the superclass constructor so properties such as thickness are defined
         self._attr_rows = {}
 
-        # Initialize private variables associated with each property
-        self._thickness = None
-        self._cs_break = None
-        self._is_stop = None
-        self._radius = None
-
         # Call superclass constructor
         super().__init__(name, thickness, comment, cs_break, tilt_dec)
 
         # Override the type of the system pointer
         self.sys = None     # type: kgpy.optics.ZmxSystem
+
+        # Override the type of the neighboring surfaces
+        self.prev_surf_in_system = None         # type: ZmxSurface
+        self.next_surf_in_system = None         # type: ZmxSurface
+        self.prev_surf_in_component = None      # type: ZmxSurface
+        self.next_surf_in_component = None      # type: ZmxSurface
 
     @staticmethod
     def from_surface(surf: Surface) -> 'ZmxSurface':
@@ -98,7 +110,7 @@ class ZmxSurface(Surface):
         # Copy remaining attributes
         zmx_surf.comment = surf.comment
         zmx_surf.thickness = surf.thickness
-        zmx_surf.cs_break = surf.cs_break
+        zmx_surf.before_surf_cs_break = surf.cs_break
         zmx_surf.tilt_dec = surf.tilt_dec
         zmx_surf.component = surf.component
         zmx_surf.sys = surf.sys                 # type: kgpy.optics.ZmxSystem
@@ -114,6 +126,14 @@ class ZmxSurface(Surface):
 
         # Set the attribute surfaces with the provided value
         zmx_surf._attr_rows = attr_dict
+
+        # Initialize private variables associated with each property
+        zmx_surf._thickness = None
+        zmx_surf._tilt_dec = None
+        zmx_surf._before_surf_cs_break = None
+        zmx_surf._after_surf_cs_break = None
+        zmx_surf._is_stop = None
+        zmx_surf._radius = None
 
         return zmx_surf
 
@@ -193,9 +213,9 @@ class ZmxSurface(Surface):
             if self.thickness_str in self._attr_rows:
                 self._thickness = self._attr_rows[self.thickness_str].Thickness * self.sys.lens_units
 
-            # Otherwise, return the thickness value from the main row.
+            # Otherwise, return the thickness value from the last row in the surface
             else:
-                self._thickness = self._attr_rows[self.main_str].Thickness * self.sys.lens_units
+                self._thickness = self._attr_rows_list[-1][1].Thickness * self.sys.lens_units
 
         return self._thickness
 
@@ -213,102 +233,255 @@ class ZmxSurface(Surface):
         # Update thickness of Zemax row if this surface is connected to a system.
         if self.sys is not None:
 
+            # Convert Quantity to float in Zemax lens units
+            t_value = float(t / self.sys.lens_units)
+
             # If there is a thickness row defined, update the value from that row
             if self.thickness_str in self._attr_rows:
-                self._attr_rows[self.thickness_str].Thickness = float(t / self.sys.lens_units)
+                self._attr_rows[self.thickness_str].Thickness = t_value
 
             # Otherwise, update the thickness value from the main row.
             else:
-                self._attr_rows[self.main_str].Thickness = float(t / self.sys.lens_units)
+                self._attr_rows_list[-1][1].Thickness = t_value
 
     @property
-    def cs_break(self) -> CoordinateSystem:
+    def before_surf_cs_break(self) -> CoordinateSystem:
         """
-        Compute the coordinate system for this coordinate break.
-        Zemax represents the tilts of a optical surface using the xyz intrinsic Tait-Bryan angles.
-        This function tries to find a coordinate break surface within the list of attribute rows, and if it exists,
-        constructs a new coordinate system to represent the coordinate break.
-        If the coordinate break does not exist, it returns the identity coordinate system.
-        :return: A coordinate system representing a Zemax coordinate break.
+        CoordinateSystem representing a coordinate break before the optical surface.
+
+        :return: A coordinate break to be applied before the surface.
         """
 
-        if self._cs_break is None:
+        # If the value of the coordinate break has not been read from Zemax
+        if self._before_surf_cs_break is None:
 
             # If a cs_break row is defined, convert to a CoordinateSystem object and return.
-            if self.cs_break_str in self._attr_rows:
+            if self.before_surf_cs_break_str in self._attr_rows:
 
                 # Find the Zemax LDE row corresponding to the coordinate break for this surface
-                row = self._attr_rows[self.cs_break_str]
+                row = self._attr_rows[self.before_surf_cs_break_str]
 
-                # Extract the tip/tilt/decenter data from the Zemax row
-                data = self._ISurfaceCoordinateBreak_data(row)
+                d1 = self._ISurfaceCoordinateBreak_data(row)
 
-                # Construct vector from decenter parameters
-                X = Vector([data.Decenter_X, data.Decenter_Y, 0] * self.sys.lens_units)
-
-                # Construct rotation quaternion from tilt parameters
-                Q = from_xyz_intrinsic_tait_bryan_angles(data.TiltAbout_X, data.TiltAbout_Y, data.TiltAbout_Z)
-
-                # Determine which order the tilts/decenters should be executed
-                if data.Order == 0:
-                    translation_first = True
-                else:
-                    translation_first = False
-
-                # Create new coordinate system representing the Zemax coordinate break
-                cs = CoordinateSystem(X, Q, translation_first=translation_first)
-
-                self._cs_break = cs
+                # Convert a Zemax coordinate break into a coordinate system
+                cs1 = self._cs_from_tait_bryant(d1.Decenter_X, d1.Decenter_Y, d1.TiltAbout_X, d1.TiltAbout_Y,
+                                                d1.TiltAbout_Z, d1.Order)
 
             # Otherwise just return a identity coordinate system
             else:
-                self._cs_break = gcs()
+                cs1 = gcs()
 
-        return self._cs_break
+            # Add the tilt/decenter within the main surface
+            d2 = self._attr_rows[self.main_str].TiltDecenterData
+            cs2 = self._cs_from_tait_bryant(d2.BeforeSurfaceDecenterX, d2.BeforeSurfaceDecenterY, d2.BeforeSurfaceTiltX,
+                                            d2.BeforeSurfaceTiltY, d2.BeforeSurfaceTiltZ, d2.BeforeSurfaceOrder)
 
-    @cs_break.setter
-    def cs_break(self, cs: CoordinateSystem) -> None:
+            # The total coordinate break is the composition of the two coordinate systems
+            self._before_surf_cs_break = cs1 @ cs2
+
+        return self._before_surf_cs_break
+
+    @before_surf_cs_break.setter
+    def before_surf_cs_break(self, cs: CoordinateSystem) -> None:
         """
-        Set a Zemax coordinate break using a CoordinateSystem
-        :param cs: CoordinateSystem to convert to a Zemax coordinate break
+        Set the coordinate break before the surface
+
+        :param cs: Coordinate system describing the coordinate break
         :return: None
         """
 
         # Update private variable
-        self._cs_break = cs
+        self._before_surf_cs_break = cs
 
         # Update coordinate break row if we're connected to a optics system
         if self.sys is not None:
 
-            # If there is not already a coordinate break row defined, create it
-            if self.cs_break_str not in self._attr_rows:
-                self.insert(self.cs_break_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
+            # Grab pointer to tilt/dec data for convenience
+            d1 = self._attr_rows[self.main_str].TiltDecenterData
 
-            # Find the Zemax LDE row corresponding to the coordinate break for this surface
-            row = self._attr_rows[self.cs_break_str]
+            # Convert CoordinateSystem to Zemax parameters
+            X_x, X_y, R_x, R_y, R_z, order = self._cs_to_tait_bryant(cs)
 
-            # Extract the tip/tilt/decenter data from the Zemax row
-            data = self._ISurfaceCoordinateBreak_data(row)
+            # If there is already a coordinate break row defined,
+            if self.before_surf_cs_break_str in self._attr_rows:
 
-            # Check that we have a coordinate system that is compatible with a coordinate break
-            if cs.X.z != 0:
-                raise ValueError('Nonzero z-translation')
+                # Grab pointer to coordinate break row data
+                d2 = self._ISurfaceCoordinateBreak_data(self._attr_rows[self.before_surf_cs_break_str])
 
-            # Update the order
-            if cs.translation_first:
-                data.Order = 0
+                # Update coordinate break data
+                d2.Decenter_X = X_x
+                d2.Decenter_Y = X_y
+                d2.TiltAbout_X = R_x
+                d2.TiltAbout_Y = R_y
+                d2.TiltAbout_Z = R_z
+
+                # Update tilt/dec data
+                d1.BeforeSurfaceDecenterX = 0.0
+                d1.BeforeSurfaceDecenterY = 0.0
+                d1.BeforeSurfaceTiltX = 0.0
+                d1.BeforeSurfaceTiltY = 0.0
+                d1.BeforeSurfaceTiltZ = 0.0
+                d1.BeforeSurfaceOrder = 0
+
+            # Otherwise, there is no coordinate break row
             else:
-                data.Order = 1
 
-            # Update the translation
-            data.Decenter_X = cs.X.x / self.u
-            data.Decenter_Y = cs.X.y / self.u
+                # Update tilt/dec data
+                d1.BeforeSurfaceDecenterX = X_x
+                d1.BeforeSurfaceDecenterY = X_y
+                d1.BeforeSurfaceTiltX = R_x
+                d1.BeforeSurfaceTiltY = R_y
+                d1.BeforeSurfaceTiltZ = R_z
+                d1.BeforeSurfaceOrder = order
 
-            # Update the rotation
-            a, b, c = as_xyz_intrinsic_tait_bryan_angles(cs.Q)
-            data.TiltAbout_X = a
-            data.TiltAbout_Y = b
-            data.TiltAbout_Z = c
+    @property
+    def after_surf_cs_break(self) -> CoordinateSystem:
+        """
+        CoordinateSystem representing a coordinate break after the optical surface.
+
+        :return: A coordinate break to be applied after the surface.
+        """
+
+        # If the value of the coordinate break has not been read from Zemax
+        if self._after_surf_cs_break is None:
+
+            # If a cs_break row is defined, convert to a CoordinateSystem object and return.
+            if self.after_surf_cs_break_str in self._attr_rows:
+
+                # Find the Zemax LDE row corresponding to the coordinate break for this surface
+                row = self._attr_rows[self.after_surf_cs_break_str]
+
+                d1 = self._ISurfaceCoordinateBreak_data(row)
+
+                # Convert a Zemax coordinate break into a coordinate system
+                cs1 = self._cs_from_tait_bryant(d1.Decenter_X, d1.Decenter_Y, d1.TiltAbout_X, d1.TiltAbout_Y,
+                                                d1.TiltAbout_Z, d1.Order)
+
+            # Otherwise just return a identity coordinate system
+            else:
+                cs1 = gcs()
+
+            # Add the tilt/decenter within the main surface
+            d2 = self._attr_rows[self.main_str].TiltDecenterData
+            cs2 = self._cs_from_tait_bryant(d2.AfterSurfaceDecenterX, d2.AfterSurfaceDecenterY, d2.AfterSurfaceTiltX,
+                                            d2.AfterSurfaceTiltY, d2.AfterSurfaceTiltZ, d2.AfterSurfaceOrder)
+
+            # The total coordinate break is the composition of the two coordinate systems
+            self._after_surf_cs_break = cs1 @ cs2
+
+        return self._after_surf_cs_break
+
+    @after_surf_cs_break.setter
+    def after_surf_cs_break(self, cs: CoordinateSystem) -> None:
+        """
+        Set the coordinate break after the surface
+
+        :param cs: Coordinate system describing the coordinate break
+        :return: None
+        """
+
+        # Update private variable
+        self._after_surf_cs_break = cs
+
+        # Update coordinate break row if we're connected to a optics system
+        if self.sys is not None:
+
+            # Grab pointer to tilt/dec data for convenience
+            d1 = self._attr_rows[self.main_str].TiltDecenterData
+
+            # Convert CoordinateSystem to Zemax parameters
+            X_x, X_y, R_x, R_y, R_z, order = self._cs_to_tait_bryant(cs)
+
+            # If there is already a coordinate break row defined,
+            if self.after_surf_cs_break_str in self._attr_rows:
+
+                # Grab pointer to coordinate break row data
+                d2 = self._ISurfaceCoordinateBreak_data(self._attr_rows[self.after_surf_cs_break_str])
+
+                # Update coordinate break data
+                d2.Decenter_X = X_x
+                d2.Decenter_Y = X_y
+                d2.TiltAbout_X = R_x
+                d2.TiltAbout_Y = R_y
+                d2.TiltAbout_Z = R_z
+
+                # Update tilt/dec data
+                d1.AfterSurfaceDecenterX = 0.0
+                d1.AfterSurfaceDecenterY = 0.0
+                d1.AfterSurfaceTiltX = 0.0
+                d1.AfterSurfaceTiltY = 0.0
+                d1.AfterSurfaceTiltZ = 0.0
+                d1.AfterSurfaceOrder = 0
+
+            # Otherwise, there is no coordinate break row
+            else:
+
+                # Update tilt/dec data
+                d1.AfterSurfaceDecenterX = X_x
+                d1.AfterSurfaceDecenterY = X_y
+                d1.AfterSurfaceTiltX = R_x
+                d1.AfterSurfaceTiltY = R_y
+                d1.AfterSurfaceTiltZ = R_z
+                d1.AfterSurfaceOrder = order
+
+    # @property
+    # def tilt_dec(self) -> CoordinateSystem:
+    #     """
+    #     Compute the tilt/dec coordinate system from Zemax.
+    #
+    #     :return: A coordinate system representing the tilt/dec of a surface.
+    #     """
+    #
+    #     # If the value of the coordinate break has not been read from Zemax
+    #     if self._tilt_dec is None:
+    #
+    #         # If a tilt/dec row is defined
+    #         if self.tilt_dec_str in self._attr_rows:
+    #
+    #             # If a tilt/dec return row is defined
+    #             if self.tilt_dec_return_str in self._attr_rows:
+    #
+    #                 # Find the Zemax LDE row corresponding to the coordinate break for this surface
+    #                 row = self._attr_rows[self.tilt_dec_str]
+    #
+    #                 # Convert a Zemax coordinate break into a coordinate system
+    #                 self._tilt_dec = self._cs_from_row(row)
+    #
+    #             # Otherwise, there's no return row, and this is a syntax error.
+    #             else:
+    #                 raise ValueError('No return coordinate break for tilt/dec')
+    #
+    #         # Otherwise just return a identity coordinate system
+    #         else:
+    #             self._tilt_dec = gcs()
+    #
+    #     return self._tilt_dec
+    #
+    # @tilt_dec.setter
+    # def tilt_dec(self, cs: CoordinateSystem) -> None:
+    #     """
+    #     Set a Zemax tilt/dec using a CoordinateSystem
+    #     :param cs: CoordinateSystem to convert to a Zemax tilt/dec.
+    #     :return: None
+    #     """
+    #
+    #     # Update private variable
+    #     self._tilt_dec = cs
+    #
+    #     # Update coordinate break row if we're connected to a optics system
+    #     if self.sys is not None:
+    #
+    #         # If there is not already a coordinate break row defined, create it
+    #         if self.tilt_dec_str not in self._attr_rows:
+    #             self.insert(self.tilt_dec_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
+    #             self.insert(self.tilt_dec_return_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
+    #
+    #         # Find the Zemax LDE row corresponding to the coordinate break for this surface
+    #         row = self._attr_rows[self.tilt_dec_str]
+    #
+    #         # Update the row with the new coordinate system
+    #         self._cs_to_row(cs, row)
+
 
     @staticmethod
     def _ISurfaceCoordinateBreak_data(row: ILDERow) -> ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak:
@@ -484,6 +657,74 @@ class ZmxSurface(Surface):
             return self._attr_rows_indices[-1]
         else:
             return None
+
+    def _cs_from_tait_bryant(self, X_x: float, X_y: float, R_x: float, R_y: float, R_z: float,
+                             order: int):
+        """
+        Construct a Coordinate System using Zemax Tilt/Decenter parameters.
+
+        :param X_x: Decenter x
+        :param X_y: Decenter y
+        :param R_x: Tilt about x
+        :param R_y: Tilt about y
+        :param R_z: Tilt about z
+        :param order: If zero, the decenter is first, otherwise the tilt is first.
+        :return:
+        """
+
+        # Express angles as a degree quantity
+        R_x = R_x * u.deg       # type: u.Quantity
+        R_y = R_y * u.deg       # type: u.Quantity
+        R_z = R_z * u.deg       # type: u.Quantity
+
+        # Convert to radians
+        R_x = R_x.to(u.rad)
+        R_y = R_y.to(u.rad)
+        R_z = R_z.to(u.rad)
+
+        # Construct vector from decenter parameters
+        X = Vector([X_x, X_y, 0] * self.sys.lens_units)
+
+        # Construct rotation quaternion from tilt parameters
+        Q = from_xyz_intrinsic_tait_bryan_angles(R_x, R_y, R_z)
+
+        # Determine which order the tilts/decenters should be executed
+        if order == 0:
+            translation_first = True
+        else:
+            translation_first = False
+
+        # Create new coordinate system representing the Zemax coordinate break
+        cs = CoordinateSystem(X, Q, translation_first=translation_first)
+
+        return cs
+
+    def _cs_to_tait_bryant(self, cs: CoordinateSystem) -> Tuple[float, float, float, float, float, int]:
+        """
+        Construct Zemax tilt/decenter parameters from a coordinate system
+
+        :param cs: Coordinate system to convert
+        :return: Decenter x, decenter y, tilt x, tilt y, tilt z, order
+        """
+
+        # Check that we have a coordinate system that is compatible with a coordinate break
+        if cs.X.z != 0:
+            raise ValueError('Nonzero z-translation')
+
+        # Update the order
+        if cs.translation_first:
+            order = 0
+        else:
+            order = 1
+
+        # Update the translation
+        X_x = cs.X.x / self.sys.lens_units
+        X_y = cs.X.y / self.sys.lens_units
+
+        # Update the rotation
+        R_x, R_y, R_z = as_xyz_intrinsic_tait_bryan_angles(cs.Q)
+
+        return X_x, X_y, R_x, R_y, R_z, order
 
     def __getitem__(self, item: Union[int, str]) -> ILDERow:
         """

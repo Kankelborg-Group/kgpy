@@ -1,12 +1,12 @@
 
 from typing import Union, List, Tuple, Iterable, Type
 import numpy as np
-import quaternion as q
 import astropy.units as u
+from beautifultable import BeautifulTable
 
 
 import kgpy.optics
-from kgpy.math import CoordinateSystem, Vector
+from kgpy.math import CoordinateSystem, Vector, quaternion
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics.surface.types import SurfaceType, Standard
 
@@ -45,6 +45,12 @@ class Surface:
         self.component = None                   # type: kgpy.optics.Component
         self.sys = None                         # type: kgpy.optics.System
 
+        # Initialize links to neighboring surfaces
+        self.prev_surf_in_system = None         # type: Surface
+        self.next_surf_in_system = None         # type: Surface
+        self.prev_surf_in_component = None      # type: Surface
+        self.next_surf_in_component = None      # type: Surface
+
         # Save input arguments as class variables
         self.name = name
         self.thickness = thickness
@@ -52,10 +58,17 @@ class Surface:
         self.tilt_dec = tilt_dec
         self.cs_break = cs_break
 
-        self.prev_surf_in_system = None
-        self.next_surf_in_system = None
-        self.prev_surf_in_component = None
-        self.next_surf_in_component = None
+        # Coordinate breaks before/after surface
+        self.before_surf_cs_break = gcs()
+        self.after_surf_cs_break = gcs()
+
+        # Space for storing previous evaluations of the coordinate systems.
+        # We store this information instead of evaluating on the fly since the evaluations are expensive.
+        # These variables must be reset to None if the system changes.
+        self._previous_cs = None
+        self._cs = None
+        self._front_cs = None
+        self._back_cs = None
 
         # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
         self.is_active = False
@@ -106,6 +119,43 @@ class Surface:
             raise ValueError('Radius must have dimensions of length')
 
         self._radius = val
+
+    @property
+    def thickness(self) -> u.Quantity:
+        """
+        :return: The distance between the front and back of this surface.
+        """
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, t: u.Quantity) -> None:
+        """
+        Set the thickness of the surface
+        :param t: New surface thickness. Must have units of length
+        :return: None
+        """
+
+        # Check that the thickness parameter has the units attribute
+        if not isinstance(t, u.Quantity):
+            raise TypeError('thickness parameter must be an astropy.units.Quantity')
+
+        # Check that the thickness parameter has dimensions of length
+        if not t.unit.is_equivalent(u.m):
+            raise TypeError('thickness parameter does not have dimensions of length')
+
+        # Update private storage variable
+        self._thickness = t
+
+        # Reset coordinate systems since they need to be reevaluated with the new thickness.
+        self.reset_cs()
+
+    @property
+    def T(self) -> Vector:
+        """
+        Thickness vector
+        :return: Vector pointing from the center of a surface's front face to the center of a surface's back face
+        """
+        return self.thickness * self.front_cs.zh
 
     @property
     def is_object(self) -> bool:
@@ -164,7 +214,13 @@ class Surface:
     #     return self._prev_surf_in_system
     #
     # @prev_surf_in_system.setter
+    # def prev_surf_in_system(self, val):
     #
+    #     if val is not None:
+
+
+
+
     # @property
     # def next_surf_in_system(self) -> Union['Surface', None]:
     #     """
@@ -275,41 +331,37 @@ class Surface:
         else:
             raise ValueError('More than one surface matches in list')
 
-    @property
-    def thickness(self) -> u.Quantity:
+    def reset_cs(self) -> None:
         """
-        :return: The distance between the front and back of this surface.
-        """
-        return self._thickness
+        Resets the coordinate system for this surface and all surfaces after this surface in the system.
 
-    @thickness.setter
-    def thickness(self, t: u.Quantity) -> None:
-        """
-        Set the thickness of the surface
-        :param t: New surface thickness. Must have units of length
+        This function is intended to be used by System.insert() to make sure that the coordinate systems get
+        reinitialized appropriately after an new surface is inserted.
         :return: None
         """
 
-        # Check that the thickness parameter has the units attribute
-        if not isinstance(t, u.Quantity):
-            raise TypeError('thickness parameter must be an astropy.units.Quantity')
+        # Set the current surface to this surface
+        surf = self
 
-        # Check that the thickness parameter has dimensions of length
-        if not t.unit.is_equivalent(u.m):
-            raise TypeError('thickness parameter does not have dimensions of length')
+        # Loop until there are no more surfaces
+        while True:
 
-        self._thickness = t
+            # Reset all the coordinate systems
+            surf._previous_cs = None
+            surf._cs = None
+            surf._front_cs = None
+            surf._back_cs = None
+
+            # If there is another surface in the system, update the current surface
+            if surf.next_surf_in_system is not None:
+                surf = surf.next_surf_in_system
+
+            # Otherwise there are no surfaces left and we can break out of the loop.
+            else:
+                break
 
     @property
-    def T(self) -> Vector:
-        """
-        Thickness vector
-        :return: Vector pointing from the center of a surface's front face to the center of a surface's back face
-        """
-        return self.thickness * self.front_cs.zh
-
-    @property
-    def _previous_cs(self) -> CoordinateSystem:
+    def previous_cs(self) -> CoordinateSystem:
         """
         The coordinate system of the surface before this surface in the optical system.
         This is the coordinate system that this surface will be "attached" to.
@@ -319,63 +371,27 @@ class Surface:
         :return: The last CoordinateSystem in the optical system
         """
 
-        # If this is not the first surface in the system
-        if self.prev_surf_in_system is not None:
+        # Only re-evaluate if the storage variable is unpopulated
+        if self._previous_cs is None:
 
-            # If the previous surface in the system is not the object system
-            if not self.prev_surf_in_system.is_object:
+            # If this is not the first surface in the system
+            if self.prev_surf_in_system is not None:
 
-                # Grab a pointer to the coordinate system of the back of the previous surface
-                cs = self.prev_surf_in_system.back_cs
+                # If the previous surface in the system is not the object system
+                if not self.prev_surf_in_system.is_object:
 
-                # If this surface belongs to a component
-                if self.component is not None:
+                    # Grab a pointer to the coordinate system of the back of the previous surface
+                    self._previous_cs = self.prev_surf_in_system.back_cs
 
-                    # If this is not the first surface in the component
-                    if self.prev_surf_in_component is not None:
-
-                        # Return the coordinate system of the back of the previous surface
-                        return cs
-
-                    # Otherwise this is the first surface in the component
-                    else:
-
-                        # And we return the coordinate system of the back of the previous surface, composed with the
-                        # coordinate break of this component
-                        return cs @ self.component.cs_break
-
-                # Otherwise, this surface is not associated with a component, and we can just return the coordinate
-                # system of the back of the previous surface
+                # If the previous surface in the system is the object surface.
                 else:
-                    return cs
+                    self._previous_cs = gcs()
 
-            # If the previous surface in the system is the object surface.
+            # Otherwise this is the first surface in the system
             else:
-                return gcs()
+                self._previous_cs = gcs()
 
-        # Otherwise this is the first surface in the system
-        else:
-
-            # If this surface belongs to a component
-            if self.component is not None:
-
-                # If this is not the first surface in the component
-                if self.prev_surf_in_component is not None:
-
-                    # Return the coordinate system of the back of the previous surface in the component
-                    return self.prev_surf_in_component.back_cs
-
-                # Otherwise, this is the first surface in the component
-                else:
-
-                    # And we return the coordinate break of this component
-                    return self.component.cs_break
-
-            # Otherwise this surface does not belong to a component
-            else:
-
-                # And it lives at the origin
-                return gcs()
+        return self._previous_cs
 
     @property
     def cs(self) -> CoordinateSystem:
@@ -386,7 +402,11 @@ class Surface:
         :return: Coordinate system of the surface face
         """
 
-        return self._previous_cs @ (self.cs_break @ self.tilt_dec)
+        # Only re-evaluate if the storage variable is unpopulated
+        if self._cs is None:
+            self._cs = self.previous_cs @ self.before_surf_cs_break
+
+        return self._cs
 
     @property
     def front_cs(self) -> CoordinateSystem:
@@ -398,7 +418,11 @@ class Surface:
         :return: Coordinate system of the surface face ignoring tilt/decenter.
         """
 
-        return self._previous_cs @ self.cs_break
+        # Only re-evaluate if the storage variable is unpopulated
+        if self._front_cs is None:
+            self._front_cs = self.cs @ self.after_surf_cs_break
+
+        return self._front_cs
 
     @property
     def back_cs(self) -> CoordinateSystem:
@@ -409,7 +433,11 @@ class Surface:
         :return: Coordinate system of the back face of the surface.
         """
 
-        return self.front_cs + self.T
+        # Only re-evaluate if the storage variable is unpopulated
+        if self._back_cs is None:
+            self._back_cs = self.front_cs + self.T
+
+        return self._back_cs
 
     def __eq__(self, other: 'Surface'):
         """
@@ -424,9 +452,24 @@ class Surface:
 
         return a and e
 
-    def __str__(self) -> str:
+    @property
+    def table_headers(self) -> List[str]:
         """
-        :return: String representation of the surface
+        List of headers used for printing table representation of surface
+
+        :return: List of header strings
+        """
+        return ['Component', 'Surface', 'Thickness', '',
+                'X_x', 'X_y', 'X_z', '',
+                'T_x', 'T_y', 'T_z', '',
+                'Is Stop']
+
+    @property
+    def table_row(self):
+        """
+        Format the surface as a list of strings for use in the table representation.
+
+        :return: List of strings representing the surface.
         """
 
         # Only populate the component name string if the component exists
@@ -435,8 +478,43 @@ class Surface:
         else:
             comp_name = ''
 
-        # Construct the return string
-        return 'surface(' + comp_name + '.' + self.name + ', thickness = ' + str(self.thickness) \
-               + ', ' + self._previous_cs.__str__() + ', is_stop = ' + str(self.is_stop) + ')'
+        # Store shorthand versions of coordinate system variables
+        cs = self.cs
+        X = cs.X
+        Q = cs.Q
+
+        # Convert to Tait-Bryant angles
+        T = quaternion.as_xyz_intrinsic_tait_bryan_angles(Q) * u.rad    # type: u.Quantity
+
+        # Convert angles to degrees
+        T = T.to(u.deg)
+
+        def fmt(s) -> str:
+            """
+            Format a number for use with the table representation
+
+            :param s: Number to be formatted
+            :return: String representation of the number in the specified format.
+            """
+            return "{0:.2f}".format(s)
+
+        return [comp_name, self.name, fmt(self.thickness), '',
+                fmt(X.x), fmt(X.y), fmt(X.z), '',
+                fmt(T[0]), fmt(T[1]), fmt(T[2]), '',
+                self.is_stop]
+
+    def __str__(self) -> str:
+        """
+        :return: String representation of the surface
+        """
+
+        # Construct new table for printing
+        table = BeautifulTable(max_width=200)
+
+        # Populate table
+        table.column_headers = self.table_headers
+        table.append_row(self.table_row)
+
+        return table.get_string()
 
     __repr__ = __str__

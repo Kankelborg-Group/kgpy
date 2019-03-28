@@ -3,6 +3,7 @@ import numpy as np
 from typing import List, Dict, Union
 import quaternion as q
 import astropy.units as u
+from beautifultable import BeautifulTable
 
 from kgpy.math import CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
@@ -165,6 +166,9 @@ class System:
         # Add the surface to the list of surfaces
         self._surfaces.insert(index, surface)
 
+        # Reset the coordinate systems, to revaluate with the new surface
+        surface.reset_cs()
+
     def append(self, surface: Surface) -> None:
         """
         Add a surface to the end of an optical system (but before the image).
@@ -313,10 +317,31 @@ class System:
         :return: String representation of a system
         """
 
-        # Construct line out of top-level parameters of the component
-        ret = self.name + ', comment = ' + self.comment + '\n'
+        # Create output table
+        table = BeautifulTable(max_width=200)
+
         # Append lines for each surface within the component
         for surface in self._surfaces:
-            ret = ret + '\t' + surface.__str__() + '\n'
 
-        return ret
+            # Add headers if not already populated
+            if not table.column_headers:
+                table.column_headers = surface.table_headers
+
+            # Append surface to table
+            table.append_row(surface.table_row)
+
+        # Set column alignments
+        table.column_alignments['Component'] = BeautifulTable.ALIGN_LEFT
+        table.column_alignments['Surface'] = BeautifulTable.ALIGN_LEFT
+        table.column_alignments['Thickness'] = BeautifulTable.ALIGN_RIGHT
+        table.column_alignments['X_x'] = BeautifulTable.ALIGN_RIGHT
+        table.column_alignments['X_y'] = BeautifulTable.ALIGN_RIGHT
+        table.column_alignments['X_z'] = BeautifulTable.ALIGN_RIGHT
+        table.column_alignments['T_x'] = BeautifulTable.ALIGN_RIGHT
+        table.column_alignments['T_y'] = BeautifulTable.ALIGN_RIGHT
+        table.column_alignments['T_z'] = BeautifulTable.ALIGN_RIGHT
+
+        # Don't automatically format numeric strings
+        table.detect_numerics = False
+
+        return table.__str__()

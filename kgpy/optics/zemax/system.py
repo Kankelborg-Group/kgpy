@@ -7,6 +7,7 @@ from collections import OrderedDict
 from numbers import Real
 import numpy as np
 import astropy.units as u
+from shapely.geometry import Polygon
 
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import System, Component, Surface
@@ -226,6 +227,51 @@ class ZmxSystem(System):
 
         return V, X, Y
 
+    @staticmethod
+    def _read_uda_file(uda_file: str) -> Polygon:
+        """
+        Interpret a Zemax user-defined aperture (UDA) file as a polygon.
+
+        :param uda_file: Location of the uda file to read
+        :return: A polygon representing the aperture.
+        """
+
+        # Open the file
+        with open(uda_file, encoding='utf-16') as uda:
+
+            # Allocate space for storing the list of points in the file
+            pts = []
+
+            # Loop through every line in the file
+            for line in uda:
+
+                # Remove the newlines from the end of the line
+                line = line.strip()
+
+                # Split each string at spaces
+                params = line.split(' ')
+
+                # Remove any empty elements (multiple spaces between arguments)
+                params = list(filter(None, params))
+
+                # If this is a line-type entry
+                if params[0] == 'LIN':
+
+                    # If the line has three total arguments
+                    if len(params) == 3:
+
+                        # Append the x,y coordinates to the list of points
+                        pts.append((float(params[1]), float(params[2])))
+
+                    # Otherwise, the line has the incorrect number of arguments
+                    else:
+                        raise ValueError('Incorrect number of parameters for line')
+
+            # Construct new polygon from the list of points
+            aper = Polygon(pts)
+
+            return aper
+
     def _find_surface(self, comment: str) -> ZOSAPI.Editors.LDE.ILDERow:
         """
         Find the surface matching the provided comment string
@@ -278,7 +324,7 @@ class ZmxSystem(System):
 
         return rows
 
-    def _syntax_tree_from_comments(self) -> 'OrderedDict[str, Tuple[Component, OrderedDict[str, ILDERow]]]':
+    def _syntax_tree_from_comments(self) -> 'OrderedDict[Tuple[str, str], Tuple[Component, OrderedDict[str, ILDERow]]]':
         """
         Reads through a Zemax file and constructs a syntax tree of all the components, surfaces and attributes.
         This function is necessary to parse all the attributes into a single structure, to more easily construct a
@@ -290,7 +336,7 @@ class ZmxSystem(System):
 
         # Allocate a dictionary to store the components parsed by this function
         components = {}                 # type: Dict[str, Component]
-        surfaces = OrderedDict()        # type: OrderedDict[str, Tuple[Component, OrderedDict[str, ILDERow]]]
+        surfaces = OrderedDict()        # type: OrderedDict[Tuple[str, str], Tuple[Component, OrderedDict[str, ILDERow]]]
 
         # Loop through every surface and look for a match to the comment string
         for r, zmx_row in enumerate(self._rows):
@@ -325,11 +371,12 @@ class ZmxSystem(System):
                 surf_str = 'Surface' + str(r)
 
             # Initialize the surface node from the token if we have not seen it already
-            if surf_str not in surfaces:
-                surfaces[surf_str] = (comp, OrderedDict())
+            full_str = (comp_str, surf_str)
+            if full_str not in surfaces:
+                surfaces[full_str] = (comp, OrderedDict())
 
             # Store a pointer to the surface node for later
-            surf = surfaces[surf_str]
+            surf = surfaces[full_str]
 
             # If there is no attribute provided, assume this is the main attribute
             if attr_str is None:
@@ -362,7 +409,7 @@ class ZmxSystem(System):
             component, attrs_dict = surf_item
 
             # Read the attributes dictionary into a ZmxSurface object
-            surf = ZmxSurface.from_attr_dict(surf_name, attrs_dict)
+            surf = ZmxSurface.from_attr_dict(surf_name[1], attrs_dict)
 
             # Attach the surface to the component and to the system
             component.append_surface(surf)

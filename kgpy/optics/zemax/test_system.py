@@ -6,6 +6,7 @@ import os
 from typing import List
 import numpy as np
 import astropy.units as u
+import matplotlib.pyplot as plt
 
 from kgpy.optics import Surface, Component, System, ZmxSystem, ZmxSurface
 from kgpy.optics.test_system import system
@@ -96,6 +97,17 @@ class TestZmxSystem:
         # Check that the ray traversed the expected amount in the y-direction
         assert np.isclose(X[0], 0)
         assert np.isclose(Y[0], 100 * np.sin(np.radians(1.0)), rtol=1e-3)
+
+    def test_read_uda_file(self):
+
+        uda_file = os.path.join(os.path.dirname(__file__), 'test.uda')
+
+        aper = ZmxSystem._read_uda_file(uda_file)
+
+        x, y = aper.exterior.xy
+
+        assert x[0] == -1.91
+        assert y[3] == 8.49
 
     def test_find_surface(self, zmx_system: ZmxSystem):
 

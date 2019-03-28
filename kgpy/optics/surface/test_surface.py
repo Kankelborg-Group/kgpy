@@ -110,7 +110,7 @@ class TestSurface:
         s3 = Surface('s3', thickness=t)
 
         # Check that the surfaces return the global coordinate system by default
-        assert s1._previous_cs == gcs()
+        assert s1.previous_cs == gcs()
 
         # Add the three surfaces to two components, with the second component getting two surfaces
         cs = gcs() * q.from_euler_angles(0, np.pi/2, 0)
@@ -121,9 +121,9 @@ class TestSurface:
         c2.append_surface(s3)
 
         # Check that the coordinate systems are correct for independent components
-        assert s1._previous_cs.isclose(gcs())
-        assert s2._previous_cs.isclose(cs)
-        assert s3._previous_cs.isclose(cs + (t * cs.xh_g))
+        assert s1.previous_cs.isclose(gcs())
+        assert s2.previous_cs.isclose(cs)
+        assert s3.previous_cs.isclose(cs + (t * cs.xh_g))
 
         # Place the components into a test system
         sys = System('sys')
@@ -131,9 +131,9 @@ class TestSurface:
         sys.append_component(c2)
 
         # Check that the coordinate systems are correct for the two components appended together
-        assert s1._previous_cs.isclose(gcs())
-        assert s2._previous_cs.isclose(cs + t * cs.zh_g)
-        assert s3._previous_cs.isclose(cs + t * cs.zh_g + t * cs.xh_g)
+        assert s1.previous_cs.isclose(gcs())
+        assert s2.previous_cs.isclose(cs + t * cs.zh_g)
+        assert s3.previous_cs.isclose(cs + t * cs.zh_g + t * cs.xh_g)
 
     def test_cs(self):
         """
@@ -262,3 +262,5 @@ class TestSurface:
         surf = Surface('test')
 
         assert isinstance(surf.__str__(), str)
+
+        print(surf)
