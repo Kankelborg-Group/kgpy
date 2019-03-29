@@ -150,6 +150,9 @@ class System:
         :return: None
         """
 
+        # Make sure that the index is positive
+        index = index % len(self)
+
         # Set the system pointer
         surface.sys = self
 
@@ -160,8 +163,8 @@ class System:
 
         # Set the link to the surface after the new surface
         if index < len(self):
-            self[index].next_surf_in_system = surface
-            surface.prev_surf_in_system = self[index]
+            self[index].prev_surf_in_system = surface
+            surface.next_surf_in_system = self[index]
 
         # Add the surface to the list of surfaces
         self._surfaces.insert(index, surface)
@@ -187,7 +190,7 @@ class System:
         # Append surface to the list of surfaces
         self._surfaces.append(surface)
 
-    def append_component(self, component: Component) -> None:
+    def insert_component(self, component: Component, index: int) -> None:
         """
         Add the component and all its surfaces to the end of an optical system.
         :param component: component to be added to the system.
@@ -199,7 +202,8 @@ class System:
 
         # Loop through the surfaces in the component add them to the back of the system
         for surf in component:
-            self.append(surf)
+            self.insert(surf, index)
+            index = index + 1
 
     def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem) -> Component:
         """
@@ -242,14 +246,16 @@ class System:
 
                 # Create new baffle surface
                 baffle_thickness = t2.dot(surf.front_cs.zh)
-                baffle_surf = Surface(baffle_name, comment='pass = ' + str(baffle_pass), thickness=baffle_thickness,
-                                      tilt_dec=cs)
+                baffle_surf = Surface(baffle_name, thickness=baffle_thickness)
+                baffle_surf.comment = 'pass = ' + str(baffle_pass)
+                baffle_surf.before_surf_cs_break = cs
+                baffle_surf.after_surf_cs_break = cs.inverse
 
                 # Link the new baffle surface into the system
                 self.insert(baffle_surf, surf.system_index + 1)
 
                 # Insert new baffle surface into baffle component
-                baffle.append_surface(baffle_surf)
+                baffle.append(baffle_surf)
 
                 # Update the number of baffle passes
                 baffle_pass += 1

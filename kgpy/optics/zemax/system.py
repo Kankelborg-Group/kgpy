@@ -412,7 +412,7 @@ class ZmxSystem(System):
             surf = ZmxSurface.from_attr_dict(surf_name[1], attrs_dict)
 
             # Attach the surface to the component and to the system
-            component.append_surface(surf)
+            component.append(surf)
 
             # Append to the list of surfaces.
             # Use the superclass constructor since we don't want to add a new ILDERow to the ILensDataEditor, and this

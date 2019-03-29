@@ -11,3 +11,5 @@ from .SurfaceColumn import *
 from .CoordinateConversionResult import *
 from .ConversionOrder import *
 from .PupilApodizationType import *
+from .SurfaceApertureTypes import *
+from .ISurfaceApertureType import *

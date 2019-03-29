@@ -12,13 +12,7 @@ class TestSurface:
 
     def test_system_index(self, system):
 
-        # Check the index of the Primary surface
-        primary_comment = 'Primary'
-        true_primary_ind = 3
-        primary_surf = system._find_surface(primary_comment)
-
-        print(primary_surf)
-        assert primary_surf.SurfaceNumber == true_primary_ind
+        pass
 
     def test_cs_break(self):
 

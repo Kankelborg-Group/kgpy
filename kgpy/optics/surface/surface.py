@@ -8,7 +8,8 @@ from beautifultable import BeautifulTable
 import kgpy.optics
 from kgpy.math import CoordinateSystem, Vector, quaternion
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics.surface.types import SurfaceType, Standard
+from kgpy.optics.surface.surf_types import SurfaceType, Standard
+from kgpy.optics import aperture
 
 __all__ = ['Surface']
 
@@ -19,8 +20,7 @@ class Surface:
     have all the same properties and behaviors.
     """
 
-    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, comment: str = '',
-                 cs_break: CoordinateSystem = gcs(), tilt_dec: CoordinateSystem = gcs()):
+    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m):
         """
         Constructor for the Surface class.
         This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
@@ -38,9 +38,6 @@ class Surface:
         This argument is similar to the tilt/decenter feature in Zemax.
         """
 
-        # Initialize private variables
-        self._thickness = 0 * u.mm
-
         # Attributes to be set by the Component and System classes
         self.component = None                   # type: kgpy.optics.Component
         self.sys = None                         # type: kgpy.optics.System
@@ -54,9 +51,10 @@ class Surface:
         # Save input arguments as class variables
         self.name = name
         self.thickness = thickness
-        self.comment = comment
-        self.tilt_dec = tilt_dec
-        self.cs_break = cs_break
+
+        # Initialize other attributes
+        self.comment = ''
+        self.aperture = None        # type: aperture.Aperture
 
         # Coordinate breaks before/after surface
         self.before_surf_cs_break = gcs()
@@ -65,6 +63,7 @@ class Surface:
         # Space for storing previous evaluations of the coordinate systems.
         # We store this information instead of evaluating on the fly since the evaluations are expensive.
         # These variables must be reset to None if the system changes.
+        # Todo: These variables should be moved to ZmxSurface, and the properties in this class need to be overwritten
         self._previous_cs = None
         self._cs = None
         self._front_cs = None

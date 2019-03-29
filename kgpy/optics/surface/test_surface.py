@@ -67,9 +67,9 @@ class TestSurface:
 
         # Add the three test surfaces to a component
         c = Component('c')
-        c.append_surface(s1)
-        c.append_surface(s2)
-        c.append_surface(s3)
+        c.append(s1)
+        c.append(s2)
+        c.append(s3)
 
         # Check that the indices are calculated correctly
         assert s1.component_index is 0
@@ -109,31 +109,35 @@ class TestSurface:
         s2 = Surface('s2', thickness=t)
         s3 = Surface('s3', thickness=t)
 
+
+
         # Check that the surfaces return the global coordinate system by default
         assert s1.previous_cs == gcs()
 
         # Add the three surfaces to two components, with the second component getting two surfaces
         cs = gcs() * q.from_euler_angles(0, np.pi/2, 0)
+        # s1.before_surf_cs_break = cs
         c1 = Component('c1')
-        c2 = Component('c2', cs_break=cs)
-        c1.append_surface(s1)
-        c2.append_surface(s2)
-        c2.append_surface(s3)
+        c2 = Component('c2')
+        c1.append(s1)
+        c2.append(s2)
+        c2.append(s3)
 
         # Check that the coordinate systems are correct for independent components
         assert s1.previous_cs.isclose(gcs())
-        assert s2.previous_cs.isclose(cs)
-        assert s3.previous_cs.isclose(cs + (t * cs.xh_g))
+        assert s2.previous_cs.isclose(gcs())
+        assert s3.previous_cs.isclose(gcs())
 
         # Place the components into a test system
         sys = System('sys')
-        sys.append_component(c1)
-        sys.append_component(c2)
+        sys.insert(s1, -1)
+        sys.insert(s2, -1)
+        sys.insert(s3, -1)
 
         # Check that the coordinate systems are correct for the two components appended together
         assert s1.previous_cs.isclose(gcs())
-        assert s2.previous_cs.isclose(cs + t * cs.zh_g)
-        assert s3.previous_cs.isclose(cs + t * cs.zh_g + t * cs.xh_g)
+        assert s2.previous_cs.isclose(gcs() + t * cs.zh_g)
+        assert s3.previous_cs.isclose(gcs() + 2 * t * cs.zh_g )
 
     def test_cs(self):
         """
@@ -151,13 +155,16 @@ class TestSurface:
 
         # Create two test surfaces, the second will have the nonzero tilt/dec system
         t = 1 * u.mm
-        s1 = Surface('s1', thickness=t, cs_break=cs)
-        s2 = Surface('s2', thickness=t, tilt_dec=cs)
+        s1 = Surface('s1', thickness=t)
+        s2 = Surface('s2', thickness=t)
 
-        # Add the two test surfaces to a component
-        c = Component('c')
-        c.append_surface(s1)
-        c.append_surface(s2)
+        s1.before_surf_cs_break = cs
+        s2.before_surf_cs_break = cs
+        s2.after_surf_cs_break = cs.inverse
+
+        sys = System('test')
+        sys.insert(s1, -1)
+        sys.insert(s2, -1)
 
         # Check that the front coordinate system has rotated the full 180 degrees
         assert np.isclose(s2.cs.Q, q.from_euler_angles(0, np.pi, 0))
@@ -183,16 +190,21 @@ class TestSurface:
 
         # Define the four test surfaces to arrange into a square
         s1 = Surface('Surface 1', thickness=t)
-        s2 = Surface('Surface 2', thickness=t, cs_break=cs)
-        s3 = Surface('Surface 3', thickness=t, cs_break=cs)
-        s4 = Surface('Surface 4', thickness=t, cs_break=cs)
+        s2 = Surface('Surface 2', thickness=t)
+        s3 = Surface('Surface 3', thickness=t)
+        s4 = Surface('Surface 4', thickness=t)
 
-        # Add the test surfaces to a component
-        c = Component('c')
-        c.append_surface(s1)
-        c.append_surface(s2)
-        c.append_surface(s3)
-        c.append_surface(s4)
+        # Set coordinate breaks
+        s2.before_surf_cs_break = cs
+        s3.before_surf_cs_break = cs
+        s4.before_surf_cs_break = cs
+
+        # Add the test surfaces to a system
+        sys = System('sys')
+        sys.insert(s1, -1)
+        sys.insert(s2, -1)
+        sys.insert(s3, -1)
+        sys.insert(s4, -1)
 
         # Check that the translation vector of the last surface is close to the origin
         assert s4.back_cs.X.isclose(X)
@@ -211,7 +223,8 @@ class TestSurface:
         cs = CoordinateSystem(X, Q)
 
         # Create test surface
-        s = Surface('s', cs_break=cs, thickness=X.mag)
+        s = Surface('s', thickness=X.mag)
+        s.before_surf_cs_break = cs
 
         # Check that the back surface is two millimeters from the origin in each axis
         assert s.back_cs.isclose(cs + X)
@@ -228,34 +241,39 @@ class TestSurface:
 
         # Define the four test surfaces to arrange into a square
         s1 = Surface('Surface 1', thickness=t)
-        s2 = Surface('Surface 2', thickness=t, cs_break=cs)
-        s3 = Surface('Surface 3', thickness=t, cs_break=cs)
-        s4 = Surface('Surface 4', thickness=t, cs_break=cs)
+        s2 = Surface('Surface 2', thickness=t)
+        s3 = Surface('Surface 3', thickness=t)
+        s4 = Surface('Surface 4', thickness=t)
 
-        # Add the test surfaces to a component
-        c1 = Component('c1')
-        c1.append_surface(s1)
-        c1.append_surface(s2)
-        c1.append_surface(s3)
-        c1.append_surface(s4)
+        # Set coordinate breaks
+        s2.before_surf_cs_break = cs
+        s3.before_surf_cs_break = cs
+        s4.before_surf_cs_break = cs
+
+        # Add the test surfaces to a system
+        sys = System('sys')
+        sys.insert(s1, -1)
+        sys.insert(s2, -1)
+        sys.insert(s3, -1)
+        sys.insert(s4, -1)
 
         # Make a deepcopy of the component for testing
-        c2 = deepcopy(c1)
+        sys1 = deepcopy(sys)
 
         # Check for equality between the copies
-        assert c1._surfaces[0] == c2._surfaces[0]
-        assert c1._surfaces[1] == c2._surfaces[1]
-        assert c1._surfaces[2] == c2._surfaces[2]
-        assert c1._surfaces[3] == c2._surfaces[3]
+        assert sys[0] == sys1[0]
+        assert sys[1] == sys1[1]
+        assert sys[2] == sys1[2]
+        assert sys[3] == sys1[3]
 
         # Check that the first surface is not equal to the other three
-        assert c1._surfaces[0] != c1._surfaces[1]
-        assert c1._surfaces[0] != c1._surfaces[2]
-        assert c1._surfaces[0] != c1._surfaces[3]
+        assert sys[0] != sys1[1]
+        assert sys[0] != sys1[2]
+        assert sys[0] != sys1[3]
 
         # Modify some parameters in the copy, and check that the surfaces are not equal
-        c2._surfaces[0].name = 'foo'
-        assert c1._surfaces[0] != c2._surfaces[0]
+        sys1[0].name = 'foo'
+        assert sys[0] != sys1[0]
 
     def test__str__(self):
 

@@ -15,15 +15,15 @@ from kgpy.optics.test_system import system
 def components():
     # Define a stop component and surface
     stop = Component('Stop')
-    stop.append_surface(Surface('Stop'))
+    stop.append(Surface('Stop'))
 
     # Define a lens component and surface
     lens = Component('Primary')
-    lens.append_surface(Surface('Primary'))
+    lens.append(Surface('Primary'))
 
     # Define a detector component and surface
     img = Component('Detector')
-    img.append_surface(Surface('Detector'))
+    img.append(Surface('Detector'))
 
     # Define a list of components we want to use to build the zemax system
     components = [stop, lens, img]
@@ -66,13 +66,7 @@ class TestZmxSystem:
 
         sys = ZmxSystem.from_file('test', self.test_path)
 
-        pr = cProfile.Profile()
-        pr.enable()
-
-        print(sys)
-
-        pr.disable()
-        pr.print_stats(sort="cumtime")
+        assert sys.__str__() is not None
 
     def test_raytrace(self, zmx_system: ZmxSystem):
 

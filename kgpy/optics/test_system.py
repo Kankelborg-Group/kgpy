@@ -27,15 +27,15 @@ def system(request):
     c1 = Component('c1', cs_break=cs)
     s1 = Surface('s1', thickness=t)
     s2 = Surface('s2', thickness=t)
-    c1.append_surface(s1)
-    c1.append_surface(s2)
+    c1.append(s1)
+    c1.append(s2)
 
     # Construct the second component
     c2 = Component('c2')
     s3 = Surface('s3', thickness=-t)
     s4 = Surface('s4', thickness=-t)
-    c2.append_surface(s3)
-    c2.append_surface(s4)
+    c2.append(s3)
+    c2.append(s4)
 
     # Create a new optical system and append both components
     sys = System('sys')
@@ -89,6 +89,7 @@ class TestSystem:
 
     @pytest.mark.parametrize('i', (0, 1, 2, -1, -2))
     def test_insert_surface(self, system, i: int):
+        # Todo: more robust testing for negative indices, check actual coordinate systems
 
         # Create new test surface to insert
         s_test = Surface('s_test')
@@ -128,10 +129,10 @@ class TestSystem:
         # Construct test component
         c_test = Component('c_test')
         s_test = Surface('s_test')
-        c_test.append_surface(s_test)
+        c_test.append(s_test)
 
         # Append component to system
-        system.append_component(c_test)
+        system.insert_component(c_test)
 
         # Check that the component is in the system components dict.
         assert system.components[c_test.name] == c_test
@@ -140,8 +141,6 @@ class TestSystem:
         assert system._surfaces[-1] == s_test
 
     def test_add_baffle(self, system):
-
-        print(system)
 
         # Create a copy of the system for later comparison
         old_sys = deepcopy(system)

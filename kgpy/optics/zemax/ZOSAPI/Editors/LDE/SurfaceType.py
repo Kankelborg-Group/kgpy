@@ -1,5 +1,4 @@
 
-from enum import IntEnum
 from win32com.client import constants
 
 __all__ = ['SurfaceType']

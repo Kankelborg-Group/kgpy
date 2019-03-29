@@ -155,7 +155,7 @@ class Vector:
         :return: Rotated vector
         """
 
-        # quaternion.rotate_vectors operates on numpy.ndarray types (not astropy.units.Quantity types), so we need to
+        # quaternion.rotate_vectors operates on numpy.ndarray surf_types (not astropy.units.Quantity surf_types), so we need to
         # explicitly include the unit
         x = q.rotate_vectors(Q, self.X) * self.X.unit
 

@@ -61,23 +61,13 @@ class ZmxSurface(Surface):
         mech_aper_str:              AttrPriority.mech_aper
     }
 
-    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, comment: str = '',
-                 cs_break: CoordinateSystem = gcs(), tilt_dec: CoordinateSystem = gcs()):
+    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m):
         """
         Constructor for the ZmxSurface class.
         This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
         place after the call to this function.
         :param name: Human-readable name of the surface
         :param thickness: Thickness of the surface along the self.cs.zh direction. Must have dimensions of length.
-        :param comment: Additional description of this surface
-        :param cs_break: CoordinateSystem applied to the surface the modifies the current CoordinateSystem.
-        The main use of this argument is to change the direction of propagation for the beam.
-        This argument is similar to the Coordinate Break surface in Zemax.
-        In this implementation a Surface can have a coordinate break instead of needing to define a second surface.
-        :param tilt_dec: CoordinateSystem applied only to the front face of the surface that leaves the current
-        CoordinateSystem unchanged.
-        The main use of this argument is to decenter/offset an optic but leave the direction of propagation unchanged.
-        This argument is similar to the tilt/decenter feature in Zemax.
         """
 
         # Initialize list of ILDERows associated with class attributes.
@@ -85,7 +75,7 @@ class ZmxSurface(Surface):
         self._attr_rows = {}
 
         # Call superclass constructor
-        super().__init__(name, thickness, comment, cs_break, tilt_dec)
+        super().__init__(name, thickness)
 
         # Override the type of the system pointer
         self.sys = None     # type: kgpy.optics.ZmxSystem
@@ -110,8 +100,8 @@ class ZmxSurface(Surface):
         # Copy remaining attributes
         zmx_surf.comment = surf.comment
         zmx_surf.thickness = surf.thickness
-        zmx_surf.before_surf_cs_break = surf.cs_break
-        zmx_surf.tilt_dec = surf.tilt_dec
+        zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
+        zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
         zmx_surf.component = surf.component
         zmx_surf.sys = surf.sys                 # type: kgpy.optics.ZmxSystem
         zmx_surf.is_stop = surf.is_stop
@@ -234,7 +224,7 @@ class ZmxSurface(Surface):
         if self.sys is not None:
 
             # Convert Quantity to float in Zemax lens units
-            t_value = float(t / self.sys.lens_units)
+            t_value = t.to(self.sys.lens_units).value
 
             # If there is a thickness row defined, update the value from that row
             if self.thickness_str in self._attr_rows:

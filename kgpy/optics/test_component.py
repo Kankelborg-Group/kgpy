@@ -44,9 +44,9 @@ class TestComponent:
 
         # Construct component out of surfaces
         c = Component('c')
-        c.append_surface(s1)
-        c.append_surface(s2)
-        c.append_surface(s3)
+        c.append(s1)
+        c.append(s2)
+        c.append(s3)
 
         # Check that the list of surfaces is returned correctly
         assert c._surfaces == [s1, s2, s3]
@@ -61,8 +61,8 @@ class TestComponent:
 
         # Add the two surfaces to an empty Component
         c = Component('c')
-        c.append_surface(s1)
-        c.append_surface(s2)
+        c.append(s1)
+        c.append(s2)
 
         # # Add the component to a test system
         # sys = System('sys')
@@ -83,13 +83,13 @@ class TestComponent:
         c = Component('test')
 
         # Add the first surface to the component
-        c.append_surface(s1)
+        c.append(s1)
 
         # Check that the translation of the surface is zero
         assert c._surfaces[0].cs.X == 0
 
         # Add the second surface to the component
-        c.append_surface(s2)
+        c.append(s2)
 
         # Check that the z-translation of the surface is equal to the thickness of the first surface
         assert c._surfaces[1].cs.X.z == t1 * u.mm
@@ -102,8 +102,8 @@ class TestComponent:
 
         # Create test Component and add surfaces
         c = Component('test')
-        c.append_surface(s1)
-        c.append_surface(s2)
+        c.append(s1)
+        c.append(s2)
 
         # Check that the component contains the expected strings
         assert s1 in c

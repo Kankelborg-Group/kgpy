@@ -67,13 +67,9 @@ def as_xyz_intrinsic_tait_bryan_angles(q: quaternion) -> np.ndarray:
     q_j = q[..., 2]
     q_k = q[..., 3]
 
-    print(q_r, q_i, q_j, q_k)
-
     # Calculate the Tait-Bryan angles from the quaternion components
     alpha_beta_gamma[..., 0] = np.arctan2(2 * (q_r * q_i + q_j * q_k), 1 - 2 * (q_i * q_i + q_j * q_j))
     alpha_beta_gamma[..., 1] = np.arcsin(2 * (q_r * q_j - q_k * q_i))
     alpha_beta_gamma[..., 2] = np.arctan2(2 * (q_r * q_k + q_i * q_j), 1 - 2 * (q_j * q_j + q_k * q_k))
-
-    print(alpha_beta_gamma)
 
     return alpha_beta_gamma
