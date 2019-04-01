@@ -1,5 +1,5 @@
 
-from typing import Union, List, Tuple, Iterable, Type
+from typing import Union, List
 import numpy as np
 import astropy.units as u
 from beautifultable import BeautifulTable
@@ -8,8 +8,8 @@ from beautifultable import BeautifulTable
 import kgpy.optics
 from kgpy.math import CoordinateSystem, Vector, quaternion
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics.surface.surf_types import SurfaceType, Standard
-from kgpy.optics import aperture
+from kgpy.optics.surface.surface_type import SurfaceType, Standard
+from kgpy.optics.surface import aperture
 
 __all__ = ['Surface']
 
@@ -76,7 +76,27 @@ class Surface:
         self._type = Standard           # type: Standard
 
     @property
-    def type(self):
+    def tilt_z(self) -> u.Quantity:
+
+        z0 = self.before_surf_cs_break.R_z
+
+        z1 = self.after_surf_cs_break.R_z
+
+        if z0 != z1:
+            raise ValueError('Tilt Z undefined for different rotations before and after surface')
+
+        return z0
+
+    @tilt_z.setter
+    def tilt_z(self, val: u.Quantity):
+
+        self.before_surf_cs_break.R_z = val
+
+        self.after_surf_cs_break.R_z = -val
+
+
+    @property
+    def surface_type(self):
         """
         Get the surface type: standard, paraxial, etc.
 
@@ -84,8 +104,8 @@ class Surface:
         """
         return self._type
 
-    @type.setter
-    def type(self, val: SurfaceType) -> None:
+    @surface_type.setter
+    def surface_type(self, val: SurfaceType) -> None:
         """
         Set the surface type of the surface.
 
@@ -204,63 +224,6 @@ class Surface:
         # Otherwise, the surface is not part of a system, and we assume that it is not an image surface.
         else:
             return False
-
-    # @property
-    # def prev_surf_in_system(self) -> Union['Surface', None]:
-    #     """
-    #     :return: The surface before this surface in the system
-    #     """
-    #     return self._prev_surf_in_system
-    #
-    # @prev_surf_in_system.setter
-    # def prev_surf_in_system(self, val):
-    #
-    #     if val is not None:
-
-
-
-
-    # @property
-    # def next_surf_in_system(self) -> Union['Surface', None]:
-    #     """
-    #     :return: The surface after this surface in the system
-    #     """
-    #
-    #     # If the system is defined, find the next surface
-    #     if self.sys is not None:
-    #         return self._relative_list_element(self.sys, 1)
-    #
-    #     # Otherwise there is no system defined and we return none
-    #     else:
-    #         return None
-    #
-    # @property
-    # def prev_surf_in_component(self) -> Union['Surface', None]:
-    #     """
-    #     :return: The surface before this surface in the component.
-    #     """
-    #
-    #     # If the component is defined, find the previous surface
-    #     if self.component is not None:
-    #         return self._relative_list_element(self.component, -1)
-    #
-    #     # Otherwise there is no component defined and we return none
-    #     else:
-    #         return None
-    #
-    # @property
-    # def next_surf_in_component(self) -> Union['Surface', None]:
-    #     """
-    #     :return: The surface after this surface in the component
-    #     """
-    #
-    #     # If the component is defined, find the next surface
-    #     if self.component is not None:
-    #         return self._relative_list_element(self.component, 1)
-    #
-    #     # Otherwise there is no component defined and we return none
-    #     else:
-    #         return None
 
     def _relative_list_element(self, surf_list: List['Surface'], rel_index: int) -> Union['Surface', None]:
         """

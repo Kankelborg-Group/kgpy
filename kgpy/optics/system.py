@@ -197,6 +197,8 @@ class System:
         :return: None
         """
 
+        index = index % len(self)
+
         # Link the system to the component
         component.sys = self
 

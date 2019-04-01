@@ -41,27 +41,27 @@ class Vector:
         self.X = X  # type: u.Quantity
 
     @property
-    def x(self):
+    def x(self) -> u.Quantity:
         return self.X[0]
 
     @x.setter
-    def x(self, x):
+    def x(self, x: u.Quantity):
         self.X[0] = x
 
     @property
-    def y(self):
+    def y(self) -> u.Quantity:
         return self.X[1]
 
     @y.setter
-    def y(self, y):
+    def y(self, y: u.Quantity):
         self.X[1] = y
 
     @property
-    def z(self):
+    def z(self) -> u.Quantity:
         return self.X[2]
 
     @z.setter
-    def z(self, z):
+    def z(self, z: u.Quantity):
         self.X[2] = z
 
     def __eq__(self, other: Union[Real, u.Quantity, 'Vector']):

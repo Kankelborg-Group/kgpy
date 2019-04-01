@@ -9,8 +9,9 @@ import kgpy.optics
 from kgpy.math.quaternion import *
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
+from kgpy import optics
 from kgpy.optics import Surface, Component, System
-from kgpy.optics.zemax import ZOSAPI
+from kgpy.optics.zemax import ZOSAPI, Circular, Rectangular, Spider
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 
 __all__ = ['ZmxSurface']
@@ -24,11 +25,8 @@ class ZmxSurface(Surface):
     """
 
     main_str = 'main'
-    # cs_break_str = 'cs_break'
-    # tilt_dec_str = 'tilt_dec'
     before_surf_cs_break_str = 'before_surf_cs_break'
     after_surf_cs_break_str = 'after_surf_cs_break'
-    # tilt_dec_return_str = 'tilt_dec_return'
     thickness_str = 'thickness'
     stop_str = 'stop'
     aper_str = 'aper'
@@ -38,22 +36,17 @@ class ZmxSurface(Surface):
         """
         Enumeration class to describe the priority that each attribute gets when the surface is written to file.
         """
-        # cs_break = auto()
-        # tilt_dec = auto()
+
         before_surf_cs_break = auto()
         main = auto()
         aper = main
         mech_aper = main
-        # tilt_dec_return = auto()
         after_surf_cs_break = auto()
         thickness = auto()
 
     # Dictionary that maps the attribute strings to their priority level
     priority_dict = {
         main_str:                   AttrPriority.main,
-        # cs_break_str:           AttrPriority.cs_break,
-        # tilt_dec_str:           AttrPriority.tilt_dec,
-        # tilt_dec_return_str:    AttrPriority.tilt_dec_return,
         before_surf_cs_break_str:   AttrPriority.before_surf_cs_break,
         after_surf_cs_break_str:    AttrPriority.after_surf_cs_break,
         thickness_str:              AttrPriority.thickness,
@@ -103,8 +96,7 @@ class ZmxSurface(Surface):
         zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
         zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
         zmx_surf.component = surf.component
-        zmx_surf.sys = surf.sys                 # type: kgpy.optics.ZmxSystem
-        zmx_surf.is_stop = surf.is_stop
+        zmx_surf.aperture = surf.aperture
 
         return zmx_surf
 
@@ -126,6 +118,35 @@ class ZmxSurface(Surface):
         zmx_surf._radius = None
 
         return zmx_surf
+
+    @property
+    def aperture(self) -> optics.Aperture:
+        return self._aperture
+
+    @aperture.setter
+    def aperture(self, aper: optics.Aperture):
+
+        if self.sys is not None:
+
+            if isinstance(aper, optics.Circular):
+
+                self._aperture = Circular(aper.min_radius, aper.max_radius, self)
+
+            elif isinstance(aper, optics.Rectangular):
+
+                self._aperture = Rectangular(aper.half_width_x, aper.half_width_y, self)
+
+            elif isinstance(aper, optics.Spider):
+
+                self._aperture = Spider(aper.arm_width, aper.num_arms, self)
+
+        else:
+
+            self._aperture = aper
+
+    @property
+    def main_row(self):
+        return self._attr_rows[self.main_str]
 
     @property
     def radius(self) -> u.Quantity:
@@ -233,6 +254,22 @@ class ZmxSurface(Surface):
             # Otherwise, update the thickness value from the main row.
             else:
                 self._attr_rows_list[-1][1].Thickness = t_value
+
+    @property
+    def tilt_z(self) -> u.Quantity:
+        return Surface.tilt_z.fget()
+
+    @tilt_z.setter
+    def tilt_z(self, val: u.Quantity):
+
+        bcs = self.before_surf_cs_break
+        acs = self.after_surf_cs_break
+
+        bcs.R_z = val
+        acs.R_z = -val
+
+        self.before_surf_cs_break = bcs
+        self.after_surf_cs_break = acs
 
     @property
     def before_surf_cs_break(self) -> CoordinateSystem:
@@ -414,65 +451,6 @@ class ZmxSurface(Surface):
                 d1.AfterSurfaceTiltZ = R_z
                 d1.AfterSurfaceOrder = order
 
-    # @property
-    # def tilt_dec(self) -> CoordinateSystem:
-    #     """
-    #     Compute the tilt/dec coordinate system from Zemax.
-    #
-    #     :return: A coordinate system representing the tilt/dec of a surface.
-    #     """
-    #
-    #     # If the value of the coordinate break has not been read from Zemax
-    #     if self._tilt_dec is None:
-    #
-    #         # If a tilt/dec row is defined
-    #         if self.tilt_dec_str in self._attr_rows:
-    #
-    #             # If a tilt/dec return row is defined
-    #             if self.tilt_dec_return_str in self._attr_rows:
-    #
-    #                 # Find the Zemax LDE row corresponding to the coordinate break for this surface
-    #                 row = self._attr_rows[self.tilt_dec_str]
-    #
-    #                 # Convert a Zemax coordinate break into a coordinate system
-    #                 self._tilt_dec = self._cs_from_row(row)
-    #
-    #             # Otherwise, there's no return row, and this is a syntax error.
-    #             else:
-    #                 raise ValueError('No return coordinate break for tilt/dec')
-    #
-    #         # Otherwise just return a identity coordinate system
-    #         else:
-    #             self._tilt_dec = gcs()
-    #
-    #     return self._tilt_dec
-    #
-    # @tilt_dec.setter
-    # def tilt_dec(self, cs: CoordinateSystem) -> None:
-    #     """
-    #     Set a Zemax tilt/dec using a CoordinateSystem
-    #     :param cs: CoordinateSystem to convert to a Zemax tilt/dec.
-    #     :return: None
-    #     """
-    #
-    #     # Update private variable
-    #     self._tilt_dec = cs
-    #
-    #     # Update coordinate break row if we're connected to a optics system
-    #     if self.sys is not None:
-    #
-    #         # If there is not already a coordinate break row defined, create it
-    #         if self.tilt_dec_str not in self._attr_rows:
-    #             self.insert(self.tilt_dec_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
-    #             self.insert(self.tilt_dec_return_str, row_type=ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak)
-    #
-    #         # Find the Zemax LDE row corresponding to the coordinate break for this surface
-    #         row = self._attr_rows[self.tilt_dec_str]
-    #
-    #         # Update the row with the new coordinate system
-    #         self._cs_to_row(cs, row)
-
-
     @staticmethod
     def _ISurfaceCoordinateBreak_data(row: ILDERow) -> ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak:
         """
@@ -549,7 +527,7 @@ class ZmxSurface(Surface):
         # Update private storage variable
         self._attr_rows_list = attr_rows_list
 
-    def insert(self, attr_name: str, row_type: Type[Any] = ZOSAPI.Editors.LDE.ISurfaceStandard) -> None:
+    def insert(self, attr_name: str, row_type: ZOSAPI.Editors.LDE.SurfaceType) -> None:
         """
         Insert a new attribute row, with it's position specified by the priority of the attribute
         :param attr_name: Name of the attribute, determines priority
@@ -611,6 +589,12 @@ class ZmxSurface(Surface):
 
         # Add the new row to the attribute list
         self._attr_rows_list.insert(i, (attr_name, new_row))
+
+        # Update the attributes of the surface
+        self.aperture = self.aperture
+        self.thickness = self.thickness
+        self.before_surf_cs_break = self.before_surf_cs_break
+        self.after_surf_cs_break = self.after_surf_cs_break
 
     @property
     def _attr_rows_indices(self) -> List[int]:
@@ -708,11 +692,21 @@ class ZmxSurface(Surface):
             order = 1
 
         # Update the translation
-        X_x = cs.X.x / self.sys.lens_units
-        X_y = cs.X.y / self.sys.lens_units
+        X_x = cs.X.x.to(self.sys.lens_units).value
+        X_y = cs.X.y.to(self.sys.lens_units).value
 
         # Update the rotation
         R_x, R_y, R_z = as_xyz_intrinsic_tait_bryan_angles(cs.Q)
+
+        # Express angles as a radian quantity
+        R_x = R_x * u.rad       # type: u.Quantity
+        R_y = R_y * u.rad       # type: u.Quantity
+        R_z = R_z * u.rad       # type: u.Quantity
+
+        # Convert to degrees
+        R_x = R_x.to(u.deg).value
+        R_y = R_y.to(u.deg).value
+        R_z = R_z.to(u.deg).value
 
         return X_x, X_y, R_x, R_y, R_z, order
 

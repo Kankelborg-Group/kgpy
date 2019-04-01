@@ -67,6 +67,57 @@ class ZmxSystem(System):
         # Initialize the system from the new design
         self._init_system_from_zmx()
 
+        # Todo: make interface for this
+        # self.zos_sys.SystemData.Aperture = 160.0
+
+    def save(self, path: str):
+
+        self.zos_sys.SaveAs(path)
+
+    @staticmethod
+    def from_system(sys: System) -> 'ZmxSystem':
+
+        zmx_sys = ZmxSystem(sys.name)
+
+        for surf in sys:
+
+            if surf.is_object:
+
+                zmx_surf = zmx_sys.object
+
+                zmx_surf.name = surf.name
+                zmx_surf.comment = surf.comment
+                zmx_surf.thickness = surf.thickness
+                zmx_surf.component = surf.component
+
+            elif surf.is_image:
+
+                zmx_surf = zmx_sys.image
+
+                zmx_surf.name = surf.name
+                zmx_surf.comment = surf.comment
+                zmx_surf.component = surf.component
+
+            elif surf.is_stop:
+
+                zmx_surf = zmx_sys.stop
+
+                zmx_surf.name = surf.name
+                zmx_surf.comment = surf.comment
+                zmx_surf.thickness = surf.thickness
+                zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
+                zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
+                zmx_surf.component = surf.component
+                zmx_surf.aperture = surf.aperture
+
+            else:
+
+                zmx_surf = ZmxSurface.from_surface(surf)
+
+                zmx_sys.insert(zmx_surf, -1)
+
+        return zmx_sys
+
     @staticmethod
     def from_file(name: str, filename: str) -> 'ZmxSystem':
 
@@ -96,12 +147,12 @@ class ZmxSystem(System):
         :return: None
         """
 
-        # Insert a main attribute into this Zemax surface.
-        # This adds an ILDERow to the surface.
-        surf.insert(ZmxSurface.main_str)
-
         # Call superclass method to insert this surface into the list of surfaces
         super().insert(surf, index)
+
+        # Insert a main attribute into this Zemax surface.
+        # This adds an ILDERow to the surface.
+        surf.insert(ZmxSurface.main_str, ZOSAPI.Editors.LDE.SurfaceType.Standard)
 
     def delete_surface(self, surf: ZmxSurface):
 

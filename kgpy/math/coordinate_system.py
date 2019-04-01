@@ -1,10 +1,11 @@
 
-from typing import List, Union
+from typing import List, Union, Tuple
 from copy import deepcopy
 import numpy as np
 import astropy.units as u
 import quaternion as q
 from . import Vector
+from . import quaternion as kgpy_q
 
 __all__ = ['CoordinateSystem', 'GlobalCoordinateSystem']
 
@@ -52,30 +53,26 @@ class CoordinateSystem:
         if not translation_first:
             self.X = self.X.rotate(self.Q)
 
-    # @property
-    # def Q(self) -> q.quaternion:
-    #     """
-    #     Quaternion representing the orientation of the coordinate system
-    #
-    #     :return: An instance of a quaternion
-    #     """
-    #     return self._Q
-    #
-    # @Q.setter
-    # def Q(self, val: q.quaternion) -> None:
-    #     """
-    #     Set the orientation of the coordinate system
-    #
-    #     :param val: A quaternion representing the new orientation.
-    #     :return: None
-    #     """
-    #
-    #     # Update private variable storing value
-    #     self._Q = val
-    #
-    #     self._xh = self.xh_g.rotate(self._Q)
-    #     self._yh = self.yh_g.rotate(self._Q)
-    #     self._zh = self.zh_g.rotate(self._Q)
+    @property
+    def tait_bryan(self) -> np.ndarray:
+
+        return kgpy_q.as_xyz_intrinsic_tait_bryan_angles(self.Q)
+
+    @tait_bryan.setter
+    def tait_bryan(self, val: np.ndarray) -> None:
+
+        self.Q = kgpy_q.from_xyz_intrinsic_tait_bryan_angles(val)
+
+    @property
+    def R_z(self):
+        return self.tait_bryan[2]
+
+    @R_z.setter
+    def R_z(self, val: u.Quantity):
+
+        a = self.tait_bryan
+        a[2] = val.to(u.rad).value
+        self.tait_bryan = a
 
     @property
     def xh(self) -> Vector:

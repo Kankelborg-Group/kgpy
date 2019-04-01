@@ -10,6 +10,17 @@ class SurfaceApertureTypes:
     # def (self) -> 'SurfaceApertureTypes':
     #     return constants.
 
+    # CircularAperture = constants.SurfaceApertureTypes_CircularAperture              # type: SurfaceApertureTypes
+    # CircularObscuration = constants.SurfaceApertureTypes_CircularObscuration        # type: SurfaceApertureTypes
+    # Spider = constants.SurfaceApertureTypes_Spider                                  # type: SurfaceApertureTypes
+    # RectangularAperture = constants.SurfaceApertureTypes_RectangularAperture        # type: SurfaceApertureTypes
+    # RectangularObscuration = constants.SurfaceApertureTypes_RectangularObscuration  # type: SurfaceApertureTypes
+    # EllipticalAperture = constants.SurfaceApertureTypes_EllipticalAperture          # type: SurfaceApertureTypes
+    # EllipticalObscuration = constants.SurfaceApertureTypes_EllipticalObscuration    # type: SurfaceApertureTypes
+    # UserAperture = constants.SurfaceApertureTypes_UserAperture                      # type: SurfaceApertureTypes
+    # UserObscuration = constants.SurfaceApertureTypes_UserObscuration                # type: SurfaceApertureTypes
+    # FloatingAperture = constants.SurfaceApertureTypes_FloatingAperture              # type: SurfaceApertureTypes
+
     @property
     def none(self) -> 'SurfaceApertureTypes':
         return constants.SurfaceApertureTypes_None
@@ -53,3 +64,7 @@ class SurfaceApertureTypes:
     @property
     def FloatingAperture(self) -> 'SurfaceApertureTypes':
         return constants.SurfaceApertureTypes_FloatingAperture
+
+
+# Make singleton class
+SurfaceApertureTypes = SurfaceApertureTypes()

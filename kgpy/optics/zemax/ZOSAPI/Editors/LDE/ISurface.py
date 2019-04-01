@@ -1,7 +1,8 @@
 
 from kgpy.optics.zemax import ZOSAPI
 
-__all__ = ['ISurface', 'ISurfaceStandard', 'ISurfaceCoordinateBreak']
+__all__ = ['ISurface', 'ISurfaceStandard', 'ISurfaceCoordinateBreak', 'ISurfaceNthZernike', 'ISurfaceToroidal',
+           'ISurfaceDiffractionGrating']
 
 
 class ISurface:
@@ -31,4 +32,36 @@ class ISurfaceCoordinateBreak(ISurface):
     TiltAbout_Z = None          # type: float
     TiltAbout_Z_Cell = None     # type: ZOSAPI.Editors.IEditorCell
 
+
+class ISurfaceNthZernike(ISurface):
+
+    NormRadius = None           # type: float
+    NormRadiusCell = None       # type: ZOSAPI.Editors.IEditorCell
+    NumberOfTerms = None        # type: float
+    NumberOfTermsCell = None    # type: ZOSAPI.Editors.IEditorCell
+
+    def GetNthZernikeCoefficient(self, n: int) -> float:
+        pass
+
+    def NthZernikeCoefficient(self, n: int) -> ZOSAPI.Editors.IEditorCell:
+        pass
+
+    def SetNthZernikeCoefficient(self, n: int, value: float) -> None:
+        pass
+
+
+class ISurfaceToroidal(ISurfaceNthZernike):
+
+    Extrapolate = None              # type: int
+    ExtrapolateCell = None          # type: ZOSAPI.Editors.IEditorCell
+    RadiusOfRotation = None         # type: float
+    RadiusOfRotationCell = None     # type: ZOSAPI.Editors.IEditorCell
+
+
+class ISurfaceDiffractionGrating(ISurface):
+
+    DiffractionOrder = None             # type: int
+    DiffractionOrderCell = None         # type: ZOSAPI.Editors.IEditorCell
+    LinesPerMicrometer = None           # type: float
+    LinesPerMicrometerCell = None       # type: ZOSAPI.Editors.IEditorCell
 
