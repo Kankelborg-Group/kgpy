@@ -20,7 +20,7 @@ class Aperture:
 
 class Rectangular(Aperture):
 
-    def __init__(self, half_width_x: u.Quantity, half_width_y: u.Quantity):
+    def __init__(self, half_width_x: u.Quantity = 0 * u.mm, half_width_y: u.Quantity = 0 * u.mm):
 
         super().__init__()
 
@@ -30,7 +30,7 @@ class Rectangular(Aperture):
 
 class Circular(Aperture):
 
-    def __init__(self, min_radius: u.Quantity, max_radius: u.Quantity):
+    def __init__(self, min_radius: u.Quantity = 0 * u.mm, max_radius: u.Quantity = 0 * u.mm):
 
         super().__init__()
 
@@ -40,7 +40,7 @@ class Circular(Aperture):
 
 class Spider(Aperture):
 
-    def __init__(self, arm_width: u.Quantity, num_arms: int):
+    def __init__(self, arm_width: u.Quantity = 0 * u.mm, num_arms: int = 0):
 
         super().__init__()
 

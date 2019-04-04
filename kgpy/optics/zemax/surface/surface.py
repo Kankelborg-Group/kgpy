@@ -9,9 +9,9 @@ import kgpy.optics
 from kgpy.math.quaternion import *
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy import optics
-from kgpy.optics import Surface, Component, System
-from kgpy.optics.zemax import ZOSAPI, Circular, Rectangular, Spider
+from kgpy.optics import Surface, surface
+from kgpy.optics.zemax import ZOSAPI
+from kgpy.optics.zemax.surface.aperture import Circular, Rectangular, Spider
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 
 __all__ = ['ZmxSurface']
@@ -120,23 +120,23 @@ class ZmxSurface(Surface):
         return zmx_surf
 
     @property
-    def aperture(self) -> optics.Aperture:
+    def aperture(self) -> surface.Aperture:
         return self._aperture
 
     @aperture.setter
-    def aperture(self, aper: optics.Aperture):
+    def aperture(self, aper: surface.Aperture):
 
         if self.sys is not None:
 
-            if isinstance(aper, optics.Circular):
+            if isinstance(aper, surface.aperture.Circular):
 
                 self._aperture = Circular(aper.min_radius, aper.max_radius, self)
 
-            elif isinstance(aper, optics.Rectangular):
+            elif isinstance(aper, surface.aperture.Rectangular):
 
                 self._aperture = Rectangular(aper.half_width_x, aper.half_width_y, self)
 
-            elif isinstance(aper, optics.Spider):
+            elif isinstance(aper, surface.aperture.Spider):
 
                 self._aperture = Spider(aper.arm_width, aper.num_arms, self)
 

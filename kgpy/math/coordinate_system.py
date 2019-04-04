@@ -64,6 +64,32 @@ class CoordinateSystem:
         self.Q = kgpy_q.from_xyz_intrinsic_tait_bryan_angles(val)
 
     @property
+    def R_x(self):
+        return self.tait_bryan[0]
+
+    @R_x.setter
+    def R_x(self, val: u.Quantity):
+
+        a = self.tait_bryan
+        a[0] = val.to(u.rad).value
+
+        # noinspection PyAttributeOutsideInit
+        self.tait_bryan = a
+
+    @property
+    def R_y(self):
+        return self.tait_bryan[1]
+
+    @R_y.setter
+    def R_y(self, val: u.Quantity):
+
+        a = self.tait_bryan
+        a[1] = val.to(u.rad).value
+
+        # noinspection PyAttributeOutsideInit
+        self.tait_bryan = a
+
+    @property
     def R_z(self):
         return self.tait_bryan[2]
 
@@ -72,6 +98,8 @@ class CoordinateSystem:
 
         a = self.tait_bryan
         a[2] = val.to(u.rad).value
+
+        # noinspection PyAttributeOutsideInit
         self.tait_bryan = a
 
     @property
@@ -80,7 +108,6 @@ class CoordinateSystem:
         :return: x-hat unit vector for this coordinate system
         """
         return self.xh_g.rotate(self.Q)
-        # return self._xh
 
     @property
     def yh(self) -> Vector:
@@ -88,7 +115,6 @@ class CoordinateSystem:
         :return: y-hat unit vector for this coordinate system
         """
         return self.yh_g.rotate(self.Q)
-        # return self._yh
 
     @property
     def zh(self) -> Vector:
@@ -96,7 +122,6 @@ class CoordinateSystem:
         :return: z-hat unit vector for this coordinate system
         """
         return self.zh_g.rotate(self.Q)
-        # return self._zh
 
     def __str__(self) -> str:
         """
@@ -147,6 +172,10 @@ class CoordinateSystem:
     # Define the reverse addition operator so that both Vector + CoordinateSystem and CoordinateSystem + Vector are
     # allowed.
     __radd__ = __add__
+
+    def __sub__(self, other: Vector) -> 'CoordinateSystem':
+
+        return self.__add__(-other)
 
     def __mul__(self, other: q.quaternion) -> 'CoordinateSystem':
         """

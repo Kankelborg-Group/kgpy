@@ -70,10 +70,100 @@ class Surface:
         self._back_cs = None
 
         # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
+        # We need to modify private variables here so we don't inadvertently call properties in a subclass
         self.is_active = False
         self._is_stop = False
         self._radius = np.inf * u.mm    # type: u.Quantity
-        self._type = Standard           # type: Standard
+        self._surface_type = Standard           # type: SurfaceType
+
+    @property
+    def decenter_x(self) -> u.Quantity:
+
+        x0 = self.before_surf_cs_break.X.x
+        x1 = self.after_surf_cs_break.X.x
+
+        if x0 != x1:
+            raise ValueError('Decenter X undefined for different translations before and after surface')
+
+        return x0
+
+    @decenter_x.setter
+    def decenter_x(self, val: u.Quantity) -> None:
+
+        self.before_surf_cs_break.X.x = val
+        self.after_surf_cs_break.X.x = -val
+
+    @property
+    def decenter_y(self) -> u.Quantity:
+
+        y0 = self.before_surf_cs_break.X.y
+        y1 = self.after_surf_cs_break.X.y
+
+        if y0 != y1:
+            raise ValueError('Decenter Y undefined for different translations before and after surface')
+
+        return y0
+
+    @decenter_y.setter
+    def decenter_y(self, val: u.Quantity) -> None:
+
+        self.before_surf_cs_break.X.y = val
+        self.after_surf_cs_break.X.y = -val
+
+    @property
+    def decenter_z(self) -> u.Quantity:
+
+        z0 = self.before_surf_cs_break.X.y
+        z1 = self.after_surf_cs_break.X.y
+
+        if z0 != z1:
+            raise ValueError('Decenter Z undefined for different translations before and after surface')
+
+        return z0
+
+    @decenter_z.setter
+    def decenter_z(self, val: u.Quantity) -> None:
+
+        self.before_surf_cs_break.X.z = val
+        self.after_surf_cs_break.X.z = -val
+
+    @property
+    def tilt_x(self) -> u.Quantity:
+
+        x0 = self.before_surf_cs_break.R_x
+
+        x1 = self.after_surf_cs_break.R_x
+
+        if x0 != x1:
+            raise ValueError('Tilt X undefined for different rotations before and after surface')
+
+        return x0
+
+    @tilt_x.setter
+    def tilt_x(self, val: u.Quantity):
+
+        self.before_surf_cs_break.R_x = val
+
+        self.after_surf_cs_break.R_x = -val
+
+    @property
+    def tilt_y(self) -> u.Quantity:
+
+        y0 = self.before_surf_cs_break.R_y
+
+        y1 = self.after_surf_cs_break.R_y
+
+        if y0 != y1:
+            raise ValueError('Tilt Y undefined for different rotations before and after surface')
+
+        return y0
+
+    @tilt_y.setter
+    def tilt_y(self, val: u.Quantity):
+
+        self.before_surf_cs_break.R_y = val
+
+        self.after_surf_cs_break.R_y = -val
 
     @property
     def tilt_z(self) -> u.Quantity:
@@ -94,7 +184,6 @@ class Surface:
 
         self.after_surf_cs_break.R_z = -val
 
-
     @property
     def surface_type(self):
         """
@@ -102,7 +191,7 @@ class Surface:
 
         :return: The type of this surface
         """
-        return self._type
+        return self._surface_type
 
     @surface_type.setter
     def surface_type(self, val: SurfaceType) -> None:
@@ -112,7 +201,7 @@ class Surface:
         :param val: New surface type.
         :return: None
         """
-        self._type = val
+        self._surface_type = val
 
     @property
     def radius(self) -> u.Quantity:

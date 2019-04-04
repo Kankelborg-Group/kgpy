@@ -4,6 +4,7 @@ import astropy.units as u
 
 from kgpy.math import Vector
 from kgpy import optics
+from kgpy.optics.surface import aperture
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import SurfaceApertureTypes, ISurfaceApertureType, \
     ISurfaceApertureCircular, ISurfaceApertureRectangular, ISurfaceApertureSpider, ISurfaceApertureUser
 
@@ -66,13 +67,13 @@ class ZmxAperture(ABC):
         self.settings = s
 
 
-class Rectangular(ZmxAperture, optics.Rectangular):
+class Rectangular(ZmxAperture, aperture.Rectangular):
 
     def __init__(self, half_width_x: u.Quantity, half_width_y: u.Quantity, surf: 'optics.ZmxSurface'):
 
         ZmxAperture.__init__(self, surf)
 
-        optics.Rectangular.__init__(self, half_width_x, half_width_y)
+        aperture.Rectangular.__init__(self, half_width_x, half_width_y)
 
     @property
     def aperture_type(self) -> SurfaceApertureTypes:
@@ -123,13 +124,13 @@ class Rectangular(ZmxAperture, optics.Rectangular):
         self.settings = s
 
 
-class Circular(ZmxAperture, optics.Circular):
+class Circular(ZmxAperture, aperture.Circular):
 
     def __init__(self, min_radius: u.Quantity, max_radius: u.Quantity, surf: 'optics.ZmxSurface'):
 
         ZmxAperture.__init__(self, surf)
 
-        optics.Circular.__init__(self, min_radius, max_radius)
+        aperture.Circular.__init__(self, min_radius, max_radius)
 
     @property
     def aperture_type(self) -> SurfaceApertureTypes:
@@ -180,13 +181,13 @@ class Circular(ZmxAperture, optics.Circular):
         self.settings = s
 
 
-class Spider(ZmxAperture, optics.Spider):
+class Spider(ZmxAperture, aperture.Spider):
 
     def __init__(self, arm_width: u.Quantity, num_arms: int, surf: 'optics.ZmxSurface'):
 
         ZmxAperture.__init__(self, surf)
 
-        optics.Spider.__init__(self, arm_width, num_arms)
+        aperture.Spider.__init__(self, arm_width, num_arms)
 
     @property
     def aperture_type(self) -> SurfaceApertureTypes:

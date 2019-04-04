@@ -1,3 +1,5 @@
 from .surface import *
-from .aperture import *
-from .surface_type import *
+from .aperture import Aperture
+
+from . import aperture
+from . import surface_type

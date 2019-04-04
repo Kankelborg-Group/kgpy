@@ -170,6 +170,10 @@ class Vector:
 
         return np.linalg.norm(self.X) * self.X.unit
 
+    def normalize(self) -> 'Vector':
+
+        return self * (1 / self.mag)
+
     def isclose(self, other: 'Vector'):
         """
         Check if two Vectors have the same components to within some tolerance

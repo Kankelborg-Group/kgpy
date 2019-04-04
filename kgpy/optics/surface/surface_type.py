@@ -23,7 +23,7 @@ class Paraxial(SurfaceType):
 
 class Toroidal(SurfaceType):
 
-    def __init__(self, radius_of_rotation: u.Quantity):
+    def __init__(self, radius_of_rotation: u.Quantity = 1 * u.mm):
 
         super().__init__()
 
@@ -32,7 +32,7 @@ class Toroidal(SurfaceType):
 
 class DiffractionGrating(SurfaceType):
 
-    def __init__(self, diffraction_order: int, groove_frequency: u.Quantity):
+    def __init__(self, diffraction_order: int = 1, groove_frequency: u.Quantity = 1 / u.mm):
 
         super().__init__()
 

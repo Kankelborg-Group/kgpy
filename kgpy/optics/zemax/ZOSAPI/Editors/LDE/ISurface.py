@@ -43,7 +43,7 @@ class ISurfaceNthZernike(ISurface):
     def GetNthZernikeCoefficient(self, n: int) -> float:
         pass
 
-    def NthZernikeCoefficient(self, n: int) -> ZOSAPI.Editors.IEditorCell:
+    def NthZernikeCoefficient(self, n: int) -> 'ZOSAPI.Editors.IEditorCell':
         pass
 
     def SetNthZernikeCoefficient(self, n: int, value: float) -> None:

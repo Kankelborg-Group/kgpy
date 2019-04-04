@@ -1,8 +1,6 @@
-from .surface import *
-from .component import *
-from .baffle import *
-from .system import *
-from kgpy.optics.surface.aperture import *
+from .surface import Surface
+from .component import Component
+from .system import System
 
 import sys
 print(sys.platform)

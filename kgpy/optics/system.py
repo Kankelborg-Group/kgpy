@@ -7,7 +7,7 @@ from beautifultable import BeautifulTable
 
 from kgpy.math import CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics import Baffle, Surface, Component
+from kgpy.optics import Surface, Component
 
 __all__ = ['System']
 
