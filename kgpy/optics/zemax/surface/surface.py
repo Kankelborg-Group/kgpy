@@ -11,7 +11,8 @@ from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import Surface, surface
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.surface.aperture import Circular, Rectangular, Spider
+from kgpy.optics.zemax.surface.aperture import Circular, Rectangular, Spider, Polygon
+from kgpy.optics.zemax.surface.material import Material
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 
 __all__ = ['ZmxSurface']
@@ -68,7 +69,7 @@ class ZmxSurface(Surface):
         self._attr_rows = {}
 
         # Call superclass constructor
-        super().__init__(name, thickness)
+        Surface.__init__(self, name, thickness)
 
         # Override the type of the system pointer
         self.sys = None     # type: kgpy.optics.ZmxSystem
@@ -120,6 +121,15 @@ class ZmxSurface(Surface):
         return zmx_surf
 
     @property
+    def material(self) -> surface.Material:
+        return self._material
+
+    @material.setter
+    def material(self, val: surface.Material):
+        self._material = Material(val.name, self)
+
+
+    @property
     def aperture(self) -> surface.Aperture:
         return self._aperture
 
@@ -140,9 +150,22 @@ class ZmxSurface(Surface):
 
                 self._aperture = Spider(aper.arm_width, aper.num_arms, self)
 
+            elif isinstance(aper, surface.aperture.Polygon):
+
+                self._aperture = Polygon(aper.points, self)
+
+            if aper is not None:
+
+                self._aperture.decenter_x = aper.decenter_x
+                self._aperture.decenter_y = aper.decenter_y
+                self._aperture.is_obscuration = aper.is_obscuration
+
         else:
 
             self._aperture = aper
+
+
+
 
     @property
     def main_row(self):
@@ -178,6 +201,7 @@ class ZmxSurface(Surface):
             raise ValueError('Radius must have dimensions of length')
 
         self._radius = val
+        # noinspection PyPep8Naming
         self._attr_rows[self.main_str].Radius = float(val / self.sys.lens_units)
 
     @property
@@ -208,6 +232,7 @@ class ZmxSurface(Surface):
         """
 
         # The surface can only be the stop if
+        # noinspection PyPep8Naming
         self._attr_rows[self.main_str].IsStop = val
         self._is_stop = val
 

@@ -278,51 +278,6 @@ class ZmxSystem(System):
 
         return V, X, Y
 
-    @staticmethod
-    def _read_uda_file(uda_file: str) -> Polygon:
-        """
-        Interpret a Zemax user-defined aperture (UDA) file as a polygon.
-
-        :param uda_file: Location of the uda file to read
-        :return: A polygon representing the aperture.
-        """
-
-        # Open the file
-        with open(uda_file, encoding='utf-16') as uda:
-
-            # Allocate space for storing the list of points in the file
-            pts = []
-
-            # Loop through every line in the file
-            for line in uda:
-
-                # Remove the newlines from the end of the line
-                line = line.strip()
-
-                # Split each string at spaces
-                params = line.split(' ')
-
-                # Remove any empty elements (multiple spaces between arguments)
-                params = list(filter(None, params))
-
-                # If this is a line-type entry
-                if params[0] == 'LIN':
-
-                    # If the line has three total arguments
-                    if len(params) == 3:
-
-                        # Append the x,y coordinates to the list of points
-                        pts.append((float(params[1]), float(params[2])))
-
-                    # Otherwise, the line has the incorrect number of arguments
-                    else:
-                        raise ValueError('Incorrect number of parameters for line')
-
-            # Construct new polygon from the list of points
-            aper = Polygon(pts)
-
-            return aper
-
     def _find_surface(self, comment: str) -> ZOSAPI.Editors.LDE.ILDERow:
         """
         Find the surface matching the provided comment string
@@ -387,7 +342,7 @@ class ZmxSystem(System):
 
         # Allocate a dictionary to store the components parsed by this function
         components = {}                 # type: Dict[str, Component]
-        surfaces = OrderedDict()        # type: OrderedDict[Tuple[str, str], Tuple[Component, OrderedDict[str, ILDERow]]]
+        surfaces = OrderedDict()     # type: OrderedDict[Tuple[str, str], Tuple[Component, OrderedDict[str, ILDERow]]]
 
         # Loop through every surface and look for a match to the comment string
         for r, zmx_row in enumerate(self._rows):
@@ -663,6 +618,11 @@ class ZmxSystem(System):
             self.zos_sys.SystemData.Units.LensUnits = constants.ZemaxSystemUnits_Meters
         else:
             raise ValueError('Unrecognized units')
+
+    @property
+    def object_dir(self):
+        
+        return self._app.ObjectsDir
 
     def __del__(self) -> None:
         """

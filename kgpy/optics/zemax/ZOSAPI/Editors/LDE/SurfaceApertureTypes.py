@@ -4,7 +4,7 @@ from win32com.client import constants
 __all__ = ['SurfaceApertureTypes']
 
 
-class SurfaceApertureTypes:
+class SurfaceApertureTypesBase:
 
     # @property
     # def (self) -> 'SurfaceApertureTypes':
@@ -67,4 +67,5 @@ class SurfaceApertureTypes:
 
 
 # Make singleton class
-SurfaceApertureTypes = SurfaceApertureTypes()
+SurfaceApertureTypes = SurfaceApertureTypesBase()
+

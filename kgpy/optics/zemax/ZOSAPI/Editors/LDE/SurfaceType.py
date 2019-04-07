@@ -4,7 +4,7 @@ from win32com.client import constants
 __all__ = ['SurfaceType']
 
 
-class SurfaceType:
+class SurfaceTypeBase:
 
     @property
     def ABCD(self) -> 'SurfaceType':
@@ -316,4 +316,4 @@ class SurfaceType:
 
 
 # Make singleton class
-SurfaceType = SurfaceType()
+SurfaceType = SurfaceTypeBase()

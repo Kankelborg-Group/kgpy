@@ -9,7 +9,7 @@ import kgpy.optics
 from kgpy.math import CoordinateSystem, Vector, quaternion
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics.surface.surface_type import SurfaceType, Standard
-from kgpy.optics.surface import aperture
+from kgpy.optics.surface import aperture, material
 
 __all__ = ['Surface']
 
@@ -75,6 +75,8 @@ class Surface:
         self._is_stop = False
         self._radius = np.inf * u.mm    # type: u.Quantity
         self._surface_type = Standard           # type: SurfaceType
+        self._aperture = None
+        self._material = None
 
     @property
     def decenter_x(self) -> u.Quantity:
