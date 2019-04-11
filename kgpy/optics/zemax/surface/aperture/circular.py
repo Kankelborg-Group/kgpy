@@ -11,9 +11,10 @@ __all__ = ['Circular']
 
 class Circular(Aperture, aperture.Circular):
 
-    def __init__(self, min_radius: u.Quantity, max_radius: u.Quantity, surf: 'optics.ZmxSurface'):
+    def __init__(self, min_radius: u.Quantity, max_radius: u.Quantity, surf: 'optics.ZmxSurface', 
+                 attr_str: str):
 
-        Aperture.__init__(self, surf)
+        Aperture.__init__(self, surf, attr_str)
 
         aperture.Circular.__init__(self, min_radius, max_radius)
 
@@ -29,7 +30,9 @@ class Circular(Aperture, aperture.Circular):
     @property
     def settings(self) -> ISurfaceApertureCircular:
 
-        s = self.surf.main_row.ApertureData.CurrentTypeSettings
+        s = Aperture.settings.fget(self)
+
+        # s = self.surf.main_row.ApertureData.CurrentTypeSettings
 
         if self.is_obscuration:
             return s._S_CircularObscuration

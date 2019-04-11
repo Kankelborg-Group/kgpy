@@ -1,4 +1,6 @@
 
+# from . import zemax
+
 from .surface import Surface
 from .component import Component
 from .system import System

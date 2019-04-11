@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import astropy.units as u
 
 from kgpy import optics
+from kgpy.optics import zemax
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import SurfaceApertureTypes, ISurfaceApertureType, \
     ISurfaceApertureCircular
 
@@ -11,13 +12,14 @@ __all__ = ['Aperture']
 
 class Aperture(ABC):
 
-    def __init__(self, surf: 'optics.ZmxSurface'):
+    def __init__(self, surf: 'optics.ZmxSurface', attr_str: str):
 
         self.surf = surf
+    
+        self.attr_str = attr_str
 
         self.is_obscuration = False
 
-        self.settings = self.surf.main_row.ApertureData.CreateApertureTypeSettings(self.aperture_type)
 
     @property
     @abstractmethod
@@ -28,13 +30,13 @@ class Aperture(ABC):
     @abstractmethod
     def settings(self) -> ISurfaceApertureType:
 
-        return self.surf.main_row.ApertureData.CurrentTypeSettings
+        return self.surf.attr_rows[self.attr_str].ApertureData.CurrentTypeSettings
 
     @settings.setter
     @abstractmethod
     def settings(self, val: ISurfaceApertureType) -> None:
 
-        self.surf.main_row.ApertureData.ChangeApertureTypeSettings(val)
+        self.surf.attr_rows[self.attr_str].ApertureData.ChangeApertureTypeSettings(val)
 
     @property
     def decenter_x(self) -> u.Quantity:
@@ -63,6 +65,21 @@ class Aperture(ABC):
         s = self.settings
         s.ApertureYDecenter = val.to(self.surf.sys.lens_units).value
         self.settings = s
+
+    @property
+    def is_obscuration(self):
+
+        return self._is_obscuration
+
+    @is_obscuration.setter
+    def is_obscuration(self, value: bool):
+
+        self._is_obscuration = value
+
+        self.settings = self.surf.attr_rows[self.attr_str].ApertureData.CreateApertureTypeSettings(self.aperture_type)
+
+
+
 
 
 

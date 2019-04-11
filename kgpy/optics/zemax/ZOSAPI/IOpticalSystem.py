@@ -6,7 +6,7 @@ __all__ = ['IOpticalSystem']
 
 class IOpticalSystem:
 
-    Analyses = None             # type: ZOSAPI.Analyses.I_Analyses
+    Analyses = None             # type: ZOSAPI.Analysis.I_Analyses
     IsNonAxial = None           # type: bool
     LDE = None                  # type: ZOSAPI.Editors.LDE.ILensDataEditor
     MCE = None                  # type: ZOSAPI.Editors.MCE.IMultiConfigEditor

@@ -1,5 +1,5 @@
-from .aperture import *
+from .aperture import Aperture
 from .surface import *
-from .surface_type import *
-from .material import *
+from .surface_type import SurfaceType
+from .material import Material
 

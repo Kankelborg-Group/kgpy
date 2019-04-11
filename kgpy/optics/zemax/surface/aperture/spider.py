@@ -11,9 +11,10 @@ __all__ = ['Spider']
 
 class Spider(Aperture, aperture.Spider):
 
-    def __init__(self, arm_width: u.Quantity, num_arms: int, surf: 'optics.ZmxSurface'):
+    def __init__(self, arm_width: u.Quantity, num_arms: int, surf: 'optics.ZmxSurface',
+                 attr_str: str):
 
-        Aperture.__init__(self, surf)
+        Aperture.__init__(self, surf, attr_str)
 
         aperture.Spider.__init__(self, arm_width, num_arms)
 
@@ -25,7 +26,7 @@ class Spider(Aperture, aperture.Spider):
     @property
     def settings(self) -> ISurfaceApertureSpider:
 
-        s = self.surf.main_row.ApertureData.CurrentTypeSettings
+        s = Aperture.settings.fget(self)
 
         return s._S_Spider
 

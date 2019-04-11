@@ -1,0 +1,2 @@
+class IAR_:
+    pass

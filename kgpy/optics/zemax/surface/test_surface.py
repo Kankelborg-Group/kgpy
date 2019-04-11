@@ -1,10 +1,7 @@
-
-import pytest
 import os
 
-from kgpy.optics import ZmxSystem
 # noinspection PyUnresolvedReferences
-from kgpy.optics.zemax.test_system import system, components   # Import fixture
+from kgpy.optics.zemax.system.test_system import system, components   # Import fixture
 
 
 class TestSurface:

@@ -9,11 +9,13 @@ class Material(Base):
     
     def __init__(self, name: str, surf: 'optics.ZmxSurface'):
         
+        self.surf = surf
+        
         Base.__init__(self, name)
         
         surf.main_row.Material = name 
         
-        self.surf = surf
+
         
     @property
     def name(self) -> str:

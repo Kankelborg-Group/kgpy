@@ -1,5 +1,5 @@
 
-from typing import Union, List
+from typing import Union, List, Generic, TypeVar
 import numpy as np
 import astropy.units as u
 from beautifultable import BeautifulTable
@@ -9,7 +9,8 @@ import kgpy.optics
 from kgpy.math import CoordinateSystem, Vector, quaternion
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics.surface.surface_type import SurfaceType, Standard
-from kgpy.optics.surface import aperture, material
+from kgpy.optics.surface.aperture import Aperture
+from .material import Material
 
 __all__ = ['Surface']
 
@@ -54,7 +55,6 @@ class Surface:
 
         # Initialize other attributes
         self.comment = ''
-        self.aperture = None        # type: aperture.Aperture
 
         # Coordinate breaks before/after surface
         self.before_surf_cs_break = gcs()
@@ -74,9 +74,45 @@ class Surface:
         self.is_active = False
         self._is_stop = False
         self._radius = np.inf * u.mm    # type: u.Quantity
-        self._surface_type = Standard           # type: SurfaceType
+        self._surface_type = Standard()           # type: SurfaceType
         self._aperture = None
         self._material = None
+        self._mechanical_aperture = None
+        self._conic = 0.0
+        
+        self.translation_first = True
+        
+    @property
+    def material(self) -> Material:
+        return self._material
+    
+    @material.setter
+    def material(self, value: Material):
+        self._material = value
+        
+    @property
+    def conic(self) -> float:
+        return self._conic
+    
+    @conic.setter
+    def conic(self, value: float) -> None:
+        self._conic = value
+
+    @property
+    def aperture(self) -> Aperture:
+        return self._aperture
+
+    @aperture.setter
+    def aperture(self, value: Aperture) -> None:
+        self._aperture = value
+
+    @property
+    def mechanical_aperture(self) -> Aperture:
+        return self._mechanical_aperture
+
+    @mechanical_aperture.setter
+    def mechanical_aperture(self, value: Aperture) -> None:
+        self._mechanical_aperture = value
 
     @property
     def decenter_x(self) -> u.Quantity:
@@ -185,6 +221,15 @@ class Surface:
         self.before_surf_cs_break.R_z = val
 
         self.after_surf_cs_break.R_z = -val
+        
+    @property
+    def translation_first(self) -> bool:
+        return self.before_surf_cs_break.translation_first
+    
+    @translation_first.setter
+    def translation_first(self, value: bool):
+        self.before_surf_cs_break.translation_first = value
+        self.after_surf_cs_break.translation_first = not value
 
     @property
     def surface_type(self):

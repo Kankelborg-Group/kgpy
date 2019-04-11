@@ -8,6 +8,7 @@ from beautifultable import BeautifulTable
 from kgpy.math import CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import Surface, Component
+from kgpy.optics.system import wavelength
 
 __all__ = ['System']
 
@@ -55,6 +56,26 @@ class System:
         self.append(obj)
         self.append(stop)
         self.append(image)
+        
+        self._entrance_pupil_radius = 0 * u.mm
+        
+        self._wavelengths = wavelength.Array()
+    
+    @property
+    def wavelengths(self) -> wavelength.Array:
+        return self._wavelengths
+    
+    @wavelengths.setter
+    def wavelengths(self, value: wavelength.Array):
+        self._wavelengths = value
+
+    @property
+    def entrance_pupil_radius(self) -> u.Quantity:
+        return self._entrance_pupil_radius
+
+    @entrance_pupil_radius.setter
+    def entrance_pupil_radius(self, value: u.Quantity):
+        self._entrance_pupil_radius = value
 
     @property
     def surfaces(self) -> List[Surface]:
@@ -174,7 +195,7 @@ class System:
 
     def append(self, surface: Surface) -> None:
         """
-        Add a surface to the end of an optical system (but before the image).
+        Add a surface to the end of an optical system.
         :param surface: The surface to be added.
         :return: None
         """

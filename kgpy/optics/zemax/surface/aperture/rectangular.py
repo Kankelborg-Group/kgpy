@@ -11,9 +11,10 @@ __all__ = ['Rectangular']
 
 class Rectangular(Aperture, aperture.Rectangular):
 
-    def __init__(self, half_width_x: u.Quantity, half_width_y: u.Quantity, surf: 'optics.ZmxSurface'):
+    def __init__(self, half_width_x: u.Quantity, half_width_y: u.Quantity, surf: 'optics.ZmxSurface', 
+                 attr_str: str):
 
-        Aperture.__init__(self, surf)
+        Aperture.__init__(self, surf, attr_str)
 
         aperture.Rectangular.__init__(self, half_width_x, half_width_y)
 
@@ -29,7 +30,7 @@ class Rectangular(Aperture, aperture.Rectangular):
     @property
     def settings(self) -> ISurfaceApertureRectangular:
 
-        s = self.surf.main_row.ApertureData.CurrentTypeSettings
+        s = Aperture.settings.fget(self)
 
         if self.is_obscuration:
             return s._S_RectangularObscuration

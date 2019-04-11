@@ -35,6 +35,10 @@ class Component:
         # The surfaces within the component are stored as a linked list.
         # This attribute is a pointer to the first element of this list.
         self._surfaces = []          # type: List[Surface]
+        
+    @property
+    def surfaces(self):
+        return self._surfaces
 
     @property
     def first_surface(self) -> Union[Surface, None]:
@@ -107,6 +111,20 @@ class Component:
         else:
 
             return False
+    
+    def __add__(self, other: 'Component'):
+        
+        c = Component(self.name + other.name)
+        
+        for surf in self._surfaces:
+            
+            c.append(surf)
+            
+        for surf in other.surfaces:
+            
+            c.append(surf)
+            
+        return c
 
     def __contains__(self, item: str) -> bool:
         """

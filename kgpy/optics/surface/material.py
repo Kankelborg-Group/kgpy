@@ -1,6 +1,8 @@
 
 import astropy.units as u
 
+from kgpy import optics
+
 __all__ = ['Material']
 
 
@@ -10,6 +12,11 @@ class Material:
         
         self.name = name
 
+    def promote_to_zmx(self, surf: 'optics.ZmxSurface'):
+        
+        m = optics.zemax.surface.material.Material(self.name, surf)
+        
+        return m
 
 class Mirror(Material):
     

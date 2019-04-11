@@ -1,15 +1,12 @@
 
 import pytest
-import cProfile
-import math
 import os
 from typing import List
 import numpy as np
 import astropy.units as u
-import matplotlib.pyplot as plt
 
-from kgpy.optics import Surface, Component, System, ZmxSystem, ZmxSurface
-from kgpy.optics.test_system import system
+from kgpy.optics import Surface, Component, ZmxSystem, ZmxSurface
+
 
 @pytest.fixture(scope='class')
 def components():

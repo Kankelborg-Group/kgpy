@@ -4,6 +4,8 @@ import numpy as np
 from typing import List, Tuple
 import astropy.units as u
 
+from kgpy import optics
+
 __all__ = ['Aperture', 'Rectangular', 'Circular', 'Spider', 'Polygon', 'RegularPolygon', 'Octagon']
 
 
@@ -16,6 +18,17 @@ class Aperture:
         self.decenter_x = 0 * u.mm      # type: u.Quantity
         self.decenter_y = 0 * u.mm      # type: u.Quantity
 
+    def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
+                       ) -> 'optics.zemax.surface.Aperture':
+        
+        a = optics.zemax.surface.Aperture(surf, attr_str)
+        
+        a.is_obscuration = self.is_obscuration
+        a.decenter_x = self.decenter_x
+        a.decenter_y = self.decenter_y
+        
+        return a
+
 
 class Rectangular(Aperture):
 
@@ -25,7 +38,18 @@ class Rectangular(Aperture):
 
         self.half_width_x = half_width_x
         self.half_width_y = half_width_y
+        
+    def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
+                       ) -> 'optics.zemax.surface.aperture.Rectangular':
+        
+        a = optics.zemax.surface.aperture.Rectangular(self.half_width_x, self.half_width_y, surf, attr_str)
 
+        a.is_obscuration = self.is_obscuration
+        a.decenter_x = self.decenter_x
+        a.decenter_y = self.decenter_y
+
+        return a
+    
 
 class Circular(Aperture):
 
@@ -35,6 +59,17 @@ class Circular(Aperture):
 
         self.min_radius = min_radius
         self.max_radius = max_radius
+
+    def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
+                       ) -> 'optics.zemax.surface.aperture.Circular':
+        
+        a = optics.zemax.surface.aperture.Circular(self.min_radius, self.max_radius, surf, attr_str)
+
+        a.is_obscuration = self.is_obscuration
+        a.decenter_x = self.decenter_x
+        a.decenter_y = self.decenter_y
+
+        return a
 
 
 class Spider(Aperture):
@@ -46,6 +81,16 @@ class Spider(Aperture):
         self.num_arms = num_arms
         self.arm_width = arm_width
 
+    def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
+                       ) -> 'optics.zemax.surface.aperture.Spider':
+        
+        a = optics.zemax.surface.aperture.Spider(self.arm_width, self.num_arms, surf, attr_str)
+
+        a.decenter_x = self.decenter_x
+        a.decenter_y = self.decenter_y
+
+        return a
+
 
 class Polygon(Aperture):
 
@@ -54,6 +99,17 @@ class Polygon(Aperture):
         Aperture.__init__(self)
 
         self.points = points
+
+    def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
+                       ) -> 'optics.zemax.surface.aperture.Polygon':
+        
+        a = optics.zemax.surface.aperture.Polygon(self.points, surf, attr_str)
+
+        a.is_obscuration = self.is_obscuration
+        a.decenter_x = self.decenter_x
+        a.decenter_y = self.decenter_y
+
+        return a
 
 
 class RegularPolygon(Polygon):

@@ -2,7 +2,7 @@
 from kgpy.optics.zemax import ZOSAPI
 
 __all__ = ['ISurface', 'ISurfaceStandard', 'ISurfaceCoordinateBreak', 'ISurfaceNthZernike', 'ISurfaceToroidal',
-           'ISurfaceDiffractionGrating']
+           'ISurfaceDiffractionGrating', 'ISurfaceEllipticalGrating1']
 
 
 class ISurface:
@@ -64,4 +64,32 @@ class ISurfaceDiffractionGrating(ISurface):
     DiffractionOrderCell = None         # type: ZOSAPI.Editors.IEditorCell
     LinesPerMicrometer = None           # type: float
     LinesPerMicrometerCell = None       # type: ZOSAPI.Editors.IEditorCell
+
+
+class ISurfaceEllipticalGrating1(ISurface):
+
+    A = None                            # type: float
+    aCell = None                        # type: ZOSAPI.Editors.IEditorCell
+    Alpha = None                        # type: float
+    AlphaCell = None                    # type: ZOSAPI.Editors.IEditorCell
+    B = None                            # type: float
+    bCell = None                        # type: ZOSAPI.Editors.IEditorCell
+    Beta = None                         # type: float
+    BetaCell = None                     # type: ZOSAPI.Editors.IEditorCell
+    c = None                            # type: float
+    cCell = None                        # type: ZOSAPI.Editors.IEditorCell
+    Delta = None                        # type: float
+    DeltaCell = None                    # type: ZOSAPI.Editors.IEditorCell
+    DiffractionOrder = None             # type: float
+    DiffractionOrderCell = None         # type: ZOSAPI.Editors.IEditorCell
+    Epsilon = None                      # type: float
+    EpsilonCell = None                  # type: ZOSAPI.Editors.IEditorCell
+    Gamma = None                        # type: float
+    GammaCell = None                    # type: ZOSAPI.Editors.IEditorCell
+    LinesPerMicroMeter = None           # type: float
+    LinesPerMicroMeterCell = None       # type: ZOSAPI.Editors.IEditorCell
+    NormRadius = None                   # type: float
+    NormRadiusCell = None               # type: ZOSAPI.Editors.IEditorCell
+    NumberOfTerms = None                # type: int
+    NumberOfTermsCell = None            # type: ZOSAPI.Editors.IEditorCell
 

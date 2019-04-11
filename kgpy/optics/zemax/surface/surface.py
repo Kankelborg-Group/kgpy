@@ -1,6 +1,7 @@
 
 from win32com.client import CastTo
 from typing import List, Dict, Union, Type, Any, Tuple, Iterator
+import numpy as np
 import astropy.units as u
 from collections import OrderedDict
 from enum import IntEnum, auto
@@ -9,7 +10,8 @@ import kgpy.optics
 from kgpy.math.quaternion import *
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics import Surface, surface
+from kgpy.optics import surface
+from kgpy.optics.surface.surface import Surface
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.surface.aperture import Circular, Rectangular, Spider, Polygon
 from kgpy.optics.zemax.surface.material import Material
@@ -30,7 +32,7 @@ class ZmxSurface(Surface):
     after_surf_cs_break_str = 'after_surf_cs_break'
     thickness_str = 'thickness'
     stop_str = 'stop'
-    aper_str = 'aper'
+    aperture_str = 'aper'
     mech_aper_str = 'mech_aper'
 
     class AttrPriority(IntEnum):
@@ -39,9 +41,9 @@ class ZmxSurface(Surface):
         """
 
         before_surf_cs_break = auto()
+        aper = auto()
+        mech_aper = auto()
         main = auto()
-        aper = main
-        mech_aper = main
         after_surf_cs_break = auto()
         thickness = auto()
 
@@ -51,7 +53,7 @@ class ZmxSurface(Surface):
         before_surf_cs_break_str:   AttrPriority.before_surf_cs_break,
         after_surf_cs_break_str:    AttrPriority.after_surf_cs_break,
         thickness_str:              AttrPriority.thickness,
-        aper_str:                   AttrPriority.aper,
+        aperture_str:                   AttrPriority.aper,
         mech_aper_str:              AttrPriority.mech_aper
     }
 
@@ -80,6 +82,14 @@ class ZmxSurface(Surface):
         self.prev_surf_in_component = None      # type: ZmxSurface
         self.next_surf_in_component = None      # type: ZmxSurface
 
+        self.aperture = None
+        self.mechanical_aperture = None
+        self.material = None
+        self.surface_type = None
+
+        self.radius = np.inf * u.mm
+        self.conic = 0.0
+
     @staticmethod
     def from_surface(surf: Surface) -> 'ZmxSurface':
         """
@@ -92,12 +102,17 @@ class ZmxSurface(Surface):
         zmx_surf = ZmxSurface(surf.name)
 
         # Copy remaining attributes
+        zmx_surf.surface_type = surf.surface_type
         zmx_surf.comment = surf.comment
-        zmx_surf.thickness = surf.thickness
         zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
         zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
         zmx_surf.component = surf.component
         zmx_surf.aperture = surf.aperture
+        zmx_surf.mechanical_aperture = surf.mechanical_aperture
+        zmx_surf.radius = surf.radius
+        zmx_surf.conic = surf.conic
+        zmx_surf.material = surf.material
+        zmx_surf.thickness = surf.thickness
 
         return zmx_surf
 
@@ -119,6 +134,39 @@ class ZmxSurface(Surface):
         zmx_surf._radius = None
 
         return zmx_surf
+    
+    @property
+    def surface_type(self):
+        return self._surface_type
+    
+    @surface_type.setter
+    def surface_type(self, value: surface.surface_type.SurfaceType):
+        
+        if (self.sys is not None) and (value is not None):
+
+            self._surface_type = value.promote_to_zmx(self)
+
+        else:
+
+            self._surface_type = value
+    
+    @property
+    def conic(self) -> float:
+        return self._conic
+    
+    @conic.setter
+    def conic(self, value: float):
+        self._conic = value
+
+        if self.sys is not None:
+            self.main_row.Conic = self._conic
+
+            if self.aperture_str in self.attr_rows:
+                self.attr_rows[self.aperture_str].Conic = self._conic
+    
+    @property
+    def attr_rows(self):
+        return self._attr_rows
 
     @property
     def material(self) -> surface.Material:
@@ -126,8 +174,14 @@ class ZmxSurface(Surface):
 
     @material.setter
     def material(self, val: surface.Material):
-        self._material = Material(val.name, self)
+        
+        if self.sys is not None and val is not None:
 
+            self._material = Material(val.name, self)
+
+        else:
+
+            self._material = val
 
     @property
     def aperture(self) -> surface.Aperture:
@@ -136,35 +190,32 @@ class ZmxSurface(Surface):
     @aperture.setter
     def aperture(self, aper: surface.Aperture):
 
-        if self.sys is not None:
+        if (self.sys is not None) and (aper is not None):
 
-            if isinstance(aper, surface.aperture.Circular):
+            if self.aperture_str not in self.attr_rows:
+                self.insert_row(self.aperture_str, ZOSAPI.Editors.LDE.SurfaceType.Standard)
 
-                self._aperture = Circular(aper.min_radius, aper.max_radius, self)
-
-            elif isinstance(aper, surface.aperture.Rectangular):
-
-                self._aperture = Rectangular(aper.half_width_x, aper.half_width_y, self)
-
-            elif isinstance(aper, surface.aperture.Spider):
-
-                self._aperture = Spider(aper.arm_width, aper.num_arms, self)
-
-            elif isinstance(aper, surface.aperture.Polygon):
-
-                self._aperture = Polygon(aper.points, self)
-
-            if aper is not None:
-
-                self._aperture.decenter_x = aper.decenter_x
-                self._aperture.decenter_y = aper.decenter_y
-                self._aperture.is_obscuration = aper.is_obscuration
+            self._aperture = aper.promote_to_zmx(self, self.aperture_str)
 
         else:
 
             self._aperture = aper
 
+    @property
+    def mechanical_aperture(self):
 
+        return self._mechanical_aperture
+
+    @mechanical_aperture.setter
+    def mechanical_aperture(self, value: surface.Aperture):
+
+        if self.sys is not None and value is not None:
+
+            self._mechanical_aperture = value.promote_to_zmx(self, self.main_str)
+
+        else:
+
+            self._mechanical_aperture = value
 
 
     @property
@@ -202,7 +253,13 @@ class ZmxSurface(Surface):
 
         self._radius = val
         # noinspection PyPep8Naming
-        self._attr_rows[self.main_str].Radius = float(val / self.sys.lens_units)
+
+        if self.sys is not None:
+
+            self._attr_rows[self.main_str].Radius = val.to(self.sys.lens_units).value
+
+            if self.aperture_str in self.attr_rows:
+                self.attr_rows[self.aperture_str].Radius = val.to(self.sys.lens_units).value
 
     @property
     def is_stop(self) -> bool:
@@ -348,6 +405,9 @@ class ZmxSurface(Surface):
         # Update coordinate break row if we're connected to a optics system
         if self.sys is not None:
 
+            if len(self._attr_rows_list) > 1:
+                self.insert_row(self.before_surf_cs_break_str, ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak)
+
             # Grab pointer to tilt/dec data for convenience
             d1 = self._attr_rows[self.main_str].TiltDecenterData
 
@@ -366,6 +426,7 @@ class ZmxSurface(Surface):
                 d2.TiltAbout_X = R_x
                 d2.TiltAbout_Y = R_y
                 d2.TiltAbout_Z = R_z
+                d2.Order = order
 
                 # Update tilt/dec data
                 d1.BeforeSurfaceDecenterX = 0.0
@@ -438,6 +499,9 @@ class ZmxSurface(Surface):
         # Update coordinate break row if we're connected to a optics system
         if self.sys is not None:
 
+            if len(self._attr_rows_list) > 1:
+                self.insert_row(self.after_surf_cs_break_str, ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak)
+
             # Grab pointer to tilt/dec data for convenience
             d1 = self._attr_rows[self.main_str].TiltDecenterData
 
@@ -456,6 +520,7 @@ class ZmxSurface(Surface):
                 d2.TiltAbout_X = R_x
                 d2.TiltAbout_Y = R_y
                 d2.TiltAbout_Z = R_z
+                d2.Order = order
 
                 # Update tilt/dec data
                 d1.AfterSurfaceDecenterX = 0.0
@@ -560,6 +625,25 @@ class ZmxSurface(Surface):
         :return: None
         """
 
+        self.insert_row(attr_name, row_type)
+
+        self.update()
+
+    def update(self):
+
+        # Update the attributes of the surface
+        self.surface_type = self.surface_type
+        self.aperture = self.aperture
+        self.before_surf_cs_break = self.before_surf_cs_break
+        self.after_surf_cs_break = self.after_surf_cs_break
+        self.mechanical_aperture = self.mechanical_aperture
+        self.radius = self.radius
+        self.conic = self.conic
+        self.material = self.material
+        self.thickness = self.thickness
+
+    def insert_row(self, attr_name: str, row_type: ZOSAPI.Editors.LDE.SurfaceType):
+
         # Initialize the index variable for the case when there are no attribute rows in the list
         i = 0
 
@@ -587,13 +671,14 @@ class ZmxSurface(Surface):
                 if pri < self.priority_dict[attr]:
 
                     # Insert a new row at the index of the current row
-                    row_ind = row.RowIndex
+                    row_ind = row.SurfaceNumber
 
                     # Stop the loop so we don't keep adding surfaces
                     break
 
             # If the row index was not set in the previous loop, set it to the last element in the loop
             if row_ind is None:
+                i += 1
                 row_ind = self.last_row_ind + 1
 
         # Otherwise, there are no rows in the surface and we have to locate our position based off of the previous
@@ -609,17 +694,18 @@ class ZmxSurface(Surface):
         # Change the type of the row to the requested type
         new_row.ChangeType(new_row.GetSurfaceTypeSettings(row_type))
 
+        if self.component is not None:
+            comp_name = self.component.name
+        else:
+            comp_name = 'Main'
+
         # Update the row with the correct control comment.
-        new_row.Comment = self.component.name + '.' + self.name + '.' + attr_name
+        new_row.Comment = comp_name + '.' + self.name + '.' + attr_name
 
         # Add the new row to the attribute list
         self._attr_rows_list.insert(i, (attr_name, new_row))
 
-        # Update the attributes of the surface
-        self.aperture = self.aperture
-        self.thickness = self.thickness
-        self.before_surf_cs_break = self.before_surf_cs_break
-        self.after_surf_cs_break = self.after_surf_cs_break
+        self.sys._update_system_from_zmx()
 
     @property
     def _attr_rows_indices(self) -> List[int]:

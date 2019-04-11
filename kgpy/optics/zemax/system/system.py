@@ -1,5 +1,5 @@
 
-import os
+from os.path import dirname, join
 from win32com.client.gencache import EnsureDispatch
 from win32com.client import constants
 from typing import List, Union, Tuple, Dict, Iterator
@@ -11,8 +11,11 @@ from shapely.geometry import Polygon
 
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import System, Component, Surface
-from kgpy.optics.zemax import ZmxSurface, ZOSAPI
+from kgpy.optics.zemax.surface import ZmxSurface
+from kgpy.optics.zemax.system import wavelength
+from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
+from kgpy.optics.zemax.ZOSAPI.Analysis import AnalysisIDM
 
 __all__ = ['ZmxSystem']
 
@@ -44,7 +47,7 @@ class ZmxSystem(System):
         """
 
         # Call superclass constructor
-        super().__init__(name, comment)
+        System.__init__(self, name, comment)
 
         # Initialize private variables
         self._lens_units = None
@@ -67,8 +70,52 @@ class ZmxSystem(System):
         # Initialize the system from the new design
         self._init_system_from_zmx()
 
-        # Todo: make interface for this
-        # self.zos_sys.SystemData.Aperture = 160.0
+        self.entrance_pupil_radius = self.entrance_pupil_radius
+
+        layout = self.zos_sys.Analyses.New_Analysis(AnalysisIDM.Draw3D)
+
+        layout.GetSettings().Load()
+
+    @property
+    def wavelengths(self) -> wavelength.Array:
+        return self._wavelengths
+
+    @wavelengths.setter
+    def wavelengths(self, value: wavelength.Array):
+        
+        self._wavelengths = value.promote_to_zmx(self.zos_sys.SystemData.Wavelengths)
+        
+        
+
+    @property
+    def entrance_pupil_radius(self):
+
+        if self.zos_sys is not None:
+
+            a = self.zos_sys.SystemData.Aperture
+
+            if a.ApertureType == ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter:
+                return (a.ApertureValue / 2) * self.lens_units
+
+            else:
+                raise ValueError('Aperture not defined by entrance pupil diameter')
+
+        else:
+            return self._entrance_pupil_radius
+
+    @entrance_pupil_radius.setter
+    def entrance_pupil_radius(self, value: u.Quantity):
+
+        if self.zos_sys is not None:
+
+            a = self.zos_sys.SystemData.Aperture
+
+            a.ApertureType = ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter
+
+            a.ApertureValue = 2 * value.to(self.lens_units).value
+
+        else:
+            self._entrance_pupil_radius = value
 
     def save(self, path: str):
 
@@ -116,6 +163,9 @@ class ZmxSystem(System):
 
                 zmx_sys.insert(zmx_surf, -1)
 
+        zmx_sys.entrance_pupil_radius = sys.entrance_pupil_radius
+        zmx_sys.wavelengths = sys.wavelengths
+
         return zmx_sys
 
     @staticmethod
@@ -155,8 +205,6 @@ class ZmxSystem(System):
         surf.insert(ZmxSurface.main_str, ZOSAPI.Editors.LDE.SurfaceType.Standard)
 
     def delete_surface(self, surf: ZmxSurface):
-
-        surf.__del__()
 
         self.surfaces.remove(surf)
 
@@ -395,6 +443,8 @@ class ZmxSystem(System):
             # Store the attribute string and the LDE row as key value pairs
             surf[1][attr_str] = zmx_row
 
+            zmx_row.Comment = comp_str + '.' + surf_str + '.' + attr_str
+
         return surfaces
 
     def _init_system_from_zmx(self) -> None:
@@ -452,13 +502,13 @@ class ZmxSystem(System):
             # Extract component and attributes dictionary
             comp, attrs = surf_item
 
-            # Check that the component names at this index are the same
-            if current_surf.component != comp:
-                raise ValueError('Two surfaces at same index with different components')
-
-            # Check that the surface names at this index are the same
-            if current_surf.name != surf_name:
-                raise ValueError('Two surfaces at same index with different names')
+            # # Check that the component names at this index are the same
+            # if current_surf.component != comp:
+            #     raise ValueError('Two surfaces at same index with different components', current_surf.component, comp)
+            #
+            # # Check that the surface names at this index are the same
+            # if current_surf.name != surf_name:
+            #     raise ValueError('Two surfaces at same index with different names')
 
             # Loop through all the ILDERows in this surface, and update with new value
             for current_attr, attr_name, attr_row in zip(current_surf.__iter__(), attrs.keys(), attrs.values()):
@@ -466,9 +516,9 @@ class ZmxSystem(System):
                 # Extract the name of the attribute for the persistent object
                 current_attr_name, _ = current_attr
 
-                # Check that the attribute names at this index are the same
-                if current_attr_name != attr_name:
-                    raise ValueError('Two attributes at same index but with different names')
+                # # Check that the attribute names at this index are the same
+                # if current_attr_name != attr_name:
+                #     raise ValueError('Two attributes at same index but with different names')
 
                 # Update ILDERow value
                 current_surf[current_attr_name] = attr_row

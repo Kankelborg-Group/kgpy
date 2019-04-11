@@ -14,11 +14,12 @@ __all__ = ['Polygon']
 
 class Polygon(Aperture, aperture.Polygon):
 
-    def __init__(self, points: u.Quantity, surf: 'optics.ZmxSurface'):
+    def __init__(self, points: u.Quantity, surf: 'optics.ZmxSurface', 
+                 attr_str: str):
 
         self.filename = str(uuid4()) + '.uda'
 
-        Aperture.__init__(self, surf)
+        Aperture.__init__(self, surf, attr_str)
 
         aperture.Polygon.__init__(self, points)
 
@@ -34,8 +35,8 @@ class Polygon(Aperture, aperture.Polygon):
     @property
     def settings(self) -> ISurfaceApertureUser:
 
-        s = self.surf.main_row.ApertureData.CurrentTypeSettings
-
+        s = Aperture.settings.fget(self)
+        
         if self.is_obscuration:
             # noinspection PyProtectedMember
             return s._S_UserObscuration
