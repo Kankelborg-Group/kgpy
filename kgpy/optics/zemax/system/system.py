@@ -12,7 +12,7 @@ from shapely.geometry import Polygon
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import System, Component, Surface
 from kgpy.optics.zemax.surface import ZmxSurface
-from kgpy.optics.zemax.system import wavelength
+from kgpy.optics.zemax.system import wavelength, field
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 from kgpy.optics.zemax.ZOSAPI.Analysis import AnalysisIDM
@@ -75,6 +75,14 @@ class ZmxSystem(System):
         layout = self.zos_sys.Analyses.New_Analysis(AnalysisIDM.Draw3D)
 
         layout.GetSettings().Load()
+        
+    @property
+    def fields(self):
+        return self._fields
+    
+    @fields.setter
+    def fields(self, value: field.Array):
+        self._fields = value.promote_to_zmx(self.zos_sys.SystemData.Fields)
 
     @property
     def wavelengths(self) -> wavelength.Array:
@@ -84,8 +92,6 @@ class ZmxSystem(System):
     def wavelengths(self, value: wavelength.Array):
         
         self._wavelengths = value.promote_to_zmx(self.zos_sys.SystemData.Wavelengths)
-        
-        
 
     @property
     def entrance_pupil_radius(self):
@@ -144,6 +150,13 @@ class ZmxSystem(System):
                 zmx_surf.name = surf.name
                 zmx_surf.comment = surf.comment
                 zmx_surf.component = surf.component
+                zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
+                zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
+                zmx_surf.aperture = surf.aperture
+                zmx_surf.mechanical_aperture = surf.mechanical_aperture
+                zmx_surf.radius = surf.radius
+                zmx_surf.conic = surf.conic
+                zmx_surf.material = surf.material
 
             elif surf.is_stop:
 
@@ -165,6 +178,7 @@ class ZmxSystem(System):
 
         zmx_sys.entrance_pupil_radius = sys.entrance_pupil_radius
         zmx_sys.wavelengths = sys.wavelengths
+        zmx_sys.fields = sys.fields
 
         return zmx_sys
 
@@ -218,49 +232,36 @@ class ZmxSystem(System):
 
         lde.RemoveSurfacesAt(1, lde.NumberOfSurfaces - 2)
 
-    def raytrace(self, surface_indices: List[int], wavl_indices: List[int],
-                 field_coords_x: Union[List[Real], np.ndarray], field_coords_y: Union[List[Real], np.ndarray],
-                 pupil_coords_x: Union[List[Real], np.ndarray], pupil_coords_y: Union[List[Real], np.ndarray]
-                 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Execute an arbitrary raytrace of the system
-        :param surface_indices: List of surfaces indices where ray positions will be evaluated.
-        :param wavl_indices: List of wavelength indices to generate rays
-        :param field_coords_x: array of normalized field coordinates in the x direction
-        :param field_coords_y: array of normalized field coordinates in the y direction
-        :param pupil_coords_x: array of normalized pupil coordinates in the x direction
-        :param pupil_coords_y: array of normalized pupil coordinates in the y direction
-        :return: three ndarrrays of shape [len(surface_indices), len(wavl_indices), len(field_coords_x),
-        len(field_coords_y), len(pupil_coords_x), len(pupil_coords_y)] for the vignetting code, x position and
-        y position of every ray in the raytrace.
-        """
+    def raytrace(self, surfaces: List[ZmxSurface], wavelengths: List[wavelength.Item], field_x: u.Quantity,
+                 field_y: u.Quantity, pupil_x: u.Quantity, pupil_y: u.Quantity
+                 ) -> Tuple[u.Quantity, u.Quantity, u.Quantity]:
 
         # Grab a handle to the zemax system
         sys = self.zos_sys
 
-        # Deal with shorthand for last surface
-        for s, surf in enumerate(surface_indices):
-            if surf < 0:
-                surface_indices[s] = sys.LDE.NumberOfSurfaces + surf
+        # # Deal with shorthand for last surface
+        # for s, surf in enumerate(surface_indices):
+        #     if surf < 0:
+        #         surface_indices[s] = sys.LDE.NumberOfSurfaces + surf
 
         # Initialize raytrace
         rt = sys.Tools.OpenBatchRayTrace()  # raytrace object
         tool = sys.Tools.CurrentTool  # pointer to active tool
 
         # Store number of surfaces
-        num_surf = len(surface_indices)
+        num_surf = len(surfaces)
 
         # store number of wavelengths
-        num_wavl = len(wavl_indices)
+        num_wavl = len(wavelengths)
 
         # Store length of each axis in ray grid
-        num_field_x = len(field_coords_x)
-        num_field_y = len(field_coords_y)
-        num_pupil_x = len(pupil_coords_x)
-        num_pupil_y = len(pupil_coords_y)
+        num_field_x = len(field_x)
+        num_field_y = len(field_y)
+        num_pupil_x = len(pupil_x)
+        num_pupil_y = len(pupil_y)
 
         # Create grid of rays
-        Fx, Fy, Px, Py = np.meshgrid(field_coords_x, field_coords_y, pupil_coords_x, pupil_coords_y, indexing='ij')
+        Fx, Fy, Px, Py = np.meshgrid(field_x, field_y, pupil_x, pupil_y, indexing='ij')
 
         # Store shape of grid
         sh = list(Fx.shape)
@@ -272,26 +273,20 @@ class ZmxSystem(System):
         V = np.empty(tot_sh)      # Vignetted rays
         X = np.empty(tot_sh)
         Y = np.empty(tot_sh)
-        C = np.empty(num_surf, dtype=np.str)      # Comment at each surface
 
         # Loop over each surface and run raytrace to surface
-        for s, surf_ind in enumerate(surface_indices):
-
-            print('surface', surf_ind)
-
-            # Save comment at this surface
-            # C.append(sys.LDE.GetSurfaceAt(surf_ind).Comment)
-            C[s] = sys.LDE.GetSurfaceAt(surf_ind).Comment
+        for s, surf in enumerate(surfaces):
 
             # Run raytrace for each wavelength
-            for w, wavl_ind in enumerate(wavl_indices):
+            for w, wavl in enumerate(wavelengths):
 
                 # Run raytrace for each field angle
                 for fi in range(num_field_x):
                     for fj in range(num_field_y):
 
                         # Open instance of batch raytrace
-                        rt_dat = rt.CreateNormUnpol(num_pupil_x * num_pupil_y, constants.RaysType_Real, surf_ind)
+                        rt_dat = rt.CreateNormUnpol(num_pupil_x * num_pupil_y, constants.RaysType_Real,
+                                                    surf.main_row.SurfaceNumber)
 
                         # Loop over pupil to add rays to batch raytrace
                         for pi in range(num_pupil_x):
@@ -304,7 +299,7 @@ class ZmxSystem(System):
                                 py = Py[fi, fj, pi, pj]
 
                                 # Write ray to pipe
-                                rt_dat.AddRay(wavl_ind, fx, fy, px, py, constants.OPDMode_None)
+                                rt_dat.AddRay(wavl.zos_wavl.WavelengthNumber, fx, fy, px, py, constants.OPDMode_None)
 
                         # Execute the raytrace
                         tool.RunAndWaitForCompletion()

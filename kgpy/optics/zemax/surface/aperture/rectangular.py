@@ -40,7 +40,7 @@ class Rectangular(Aperture, aperture.Rectangular):
 
     @settings.setter
     def settings(self, val: ISurfaceApertureRectangular) -> None:
-        Aperture.settings.fset(val)
+        Aperture.settings.fset(self, val)
 
     @property
     def half_width_x(self) -> u.Quantity:

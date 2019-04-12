@@ -1,6 +1,4 @@
-from . import Editors
-from . import SystemData
-from . import Analysis
+from . import Editors, SystemData, Analysis, Tools
 
 from .SystemType import *
 from .IOpticalSystem import *

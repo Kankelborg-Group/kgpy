@@ -131,6 +131,8 @@ class Surface:
         self.before_surf_cs_break.X.x = val
         self.after_surf_cs_break.X.x = -val
 
+        self.reset_cs()
+
     @property
     def decenter_y(self) -> u.Quantity:
 
@@ -148,6 +150,8 @@ class Surface:
         self.before_surf_cs_break.X.y = val
         self.after_surf_cs_break.X.y = -val
 
+        self.reset_cs()
+
     @property
     def decenter_z(self) -> u.Quantity:
 
@@ -164,6 +168,8 @@ class Surface:
 
         self.before_surf_cs_break.X.z = val
         self.after_surf_cs_break.X.z = -val
+
+        self.reset_cs()
 
     @property
     def tilt_x(self) -> u.Quantity:
@@ -184,6 +190,8 @@ class Surface:
 
         self.after_surf_cs_break.R_x = -val
 
+        self.reset_cs()
+
     @property
     def tilt_y(self) -> u.Quantity:
 
@@ -203,6 +211,8 @@ class Surface:
 
         self.after_surf_cs_break.R_y = -val
 
+        self.reset_cs()
+
     @property
     def tilt_z(self) -> u.Quantity:
 
@@ -221,6 +231,8 @@ class Surface:
         self.before_surf_cs_break.R_z = val
 
         self.after_surf_cs_break.R_z = -val
+
+        self.reset_cs()
         
     @property
     def translation_first(self) -> bool:
@@ -230,6 +242,8 @@ class Surface:
     def translation_first(self, value: bool):
         self.before_surf_cs_break.translation_first = value
         self.after_surf_cs_break.translation_first = not value
+
+        self.reset_cs()
 
     @property
     def surface_type(self):

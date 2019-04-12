@@ -7,3 +7,7 @@ from .IWavelength import *
 from .IWavelengths import *
 from .QuadratureSteps import *
 from .WavelengthPreset import *
+from .IField import IField
+from .FieldNormalizationType import FieldNormalizationType
+from .FieldType import FieldType
+from .IFields import IFields

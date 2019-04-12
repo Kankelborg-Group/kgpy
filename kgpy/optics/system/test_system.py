@@ -149,7 +149,7 @@ class TestSystem:
         bcs = gcs() + Vector([0, 0, 0.5] * u.mm)
 
         # Add a a baffle at the coordinate system specified by bcs
-        baffle = system.add_baffle('b1', baffle_cs=bcs)
+        baffle = system.add_baffle_component('b1', baffle_cs=bcs)
 
         # Check to see if a baffle was added for this angle of b
         if baffle.first_surface is not None:

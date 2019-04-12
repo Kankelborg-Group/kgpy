@@ -1,6 +1,6 @@
 
 import numpy as np
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Tuple
 import quaternion as q
 import astropy.units as u
 from beautifultable import BeautifulTable
@@ -8,7 +8,7 @@ from beautifultable import BeautifulTable
 from kgpy.math import CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import Surface, Component
-from kgpy.optics.system import wavelength
+from kgpy.optics.system import wavelength, field
 
 __all__ = ['System']
 
@@ -60,6 +60,15 @@ class System:
         self._entrance_pupil_radius = 0 * u.mm
         
         self._wavelengths = wavelength.Array()
+        self._fields = field.Array()
+        
+    @property
+    def fields(self) -> field.Array:
+        return self._fields
+    
+    @fields.setter
+    def fields(self, value: field.Array):
+        self._fields = value
     
     @property
     def wavelengths(self) -> wavelength.Array:
@@ -227,8 +236,23 @@ class System:
         for surf in component:
             self.insert(surf, index)
             index = index + 1
+            
+    def raytrace(self, surfaces: List[Surface], wavelengths: wavelength.Array, field_x: u.Quantity, field_y: u.Quantity,
+                 pupil_x: u.Quantity, pupil_y: u.Quantity) -> Tuple[u.Quantity, u.Quantity, u.Quantity]:
+        
+        raise NotImplementedError
 
-    def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem) -> Component:
+    def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem):
+
+        pass
+
+    def calc_baffle_aperture(self, component: Component):
+        
+        for surface in component:
+            
+            pass
+
+    def add_baffle_component(self, baffle_name: str, baffle_cs: CoordinateSystem) -> Component:
         """
         Add a baffle to the system at the specified coordinate system across the x-y plane.
         This function automatically calculates how many times the raypath crosses the baffle plane, and constructs the
