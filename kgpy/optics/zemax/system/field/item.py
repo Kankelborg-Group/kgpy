@@ -9,9 +9,11 @@ __all__ = []
 
 class Item(Base):
     
-    def __init__(self, x: u.Quantity, y: u.Quantity, zos_field: ZOSAPI.SystemData.IField):
+    def __init__(self, x: u.Quantity, y: u.Quantity, zos_field: ZOSAPI.SystemData.IField,
+                 zos_config: ZOSAPI.Editors.MCE.IMultiConfigEditor):
         
         self.zos_field = zos_field
+        self.zos_config = zos_config
         
         Base.__init__(self, x, y)
         
@@ -21,6 +23,12 @@ class Item(Base):
     
     @x.setter
     def x(self, value: u.Quantity):
+
+        if self._x_op is None:
+            
+            pass
+            
+
         self.zos_field.X = value.to(u.deg).value
 
     @property

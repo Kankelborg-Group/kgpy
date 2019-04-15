@@ -163,6 +163,7 @@ class ZmxSurface(Surface):
 
             if self.aperture_str in self.attr_rows:
                 self.attr_rows[self.aperture_str].Conic = self._conic
+
     
     @property
     def attr_rows(self):

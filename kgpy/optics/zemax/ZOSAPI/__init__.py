@@ -1,4 +1,4 @@
-from . import Editors, SystemData, Analysis, Tools
+from . import Editors, SystemData, Analysis, Tools, Common
 
 from .SystemType import *
 from .IOpticalSystem import *
