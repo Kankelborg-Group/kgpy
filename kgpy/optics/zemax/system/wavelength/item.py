@@ -11,7 +11,7 @@ class Item(ItemBase):
     
     units = u.um
 
-    def __init__(self, wavelength: u.Quantity, zos_wavl: ZOSAPI.SystemData.IWavelength):
+    def __init__(self, wavelength: u.Quantity, zos_wavl: ZOSAPI.SystemData.IWavelength, zos_sys: ZOSAPI):
 
         self.zos_wavl = zos_wavl
 

@@ -9,7 +9,7 @@ class IOpticalSystem:
     Analyses = None             # type: ZOSAPI.Analysis.I_Analyses
     IsNonAxial = None           # type: bool
     LDE = None                  # type: ZOSAPI.Editors.LDE.ILensDataEditor
-    MCE = None                  # type: ZOSAPI.Editors.MCE.I
+    MCE = None                  # type: ZOSAPI.Editors.MCE.IMultiConfigEditor
     MFE = None                  # type: ZOSAPI.Editors.MFE.IMeritFunctionEditor
     Mode = None                 # type: ZOSAPI.SystemType
     NCE = None                  # type: ZOSAPI.Editors.NCE.INonSeqEditor

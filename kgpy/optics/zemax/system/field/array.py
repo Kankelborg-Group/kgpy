@@ -9,9 +9,10 @@ __all__ = []
 
 class Array(ArrayBase):
     
-    def __init__(self, zos_arr: ZOSAPI.SystemData.IFields):
-        
-        self.zos_arr = zos_arr
+    def __init__(self, zos_sys: ZOSAPI.IOpticalSystem):
+
+        self.zos_sys = zos_sys
+        self.zos_arr = self.zos_sys.SystemData.Fields
         
         ArrayBase.__init__(self)
         
@@ -23,7 +24,7 @@ class Array(ArrayBase):
         else:
             zos_field = self.zos_arr.AddField(0.0, 0.0, 1.0)
             
-        f = Item(field.x, field.y, zos_field)
+        f = Item(field.x, field.y, zos_field, self.zos_sys)
         
         f.van = field.van
         f.vdx = field.vdx

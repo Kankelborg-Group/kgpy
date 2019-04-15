@@ -83,7 +83,7 @@ class ZmxSystem(System):
     
     @fields.setter
     def fields(self, value: field.Array):
-        self._fields = value.promote_to_zmx(self.zos_sys.SystemData.Fields)
+        self._fields = value.promote_to_zmx(self.zos_sys)
 
     @property
     def wavelengths(self) -> wavelength.Array:

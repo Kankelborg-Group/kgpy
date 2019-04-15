@@ -18,8 +18,8 @@ class Array:
         
         self.items.append(field)
 
-    def promote_to_zmx(self, zos_arr: 'optics.zemax.ZOSAPI.SystemData.IFields') -> 'optics.zemax.field.Array':
-        a = optics.zemax.system.field.Array(zos_arr)
+    def promote_to_zmx(self, zos_sys: 'optics.zemax.ZOSAPI.IOpticalSystem') -> 'optics.zemax.field.Array':
+        a = optics.zemax.system.field.Array(zos_sys)
 
         for item in self.items:
             a.append(item)
