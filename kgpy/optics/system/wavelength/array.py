@@ -19,9 +19,9 @@ class Array:
         
         self.items.append(wavl)
         
-    def promote_to_zmx(self, zos_arr: 'optics.zemax.ZOSAPI.SystemData.IWavelengths') -> 'optics.zemax.wavelength.Array':
+    def promote_to_zmx(self, zos_sys: 'optics.zemax.ZOSAPI.IOpticalSystem') -> 'optics.zemax.wavelength.Array':
 
-        a = optics.zemax.system.wavelength.Array(zos_arr)
+        a = optics.zemax.system.wavelength.Array(zos_sys)
         
         for item in self.items:
             a.append(item)

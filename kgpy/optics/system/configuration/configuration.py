@@ -6,6 +6,6 @@ __all__ = ['Configuration']
 
 class Configuration:
 
-    def __init__(self, index: int):
-        
-        self.index = index
+    def __init__(self):
+
+        pass

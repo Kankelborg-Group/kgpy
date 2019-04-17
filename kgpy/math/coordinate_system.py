@@ -44,12 +44,10 @@ class CoordinateSystem:
             Q = q.quaternion(*Q)
 
         # Save input arguments to class variables
-        self.X = X      # type: Vector
+        self.X = X
         self.Q = Q      # type: q.quaternion
-        self.translation_first = translation_first
+        # self.translation_first = translation_first
 
-        # If the translation operation occurs first, we do not have to rotate the translation Vector.
-        # Otherwise, if the rotation operation occurs first, we do have to rotate the translation Vector.
         if not translation_first:
             self.X = self.X.rotate(self.Q)
 

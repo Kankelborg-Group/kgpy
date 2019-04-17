@@ -57,7 +57,7 @@ class ZmxSurface(Surface):
         mech_aper_str:              AttrPriority.mech_aper
     }
 
-    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m):
+    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, explicit_csb=False):
         """
         Constructor for the ZmxSurface class.
         This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
@@ -90,6 +90,76 @@ class ZmxSurface(Surface):
         self.radius = np.inf * u.mm
         self.conic = 0.0
 
+        self.explicit_csb = explicit_csb
+
+    @property
+    def sys(self):
+        return self._sys
+
+    @sys.setter
+    def sys(self, value: 'kgpy.optics.ZmxSystem'):
+
+        self._sys = value
+
+    def _prep_mce(self):
+
+        self._after_decenter_x_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_decenter_x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CADX)
+        self._after_decenter_x_op.Param1 = self.main_row.SurfaceNumber
+
+        self._after_decenter_y_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_decenter_y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CADY)
+        self._after_decenter_y_op.Param1 = self.main_row.SurfaceNumber
+
+        self._after_tilt_x_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_tilt_x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CATX)
+        self._after_tilt_x_op.Param1 = self.main_row.SurfaceNumber
+
+        self._after_tilt_y_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_tilt_y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CATY)
+        self._after_tilt_y_op.Param1 = self.main_row.SurfaceNumber
+
+        self._after_tilt_z_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_tilt_z_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CATZ)
+        self._after_tilt_z_op.Param1 = self.main_row.SurfaceNumber
+
+        self._after_order_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_order_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CAOR)
+        self._after_order_op.Param1 = self.main_row.SurfaceNumber
+
+        self._before_decenter_x_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_decenter_x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDX)
+        self._before_decenter_x_op.Param1 = self.main_row.SurfaceNumber
+
+        self._before_decenter_y_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_decenter_y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDY)
+        self._before_decenter_y_op.Param1 = self.main_row.SurfaceNumber
+
+        self._before_tilt_x_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_tilt_x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTX)
+        self._before_tilt_x_op.Param1 = self.main_row.SurfaceNumber
+
+        self._before_tilt_y_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_tilt_y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTY)
+        self._before_tilt_y_op.Param1 = self.main_row.SurfaceNumber
+
+        self._before_tilt_z_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_tilt_z_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTZ)
+        self._before_tilt_z_op.Param1 = self.main_row.SurfaceNumber
+
+        self._before_order_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_order_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR)
+        self._before_order_op.Param1 = self.main_row.SurfaceNumber
+
+    def _prep_mce_coordinate_break(self, row: ILDERow):
+
+        for i in range(1, 7):
+
+            op = self.sys.zos_sys.MCE.AddOperand()
+            op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM)
+            op.Param1 = row.SurfaceNumber
+            op.Param2 = i
+
     @staticmethod
     def from_surface(surf: Surface) -> 'ZmxSurface':
         """
@@ -100,6 +170,8 @@ class ZmxSurface(Surface):
 
         # Construct new ZmxSurface
         zmx_surf = ZmxSurface(surf.name)
+
+        zmx_surf.explicit_csb = surf.explicit_csb
 
         # Copy remaining attributes
         zmx_surf.surface_type = surf.surface_type
@@ -113,6 +185,11 @@ class ZmxSurface(Surface):
         zmx_surf.conic = surf.conic
         zmx_surf.material = surf.material
         zmx_surf.thickness = surf.thickness
+
+        # zmx_surf._before_surf_cs_break_list = surf._before_surf_cs_break_list
+        # zmx_surf._after_surf_cs_break_list = surf._after_surf_cs_break_list
+
+
 
         return zmx_surf
 
@@ -134,6 +211,8 @@ class ZmxSurface(Surface):
         zmx_surf._radius = None
 
         return zmx_surf
+    
+    
     
     @property
     def surface_type(self):
@@ -330,13 +409,16 @@ class ZmxSurface(Surface):
             # Convert Quantity to float in Zemax lens units
             t_value = t.to(self.sys.lens_units).value
 
-            # If there is a thickness row defined, update the value from that row
-            if self.thickness_str in self._attr_rows:
+            if self.explicit_csb or len(self.attr_rows) > 1:
+
+                if self.thickness_str not in self._attr_rows:
+                    self.insert_row(self.thickness_str, ZOSAPI.Editors.LDE.SurfaceType.Standard)
+
                 self._attr_rows[self.thickness_str].Thickness = t_value
 
-            # Otherwise, update the thickness value from the main row.
             else:
                 self._attr_rows_list[-1][1].Thickness = t_value
+
 
     @property
     def tilt_z(self) -> u.Quantity:
@@ -374,8 +456,8 @@ class ZmxSurface(Surface):
                 d1 = self._ISurfaceCoordinateBreak_data(row)
 
                 # Convert a Zemax coordinate break into a coordinate system
-                cs1 = self._cs_from_tait_bryant(d1.Decenter_X, d1.Decenter_Y, d1.TiltAbout_X, d1.TiltAbout_Y,
-                                                d1.TiltAbout_Z, d1.Order)
+                cs1 = self._cs_from_tait_bryant(d1.Decenter_X, d1.Decenter_Y, row.Thickness, d1.TiltAbout_X,
+                                                d1.TiltAbout_Y, d1.TiltAbout_Z, d1.Order)
 
             # Otherwise just return a identity coordinate system
             else:
@@ -383,8 +465,9 @@ class ZmxSurface(Surface):
 
             # Add the tilt/decenter within the main surface
             d2 = self._attr_rows[self.main_str].TiltDecenterData
-            cs2 = self._cs_from_tait_bryant(d2.BeforeSurfaceDecenterX, d2.BeforeSurfaceDecenterY, d2.BeforeSurfaceTiltX,
-                                            d2.BeforeSurfaceTiltY, d2.BeforeSurfaceTiltZ, d2.BeforeSurfaceOrder)
+            cs2 = self._cs_from_tait_bryant(d2.BeforeSurfaceDecenterX, d2.BeforeSurfaceDecenterY, 0.0,
+                                            d2.BeforeSurfaceTiltX, d2.BeforeSurfaceTiltY, d2.BeforeSurfaceTiltZ,
+                                            d2.BeforeSurfaceOrder)
 
             # The total coordinate break is the composition of the two coordinate systems
             self._before_surf_cs_break = cs1 @ cs2
@@ -406,20 +489,26 @@ class ZmxSurface(Surface):
         # Update coordinate break row if we're connected to a optics system
         if self.sys is not None:
 
-            if len(self._attr_rows_list) > 1:
-                self.insert_row(self.before_surf_cs_break_str, ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak)
+            if self.explicit_csb or len(self.attr_rows) > 1:
+                if self.before_surf_cs_break_str not in self._attr_rows:
+                    self.insert_row(self.before_surf_cs_break_str, ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak)
+                    self._prep_mce_coordinate_break(self._attr_rows[self.before_surf_cs_break_str])
 
             # Grab pointer to tilt/dec data for convenience
             d1 = self._attr_rows[self.main_str].TiltDecenterData
 
             # Convert CoordinateSystem to Zemax parameters
-            X_x, X_y, R_x, R_y, R_z, order = self._cs_to_tait_bryant(cs)
+            X_x, X_y, X_z, R_x, R_y, R_z, order = self._cs_to_tait_bryant(cs)
 
             # If there is already a coordinate break row defined,
             if self.before_surf_cs_break_str in self._attr_rows:
 
+                cb_row = self._attr_rows[self.before_surf_cs_break_str]
+
+                cb_row.Thickness = X_z
+
                 # Grab pointer to coordinate break row data
-                d2 = self._ISurfaceCoordinateBreak_data(self._attr_rows[self.before_surf_cs_break_str])
+                d2 = self._ISurfaceCoordinateBreak_data(cb_row)
 
                 # Update coordinate break data
                 d2.Decenter_X = X_x
@@ -468,7 +557,7 @@ class ZmxSurface(Surface):
                 d1 = self._ISurfaceCoordinateBreak_data(row)
 
                 # Convert a Zemax coordinate break into a coordinate system
-                cs1 = self._cs_from_tait_bryant(d1.Decenter_X, d1.Decenter_Y, d1.TiltAbout_X, d1.TiltAbout_Y,
+                cs1 = self._cs_from_tait_bryant(d1.Decenter_X, d1.Decenter_Y, row.Thickness, d1.TiltAbout_X, d1.TiltAbout_Y,
                                                 d1.TiltAbout_Z, d1.Order)
 
             # Otherwise just return a identity coordinate system
@@ -477,7 +566,7 @@ class ZmxSurface(Surface):
 
             # Add the tilt/decenter within the main surface
             d2 = self._attr_rows[self.main_str].TiltDecenterData
-            cs2 = self._cs_from_tait_bryant(d2.AfterSurfaceDecenterX, d2.AfterSurfaceDecenterY, d2.AfterSurfaceTiltX,
+            cs2 = self._cs_from_tait_bryant(d2.AfterSurfaceDecenterX, d2.AfterSurfaceDecenterY, 0.0, d2.AfterSurfaceTiltX,
                                             d2.AfterSurfaceTiltY, d2.AfterSurfaceTiltZ, d2.AfterSurfaceOrder)
 
             # The total coordinate break is the composition of the two coordinate systems
@@ -498,22 +587,28 @@ class ZmxSurface(Surface):
         self._after_surf_cs_break = cs
 
         # Update coordinate break row if we're connected to a optics system
-        if self.sys is not None:
+        if self.sys is not None and not self.main_row.IsImage:
 
-            if len(self._attr_rows_list) > 1:
-                self.insert_row(self.after_surf_cs_break_str, ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak)
+            if self.explicit_csb or len(self.attr_rows) > 1:
+                if self.after_surf_cs_break_str not in self._attr_rows:
+                    self.insert_row(self.after_surf_cs_break_str, ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak)
+                    self._prep_mce_coordinate_break(self._attr_rows[self.after_surf_cs_break_str])
 
             # Grab pointer to tilt/dec data for convenience
             d1 = self._attr_rows[self.main_str].TiltDecenterData
 
             # Convert CoordinateSystem to Zemax parameters
-            X_x, X_y, R_x, R_y, R_z, order = self._cs_to_tait_bryant(cs)
+            X_x, X_y, X_z, R_x, R_y, R_z, order = self._cs_to_tait_bryant(cs)
 
             # If there is already a coordinate break row defined,
             if self.after_surf_cs_break_str in self._attr_rows:
 
+                cb_row = self._attr_rows[self.after_surf_cs_break_str]
+
+                cb_row.Thickness = X_z
+
                 # Grab pointer to coordinate break row data
-                d2 = self._ISurfaceCoordinateBreak_data(self._attr_rows[self.after_surf_cs_break_str])
+                d2 = self._ISurfaceCoordinateBreak_data(cb_row)
 
                 # Update coordinate break data
                 d2.Decenter_X = X_x
@@ -529,7 +624,7 @@ class ZmxSurface(Surface):
                 d1.AfterSurfaceTiltX = 0.0
                 d1.AfterSurfaceTiltY = 0.0
                 d1.AfterSurfaceTiltZ = 0.0
-                d1.AfterSurfaceOrder = 0
+                d1.AfterSurfaceOrder = 1
 
             # Otherwise, there is no coordinate break row
             else:
@@ -628,6 +723,8 @@ class ZmxSurface(Surface):
 
         self.insert_row(attr_name, row_type)
 
+        self._prep_mce()
+
         self.update()
 
     def update(self):
@@ -642,6 +739,8 @@ class ZmxSurface(Surface):
         self.conic = self.conic
         self.material = self.material
         self.thickness = self.thickness
+
+        self.explicit_csb = self.explicit_csb
 
     def insert_row(self, attr_name: str, row_type: ZOSAPI.Editors.LDE.SurfaceType):
 
@@ -744,7 +843,7 @@ class ZmxSurface(Surface):
         else:
             return None
 
-    def _cs_from_tait_bryant(self, X_x: float, X_y: float, R_x: float, R_y: float, R_z: float,
+    def _cs_from_tait_bryant(self, X_x: float, X_y: float, X_z: float, R_x: float, R_y: float, R_z: float,
                              order: int):
         """
         Construct a Coordinate System using Zemax Tilt/Decenter parameters.
@@ -769,23 +868,17 @@ class ZmxSurface(Surface):
         R_z = R_z.to(u.rad)
 
         # Construct vector from decenter parameters
-        X = Vector([X_x, X_y, 0] * self.sys.lens_units)
+        X = Vector([X_x, X_y, X_z] * self.sys.lens_units)
 
         # Construct rotation quaternion from tilt parameters
-        Q = from_xyz_intrinsic_tait_bryan_angles(R_x, R_y, R_z)
-
-        # Determine which order the tilts/decenters should be executed
-        if order == 0:
-            translation_first = True
-        else:
-            translation_first = False
+        Q = from_xyz_intrinsic_tait_bryan_angles(R_x, R_y, R_z, x_first=False)
 
         # Create new coordinate system representing the Zemax coordinate break
-        cs = CoordinateSystem(X, Q, translation_first=translation_first)
+        cs = CoordinateSystem(X, Q, translation_first=False)
 
         return cs
 
-    def _cs_to_tait_bryant(self, cs: CoordinateSystem) -> Tuple[float, float, float, float, float, int]:
+    def _cs_to_tait_bryant(self, cs: CoordinateSystem) -> Tuple[float, float, float, float, float, float, int]:
         """
         Construct Zemax tilt/decenter parameters from a coordinate system
 
@@ -793,19 +886,14 @@ class ZmxSurface(Surface):
         :return: Decenter x, decenter y, tilt x, tilt y, tilt z, order
         """
 
-        # Check that we have a coordinate system that is compatible with a coordinate break
-        if cs.X.z != 0:
-            raise ValueError('Nonzero z-translation')
+        order = 1
 
-        # Update the order
-        if cs.translation_first:
-            order = 0
-        else:
-            order = 1
+        X = cs.X.rotate(cs.Q.inverse())
 
         # Update the translation
-        X_x = cs.X.x.to(self.sys.lens_units).value
-        X_y = cs.X.y.to(self.sys.lens_units).value
+        X_x = X.x.to(self.sys.lens_units).value
+        X_y = X.y.to(self.sys.lens_units).value
+        X_z = X.z.to(self.sys.lens_units).value
 
         # Update the rotation
         R_x, R_y, R_z = as_xyz_intrinsic_tait_bryan_angles(cs.Q)
@@ -820,7 +908,7 @@ class ZmxSurface(Surface):
         R_y = R_y.to(u.deg).value
         R_z = R_z.to(u.deg).value
 
-        return X_x, X_y, R_x, R_y, R_z, order
+        return X_x, X_y, X_z, R_x, R_y, R_z, order
 
     def __getitem__(self, item: Union[int, str]) -> ILDERow:
         """

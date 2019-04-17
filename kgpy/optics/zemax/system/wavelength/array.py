@@ -11,9 +11,11 @@ __all__ = ['Array']
 
 class Array(ArrayBase):
 
-    def __init__(self, zos_arr: ZOSAPI.SystemData.IWavelengths):
+    def __init__(self, zos_sys: ZOSAPI.IOpticalSystem):
 
-        self.zos_arr = zos_arr
+        self.zos_sys = zos_sys
+
+        self.zos_arr = self.zos_sys.SystemData.Wavelengths
 
         ArrayBase.__init__(self)
 
@@ -25,7 +27,7 @@ class Array(ArrayBase):
         else:
             zos_wavl = self.zos_arr.AddWavelength(0.5, 1.0)
 
-        w = Item(wavl.wavelength, zos_wavl)
+        w = Item(wavl.wavelength, zos_wavl, self.zos_sys)
         w.weight = wavl.weight
 
         ArrayBase.append(self, w)

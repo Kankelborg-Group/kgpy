@@ -21,7 +21,7 @@ class Surface:
     have all the same properties and behaviors.
     """
 
-    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m):
+    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, explicit_csb=False):
         """
         Constructor for the Surface class.
         This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
@@ -56,6 +56,9 @@ class Surface:
         # Initialize other attributes
         self.comment = ''
 
+        self._before_surf_cs_break_list = [None]    # type: List[CoordinateSystem]
+        self._after_surf_cs_break_list = [None]     # type: List[CoordinateSystem]
+
         # Coordinate breaks before/after surface
         self.before_surf_cs_break = gcs()
         self.after_surf_cs_break = gcs()
@@ -79,8 +82,34 @@ class Surface:
         self._material = None
         self._mechanical_aperture = None
         self._conic = 0.0
-        
+
         self.translation_first = True
+
+        self.explicit_csb = explicit_csb
+
+    @property
+    def config(self):
+        if self.sys is not None:
+            return self.sys.config
+
+        else:
+            return 0
+
+    @property
+    def before_surf_cs_break(self) -> CoordinateSystem:
+        return self._before_surf_cs_break_list[self.config]
+
+    @before_surf_cs_break.setter
+    def before_surf_cs_break(self, value: CoordinateSystem):
+        self._before_surf_cs_break_list[self.config] = value
+
+    @property
+    def after_surf_cs_break(self) -> CoordinateSystem:
+        return self._after_surf_cs_break_list[self.config]
+
+    @after_surf_cs_break.setter
+    def after_surf_cs_break(self, value: CoordinateSystem):
+        self._after_surf_cs_break_list[self.config] = value
         
     @property
     def material(self) -> Material:

@@ -76,6 +76,20 @@ class ZmxSystem(System):
 
         layout.GetSettings().Load()
         
+    def append_configuration(self):
+        self.zos_sys.MCE.InsertConfiguration(self.num_configurations, False)
+
+    @property
+    def config(self) -> int:
+        return self.zos_sys.MCE.CurrentConfiguration - 1
+
+    @config.setter
+    def config(self, value: int):
+        self.zos_sys.MCE.SetCurrentConfiguration(value + 1)
+        
+    @property
+    def num_configurations(self):
+        return self.zos_sys.MCE.NumberOfConfigurations
         
     @property
     def fields(self):
@@ -92,7 +106,7 @@ class ZmxSystem(System):
     @wavelengths.setter
     def wavelengths(self, value: wavelength.Array):
         
-        self._wavelengths = value.promote_to_zmx(self.zos_sys.SystemData.Wavelengths)
+        self._wavelengths = value.promote_to_zmx(self.zos_sys)
 
     @property
     def entrance_pupil_radius(self):
@@ -133,53 +147,85 @@ class ZmxSystem(System):
 
         zmx_sys = ZmxSystem(sys.name)
 
-        for surf in sys:
-
-            if surf.is_object:
-
-                zmx_surf = zmx_sys.object
-
-                zmx_surf.name = surf.name
-                zmx_surf.comment = surf.comment
-                zmx_surf.thickness = surf.thickness
-                zmx_surf.component = surf.component
-
-            elif surf.is_image:
-
-                zmx_surf = zmx_sys.image
-
-                zmx_surf.name = surf.name
-                zmx_surf.comment = surf.comment
-                zmx_surf.component = surf.component
-                zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
-                zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
-                zmx_surf.aperture = surf.aperture
-                zmx_surf.mechanical_aperture = surf.mechanical_aperture
-                zmx_surf.radius = surf.radius
-                zmx_surf.conic = surf.conic
-                zmx_surf.material = surf.material
-
-            elif surf.is_stop:
-
-                zmx_surf = zmx_sys.stop
-
-                zmx_surf.name = surf.name
-                zmx_surf.comment = surf.comment
-                zmx_surf.thickness = surf.thickness
-                zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
-                zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
-                zmx_surf.component = surf.component
-                zmx_surf.aperture = surf.aperture
-
-            else:
-
-                zmx_surf = ZmxSurface.from_surface(surf)
-
-                zmx_sys.insert(zmx_surf, -1)
-
         zmx_sys.entrance_pupil_radius = sys.entrance_pupil_radius
         zmx_sys.wavelengths = sys.wavelengths
         zmx_sys.fields = sys.fields
+
+        for config in range(sys.num_configurations):
+
+            print(config)
+
+            if config > 0:
+                zmx_sys.append_configuration()
+
+            zmx_sys.config = config
+            sys.config = config
+
+            for surf in sys:
+
+                if surf.is_object:
+
+                    zmx_surf = zmx_sys.object
+
+                    zmx_surf.name = surf.name
+                    zmx_surf.comment = surf.comment
+                    zmx_surf.thickness = surf.thickness
+                    zmx_surf.component = surf.component
+
+                elif surf.is_image:
+
+                    zmx_surf = zmx_sys.image
+
+                    zmx_surf.explicit_csb = surf.explicit_csb
+
+                    # zmx_surf._before_surf_cs_break_list = surf._before_surf_cs_break_list
+
+                    zmx_surf.name = surf.name
+                    zmx_surf.comment = surf.comment
+                    zmx_surf.component = surf.component
+                    zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
+                    # zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
+                    zmx_surf.aperture = surf.aperture
+                    zmx_surf.mechanical_aperture = surf.mechanical_aperture
+                    zmx_surf.radius = surf.radius
+                    zmx_surf.conic = surf.conic
+                    zmx_surf.material = surf.material
+
+                elif surf.is_stop:
+
+                    zmx_surf = zmx_sys.stop
+
+                    zmx_surf.name = surf.name
+                    zmx_surf.comment = surf.comment
+                    zmx_surf.thickness = surf.thickness
+                    zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
+                    zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
+                    zmx_surf.component = surf.component
+                    zmx_surf.aperture = surf.aperture
+
+                else:
+
+                    if config is 0:
+                        zmx_surf = ZmxSurface.from_surface(surf)
+                        zmx_sys.insert(zmx_surf, -1)
+
+                    else:
+                        zmx_surf = zmx_sys[surf.system_index]
+
+                        zmx_surf.explicit_csb = surf.explicit_csb
+
+                        # Copy remaining attributes
+                        zmx_surf.surface_type = surf.surface_type
+                        zmx_surf.comment = surf.comment
+                        zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
+                        zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
+                        zmx_surf.component = surf.component
+                        zmx_surf.aperture = surf.aperture
+                        zmx_surf.mechanical_aperture = surf.mechanical_aperture
+                        zmx_surf.radius = surf.radius
+                        zmx_surf.conic = surf.conic
+                        zmx_surf.material = surf.material
+                        zmx_surf.thickness = surf.thickness
 
         return zmx_sys
 
@@ -490,6 +536,7 @@ class ZmxSystem(System):
 
         # Check that the surfaces list and the zemax model have the same number of elements
         if len(self) != len(surfaces_dict):
+            print(surfaces_dict)
             raise ValueError('Number of surfaces not the same between Zemasx and Python.')
 
         # Loop through all the surfaces in this object and the zemax model, and update the ILDERow pointers

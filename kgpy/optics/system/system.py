@@ -1,5 +1,6 @@
 
 import numpy as np
+from copy import deepcopy
 from typing import List, Dict, Union, Tuple
 import quaternion as q
 import astropy.units as u
@@ -39,6 +40,9 @@ class System:
 
         # Initialize attributes to be set as surfaces are added.
         self._surfaces = []     # type: List[Surface]
+        
+        self._config = 0
+        self._num_configurations = 1
 
         # Create the object surface.
         obj = Surface(self.object_str, thickness=np.inf * u.mm)
@@ -57,10 +61,41 @@ class System:
         self.append(stop)
         self.append(image)
         
-        self._entrance_pupil_radius = 0 * u.mm
+        self._entrance_pupil_radius = [0 * u.mm]
         
         self._wavelengths = wavelength.Array()
         self._fields = field.Array()
+        
+    def append_configuration(self):
+        
+        self._num_configurations += 1
+        
+        for surface in self:
+
+            prev_acs = deepcopy(surface.after_surf_cs_break)
+            prev_bcs = deepcopy(surface.before_surf_cs_break)
+
+            surface._after_surf_cs_break_list.append(prev_acs)
+            surface._before_surf_cs_break_list.append(prev_bcs)
+        
+    @property
+    def config(self) -> int:
+        return self._config
+    
+    @config.setter
+    def config(self, value: int):
+        
+        if value < 0:
+            raise ValueError
+        
+        if value > self.num_configurations - 1:
+            raise ValueError
+        
+        self._config = value
+        
+    @property
+    def num_configurations(self):
+        return self._num_configurations
         
     @property
     def fields(self) -> field.Array:
