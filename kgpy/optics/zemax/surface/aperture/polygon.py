@@ -1,5 +1,6 @@
 
 from os.path import join
+from typing import List
 from uuid import uuid4
 import numpy as np
 import astropy.units as u
@@ -9,19 +10,19 @@ from kgpy.optics.surface import aperture
 from .aperture import Aperture
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import SurfaceApertureTypes, ISurfaceApertureUser
 
-__all__ = ['Polygon']
+__all__ = ['Polygon', 'MultiPolygon']
 
 
-class Polygon(Aperture, aperture.Polygon):
+class MultiPolygon(Aperture, aperture.MultiPolygon):
 
-    def __init__(self, points: u.Quantity, surf: 'optics.ZmxSurface', 
+    def __init__(self, polygons: List[u.Quantity], surf: 'optics.ZmxSurface',
                  attr_str: str):
 
         self.filename = str(uuid4()) + '.uda'
 
         Aperture.__init__(self, surf, attr_str)
 
-        aperture.Polygon.__init__(self, points)
+        aperture.MultiPolygon.__init__(self, polygons)
 
     @property
     def aperture_type(self) -> SurfaceApertureTypes:
@@ -51,38 +52,51 @@ class Polygon(Aperture, aperture.Polygon):
 
     @property
     def points(self) -> u.Quantity:
+        p = []
 
-        return self._points
+        for points in self.polygons:
 
-    @points.setter
-    def points(self, val: u.Quantity) -> None:
+            p.append(points)
 
-        self._points = val
+        # todo: fix for non-constant units
+        return np.concatenate(p) * p[0].unit
+
+    @property
+    def polygons(self) -> List[u.Quantity]:
+
+        return self._polygons
+
+    @polygons.setter
+    def polygons(self, val: List[u.Quantity]) -> None:
+
+        self._polygons = val
 
         filepath = join(self.surf.sys.object_dir, 'Apertures', self.filename)
 
-        self._write_uda_file(filepath, val.to(self.surf.sys.lens_units).value)
+        self._write_uda_file(filepath, val)
 
         s = self.settings
         s.ApertureFile = self.filename
         self.settings = s
     
-    @staticmethod
-    def _write_uda_file(uda_file: str, points: np.ndarray):
+    def _write_uda_file(self, uda_file: str, polygons: List[u.Quantity]):
         
         # Open the file
         with open(uda_file, 'w') as uda:
             
-            for point in points:
-                
-                line = 'LIN ' + str(point[0]) + ' ' + str(point[1]) + '\n'
-
-                uda.write(line)
-
-            uda.write('BRK\n')
+            for poly in polygons:
+            
+                for point in poly:
+                    
+                    point = point.to(self.surf.sys.lens_units).value
+                    
+                    line = 'LIN ' + str(point[0]) + ' ' + str(point[1]) + '\n'
     
-    @staticmethod
-    def _read_uda_file(uda_file: str) -> np.ndarray:
+                    uda.write(line)
+    
+                uda.write('BRK\n')
+    
+    def _read_uda_file(self, uda_file: str) -> np.ndarray:
         """
         Interpret a Zemax user-defined aperture (UDA) file as a polygon.
 
@@ -94,7 +108,8 @@ class Polygon(Aperture, aperture.Polygon):
         with open(uda_file, encoding='utf-16') as uda:
 
             # Allocate space for storing the list of points in the file
-            pts = []
+            polygons = []
+            poly = []
 
             # Loop through every line in the file
             for line in uda:
@@ -115,19 +130,37 @@ class Polygon(Aperture, aperture.Polygon):
                     if len(params) == 3:
 
                         # Append the x,y coordinates to the list of points
-                        pts.append((float(params[1]), float(params[2])))
+                        poly.append((float(params[1]), float(params[2])))
 
                     # Otherwise, the line has the incorrect number of arguments
                     else:
                         raise ValueError('Incorrect number of parameters for line')
 
                 elif params[0] == 'BRK':
-                    break
+                    polygons.append(poly * self.surf.sys.lens_units)
+                    poly = []
 
                 else:
                     raise ValueError('Unrecognized user aperture command. Not all commands have been implemented yet.')
 
             # Construct new polygon from the list of points
-            aper = np.array(pts)
+            aper = np.array(poly)
 
             return aper
+
+
+class Polygon(MultiPolygon):
+    
+    def __init__(self, points: u.Quantity, surf: 'optics.ZmxSurface', attr_str: str):
+        
+        self.points = points
+        
+        MultiPolygon.__init__(self, [points], surf, attr_str)
+
+    @property
+    def points(self) -> u.Quantity:
+        return self._points
+
+    @points.setter
+    def points(self, value: u.Quantity):
+        self._points = value

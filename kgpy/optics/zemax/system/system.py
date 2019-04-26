@@ -1,5 +1,6 @@
 
 from os.path import dirname, join
+from copy import deepcopy
 from win32com.client.gencache import EnsureDispatch
 from win32com.client import constants
 from typing import List, Union, Tuple, Dict, Iterator
@@ -7,8 +8,9 @@ from collections import OrderedDict
 from numbers import Real
 import numpy as np
 import astropy.units as u
-from shapely.geometry import Polygon
 
+
+from kgpy.math import CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import System, Component, Surface
 from kgpy.optics.zemax.surface import ZmxSurface
@@ -75,9 +77,19 @@ class ZmxSystem(System):
         layout = self.zos_sys.Analyses.New_Analysis(AnalysisIDM.Draw3D)
 
         layout.GetSettings().Load()
+
+
         
     def append_configuration(self):
         self.zos_sys.MCE.InsertConfiguration(self.num_configurations, False)
+
+        for surface in self:
+
+            prev_acs = deepcopy(surface.after_surf_cs_break)
+            prev_bcs = deepcopy(surface.before_surf_cs_break)
+
+            surface._after_surf_cs_break_list.append(prev_acs)
+            surface._before_surf_cs_break_list.append(prev_bcs)
 
     @property
     def config(self) -> int:
@@ -85,6 +97,7 @@ class ZmxSystem(System):
 
     @config.setter
     def config(self, value: int):
+        self.object.reset_cs()
         self.zos_sys.MCE.SetCurrentConfiguration(value + 1)
         
     @property
@@ -153,8 +166,6 @@ class ZmxSystem(System):
 
         for config in range(sys.num_configurations):
 
-            print(config)
-
             if config > 0:
                 zmx_sys.append_configuration()
 
@@ -171,6 +182,8 @@ class ZmxSystem(System):
                     zmx_surf.comment = surf.comment
                     zmx_surf.thickness = surf.thickness
                     zmx_surf.component = surf.component
+                    zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
+                    zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
 
                 elif surf.is_image:
 
@@ -226,6 +239,8 @@ class ZmxSystem(System):
                         zmx_surf.conic = surf.conic
                         zmx_surf.material = surf.material
                         zmx_surf.thickness = surf.thickness
+                        
+        zmx_sys.config = 0
 
         return zmx_sys
 
@@ -279,9 +294,9 @@ class ZmxSystem(System):
 
         lde.RemoveSurfacesAt(1, lde.NumberOfSurfaces - 2)
 
-    def raytrace(self, surfaces: List[ZmxSurface], wavelengths: List[wavelength.Item], field_x: u.Quantity,
-                 field_y: u.Quantity, pupil_x: u.Quantity, pupil_y: u.Quantity
-                 ) -> Tuple[u.Quantity, u.Quantity, u.Quantity]:
+    def raytrace(self, configurations: List[int], surfaces: List[ZmxSurface], wavelengths: List[wavelength.Item],
+                 field_x: np.ndarray, field_y: np.ndarray, pupil_x: np.ndarray, pupil_y: np.ndarray,
+                 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         # Grab a handle to the zemax system
         sys = self.zos_sys
@@ -291,9 +306,7 @@ class ZmxSystem(System):
         #     if surf < 0:
         #         surface_indices[s] = sys.LDE.NumberOfSurfaces + surf
 
-        # Initialize raytrace
-        rt = sys.Tools.OpenBatchRayTrace()  # raytrace object
-        tool = sys.Tools.CurrentTool  # pointer to active tool
+
 
         # Store number of surfaces
         num_surf = len(surfaces)
@@ -314,57 +327,72 @@ class ZmxSystem(System):
         sh = list(Fx.shape)
 
         # Shape of grid for each surface and wavelength
-        tot_sh = [num_surf, num_wavl] + sh
+        tot_sh = [self.num_configurations, num_surf, num_wavl] + sh
 
         # Allocate output arrays
         V = np.empty(tot_sh)      # Vignetted rays
         X = np.empty(tot_sh)
         Y = np.empty(tot_sh)
+        
+        old_config = self.config
+        
+        for c in configurations:
+            
+            self.config = c
 
-        # Loop over each surface and run raytrace to surface
-        for s, surf in enumerate(surfaces):
+            # Initialize raytrace
+            rt = self.zos_sys.Tools.OpenBatchRayTrace()  # raytrace object
+            tool = sys.Tools.CurrentTool  # pointer to active tool
 
-            # Run raytrace for each wavelength
-            for w, wavl in enumerate(wavelengths):
+            # Loop over each surface and run raytrace to surface
+            for s, surf in enumerate(surfaces):
+    
+                # Run raytrace for each wavelength
+                for w, wavl in enumerate(wavelengths):
+    
+                    # Run raytrace for each field angle
+                    for fi in range(num_field_x):
+                        for fj in range(num_field_y):
+    
+                            # Open instance of batch raytrace
+                            rt_dat = rt.CreateNormUnpol(num_pupil_x * num_pupil_y, constants.RaysType_Real,
+                                                        surf.main_row.SurfaceNumber)
+    
+                            # Loop over pupil to add rays to batch raytrace
+                            for pi in range(num_pupil_x):
+                                for pj in range(num_pupil_y):
+    
+                                    # Select next ray
+                                    fx = Fx[fi, fj, pi, pj]
+                                    fy = Fy[fi, fj, pi, pj]
+                                    px = Px[fi, fj, pi, pj]
+                                    py = Py[fi, fj, pi, pj]
+    
+                                    # Write ray to pipe
+                                    rt_dat.AddRay(wavl.zos_wavl.WavelengthNumber, fx, fy, px, py, constants.OPDMode_None)
+    
+                            # Execute the raytrace
+                            tool.RunAndWaitForCompletion()
+    
+                            # Initialize the process of reading the results of the raytrace
+                            rt_dat.StartReadingResults()
+    
+                            # Loop over pupil and read the results of the raytrace
+                            for pi in range(num_pupil_x):
+                                for pj in range(num_pupil_y):
+    
+                                    # Read next result from pipe
+                                    (ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, I) = rt_dat.ReadNextResult()
+    
+                                    # Store next result in output arrays
+                                    V[c, s, w, fi, fj, pi, pj] = vig
+                                    X[c, s, w, fi, fj, pi, pj] = x
+                                    Y[c, s, w, fi, fj, pi, pj] = y
 
-                # Run raytrace for each field angle
-                for fi in range(num_field_x):
-                    for fj in range(num_field_y):
+            tool.Close()
 
-                        # Open instance of batch raytrace
-                        rt_dat = rt.CreateNormUnpol(num_pupil_x * num_pupil_y, constants.RaysType_Real,
-                                                    surf.main_row.SurfaceNumber)
+        self.config = old_config
 
-                        # Loop over pupil to add rays to batch raytrace
-                        for pi in range(num_pupil_x):
-                            for pj in range(num_pupil_y):
-
-                                # Select next ray
-                                fx = Fx[fi, fj, pi, pj]
-                                fy = Fy[fi, fj, pi, pj]
-                                px = Px[fi, fj, pi, pj]
-                                py = Py[fi, fj, pi, pj]
-
-                                # Write ray to pipe
-                                rt_dat.AddRay(wavl.zos_wavl.WavelengthNumber, fx, fy, px, py, constants.OPDMode_None)
-
-                        # Execute the raytrace
-                        tool.RunAndWaitForCompletion()
-
-                        # Initialize the process of reading the results of the raytrace
-                        rt_dat.StartReadingResults()
-
-                        # Loop over pupil and read the results of the raytrace
-                        for pi in range(num_pupil_x):
-                            for pj in range(num_pupil_y):
-
-                                # Read next result from pipe
-                                (ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, I) = rt_dat.ReadNextResult()
-
-                                # Store next result in output arrays
-                                V[s, w, fi, fj, pi, pj] = vig
-                                X[s, w, fi, fj, pi, pj] = x
-                                Y[s, w, fi, fj, pi, pj] = y
 
         return V, X, Y
 

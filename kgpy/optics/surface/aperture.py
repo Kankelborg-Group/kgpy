@@ -18,6 +18,8 @@ class Aperture:
         self.decenter_x = 0 * u.mm      # type: u.Quantity
         self.decenter_y = 0 * u.mm      # type: u.Quantity
 
+
+
     def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
                        ) -> 'optics.zemax.surface.Aperture':
         
@@ -28,6 +30,14 @@ class Aperture:
         a.decenter_y = self.decenter_y
         
         return a
+    
+    @property
+    def points(self) -> u.Quantity:
+        return self._points
+
+    @points.setter
+    def points(self, value: u.Quantity):
+        self._points = value
 
 
 class Rectangular(Aperture):
@@ -38,6 +48,17 @@ class Rectangular(Aperture):
 
         self.half_width_x = half_width_x
         self.half_width_y = half_width_y
+        
+    @property
+    def points(self):
+        p = u.Quantity([
+            u.Quantity([self.half_width_x, self.half_width_y]),
+            u.Quantity([self.half_width_x, -self.half_width_y]),
+            u.Quantity([-self.half_width_x, -self.half_width_y]),
+            u.Quantity([-self.half_width_x, self.half_width_y]),
+        ]) 
+        
+        return p
         
     def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
                        ) -> 'optics.zemax.surface.aperture.Rectangular':
@@ -104,6 +125,25 @@ class Polygon(Aperture):
                        ) -> 'optics.zemax.surface.aperture.Polygon':
         
         a = optics.zemax.surface.aperture.Polygon(self.points, surf, attr_str)
+
+        a.is_obscuration = self.is_obscuration
+        a.decenter_x = self.decenter_x
+        a.decenter_y = self.decenter_y
+
+        return a
+
+
+class MultiPolygon(Aperture):
+    
+    def __init__(self, polygons: List[u.Quantity]):
+        
+        Aperture.__init__(self)
+
+        self.polygons = polygons
+
+    def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
+                       ) -> 'optics.zemax.surface.aperture.MultiPolygon':
+        a = optics.zemax.surface.aperture.MultiPolygon(self.polygons, surf, attr_str)
 
         a.is_obscuration = self.is_obscuration
         a.decenter_x = self.decenter_x

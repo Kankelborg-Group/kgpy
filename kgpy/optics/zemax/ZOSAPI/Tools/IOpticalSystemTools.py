@@ -25,7 +25,7 @@ class IOpticalSystemTools:
     def GetConversionToSystemUnits(self, fromUnits: ZOSAPI.SystemData.ZemaxSystemUnits):
         pass
 
-    def OpenBatchRayTrace(self):
+    def OpenBatchRayTrace(self) -> 'ZOSAPI.Tools.RayTrace.IBatchRayTrace':
         pass
 
     def OpenConvertToNSCGroup(self):

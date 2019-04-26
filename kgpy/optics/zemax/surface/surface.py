@@ -186,9 +186,6 @@ class ZmxSurface(Surface):
         zmx_surf.material = surf.material
         zmx_surf.thickness = surf.thickness
 
-        # zmx_surf._before_surf_cs_break_list = surf._before_surf_cs_break_list
-        # zmx_surf._after_surf_cs_break_list = surf._after_surf_cs_break_list
-
 
 
         return zmx_surf
@@ -289,7 +286,7 @@ class ZmxSurface(Surface):
     @mechanical_aperture.setter
     def mechanical_aperture(self, value: surface.Aperture):
 
-        if self.sys is not None and value is not None:
+        if (self.sys is not None) and (value is not None):
 
             self._mechanical_aperture = value.promote_to_zmx(self, self.main_str)
 
@@ -444,8 +441,10 @@ class ZmxSurface(Surface):
         :return: A coordinate break to be applied before the surface.
         """
 
+        print(self.name)
+
         # If the value of the coordinate break has not been read from Zemax
-        if self._before_surf_cs_break is None:
+        if self._before_surf_cs_break_list[self.config] is None:
 
             # If a cs_break row is defined, convert to a CoordinateSystem object and return.
             if self.before_surf_cs_break_str in self._attr_rows:
@@ -470,9 +469,9 @@ class ZmxSurface(Surface):
                                             d2.BeforeSurfaceOrder)
 
             # The total coordinate break is the composition of the two coordinate systems
-            self._before_surf_cs_break = cs1 @ cs2
+            self._before_surf_cs_break_list[self.config] = cs1 @ cs2
 
-        return self._before_surf_cs_break
+        return self._before_surf_cs_break_list[self.config]
 
     @before_surf_cs_break.setter
     def before_surf_cs_break(self, cs: CoordinateSystem) -> None:
@@ -484,7 +483,7 @@ class ZmxSurface(Surface):
         """
 
         # Update private variable
-        self._before_surf_cs_break = cs
+        self._before_surf_cs_break_list[self.config] = cs
 
         # Update coordinate break row if we're connected to a optics system
         if self.sys is not None:
@@ -546,7 +545,7 @@ class ZmxSurface(Surface):
         """
 
         # If the value of the coordinate break has not been read from Zemax
-        if self._after_surf_cs_break is None:
+        if self._after_surf_cs_break_list[self.config] is None:
 
             # If a cs_break row is defined, convert to a CoordinateSystem object and return.
             if self.after_surf_cs_break_str in self._attr_rows:
@@ -570,9 +569,9 @@ class ZmxSurface(Surface):
                                             d2.AfterSurfaceTiltY, d2.AfterSurfaceTiltZ, d2.AfterSurfaceOrder)
 
             # The total coordinate break is the composition of the two coordinate systems
-            self._after_surf_cs_break = cs1 @ cs2
+            self._after_surf_cs_break_list[self.config] = cs1 @ cs2
 
-        return self._after_surf_cs_break
+        return self._after_surf_cs_break_list[self.config]
 
     @after_surf_cs_break.setter
     def after_surf_cs_break(self, cs: CoordinateSystem) -> None:
@@ -584,7 +583,7 @@ class ZmxSurface(Surface):
         """
 
         # Update private variable
-        self._after_surf_cs_break = cs
+        self._after_surf_cs_break_list[self.config] = cs
 
         # Update coordinate break row if we're connected to a optics system
         if self.sys is not None and not self.main_row.IsImage:

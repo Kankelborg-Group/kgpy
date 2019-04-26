@@ -279,6 +279,7 @@ class CoordinateSystem:
 
             w = p0 - p_co
             fac = -p_no.dot(w) / dot
+
             if (fac >= 0.0) and (fac <= 1.0):
 
                 u = fac * u

@@ -22,21 +22,21 @@ class IBatchRayTrace:
     def Close(self) -> bool:
         pass
 
-    def CreateDirectPol(self, MaxRays: int, rayType: ZOSAPI.Tools.RayTrace.RaysType, Ex: float, Ey: float, phax: float,
-                        phay: float, startSurface: int, toSurface: int) -> ZOSAPI.Tools.RayTrace.IRayTraceDirectPolData:
+    def CreateDirectPol(self, MaxRays: int, rayType: 'ZOSAPI.Tools.RayTrace.RaysType', Ex: float, Ey: float, phax: float,
+                        phay: float, startSurface: int, toSurface: int) -> 'ZOSAPI.Tools.RayTrace.IRayTraceDirectPolData':
         pass
 
-    def CreateDirectUnpol(self, MaxRays: int, rayType: ZOSAPI.Tools.RayTrace.RaysType, startSurface: int,
-                          toSurface: int) -> ZOSAPI.Tools.RayTrace.IRayTraceDirectUnpolData:
+    def CreateDirectUnpol(self, MaxRays: int, rayType: 'ZOSAPI.Tools.RayTrace.RaysType', startSurface: int,
+                          toSurface: int) -> 'ZOSAPI.Tools.RayTrace.IRayTraceDirectUnpolData':
         pass
 
-    def CreateNormPol(self, MaxRays: int, rayType: ZOSAPI.Tools.RayTrace.RaysType, Ex: float, Ey: float, phax: float,
+    def CreateNormPol(self, MaxRays: int, rayType: 'ZOSAPI.Tools.RayTrace.RaysType', Ex: float, Ey: float, phax: float,
                         phay: float, startSurface: int, toSurface: int
-                        ) -> ZOSAPI.Tools.RayTrace.IRayTraceNormPolData:
+                        ) -> 'ZOSAPI.Tools.RayTrace.IRayTraceNormPolData':
         pass
 
-    def CreateNormUnpol(self, MaxRays: int, rayType: ZOSAPI.Tools.RayTrace.RaysType, toSurface: int
-                        ) -> ZOSAPI.Tools.RayTrace.IRayTraceNormUnpolData:
+    def CreateNormUnpol(self, MaxRays: int, rayType: 'ZOSAPI.Tools.RayTrace.RaysType', toSurface: int
+                        ) -> 'ZOSAPI.Tools.RayTrace.IRayTraceNormUnpolData':
         pass
 
     def CreateNSC(self):
