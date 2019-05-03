@@ -1,5 +1,6 @@
 
 import numpy as np
+import matplotlib.pyplot as plt
 from copy import deepcopy
 from typing import List, Dict, Union, Tuple
 import quaternion as q
@@ -7,6 +8,7 @@ import astropy.units as u
 from beautifultable import BeautifulTable
 from shapely.geometry import Polygon, MultiPoint, MultiPolygon
 from shapely.ops import unary_union
+import pickle
 
 from kgpy.math import CoordinateSystem, Vector
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
@@ -279,11 +281,13 @@ class System:
             index = index + 1
 
     def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem,
-                   pass_surfaces: Union[None, List[Union[None, Surface]]] = None):
+                   pass_surfaces: Union[None, List[Union[None, Surface]]] = None) -> Component:
 
         comp = self.add_baffle_component(baffle_name, baffle_cs)
 
         self.calc_baffle_aperture(comp, pass_surfaces=pass_surfaces)
+
+        return comp
 
     def calc_baffle_aperture(self, component: Component, pass_surfaces: Union[None, List[Union[None, Surface]]] = None):
 
@@ -291,7 +295,7 @@ class System:
             pass_surfaces = len(component) * [None]     # type: List[Union[None, List[Surface]]]
 
         n = 10
-        m = 6
+        m = 10
 
         wavl = [self.wavelengths.items[0]]
 
@@ -302,6 +306,8 @@ class System:
         surf_lst = []
 
         old_config = self.config
+
+        plt.figure(figsize=(10,10))
 
         for s, surface in enumerate(component):
 
@@ -371,17 +377,20 @@ class System:
 
                     self.config = old_config
 
+                plt.scatter(pts[:, 0], pts[:, 1], s=1)
+
                 pts = MultiPoint(pts)
                 hull = pts.convex_hull
                 ch_lst.append(hull)
-
-
 
             surf_lst.append(unary_union(ch_lst))
 
         aper = unary_union(surf_lst)
         if isinstance(aper, Polygon):
             aper = MultiPolygon([aper])
+
+        for poly in aper:
+            plt.plot(*poly.exterior.xy)
 
         t = 1
         n = 3
@@ -394,6 +403,17 @@ class System:
         aper = unary_union(aper)
         if isinstance(aper, Polygon):
             aper = MultiPolygon([aper])
+
+        for poly in aper:
+            plt.plot(*poly.exterior.xy)
+
+        plt.title(component.name)
+        plt.gca().set_aspect('equal')
+        lim = 1.5 * self.entrance_pupil_radius.value
+        plt.xlim((-lim, lim))
+        plt.ylim((-lim, lim))
+        plt.savefig(component.name + '.png', bbox_inches='tight')
+        pickle.dump(plt.gcf(), open(component.name  + '.pickle', 'wb'))
 
         for surface in component:
 

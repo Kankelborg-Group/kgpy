@@ -441,8 +441,6 @@ class ZmxSurface(Surface):
         :return: A coordinate break to be applied before the surface.
         """
 
-        print(self.name)
-
         # If the value of the coordinate break has not been read from Zemax
         if self._before_surf_cs_break_list[self.config] is None:
 

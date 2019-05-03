@@ -53,13 +53,16 @@ class MultiPolygon(Aperture, aperture.MultiPolygon):
     @property
     def points(self) -> u.Quantity:
         p = []
+        
+        units = self.polygons[0].unit
 
         for points in self.polygons:
 
-            p.append(points)
+            p.append(points.value)
 
         # todo: fix for non-constant units
-        return np.concatenate(p) * p[0].unit
+        print(p)
+        return np.concatenate(p) * units
 
     @property
     def polygons(self) -> List[u.Quantity]:

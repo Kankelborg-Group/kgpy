@@ -106,7 +106,7 @@ class ZmxSystem(System):
         return self.zos_sys.MCE.NumberOfConfigurations
         
     @property
-    def fields(self):
+    def fields(self) -> field.Array:
         return self._fields
     
     @fields.setter
@@ -302,12 +302,6 @@ class ZmxSystem(System):
         # Grab a handle to the zemax system
         sys = self.zos_sys
 
-        # # Deal with shorthand for last surface
-        # for s, surf in enumerate(surface_indices):
-        #     if surf < 0:
-        #         surface_indices[s] = sys.LDE.NumberOfSurfaces + surf
-
-
 
         # Store number of surfaces
         num_surf = len(surfaces)
@@ -334,7 +328,7 @@ class ZmxSystem(System):
         V = np.empty(tot_sh)      # Vignetted rays
         X = np.empty(tot_sh)
         Y = np.empty(tot_sh)
-        
+
         old_config = self.config
         
         for c in configurations:
@@ -344,7 +338,7 @@ class ZmxSystem(System):
             # Initialize raytrace
             rt = self.zos_sys.Tools.OpenBatchRayTrace()  # raytrace object
             tool = sys.Tools.CurrentTool  # pointer to active tool
-
+            
             # Loop over each surface and run raytrace to surface
             for s, surf in enumerate(surfaces):
 
