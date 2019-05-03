@@ -1,4 +1,5 @@
 
+from time import sleep
 from os.path import dirname, join
 from copy import deepcopy
 from win32com.client.gencache import EnsureDispatch
@@ -346,6 +347,10 @@ class ZmxSystem(System):
 
             # Loop over each surface and run raytrace to surface
             for s, surf in enumerate(surfaces):
+
+                # Open instance of batch raytrace
+                rt_dat = rt.CreateNormUnpol(num_pupil_x * num_pupil_y, constants.RaysType_Real,
+                                            surf.main_row.SurfaceNumber)
     
                 # Run raytrace for each wavelength
                 for w, wavl in enumerate(wavelengths):
@@ -354,9 +359,7 @@ class ZmxSystem(System):
                     for fi in range(num_field_x):
                         for fj in range(num_field_y):
     
-                            # Open instance of batch raytrace
-                            rt_dat = rt.CreateNormUnpol(num_pupil_x * num_pupil_y, constants.RaysType_Real,
-                                                        surf.main_row.SurfaceNumber)
+                            rt_dat.ClearData()
     
                             # Loop over pupil to add rays to batch raytrace
                             for pi in range(num_pupil_x):
@@ -376,18 +379,20 @@ class ZmxSystem(System):
     
                             # Initialize the process of reading the results of the raytrace
                             rt_dat.StartReadingResults()
-    
+
                             # Loop over pupil and read the results of the raytrace
                             for pi in range(num_pupil_x):
                                 for pj in range(num_pupil_y):
-    
+
                                     # Read next result from pipe
-                                    (ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, I) = rt_dat.ReadNextResult()
-    
+                                    (ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd,
+                                     I) = rt_dat.ReadNextResult()
+
                                     # Store next result in output arrays
                                     V[c, s, w, fi, fj, pi, pj] = vig
                                     X[c, s, w, fi, fj, pi, pj] = x
                                     Y[c, s, w, fi, fj, pi, pj] = y
+
 
             tool.Close()
 

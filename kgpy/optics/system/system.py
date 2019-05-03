@@ -291,12 +291,13 @@ class System:
             pass_surfaces = len(component) * [None]     # type: List[Union[None, List[Surface]]]
 
         n = 10
+        m = 6
 
         wavl = [self.wavelengths.items[0]]
 
         configs = list(range(self.num_configurations))
 
-        V, _, _ = self.square_raytrace(configs, [self.image], wavl, n, 5 * n)
+        V, _, _ = self.square_raytrace(configs, [self.image], wavl, n, m * n)
 
         surf_lst = []
 
@@ -312,7 +313,7 @@ class System:
 
                 if pass_surfaces[s] is None:
 
-                    _, X, Y = self.square_raytrace([c], [surface], wavl, n, 5 * n)
+                    _, X, Y = self.square_raytrace([c], [surface], wavl, n, m * n)
 
                     x = X[c, ...]
                     y = Y[c, ...]
@@ -361,9 +362,6 @@ class System:
                             #
                             # c1 = s1.cs @ c1
                             # c2 = s2.cs @ c2
-
-                            print(self.config)
-                            print(s1.cs)
 
                             v3 = surface.cs.xy_intercept(v1, v2)
 
