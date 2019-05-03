@@ -295,7 +295,7 @@ class System:
             pass_surfaces = len(component) * [None]     # type: List[Union[None, List[Surface]]]
 
         n = 10
-        m = 10
+        m = 5
 
         wavl = [self.wavelengths.items[0]]
 
