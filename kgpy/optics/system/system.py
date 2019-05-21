@@ -9,6 +9,7 @@ from beautifultable import BeautifulTable
 from shapely.geometry import Polygon, MultiPoint, MultiPolygon
 from shapely.ops import unary_union
 import pickle
+from ezdxf.r12writer import r12writer
 
 from kgpy.math import CoordinateSystem, Vector
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
@@ -281,19 +282,23 @@ class System:
             index = index + 1
 
     def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem,
-                   pass_surfaces: Union[None, List[Union[None, Surface]]] = None) -> Component:
+                   pass_surfaces: Union[None, List[Union[None, Surface]]] = None, margin: u.Quantity = 1 * u.mm
+                   ) -> Component:
 
         comp = self.add_baffle_component(baffle_name, baffle_cs)
 
-        self.calc_baffle_aperture(comp, pass_surfaces=pass_surfaces)
+        self.calc_baffle_aperture(comp, pass_surfaces=pass_surfaces, margin=margin)
 
         return comp
 
-    def calc_baffle_aperture(self, component: Component, pass_surfaces: Union[None, List[Union[None, Surface]]] = None):
+    def calc_baffle_aperture(self, component: Component, pass_surfaces: Union[None, List[Union[None, Surface]]] = None,
+                             margin: u.Quantity = 1 * u.mm):
 
         if pass_surfaces is None:
             pass_surfaces = len(component) * [None]     # type: List[Union[None, List[Surface]]]
 
+        # n = 15
+        # m = 15
         n = 5
         m = 1
 
@@ -307,7 +312,7 @@ class System:
 
         old_config = self.config
 
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(10,10))
 
         for s, surface in enumerate(component):
 
@@ -392,7 +397,7 @@ class System:
         for poly in aper:
             plt.plot(*poly.exterior.xy)
 
-        t = 1
+        t = margin.value    # todo: fix this to convert units correctly
         n = 3
         for d in range(n):
             dilated_aperture_lst = []
@@ -413,7 +418,7 @@ class System:
         plt.xlim((-lim, lim))
         plt.ylim((-lim, lim))
         plt.savefig(component.name + '.png', bbox_inches='tight')
-        pickle.dump(plt.gcf(), open(component.name  + '.pickle', 'wb'))
+        pickle.dump(plt.gcf(), open(component.name + '.pickle', 'wb'))
 
         for surface in component:
 
@@ -424,6 +429,17 @@ class System:
 
             surface.mechanical_aperture = MultiPolygonAper(aper_lst)
 
+        # Write dxf file
+        with r12writer(component.name + '.dxf') as dxf:
+
+            for poly in aper:
+
+                pts = np.stack(poly.exterior.xy).transpose()
+
+                pts[:, 1] = pts[:, 1] + (3.49927 + 3.35597) / 2
+
+                dxf.add_polyline(pts)
+                # dxf.add_solid(pts)
 
 
     def add_baffle_component(self, baffle_name: str, baffle_cs: CoordinateSystem) -> Component:
