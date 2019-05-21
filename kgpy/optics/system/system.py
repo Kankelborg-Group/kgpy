@@ -294,8 +294,8 @@ class System:
         if pass_surfaces is None:
             pass_surfaces = len(component) * [None]     # type: List[Union[None, List[Surface]]]
 
-        n = 10
-        m = 10
+        n = 5
+        m = 1
 
         wavl = [self.wavelengths.items[0]]
 
@@ -307,7 +307,7 @@ class System:
 
         old_config = self.config
 
-        plt.figure(figsize=(10,10))
+        plt.figure(figsize=(10, 10))
 
         for s, surface in enumerate(component):
 
