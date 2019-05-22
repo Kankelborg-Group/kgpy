@@ -3,18 +3,23 @@ import inspect
 import typing
 
 
-def get_imports(object, filter_path=None):
+def get_imports(obj, filter_path=None):
 
-    if inspect.isclass(object):
+    if inspect.isclass(obj):
 
-        module = inspect.getmodule(object)
+        get_class_imports(obj, filter_path=filter_path)
 
-        members = inspect.getmembers(module)
-
-        for member in members:
-
-            print(member)
 
 def get_class_imports(cls, filter_path=None):
 
-    pass
+    cls_module = inspect.getmodule(cls)
+
+    classes = inspect.getmembers(cls_module, inspect.isclass)
+    modules = inspect.getmembers(cls_module, inspect.ismodule)
+    functions = inspect.getmembers(cls_module, inspect.isfunction)
+
+    members = classes + modules + functions
+
+    for m in members:
+        print(m)
+        get_imports(m)

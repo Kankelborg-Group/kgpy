@@ -81,7 +81,7 @@ class Vector:
     def __neg__(self) -> 'Vector':
         """
         Reverse the direction of a vector
-        :return: A new vector with the values of each component negated
+        :return: a new vector with the values of each component negated
         """
 
         return Vector(-self.X)
@@ -112,7 +112,7 @@ class Vector:
     def __mul__(self, other: Union[Real, u.Quantity, u.Unit]) -> 'Vector':
         """
         Multiplication of a scalar and a vector
-        :param other: A scalar value
+        :param other: a scalar value
         :return: The original vector where every component has been scaled by other
         """
         if isinstance(other, (Real, u.Quantity, u.Unit)):
@@ -142,7 +142,7 @@ class Vector:
         """
         Calculate the cross product of this Vector with another Vector
         :param other: Another vector to cross into this Vector
-        :return: A Vector orthogonal to both of the input Vectors.
+        :return: a Vector orthogonal to both of the input Vectors.
         """
 
         # Use numpy.ndarray.cross() to calculate the cross product

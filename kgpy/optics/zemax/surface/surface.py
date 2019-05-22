@@ -165,7 +165,7 @@ class ZmxSurface(Surface):
         """
         Convert a Surface object to ZmxSurface object
         :param surf: Surface object to convert
-        :return: A new ZmxSurface object equal to the provided Surface object
+        :return: a new ZmxSurface object equal to the provided Surface object
         """
 
         # Construct new ZmxSurface
@@ -438,7 +438,7 @@ class ZmxSurface(Surface):
         """
         CoordinateSystem representing a coordinate break before the optical surface.
 
-        :return: A coordinate break to be applied before the surface.
+        :return: a coordinate break to be applied before the surface.
         """
 
         # If the value of the coordinate break has not been read from Zemax
@@ -539,7 +539,7 @@ class ZmxSurface(Surface):
         """
         CoordinateSystem representing a coordinate break after the optical surface.
 
-        :return: A coordinate break to be applied after the surface.
+        :return: a coordinate break to be applied after the surface.
         """
 
         # If the value of the coordinate break has not been read from Zemax
@@ -659,7 +659,7 @@ class ZmxSurface(Surface):
     def _attr_rows(self) -> 'Dict[str, ILDERow]':
         """
         The attr_rows are stored internally as a list, but need to be accessed as a dict
-        :return: A dict of attributes, where the attribute name is the key and the Zemax row is the value.
+        :return: a dict of attributes, where the attribute name is the key and the Zemax row is the value.
         """
         ret = OrderedDict()
         for name, row in self._attr_rows_list:

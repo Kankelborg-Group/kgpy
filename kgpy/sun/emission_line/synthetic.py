@@ -15,7 +15,7 @@ def synthetic(A: float, x0: float, w: float, N: int):
     # gaussian=np.zeros((N,2))
     # for j in range(1,N):
     #     xj=xlow+(step*j)
-    #     fj= A*exp( -((x0-xj)**2 )/ (w**2))
+    #     fj= a*exp( -((x0-xj)**2 )/ (w**2))
     #     gaussian[j] = ([fj, xj])
     #     return gaussian
     #

@@ -198,7 +198,7 @@ class System:
     @property
     def components(self) -> Dict[str, Component]:
         """
-        :return: A Dictionary with all the Components in the system as values and their names as the keys.
+        :return: a Dictionary with all the Components in the system as values and their names as the keys.
         """
 
         # Allocate space to store the new dictionary
@@ -545,7 +545,7 @@ class System:
     @property
     def _surfaces_dict(self) -> Dict[str, Surface]:
         """
-        :return: A dictionary where the key is the surface name and the value is the surface.
+        :return: a dictionary where the key is the surface name and the value is the surface.
         """
 
         # Allocate space for result
@@ -560,7 +560,7 @@ class System:
     # @property
     # def _all_surfaces(self) -> List[Surface]:
     #     """
-    #     :return: A list of all surfaces in the object, including the object and image surfaces
+    #     :return: a list of all surfaces in the object, including the object and image surfaces
     #     """
     #     return [self.object] + self._surfaces + [self.image]
 

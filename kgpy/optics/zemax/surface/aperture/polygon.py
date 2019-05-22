@@ -104,7 +104,7 @@ class MultiPolygon(Aperture, aperture.MultiPolygon):
         Interpret a Zemax user-defined aperture (UDA) file as a polygon.
 
         :param uda_file: Location of the uda file to read
-        :return: A polygon representing the aperture.
+        :return: a polygon representing the aperture.
         """
 
         # Open the file

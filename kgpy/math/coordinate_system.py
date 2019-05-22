@@ -12,7 +12,7 @@ __all__ = ['CoordinateSystem', 'GlobalCoordinateSystem']
 
 class CoordinateSystem:
     """
-    A coordinate system is described by a 3D translation and a 3D rotation from some global coordinate system.
+    a coordinate system is described by a 3D translation and a 3D rotation from some global coordinate system.
     """
 
     # Unit vectors for the global coordinate system (base unit vectors)
@@ -199,7 +199,7 @@ class CoordinateSystem:
         Compute the composition of two coordinate systems.
         This function can be interpreted as translating/rotating other by self.
         :param other: The other coordinate system to be transformed
-        :return: A new coordinate system representing the composition of self and other.
+        :return: a new coordinate system representing the composition of self and other.
         """
 
         # Compute new system attributes

@@ -15,7 +15,7 @@ class Component:
     """
     An optical component is a collection of one or more surfaces such as the tips/tilts, clear aperture, and the optical
     surface of an optical element.
-    A Component is part of a System, the hierarchy is as follows: System -> Component -> Surface.
+    a Component is part of a System, the hierarchy is as follows: System -> Component -> Surface.
     Note that the surfaces within the component do not have to be contiguous.
     Note: If the surfaces within a component are not contiguous, it is not clear what is meant by rotating or
     translating the Component.
@@ -81,7 +81,7 @@ class Component:
     @property
     def _surfaces_dict(self) -> Dict[str, Surface]:
         """
-        :return: A dictionary where the key is the surface name and the value is the surface.
+        :return: a dictionary where the key is the surface name and the value is the surface.
         """
 
         # Allocate space for result

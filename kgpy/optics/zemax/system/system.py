@@ -25,7 +25,7 @@ __all__ = ['ZmxSystem']
 
 class ZmxSystem(System):
     """
-    A class used to interface with a particular Zemax file
+    a class used to interface with a particular Zemax file
 
 
     Installation instructions:
@@ -424,7 +424,7 @@ class ZmxSystem(System):
     @property
     def _rows(self):
         """
-        :return: A list of all the ILDERows (ZOSAPI Surfaces) in the ZOSAPI System.
+        :return: a list of all the ILDERows (ZOSAPI Surfaces) in the ZOSAPI System.
         """
 
         # Grab pointer to lens data editor
@@ -452,7 +452,7 @@ class ZmxSystem(System):
         Reads through a Zemax file and constructs a syntax tree of all the components, surfaces and attributes.
         This function is necessary to parse all the attributes into a single structure, to more easily construct a
         ZmxSurface object.
-        :return: A dictionary where the keys are the names of surfaces and the values are a tuple with the zeroth element
+        :return: a dictionary where the keys are the names of surfaces and the values are a tuple with the zeroth element
         being the component associated with the surface, and the first element being a dictionary of attributes (where
         the key is the attribute name and the value is the Zemax row associated with the attribute).
         """
@@ -683,7 +683,7 @@ class ZmxSystem(System):
     def is_camel_case(s: str):
         """
         Utility function to determine whether a given string is camel case.
-        This is defined to be: A string that has both lowercase and capital letters, and has no underscores.
+        This is defined to be: a string that has both lowercase and capital letters, and has no underscores.
         This function is based off of this stackoverflow answer: https://stackoverflow.com/a/10182901
         :param s: String to be checked
         :return: True if the string is an camel case string.
