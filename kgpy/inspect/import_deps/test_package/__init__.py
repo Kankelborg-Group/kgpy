@@ -1,2 +1,5 @@
 from .b import B
-from . import a
+from .a import A
+from .test_package import TestPackage
+
+from . import a, b, test_package
