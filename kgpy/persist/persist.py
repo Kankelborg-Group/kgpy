@@ -3,14 +3,11 @@ import typing as t
 import os
 import ast
 import inspect
-from collections import namedtuple
 import pickle
 import importlib
 import importlib.util
-from pathlib import Path
+import pathlib as pl
 import hashlib
-
-Import = namedtuple("Import", ["module", "name", "alias", "level"])
 
 
 class Persist:
@@ -22,72 +19,76 @@ class Persist:
 
         if cls.pydeps_unchanged(name, filter_path=filter_path):
 
-            print('flag 1')
+            cls.__init__ = cls._init
 
             self = cls.load(name)
 
+
         else:
 
-            print('flag 2')
-
-            self = super().__new__()
+            self = super().__new__(cls)
 
             self.save(name)
 
         return self
 
+    def _init(self, *args, **kwargs):
+        pass
 
     @classmethod
     def load(cls, name: str):
 
-        with open(cls.obj_path(name), 'rb') as f:
+        with cls.obj_path(name).open(mode='rb') as f:
             return pickle.load(f)
 
     def save(self, name: str):
-        with open(self.obj_path(name), 'wb') as f:
+        with self.obj_path(name).open(mode='wb') as f:
             pickle.dump(self, f, 0)
 
     @staticmethod
-    def obj_path(name: str):
+    def obj_path(name: str) -> pl.Path:
         return Persist.file_to_path(name + '.obj.pickle')
 
     @staticmethod
-    def pydeps_path(name: str):
+    def pydeps_path(name: str) -> pl.Path:
         return Persist.file_to_path(name + '.pydep.pickle')
 
     @staticmethod
-    def arg_path(name: str):
-        return Persist.file_to_path(name + '.arg.pickle')
+    def args_path(name: str) -> pl.Path:
+        return Persist.file_to_path(name + '.args.pickle')
 
     @staticmethod
-    def file_to_path(file: str):
-        return os.path.join(os.path.dirname(__file__), file)
+    def kwargs_path(name: str) -> pl.Path:
+        return Persist.file_to_path(name + '.kwargs.pickle')
+
+    @staticmethod
+    def file_to_path(file: str) -> pl.Path:
+
+        file = pl.Path(file)
+        path = pl.Path(__file__).parent
+        return path / file
 
     @classmethod
-    def pydeps_unchanged(cls, name: str, filter_path: t.Union[Path, None] = None):
+    def pydeps_unchanged(cls, name: str, filter_path: t.Union[pl.Path, None] = None):
 
         deps = cls.get_pydeps(filter_path=filter_path)
         new_hashes = cls.hash_pydeps(deps)
 
         try:
-            with open(cls.pydeps_path(name), 'rb') as f:
+            # with open(cls.pydeps_path(name), 'rb') as f:
+            with cls.pydeps_path(name).open(mode='rb') as f:
+                print(f)
                 old_hashes = pickle.load(f)
-
-            # print(old_hashes)
-            # print(new_hashes)
 
             ret = new_hashes == old_hashes
 
         except FileNotFoundError:
             ret = False
 
-        with open(cls.pydeps_path(name), 'wb') as f:
+        with cls.pydeps_path(name).open(mode='wb') as f:
             pickle.dump(new_hashes, f)
 
-
-
         return ret
-
 
 
     @staticmethod
@@ -106,7 +107,7 @@ class Persist:
         return hashes
 
     @classmethod
-    def get_pydeps(cls, module=None, deps=None, filter_path: t.Union[Path, None] = None):
+    def get_pydeps(cls, module=None, deps=None, filter_path: t.Union[pl.Path, None] = None):
 
         if deps is None:
             deps = []
@@ -117,7 +118,7 @@ class Persist:
         if not hasattr(module, '__file__'):
             return deps
 
-        path = Path(module.__file__)
+        path = pl.Path(module.__file__)
 
         if filter_path is not None:
             if filter_path not in path.parents:
