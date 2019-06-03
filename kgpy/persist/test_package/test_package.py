@@ -1,9 +1,9 @@
 
-
+from kgpy import Persist
 from . import A, B
 
 
-class TestPackage:
+class TestPackage(Persist):
 
     def __init__(self):
 

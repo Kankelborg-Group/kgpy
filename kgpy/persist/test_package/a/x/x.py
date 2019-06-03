@@ -1,8 +1,9 @@
 
+from kgpy import Persist
 from . import J, K
 
 
-class X:
+class X(Persist):
 
     def __init__(self):
 

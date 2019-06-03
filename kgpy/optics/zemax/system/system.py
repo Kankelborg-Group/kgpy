@@ -19,11 +19,12 @@ from kgpy.optics.zemax.system import wavelength, field
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 from kgpy.optics.zemax.ZOSAPI.Analysis import AnalysisIDM
+from kgpy import Persist
 
 __all__ = ['ZmxSystem']
 
 
-class ZmxSystem(System):
+class ZmxSystem(System, Persist):
     """
     a class used to interface with a particular Zemax file
 
