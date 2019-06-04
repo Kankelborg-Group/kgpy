@@ -8,76 +8,87 @@ import importlib
 import importlib.util
 import pathlib as pl
 import hashlib
+import types
 
 
-class Persist:
+class PersistMeta(type):
 
-    def __new__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs):
 
         name = args[0]
-        filter_path = kwargs['filter_path']
+        pkg_list = kwargs['pkg_list']
 
-        if cls.pydeps_unchanged(name, filter_path=filter_path):
+        module = inspect.getmodule(cls)
 
-            cls.__init__ = cls._init
+        module_path = pl.Path(module.__file__).parent
+        pickle_path = pl.Path('.pickle_cache')
+        name_path = pl.Path(name)
+        path = module_path / pickle_path / name_path
+        path.mkdir(parents=True, exist_ok=True)
 
-            self = cls.load(name)
+        if cls.pydeps_unchanged(path, module=module, pkg_list=pkg_list):
 
+            self = cls.load(path)
 
         else:
 
-            self = super().__new__(cls)
+            self = type.__call__(cls, *args, **kwargs)
 
-            self.save(name)
+            cls.save(self, path)
 
         return self
 
-    def _init(self, *args, **kwargs):
-        pass
-
     @classmethod
-    def load(cls, name: str):
+    def load(mcs, path: pl.Path):
 
-        with cls.obj_path(name).open(mode='rb') as f:
+        with mcs.obj_path(path).open(mode='rb') as f:
             return pickle.load(f)
 
-    def save(self, name: str):
-        with self.obj_path(name).open(mode='wb') as f:
+    @classmethod
+    def save(mcs, self, path: pl.Path):
+        with mcs.obj_path(path).open(mode='wb') as f:
             pickle.dump(self, f, 0)
 
-    @staticmethod
-    def obj_path(name: str) -> pl.Path:
-        return Persist.file_to_path(name + '.obj.pickle')
+    @classmethod
+    def obj_path(mcs, path: pl.Path) -> pl.Path:
+        return path / pl.Path('obj')
 
-    @staticmethod
-    def pydeps_path(name: str) -> pl.Path:
-        return Persist.file_to_path(name + '.pydep.pickle')
+    @classmethod
+    def pydeps_path(mcs, path: pl.Path) -> pl.Path:
+        return path / pl.Path('pydeps')
 
-    @staticmethod
-    def args_path(name: str) -> pl.Path:
-        return Persist.file_to_path(name + '.args.pickle')
+    @classmethod
+    def args_path(mcs, path: pl.Path) -> pl.Path:
+        return path / pl.Path('args')
 
-    @staticmethod
-    def kwargs_path(name: str) -> pl.Path:
-        return Persist.file_to_path(name + '.kwargs.pickle')
+    @classmethod
+    def kwargs_path(mcs, path: pl.Path) -> pl.Path:
+        return path / pl.Path('kwargs')
 
-    @staticmethod
-    def file_to_path(file: str) -> pl.Path:
+    @classmethod
+    def file_to_path(mcs, file: str) -> pl.Path:
+
+        print(mcs)
 
         file = pl.Path(file)
         path = pl.Path(__file__).parent
-        return path / file
+        path = path / file
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        return path
 
     @classmethod
-    def pydeps_unchanged(cls, name: str, filter_path: t.Union[pl.Path, None] = None):
+    def pydeps_unchanged(mcs, path: pl.Path, module=None, pkg_list: t.Union[pl.Path, None] = None):
 
-        deps = cls.get_pydeps(filter_path=filter_path)
-        new_hashes = cls.hash_pydeps(deps)
+        deps = mcs.get_pydeps(module=module, pkg_list=pkg_list)
+        new_hashes = mcs.hash_pydeps(deps)
+
+        # print(deps)
 
         try:
             # with open(cls.pydeps_path(name), 'rb') as f:
-            with cls.pydeps_path(name).open(mode='rb') as f:
-                print(f)
+            with mcs.pydeps_path(path).open(mode='rb') as f:
                 old_hashes = pickle.load(f)
 
             ret = new_hashes == old_hashes
@@ -85,7 +96,7 @@ class Persist:
         except FileNotFoundError:
             ret = False
 
-        with cls.pydeps_path(name).open(mode='wb') as f:
+        with mcs.pydeps_path(path).open(mode='wb') as f:
             pickle.dump(new_hashes, f)
 
         return ret
@@ -107,29 +118,34 @@ class Persist:
         return hashes
 
     @classmethod
-    def get_pydeps(cls, module=None, deps=None, filter_path: t.Union[pl.Path, None] = None):
+    def get_pydeps(mcs, module=None, deps=None, pkg_list: t.Iterable[pl.Path] = None):
 
         if deps is None:
             deps = []
 
         if module is None:
-            module = inspect.getmodule(cls)
+            module = inspect.getmodule(mcs)
 
         if not hasattr(module, '__file__'):
             return deps
 
         path = pl.Path(module.__file__)
 
-        if filter_path is not None:
-            if filter_path not in path.parents:
-                return deps
+        pkg_found=False
+        for pkg in pkg_list:
+            pkg_path = pl.Path(pkg.__file__).parent
+            if pkg_path in path.parents:
+                pkg_found=True
+
+        if not pkg_found:
+            return deps
 
         if path in deps:
             return deps
 
         deps.append(path)
 
-        with open(path) as fh:
+        with path.open(mode='rb') as fh:
             root = ast.parse(fh.read(), path)
 
         module_globals = {
@@ -145,7 +161,7 @@ class Persist:
 
                     new_module = importlib.__import__(alias.name, globals=module_globals, fromlist=[], level=0)
 
-                    deps = cls.get_pydeps(new_module, deps, filter_path=filter_path)
+                    deps = mcs.get_pydeps(new_module, deps, pkg_list=pkg_list)
 
             elif isinstance(node, ast.ImportFrom):
 
@@ -158,10 +174,17 @@ class Persist:
 
                     new_module = importlib.__import__(name, globals=module_globals, fromlist=[alias.name], level=node.level)
 
-                    deps = cls.get_pydeps(new_module, deps, filter_path=filter_path)
+                    deps = mcs.get_pydeps(new_module, deps, pkg_list=pkg_list)
 
             else:
                 continue
 
         return deps
 
+
+class Persist(metaclass=PersistMeta):
+
+    def __init__(self, name: str, pkg_list=()):
+
+        self.name = name
+        # self.pkg_list = pkg_list

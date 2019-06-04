@@ -14,7 +14,7 @@ class TestPersist:
 
     def test_get_imports(self):
 
-        imports = ZmxSystem.get_pydeps(filter_path=Path(kgpy.__file__).parent)
+        imports = ZmxSystem.get_pydeps(pkg_list=Path(kgpy.__file__).parent)
 
         for im in imports:
             print(im)
