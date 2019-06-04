@@ -1,6 +1,6 @@
 
+import abc
 import typing as t
-import os
 import ast
 import inspect
 import pickle
@@ -10,33 +10,37 @@ import pathlib as pl
 import hashlib
 import types
 
+__all__ = ['Persist', 'PersistMeta']
 
-class PersistMeta(type):
 
-    def __call__(cls, *args, **kwargs):
+class PersistMeta(abc.ABCMeta):
 
-        name = args[0]
-        pkg_list = kwargs['pkg_list']
+    def __call__(cls, name: str, *args, **kwargs):
 
         module = inspect.getmodule(cls)
 
-        module_path = pl.Path(module.__file__).parent
-        pickle_path = pl.Path('.pickle_cache')
-        name_path = pl.Path(name)
-        path = module_path / pickle_path / name_path
-        path.mkdir(parents=True, exist_ok=True)
+        pkg_list = cls.pkg_filter_list()
 
-        if cls.pydeps_unchanged(path, module=module, pkg_list=pkg_list):
+        path = cls.path(name, module)
 
-            self = cls.load(path)
+        if cls.obj_path(path).exists():
+            if cls.pydeps_path(path).exists():
+                if cls.pydeps_unchanged(path, module=module, pkg_list=pkg_list):
+                    return cls.load(path)
 
-        else:
+        self = type.__call__(cls, name, *args, **kwargs)
 
-            self = type.__call__(cls, *args, **kwargs)
-
-            cls.save(self, path)
+        cls.save(self, path)
 
         return self
+
+    @staticmethod
+    def name(module: types.ModuleType):
+        return module.__name__
+
+    @abc.abstractmethod
+    def pkg_filter_list(cls) -> t.List[types.ModuleType]:
+        pass
 
     @classmethod
     def load(mcs, path: pl.Path):
@@ -65,21 +69,19 @@ class PersistMeta(type):
     def kwargs_path(mcs, path: pl.Path) -> pl.Path:
         return path / pl.Path('kwargs')
 
-    @classmethod
-    def file_to_path(mcs, file: str) -> pl.Path:
+    @staticmethod
+    def path(name: str, module: types.ModuleType) -> pl.Path:
 
-        print(mcs)
-
-        file = pl.Path(file)
-        path = pl.Path(__file__).parent
-        path = path / file
-
-        path.parent.mkdir(parents=True, exist_ok=True)
+        module_path = pl.Path(module.__file__).parent
+        pickle_path = pl.Path('.pickle_cache')
+        name_path = pl.Path(name)
+        path = module_path / pickle_path / name_path
+        path.mkdir(parents=True, exist_ok=True)
 
         return path
 
     @classmethod
-    def pydeps_unchanged(mcs, path: pl.Path, module=None, pkg_list: t.Union[pl.Path, None] = None):
+    def pydeps_unchanged(mcs, path: pl.Path, module=None, pkg_list: t.List = None):
 
         deps = mcs.get_pydeps(module=module, pkg_list=pkg_list)
         new_hashes = mcs.hash_pydeps(deps)
@@ -118,7 +120,7 @@ class PersistMeta(type):
         return hashes
 
     @classmethod
-    def get_pydeps(mcs, module=None, deps=None, pkg_list: t.Iterable[pl.Path] = None):
+    def get_pydeps(mcs, module=None, deps=None, pkg_list: t.List = None):
 
         if deps is None:
             deps = []
@@ -131,11 +133,12 @@ class PersistMeta(type):
 
         path = pl.Path(module.__file__)
 
-        pkg_found=False
-        for pkg in pkg_list:
-            pkg_path = pl.Path(pkg.__file__).parent
-            if pkg_path in path.parents:
-                pkg_found=True
+        pkg_found = False
+        if pkg_list is not None:
+            for pkg in pkg_list:
+                pkg_path = pl.Path(pkg.__file__).parent
+                if pkg_path in path.parents:
+                    pkg_found=True
 
         if not pkg_found:
             return deps
@@ -184,7 +187,4 @@ class PersistMeta(type):
 
 class Persist(metaclass=PersistMeta):
 
-    def __init__(self, name: str, pkg_list=()):
-
-        self.name = name
-        # self.pkg_list = pkg_list
+    pass

@@ -1,1 +1,1 @@
-from .persist import Persist
+from .persist import Persist, PersistMeta
