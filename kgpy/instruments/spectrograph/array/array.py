@@ -2,7 +2,7 @@
 import collections
 import typing as t
 
-from kgpy.instrument.spectrograph.spectrograph import Spectrograph
+from kgpy.instruments.spectrograph.spectrograph import Spectrograph
 
 __all__ = ['Array']
 
