@@ -20,6 +20,13 @@ class Linear(Array):
 
         super().__init__(channels)
 
+    def __iter__(self) -> t.Iterator[Spectrograph]:
+        return super().__iter__()
+
+    @property
+    def data(self) -> t.List[Spectrograph]:
+        return self.data
+
     def calc_linear_channels(self) -> t.List[Spectrograph]:
 
         dl = self.wavl_max - self.wavl_min

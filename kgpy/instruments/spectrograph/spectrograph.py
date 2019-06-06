@@ -11,3 +11,11 @@ class Spectrograph:
 
         self.wavl_min = wavl_min
         self.wavl_max = wavl_max
+
+    @property
+    def name(self):
+        return str(self.wavl_center)
+
+    @property
+    def wavl_center(self):
+        return (self.wavl_max - self.wavl_min) / 2
