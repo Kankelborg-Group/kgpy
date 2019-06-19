@@ -174,6 +174,15 @@ class Vector:
 
         return self * (1 / self.mag)
 
+    def angle_between(self, other: 'Vector'):
+
+        a = self.cross(other).mag
+
+        b = self.mag
+        c = other.mag
+
+        return np.arcsin(a / (b * c))
+
     def isclose(self, other: 'Vector'):
         """
         Check if two Vectors have the same components to within some tolerance

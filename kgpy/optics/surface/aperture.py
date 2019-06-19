@@ -18,8 +18,6 @@ class Aperture:
         self.decenter_x = 0 * u.mm      # type: u.Quantity
         self.decenter_y = 0 * u.mm      # type: u.Quantity
 
-
-
     def promote_to_zmx(self, surf: 'optics.ZmxSurface', attr_str: str
                        ) -> 'optics.zemax.surface.Aperture':
         
