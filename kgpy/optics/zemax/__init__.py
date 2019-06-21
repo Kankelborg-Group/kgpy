@@ -1,4 +1,3 @@
-from kgpy.optics.zemax.system.configuration import surface
 from . import system
 from . import ZOSAPI
 

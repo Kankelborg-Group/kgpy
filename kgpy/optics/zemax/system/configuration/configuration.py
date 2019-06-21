@@ -12,19 +12,19 @@ class Configuration(system.Configuration):
         super().__init__(name)
 
     @property
-    def fields(self) -> field.Array:
+    def fields(self) -> system.configuration.field.Array:
         return self._fields
 
     @fields.setter
-    def fields(self, value: field.Array):
+    def fields(self, value: system.configuration.field.Array):
         self._fields = value.promote_to_zmx(self.zos_sys)
 
     @property
-    def wavelengths(self) -> wavelength.Array:
+    def wavelengths(self) -> system.configuration.wavelength.Array:
         return self._wavelengths
 
     @wavelengths.setter
-    def wavelengths(self, value: wavelength.Array):
+    def wavelengths(self, value: system.configuration.wavelength.Array):
         self._wavelengths = value.promote_to_zmx(self.zos_sys)
 
     @property
@@ -64,7 +64,7 @@ class Configuration(system.Configuration):
         """
         return self.zos_sys.LDE.NumberOfSurfaces
 
-    def insert(self, surf: ZmxSurface, index: int) -> None:
+    def insert(self, surf: zemax.system.configuration, index: int) -> None:
         """
         Insert a new surface at the specified index in the model
         :param surf: Surface to insert into the model
