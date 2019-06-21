@@ -1,21 +1,14 @@
-
-from time import sleep
-from os.path import dirname, join
 from copy import deepcopy
 from win32com.client.gencache import EnsureDispatch
 from win32com.client import constants
-from typing import List, Union, Tuple, Dict, Iterator
+from typing import List, Tuple, Dict, Iterator
 from collections import OrderedDict
-from numbers import Real
 import numpy as np
 import astropy.units as u
 
-
-from kgpy.math import CoordinateSystem
-from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics import System, Component, Surface
-from kgpy.optics.zemax.surface import ZmxSurface
-from kgpy.optics.zemax.system import wavelength, field
+from kgpy.optics import System, Component
+from kgpy.optics.zemax.system.configuration.surface import ZmxSurface
+from kgpy.optics.zemax.system.configuration import wavelength, field
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 from kgpy.optics.zemax.ZOSAPI.Analysis import AnalysisIDM
@@ -24,7 +17,7 @@ from kgpy import Persist
 __all__ = ['ZmxSystem']
 
 
-class ZmxSystem(System, Persist):
+class ZmxSystem(System):
     """
     a class used to interface with a particular Zemax file
 
@@ -63,7 +56,7 @@ class ZmxSystem(System, Persist):
         self._surfaces = []         # type: List[ZmxSurface]
 
         # Allocate space for attribute row list
-        self._attrs = []                # type: List[Tuple[str, ILDERow]]
+        # self._attrs = []                # type: List[Tuple[str, ILDERow]]
 
         # Initialize the connection to the Zemax system
         self._init_zos_api()
@@ -74,13 +67,8 @@ class ZmxSystem(System, Persist):
         # Initialize the system from the new design
         self._init_system_from_zmx()
 
-        self.entrance_pupil_radius = self.entrance_pupil_radius
-
         layout = self.zos_sys.Analyses.New_Analysis(AnalysisIDM.Draw3D)
-
         layout.GetSettings().Load()
-
-
         
     def append_configuration(self):
         self.zos_sys.MCE.InsertConfiguration(self.num_configurations, False)
@@ -105,53 +93,6 @@ class ZmxSystem(System, Persist):
     @property
     def num_configurations(self):
         return self.zos_sys.MCE.NumberOfConfigurations
-        
-    @property
-    def fields(self) -> field.Array:
-        return self._fields
-    
-    @fields.setter
-    def fields(self, value: field.Array):
-        self._fields = value.promote_to_zmx(self.zos_sys)
-
-    @property
-    def wavelengths(self) -> wavelength.Array:
-        return self._wavelengths
-
-    @wavelengths.setter
-    def wavelengths(self, value: wavelength.Array):
-        
-        self._wavelengths = value.promote_to_zmx(self.zos_sys)
-
-    @property
-    def entrance_pupil_radius(self):
-
-        if self.zos_sys is not None:
-
-            a = self.zos_sys.SystemData.Aperture
-
-            if a.ApertureType == ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter:
-                return (a.ApertureValue / 2) * self.lens_units
-
-            else:
-                raise ValueError('Aperture not defined by entrance pupil diameter')
-
-        else:
-            return self._entrance_pupil_radius
-
-    @entrance_pupil_radius.setter
-    def entrance_pupil_radius(self, value: u.Quantity):
-
-        if self.zos_sys is not None:
-
-            a = self.zos_sys.SystemData.Aperture
-
-            a.ApertureType = ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter
-
-            a.ApertureValue = 2 * value.to(self.lens_units).value
-
-        else:
-            self._entrance_pupil_radius = value
 
     def save(self, path: str):
 
@@ -260,27 +201,7 @@ class ZmxSystem(System, Persist):
 
         return sys
 
-    @property
-    def num_surfaces(self) -> int:
-        """
-        :return: The number of surfaces in the system
-        """
-        return self.zos_sys.LDE.NumberOfSurfaces
 
-    def insert(self, surf: ZmxSurface, index: int) -> None:
-        """
-        Insert a new surface at the specified index in the model
-        :param surf: Surface to insert into the model
-        :param index: Index where the surface will be placed in the model
-        :return: None
-        """
-
-        # Call superclass method to insert this surface into the list of surfaces
-        super().insert(surf, index)
-
-        # Insert a main attribute into this Zemax surface.
-        # This adds an ILDERow to the surface.
-        surf.insert(ZmxSurface.main_str, ZOSAPI.Editors.LDE.SurfaceType.Standard)
 
     def delete_surface(self, surf: ZmxSurface):
 
