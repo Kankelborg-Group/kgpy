@@ -18,24 +18,38 @@ class FieldList(optics.system.configuration.FieldList):
         self.configuration = None       # type: tp.Optional[optics.zemax.system.Configuration]
 
     @classmethod
-    def conscript(cls, configuration: tp.Optional[optics.zemax.system.Configuration]):
+    def conscript(cls, field_list: optics.system.configuration.FieldList):
 
+        zmx_field_list = cls()
 
+        for field in field_list:
+
+            zmx_field = optics.zemax.system.configuration.Field.conscript(field)
+
+            zmx_field_list.append(zmx_field)
+
+    @property
+    def configuration(self) -> optics.zemax.system.Configuration:
+        return self._configuration
+
+    @configuration.setter
+    def configuration(self, value: optics.zemax.system.Configuration):
+        self._configuration = value
+        
+        self.update()
+
+    def update(self):
+
+        for field in self:
+            field.update()
         
     def append(self, field: Field):
 
-        if len(self.items) < 1:
-            zos_field = self.zos_arr.GetField(1)
+        super().append(field)
+        
+        field.field_list = self
 
-        else:
-            zos_field = self.zos_arr.AddField(0.0, 0.0, 1.0)
-            
-        f = Field(field.x, field.y, zos_field, self.zos_sys)
+        field.zos_field = self.next_zos_field()
+
+    def next_zos_field(self) -> tp.Optional[ZOSAPI.SystemData.IField]:
         
-        f.van = field.van
-        f.vdx = field.vdx
-        f.vdy = field.vdy
-        f.vcx = field.vcx
-        f.vcy = field.vcy
-        
-        ArrayBase.append(self, f)
