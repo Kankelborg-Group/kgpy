@@ -1,3 +1,5 @@
-from kgpy.optics.zemax.system.configuration import wavelength
+from . import configuration
+from . import system
 
-from .system import ZmxSystem
+from .configuration import Configuration
+from .system import System

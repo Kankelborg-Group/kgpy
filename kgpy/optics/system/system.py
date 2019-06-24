@@ -1,79 +1,37 @@
 
+import typing as tp
+from copy import deepcopy
+import pickle
+import collections
 import numpy as np
 import matplotlib.pyplot as plt
-from copy import deepcopy
-from typing import List, Union, Tuple
 import astropy.units as u
 from shapely.geometry import Polygon, MultiPoint, MultiPolygon
 from shapely.ops import unary_union
-import pickle
 from ezdxf.r12writer import r12writer
 
-from kgpy.math import CoordinateSystem, Vector
-from kgpy import optics
-from kgpy.optics import Surface, Component
-from kgpy.optics.system.configuration import wavelength
-from kgpy.optics.system.configuration.surface.aperture import MultiPolygon as MultiPolygonAper
+from kgpy import optics, math
+
+from . import Configuration, configuration
 
 __all__ = ['System']
 
 
-class System:
+class System(collections.UserList):
 
-    def __init__(self, name: str, comment: str = ''):
+    def __init__(self, configurations: tp.List[Configuration] = None):
 
-        self.name = name
-        self.comment = comment
+        super().__init__(configurations)
 
-        self._configurations = []       # type t.List[]
+        self.name = ''
 
-    def append(self, configuration):
-        
-        self._num_configurations += 1
-        
-        for surface in self:
-
-            prev_acs = deepcopy(surface.after_surf_cs_break)
-            prev_bcs = deepcopy(surface.before_surf_cs_break)
-
-            surface._after_surf_cs_break_list.append(prev_acs)
-            surface._before_surf_cs_break_list.append(prev_bcs)
-        
     @property
-    def config(self) -> int:
-        return self._config
-    
-    @config.setter
-    def config(self, value: int):
-        
-        if value < 0:
-            raise ValueError
-        
-        if value > self.num_configurations - 1:
-            raise ValueError
-        
-        self._config = value
+    def configurations(self) -> tp.List[Configuration]:
+        return self.data
 
-        self.object.reset_cs()
-        
-    @property
-    def num_configurations(self):
-        return self._num_configurations
-        
-
-    
-
-
-
-
-
-
-
-
-
-    def add_baffle(self, baffle_name: str, baffle_cs: CoordinateSystem,
-                   pass_surfaces: Union[None, List[Union[None, Surface]]] = None, margin: u.Quantity = 1 * u.mm
-                   ) -> Component:
+    def add_baffle(self, baffle_name: str, baffle_cs: math.CoordinateSystem,
+                   pass_surfaces: tp.Union[None, tp.List[tp.Union[None, configuration.Surface]]] = None,
+                   margin: u.Quantity = 1 * u.mm) -> configuration.Component:
 
         comp = self.add_baffle_component(baffle_name, baffle_cs)
 
@@ -81,7 +39,8 @@ class System:
 
         return comp
 
-    def calc_baffle_aperture(self, component: Component, pass_surfaces: Union[None, List[Union[None, Surface]]] = None,
+    def calc_baffle_aperture(self, component: configuration.Component, pass_surfaces:
+                             tp.Union[None, tp.List[tp.Union[None, optics.system.configuration.Surface]]] = None,
                              margin: u.Quantity = 1 * u.mm):
 
         if pass_surfaces is None:
@@ -152,8 +111,8 @@ class System:
 
                         for p2 in pts2:
 
-                            v1 = Vector(np.append(p1.value, 0) * p1.unit)
-                            v2 = Vector(np.append(p2.value, 0) * p2.unit)
+                            v1 = math.Vector(np.append(p1.value, 0) * p1.unit)
+                            v2 = math.Vector(np.append(p2.value, 0) * p2.unit)
 
                             v1 = s1.cs.X + v1.rotate(s1.cs.Q)
                             v2 = s2.cs.X + v2.rotate(s2.cs.Q)
@@ -217,7 +176,7 @@ class System:
 
                 aper_lst.append(np.stack(poly.exterior.xy).transpose() * self.lens_units)
 
-            surface.mechanical_aperture = MultiPolygonAper(aper_lst)
+            surface.mechanical_aperture = configuration.surface.aperture.MultiPolygon(aper_lst)
 
         # Write dxf file
         with r12writer(component.name + '.dxf') as dxf:
@@ -231,8 +190,7 @@ class System:
                 dxf.add_polyline(pts)
                 # dxf.add_solid(pts)
 
-
-    def add_baffle_component(self, baffle_name: str, baffle_cs: CoordinateSystem) -> Component:
+    def add_baffle_component(self, baffle_name: str, baffle_cs: math.CoordinateSystem) -> configuration.Component:
         """
         Add a baffle to the system at the specified coordinate system across the x-y plane.
         This function automatically calculates how many times the raypath crosses the baffle plane, and constructs the
@@ -244,7 +202,7 @@ class System:
         """
 
         # Create new component to store the baffle
-        baffle = Component(baffle_name)
+        baffle = configuration.Component(baffle_name)
 
         # Define variable to track how many times the system intersected the
         baffle_pass = 0
@@ -283,7 +241,7 @@ class System:
 
                     # Create new baffle surface
                     baffle_thickness = t2.dot(surf.front_cs.zh)
-                    baffle_surf = optics.ZmxSurface(baffle_name + str(baffle_pass), thickness=baffle_thickness)
+                    baffle_surf = optics.Surface(baffle_name + str(baffle_pass), thickness=baffle_thickness)
                     for c in range(self.num_configurations):
                         self.config = c
                         baffle_surf._before_surf_cs_break_list.append(cs)
@@ -310,7 +268,8 @@ class System:
 
         return baffle
 
-    def square_raytrace(self, configurations: List[int], surfaces: List[Surface], wavelengths: List[wavelength.Item],
+    def square_raytrace(self, configurations: tp.List[int], surfaces: tp.List[configuration.Surface],
+                        wavelengths: tp.List[configuration.Wavelength],
                         num_field, num_pupil):
 
         r = 1.0
@@ -324,9 +283,10 @@ class System:
 
         return self.raytrace(configurations, surfaces, wavelengths, field_x, field_y, pupil_x, pupil_y)
             
-    def raytrace(self, configurations: List[int], surfaces: List[Surface], wavelengths: List[wavelength.Item],
-                 field_x: np.ndarray, field_y: np.ndarray, pupil_x: np.ndarray, pupil_y: np.ndarray
-                 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def raytrace(self, configurations: tp.List[int], surfaces: tp.List[configuration.Surface],
+                 wavelengths: tp.List[configuration.Wavelength], field_x: np.ndarray, field_y: np.ndarray,
+                 pupil_x: np.ndarray, pupil_y: np.ndarray
+                 ) -> tp.Tuple[np.ndarray, np.ndarray, np.ndarray]:
         
         raise NotImplementedError
 

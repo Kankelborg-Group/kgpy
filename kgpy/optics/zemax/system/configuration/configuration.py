@@ -1,30 +1,54 @@
 
-from kgpy.optics import system, zemax
+from kgpy import optics
+
 from kgpy.optics.zemax import ZOSAPI
 
 __all__ = ['Configuration']
 
 
-class Configuration(system.Configuration):
+class Configuration(optics.system.Configuration):
 
     def __init__(self, name: str):
 
         super().__init__(name)
 
+    @classmethod
+    def conscript(cls, config: optics.system.Configuration):
+
+        zmx_config = cls(config.name)
+
+        zmx_config.entrance_pupil_radius = config.entrance_pupil_radius
+        zmx_config.wavelengths = config.wavelengths
+        zmx_config.fields = config.fields
+
+        for surf in config:
+
+            zmx_surf = optics.zemax.system.configuration.Surface.conscript(surf)
+
+            zmx_config.append(zmx_surf)
+
     @property
-    def fields(self) -> system.configuration.field.Array:
+    def system(self) -> 'optics.zemax.System':
+        return super().system
+
+    @system.setter
+    def system(self, value: 'optics.zemax.System'):
+        super().system = value
+
+    @property
+    def fields(self) -> optics.system.configuration.field.FieldList:
         return self._fields
 
     @fields.setter
-    def fields(self, value: system.configuration.field.Array):
+    def fields(self, value: optics.system.configuration.field.FieldList):
         self._fields = value.promote_to_zmx(self.zos_sys)
 
     @property
-    def wavelengths(self) -> system.configuration.wavelength.Array:
+    def wavelengths(self) -> optics.system.configuration.wavelength.WavelengthList:
         return self._wavelengths
 
     @wavelengths.setter
-    def wavelengths(self, value: system.configuration.wavelength.Array):
+    def wavelengths(self, value: optics.system.configuration.wavelength.WavelengthList):
         self._wavelengths = value.promote_to_zmx(self.zos_sys)
 
     @property

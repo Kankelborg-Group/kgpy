@@ -1,55 +1,59 @@
 
-import typing as t
+import typing as tp
+import collections
 import numpy as np
 import astropy.units as u
 from beautifultable import BeautifulTable
 
-from kgpy.optics import Surface, Component
-from kgpy.optics.system.configuration import field, wavelength
+from kgpy import optics
+from . import Wavelength, WavelengthList, Field, FieldList, Surface, Component
 
 __all__ = ['Configuration']
 
 
-class Configuration:
+class Configuration(collections.UserList):
 
     object_str = 'Object'
     stop_str = 'Stop'
     image_str = 'Image'
     main_str = 'Main'
 
-    def __init__(self, name: str, comment: str = ''):
+    def __init__(self, surfaces: tp.List[Surface] = None):
 
-        self.name = name
-        self.comment = comment
+        super().__init__(surfaces)
 
-        # Initialize attributes to be set as surfaces are added.
-        self._surfaces = []     # type: t.List[Surface]
+        self.name = ''
 
-        # Create the object surface.
-        obj = Surface(self.object_str, thickness=np.inf * u.mm)
-
-        # Add the three surfaces to the system
-        self.append(obj)
+        self.system = None
 
         self._entrance_pupil_radius = 0 * u.mm
 
-        self._wavelengths = wavelength.Array()
-        self._fields = field.Array()
+        self._wavelengths = WavelengthList()
+
+        self._fields = FieldList()
 
     @property
-    def fields(self) -> field.Array:
+    def system(self) -> tp.Optional['optics.System']:
+        return self._system
+
+    @system.setter
+    def system(self, value: tp.Optional['optics.System']):
+        self._system = value
+
+    @property
+    def fields(self) -> FieldList:
         return self._fields
 
     @fields.setter
-    def fields(self, value: field.Array):
+    def fields(self, value: FieldList):
         self._fields = value
 
     @property
-    def wavelengths(self) -> wavelength.Array:
+    def wavelengths(self) -> WavelengthList:
         return self._wavelengths
 
     @wavelengths.setter
-    def wavelengths(self, value: wavelength.Array):
+    def wavelengths(self, value: WavelengthList):
         self._wavelengths = value
 
     @property
@@ -61,11 +65,11 @@ class Configuration:
         self._entrance_pupil_radius = value
 
     @property
-    def surfaces(self) -> t.List[Surface]:
+    def surfaces(self) -> tp.List[optics.system.configuration.Surface]:
         """
         :return: The private list of surfaces
         """
-        return self._surfaces
+        return self.data
 
     @property
     def object(self) -> Surface:
@@ -127,7 +131,7 @@ class Configuration:
 
 
     @property
-    def components(self) -> t.Dict[str, Component]:
+    def components(self) -> tp.Dict[str, Component]:
         """
         :return: a Dictionary with all the Components in the system as values and their names as the keys.
         """
@@ -147,68 +151,43 @@ class Configuration:
 
         return comp
 
-    def insert(self, surface: Surface, index: int) -> None:
-        """
-        Insert a surface into the specified position index the system
-        :param surface: Surface object to be added to the system
-        :param index: Index that we want the object to be placed at
-        :return: None
-        """
+    def insert(self, i: int, item: Surface):
+
+        super().insert(i, item)
 
         # Make sure that the index is positive
-        index = index % len(self)
+        index = i % len(self)
 
         # Set the system pointer
-        surface.sys = self
+        item.sys = self
 
         # Set the link to the surface before the new surface
         if index > 0:
-            self[index - 1].next_surf_in_system = surface
-            surface.prev_surf_in_system = self[index - 1]
+            self[index - 1].next_surf_in_system = item
+            item.prev_surf_in_system = self[index - 1]
 
         # Set the link to the surface after the new surface
         if index < len(self):
-            self[index].prev_surf_in_system = surface
-            surface.next_surf_in_system = self[index]
-
-        # Add the surface to the list of surfaces
-        self._surfaces.insert(index, surface)
+            self[index].prev_surf_in_system = item
+            item.next_surf_in_system = self[index]
 
         # Reset the coordinate systems, to revaluate with the new surface
-        surface.reset_cs()
+        item.reset_cs()
 
-    def append(self, surface: Surface) -> None:
+    def append(self, item: Surface):
+
+        super().append(item)
 
         # Update link from surface to system
-        surface.sys = self
+        item.sys = self
 
         # Link to the previous surface in the system
         if len(self) > 0:
-            self[-1].next_surf_in_system = surface
-            surface.prev_surf_in_system = self[-1]
-
-        # Append surface to the list of surfaces
-        self._surfaces.append(surface)
-
-    def insert_component(self, component: Component, index: int) -> None:
-        """
-        Add the component and all its surfaces to the end of an optical system.
-        :param component: component to be added to the system.
-        :return: None
-        """
-
-        index = index % len(self)
-
-        # Link the system to the component
-        component.sys = self
-
-        # Loop through the surfaces in the component add them to the back of the system
-        for surf in component:
-            self.insert(surf, index)
-            index = index + 1
+            self[-1].next_surf_in_system = item
+            item.prev_surf_in_system = self[-1]
 
     @property
-    def _surfaces_dict(self) -> t.Dict[str, Surface]:
+    def _surfaces_dict(self) -> tp.Dict[str, optics.system.configuration.Surface]:
         """
         :return: a dictionary where the key is the surface name and the value is the surface.
         """
@@ -222,40 +201,6 @@ class Configuration:
 
         return d
 
-    def __iter__(self):
-
-        return self._surfaces.__iter__()
-
-    def __len__(self):
-
-        return self._surfaces.__len__()
-
-    def __getitem__(self, item: t.Union[int, str]) -> Surface:
-        """
-        Gets the surface at index item within the system, or the surface with the name item
-        Accessed using the square bracket operator, e.g. surf = sys[i]
-        :param item: Surface index or name of surface
-        :return: Surface specified by item
-        """
-
-        # If the item is an integer, use it to access the surface list
-        if isinstance(item, int):
-            return self._surfaces.__getitem__(item)
-
-        # If the item is a string, use it to access the surfaces dictionary.
-        elif isinstance(item, str):
-            return self._surfaces_dict.__getitem__(item)
-
-        # Otherwise, the item is neither an int nor string and we throw an error.
-        else:
-            raise ValueError('Item is of an unrecognized type')
-
-    def __delitem__(self, key: int):
-
-        self[key].sys = None
-
-        self._surfaces.__delitem__(key)
-
     def __str__(self) -> str:
         """
         :return: String representation of a system
@@ -265,7 +210,7 @@ class Configuration:
         table = BeautifulTable(max_width=200)
 
         # Append lines for each surface within the component
-        for surface in self._surfaces:
+        for surface in self.surfaces:
 
             # Add headers if not already populated
             if not table.column_headers:

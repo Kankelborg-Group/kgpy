@@ -5,7 +5,7 @@ import astropy.units as u
 from beautifultable import BeautifulTable
 
 
-import kgpy.optics
+
 from kgpy.math import CoordinateSystem, Vector, quaternion
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics.system.configuration.surface import SurfaceType, Standard
@@ -21,26 +21,10 @@ class Surface:
     have all the same properties and behaviors.
     """
 
-    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, explicit_csb=False):
-        """
-        Constructor for the Surface class.
-        This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
-        place after the call to this function.
-        :param name: Human-readable name of the surface
-        :param thickness: Thickness of the surface along the self.cs.zh direction. Must have dimensions of length.
-        :param comment: Additional description of this surface
-        :param cs_break: CoordinateSystem applied to the surface the modifies the current CoordinateSystem.
-        The main use of this argument is to change the direction of propagation for the beam.
-        This argument is similar to the Coordinate Break surface in Zemax.
-        In this implementation a Surface can have a coordinate break instead of needing to define a second surface.
-        :param tilt_dec: CoordinateSystem applied only to the front face of the surface that leaves the current
-        CoordinateSystem unchanged.
-        The main use of this argument is to decenter/offset an optic but leave the direction of propagation unchanged.
-        This argument is similar to the tilt/decenter feature in Zemax.
-        """
+    def __init__(self, name: str):
 
         # Attributes to be set by the Component and System classes
-        self.component = None                   # type: kgpy.optics.Component
+        self.component = None                   # type: kgpy.optics.system.configuration.Component
         self.sys = None                         # type: kgpy.optics.System
 
         # Initialize links to neighboring surfaces
@@ -51,13 +35,7 @@ class Surface:
 
         # Save input arguments as class variables
         self.name = name
-        self.thickness = thickness
-
-        # Initialize other attributes
-        self.comment = ''
-
-        self._before_surf_cs_break_list = [None]    # type: List[CoordinateSystem]
-        self._after_surf_cs_break_list = [None]     # type: List[CoordinateSystem]
+        self.thickness = 0.0 * u.m
 
         # Coordinate breaks before/after surface
         self.before_surf_cs_break = gcs()
@@ -85,7 +63,7 @@ class Surface:
 
         self.translation_first = True
 
-        self.explicit_csb = explicit_csb
+        self.explicit_csb = False
 
     @property
     def config(self):
@@ -97,19 +75,19 @@ class Surface:
 
     @property
     def before_surf_cs_break(self) -> CoordinateSystem:
-        return self._before_surf_cs_break_list[self.config]
+        return self._before_surf_cs_break
 
     @before_surf_cs_break.setter
     def before_surf_cs_break(self, value: CoordinateSystem):
-        self._before_surf_cs_break_list[self.config] = value
+        self._before_surf_cs_break = value
 
     @property
     def after_surf_cs_break(self) -> CoordinateSystem:
-        return self._after_surf_cs_break_list[self.config]
+        return self._after_surf_cs_break
 
     @after_surf_cs_break.setter
     def after_surf_cs_break(self, value: CoordinateSystem):
-        self._after_surf_cs_break_list[self.config] = value
+        self._after_surf_cs_break = value
         
     @property
     def material(self) -> Material:

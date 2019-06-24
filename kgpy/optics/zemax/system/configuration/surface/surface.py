@@ -1,4 +1,5 @@
 
+import typing as tp
 from win32com.client import CastTo
 from typing import List, Dict, Union, Tuple, Iterator
 import numpy as np
@@ -6,20 +7,21 @@ import astropy.units as u
 from collections import OrderedDict
 from enum import IntEnum, auto
 
+from kgpy import optics
+
 import kgpy.optics
 from kgpy.math.quaternion import *
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics.system.configuration import surface
-from kgpy.optics.system.configuration.surface.surface import Surface
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system.configuration.surface import Material
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
 
-__all__ = ['ZmxSurface']
+__all__ = ['Surface']
 
 
-class ZmxSurface(Surface):
+class Surface(optics.system.configuration.Surface):
     """
     Child of the Surface class which acts as a wrapper around the Zemax API ILDERow class (a Zemax surface).
     The ZmxSurface class is intended to be used temporarily as the functionality in the ILDERow class is implemented in
@@ -56,13 +58,12 @@ class ZmxSurface(Surface):
         mech_aper_str:              AttrPriority.mech_aper
     }
 
-    def __init__(self, name: str, thickness: u.Quantity = 0.0 * u.m, explicit_csb=False):
+    def __init__(self, name: str):
         """
         Constructor for the ZmxSurface class.
         This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
         place after the call to this function.
         :param name: Human-readable name of the surface
-        :param thickness: Thickness of the surface along the self.cs.zh direction. Must have dimensions of length.
         """
 
         # Initialize list of ILDERows associated with class attributes.
@@ -70,16 +71,16 @@ class ZmxSurface(Surface):
         self._attr_rows = {}
 
         # Call superclass constructor
-        Surface.__init__(self, name, thickness)
+        Surface.__init__(self, name)
 
         # Override the type of the system pointer
-        self.sys = None     # type: kgpy.optics.ZmxSystem
+        self.configuration = None
 
         # Override the type of the neighboring surfaces
-        self.prev_surf_in_system = None         # type: ZmxSurface
-        self.next_surf_in_system = None         # type: ZmxSurface
-        self.prev_surf_in_component = None      # type: ZmxSurface
-        self.next_surf_in_component = None      # type: ZmxSurface
+        self.prev_surf_in_system = None         # type: Surface
+        self.next_surf_in_system = None         # type: Surface
+        self.prev_surf_in_component = None      # type: Surface
+        self.next_surf_in_component = None      # type: Surface
 
         self.aperture = None
         self.mechanical_aperture = None
@@ -89,16 +90,15 @@ class ZmxSurface(Surface):
         self.radius = np.inf * u.mm
         self.conic = 0.0
 
-        self.explicit_csb = explicit_csb
+        self.explicit_csb = False
 
     @property
-    def sys(self):
-        return self._sys
+    def configuration(self) -> tp.Union[None, 'optics.zemax.system.Configuration']:
+        return self._configuration
 
-    @sys.setter
-    def sys(self, value: 'kgpy.optics.ZmxSystem'):
-
-        self._sys = value
+    @configuration.setter
+    def configuration(self, value: tp.Union[None, 'optics.zemax.system.Configuration']):
+        self._configuration = value
 
     def _prep_mce(self):
 
@@ -160,7 +160,7 @@ class ZmxSurface(Surface):
             op.Param2 = i
 
     @staticmethod
-    def from_surface(surf: Surface) -> 'ZmxSurface':
+    def conscript(surf: optics.system.configuration.Surface) -> 'Surface':
         """
         Convert a Surface object to ZmxSurface object
         :param surf: Surface object to convert
@@ -168,7 +168,7 @@ class ZmxSurface(Surface):
         """
 
         # Construct new ZmxSurface
-        zmx_surf = ZmxSurface(surf.name)
+        zmx_surf = Surface(surf.name)
 
         zmx_surf.explicit_csb = surf.explicit_csb
 
@@ -185,15 +185,13 @@ class ZmxSurface(Surface):
         zmx_surf.material = surf.material
         zmx_surf.thickness = surf.thickness
 
-
-
         return zmx_surf
 
     @staticmethod
-    def from_attr_dict(surf_name: str, attr_dict: Dict[str, ILDERow]) -> 'ZmxSurface':
+    def from_attr_dict(surf_name: str, attr_dict: Dict[str, ILDERow]) -> 'Surface':
 
         # Construct new ZmxSurface
-        zmx_surf = ZmxSurface(surf_name)
+        zmx_surf = Surface(surf_name)
 
         # Set the attribute surfaces with the provided value
         zmx_surf._attr_rows = attr_dict
@@ -802,6 +800,102 @@ class ZmxSurface(Surface):
         self._attr_rows_list.insert(i, (attr_name, new_row))
 
         self.sys._update_system_from_zmx()
+
+    def raytrace(self, configurations: List[int], surfaces: List[Surface], wavelengths: List[wavelength.Item],
+                 field_x: np.ndarray, field_y: np.ndarray, pupil_x: np.ndarray, pupil_y: np.ndarray,
+                 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+
+        # Grab a handle to the zemax system
+        sys = self.zos_sys
+
+        # Store number of surfaces
+        num_surf = len(surfaces)
+
+        # store number of wavelengths
+        num_wavl = len(wavelengths)
+
+        # Store length of each axis in ray grid
+        num_field_x = len(field_x)
+        num_field_y = len(field_y)
+        num_pupil_x = len(pupil_x)
+        num_pupil_y = len(pupil_y)
+
+        # Create grid of rays
+        Fx, Fy, Px, Py = np.meshgrid(field_x, field_y, pupil_x, pupil_y, indexing='ij')
+
+        # Store shape of grid
+        sh = list(Fx.shape)
+
+        # Shape of grid for each surface and wavelength
+        tot_sh = [self.num_configurations, num_surf, num_wavl] + sh
+
+        # Allocate output arrays
+        V = np.empty(tot_sh)  # Vignetted rays
+        X = np.empty(tot_sh)
+        Y = np.empty(tot_sh)
+
+        old_config = self.config
+
+        for c in configurations:
+
+            self.config = c
+
+            # Initialize raytrace
+            rt = self.zos_sys.Tools.OpenBatchRayTrace()  # raytrace object
+            tool = sys.Tools.CurrentTool  # pointer to active tool
+
+            # Loop over each surface and run raytrace to surface
+            for s, surf in enumerate(surfaces):
+
+                # Open instance of batch raytrace
+                rt_dat = rt.CreateNormUnpol(num_pupil_x * num_pupil_y, constants.RaysType_Real,
+                                            surf.main_row.SurfaceNumber)
+
+                # Run raytrace for each wavelength
+                for w, wavl in enumerate(wavelengths):
+
+                    # Run raytrace for each field angle
+                    for fi in range(num_field_x):
+                        for fj in range(num_field_y):
+
+                            rt_dat.ClearData()
+
+                            # Loop over pupil to add rays to batch raytrace
+                            for pi in range(num_pupil_x):
+                                for pj in range(num_pupil_y):
+                                    # Select next ray
+                                    fx = Fx[fi, fj, pi, pj]
+                                    fy = Fy[fi, fj, pi, pj]
+                                    px = Px[fi, fj, pi, pj]
+                                    py = Py[fi, fj, pi, pj]
+
+                                    # Write ray to pipe
+                                    rt_dat.AddRay(wavl.zos_wavl.WavelengthNumber, fx, fy, px, py,
+                                                  constants.OPDMode_None)
+
+                            # Execute the raytrace
+                            tool.RunAndWaitForCompletion()
+
+                            # Initialize the process of reading the results of the raytrace
+                            rt_dat.StartReadingResults()
+
+                            # Loop over pupil and read the results of the raytrace
+                            for pi in range(num_pupil_x):
+                                for pj in range(num_pupil_y):
+                                    # Read next result from pipe
+                                    (ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd,
+                                     I) = rt_dat.ReadNextResult()
+
+                                    # Store next result in output arrays
+                                    V[c, s, w, fi, fj, pi, pj] = vig
+                                    X[c, s, w, fi, fj, pi, pj] = x
+                                    Y[c, s, w, fi, fj, pi, pj] = y
+
+            tool.Close()
+
+        self.config = old_config
+
+        return V, X, Y
 
     @property
     def _attr_rows_indices(self) -> List[int]:

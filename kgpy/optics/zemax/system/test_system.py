@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 import astropy.units as u
 
-from kgpy.optics import Surface, Component, ZmxSystem, ZmxSurface
+from kgpy.optics import Surface, Component, ZmxSystem, Surface
 
 
 @pytest.fixture(scope='class')
@@ -48,7 +48,7 @@ class TestZmxSystem:
 
         # Check that all the surfaces are defined
         for surface in zmx_system:
-            assert isinstance(surface, ZmxSurface)
+            assert isinstance(surface, Surface)
 
         # Check the object surface
         assert zmx_system.object.component.name == ZmxSystem.object_str

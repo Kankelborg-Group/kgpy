@@ -2,12 +2,12 @@
 import astropy.units as u
 
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.system.configuration.wavelength import Item as ItemBase
+from kgpy.optics.system.configuration.wavelength import Wavelength as ItemBase
 
-__all__ = ['Item']
+__all__ = ['Wavelength']
 
 
-class Item(ItemBase):
+class Wavelength(ItemBase):
     
     units = u.um
 

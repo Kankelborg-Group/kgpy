@@ -1,12 +1,12 @@
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.system.configuration.wavelength import Array as ArrayBase, Item as ItemBase
+from kgpy.optics.system.configuration.wavelength import WavelengthList as ArrayBase, Wavelength as ItemBase
 
-from .item import Item
+from .item import Wavelength
 
-__all__ = ['Array']
+__all__ = ['WavelengthList']
 
 
-class Array(ArrayBase):
+class WavelengthList(ArrayBase):
 
     def __init__(self, zos_sys: ZOSAPI.IOpticalSystem):
 
@@ -24,7 +24,7 @@ class Array(ArrayBase):
         else:
             zos_wavl = self.zos_arr.AddWavelength(0.5, 1.0)
 
-        w = Item(wavl.wavelength, zos_wavl, self.zos_sys)
+        w = Wavelength(wavl.wavelength, zos_wavl, self.zos_sys)
         w.weight = wavl.weight
 
         ArrayBase.append(self, w)

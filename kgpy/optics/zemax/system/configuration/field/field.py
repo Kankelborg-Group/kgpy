@@ -1,23 +1,23 @@
 
 import astropy.units as u
 
+from kgpy import optics
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.system.configuration.field import Item as Base
 
-__all__ = []
+__all__ = ['Field']
 
 
-class Item(Base):
+class Field(optics.system.configuration.Field):
 
     def __init__(self, x: u.Quantity, y: u.Quantity, zos_field: ZOSAPI.SystemData.IField,
-                 zos_sys: ZOSAPI.IOpticalSystem):
+                 configuration: optics.zemax.system.Configuration):
 
         self.zos_field = zos_field
-        self.zos_mce = zos_sys.MCE
+        self.configuration = configuration
 
         self._prep_mce()
         
-        Base.__init__(self, x, y)
+        super().__init__(x, y)
                 
     @property
     def x(self) -> u.Quantity:
@@ -77,30 +77,30 @@ class Item(Base):
 
     def _prep_mce(self):
         
-        self._x_op = self.zos_mce.AddOperand()
+        self._x_op = self.configuration.system.zos.MCE.AddOperand()
         self._x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.XFIE)
         self._x_op.Param1 = self.zos_field.FieldNumber
 
-        self._y_op = self.zos_mce.AddOperand()
+        self._y_op = self.configuration.system.zos.MCE.AddOperand()
         self._y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.YFIE)
         self._y_op.Param1 = self.zos_field.FieldNumber
 
-        self._vdx_op = self.zos_mce.AddOperand()
+        self._vdx_op = self.configuration.system.zos.MCE.AddOperand()
         self._vdx_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVDX)
         self._vdx_op.Param1 = self.zos_field.FieldNumber
 
-        self._vdy_op = self.zos_mce.AddOperand()
+        self._vdy_op = self.configuration.system.zos.MCE.AddOperand()
         self._vdy_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVDY)
         self._vdy_op.Param1 = self.zos_field.FieldNumber
 
-        self._vcx_op = self.zos_mce.AddOperand()
+        self._vcx_op = self.configuration.system.zos.MCE.AddOperand()
         self._vcx_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVCX)
         self._vcx_op.Param1 = self.zos_field.FieldNumber
 
-        self._vcy_op = self.zos_mce.AddOperand()
+        self._vcy_op = self.configuration.system.zos.MCE.AddOperand()
         self._vcy_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVCY)
         self._vcy_op.Param1 = self.zos_field.FieldNumber
 
-        self._van_op = self.zos_mce.AddOperand()
+        self._van_op = self.configuration.system.zos.MCE.AddOperand()
         self._van_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVAN)
         self._van_op.Param1 = self.zos_field.FieldNumber

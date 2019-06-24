@@ -1,10 +1,10 @@
 
 import astropy.units as u
 
-__all__ = ['Item']
+__all__ = ['Wavelength']
 
 
-class Item:
+class Wavelength:
     
     def __init__(self, wavelength: u.Quantity):
         

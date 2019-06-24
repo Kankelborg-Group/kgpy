@@ -4,7 +4,7 @@ from copy import deepcopy
 import astropy.units as u
 
 import kgpy.optics
-from kgpy.optics import Surface
+from kgpy.optics.system.configuration import Surface
 from kgpy.math import Vector, CoordinateSystem
 from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
 
