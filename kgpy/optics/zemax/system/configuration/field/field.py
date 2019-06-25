@@ -59,11 +59,24 @@ class Field(optics.system.configuration.Field):
 
         try:
             mce = self.field_list.configuration.system.zos.MCE
+            ops_list = self.field_list.configuration.system.operations_list
         except AttributeError:
             return
 
         try:
-            mce.GetOperandAt(self.field_list.configuration.mce_op_num['x'])
+
+            self._x_op.mce_op
+            mce_y_op = mce.GetOperandAt(self._y_op.index)
+            mce_weight_op = mce.GetOperandAt(self._weight_op.index)
+
+            mce_vdx_op = mce.GetOperandAt(self._vdx_op.index)
+            mce_vdy_op = mce.GetOperandAt(self._vdy_op.index)
+            mce_vcx_op = mce.GetOperandAt(self._vcx_op.index)
+            mce_vcy_op = mce.GetOperandAt(self._vcy_op.index)
+
+        except AttributeError:
+
+
         
         try:
 

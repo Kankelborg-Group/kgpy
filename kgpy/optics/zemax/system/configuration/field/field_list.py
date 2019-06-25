@@ -51,5 +51,3 @@ class FieldList(optics.system.configuration.FieldList):
 
         field.zos_field = self.next_zos_field()
 
-    def next_zos_field(self) -> tp.Optional[ZOSAPI.SystemData.IField]:
-        

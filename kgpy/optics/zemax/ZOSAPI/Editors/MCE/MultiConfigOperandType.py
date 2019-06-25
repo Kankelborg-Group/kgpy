@@ -415,7 +415,7 @@ class MultiConfigOperandTypeBase:
         return constants.MultiConfigOperandType_WLWT
 
     @property
-    def XFIE(self):
+    def XFIE(self) -> 'MultiConfigOperandType':
         return constants.MultiConfigOperandType_XFIE
 
     @property
