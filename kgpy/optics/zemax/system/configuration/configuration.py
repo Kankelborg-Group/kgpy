@@ -1,16 +1,23 @@
 
-from kgpy import optics
+import typing as tp
+import astropy.units as u
 
+from kgpy import optics
 from kgpy.optics.zemax import ZOSAPI
+
+from . import Wavelength, WavelengthList, Field, FieldList, Surface, OperationList
 
 __all__ = ['Configuration']
 
 
 class Configuration(optics.system.Configuration):
 
-    def __init__(self, name: str):
+    def __init__(self, surfaces: tp.List[Surface] = None):
 
-        super().__init__(name)
+        super().__init__(surfaces)
+
+        self.mce_ops_list = OperationList()
+        self.mce_ops_list.configuration = self
 
     @classmethod
     def conscript(cls, config: optics.system.Configuration):
@@ -18,87 +25,55 @@ class Configuration(optics.system.Configuration):
         zmx_config = cls(config.name)
 
         zmx_config.entrance_pupil_radius = config.entrance_pupil_radius
-        zmx_config.wavelengths = config.wavelengths
-        zmx_config.fields = config.fields
+        # zmx_config.wavelengths = WavelengthList.config.wavelengths
+        zmx_config.fields = FieldList.conscript(config.fields)
 
         for surf in config:
 
-            zmx_surf = optics.zemax.system.configuration.Surface.conscript(surf)
+            zmx_surf = Surface.conscript(surf)
 
             zmx_config.append(zmx_surf)
 
     @property
-    def system(self) -> 'optics.zemax.System':
+    def system(self) -> optics.zemax.System:
         return super().system
 
     @system.setter
-    def system(self, value: 'optics.zemax.System'):
+    def system(self, value: optics.zemax.System):
         super().system = value
 
     @property
-    def fields(self) -> optics.system.configuration.field.FieldList:
-        return self._fields
+    def fields(self) -> FieldList:
+        return super().fields
 
     @fields.setter
-    def fields(self, value: optics.system.configuration.field.FieldList):
-        self._fields = value.promote_to_zmx(self.zos_sys)
+    def fields(self, value: FieldList):
+        super().fields = value
 
     @property
-    def wavelengths(self) -> optics.system.configuration.wavelength.WavelengthList:
-        return self._wavelengths
+    def wavelengths(self) -> WavelengthList:
+        return super().wavelengths
 
     @wavelengths.setter
-    def wavelengths(self, value: optics.system.configuration.wavelength.WavelengthList):
-        self._wavelengths = value.promote_to_zmx(self.zos_sys)
+    def wavelengths(self, value: WavelengthList):
+        super().wavelengths = value
 
     @property
-    def entrance_pupil_radius(self):
+    def entrance_pupil_radius(self) -> u.Quantity:
 
-        if self.zos_sys is not None:
-
-            a = self.zos_sys.SystemData.Aperture
-
-            if a.ApertureType == ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter:
-                return (a.ApertureValue / 2) * self.lens_units
-
-            else:
-                raise ValueError('Aperture not defined by entrance pupil diameter')
-
-        else:
-            return self._entrance_pupil_radius
+        return super().entrance_pupil_radius
 
     @entrance_pupil_radius.setter
     def entrance_pupil_radius(self, value: u.Quantity):
 
-        if self.zos_sys is not None:
+        super().entrance_pupil_radius = value
 
-            a = self.zos_sys.SystemData.Aperture
+        try:
 
-            a.ApertureType = ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter
+            self.system.zos.SystemData.Aperture.ApertureType = ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter
 
-            a.ApertureValue = 2 * value.to(self.lens_units).value
+            self.system.zos.SystemData.Aperture.ApertureValue = 2 * value.to(self.system.lens_units).value
 
-        else:
-            self._entrance_pupil_radius = value
+        except AttributeError:
+            pass
 
-    @property
-    def num_surfaces(self) -> int:
-        """
-        :return: The number of surfaces in the system
-        """
-        return self.zos_sys.LDE.NumberOfSurfaces
-
-    def insert(self, surf: zemax.system.configuration, index: int) -> None:
-        """
-        Insert a new surface at the specified index in the model
-        :param surf: Surface to insert into the model
-        :param index: Index where the surface will be placed in the model
-        :return: None
-        """
-
-        # Call superclass method to insert this surface into the list of surfaces
-        super().insert(surf, index)
-
-        # Insert a main attribute into this Zemax surface.
-        # This adds an ILDERow to the surface.
-        surf.insert(ZmxSurface.main_str, ZOSAPI.Editors.LDE.SurfaceType.Standard)

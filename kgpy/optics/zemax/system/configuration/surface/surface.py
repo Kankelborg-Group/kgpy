@@ -102,51 +102,51 @@ class Surface(optics.system.configuration.Surface):
 
     def _prep_mce(self):
 
-        self._after_decenter_x_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_decenter_x_op = self.system.zos_sys.MCE.AddOperand()
         self._after_decenter_x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CADX)
         self._after_decenter_x_op.Param1 = self.main_row.SurfaceNumber
 
-        self._after_decenter_y_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_decenter_y_op = self.system.zos_sys.MCE.AddOperand()
         self._after_decenter_y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CADY)
         self._after_decenter_y_op.Param1 = self.main_row.SurfaceNumber
 
-        self._after_tilt_x_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_tilt_x_op = self.system.zos_sys.MCE.AddOperand()
         self._after_tilt_x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CATX)
         self._after_tilt_x_op.Param1 = self.main_row.SurfaceNumber
 
-        self._after_tilt_y_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_tilt_y_op = self.system.zos_sys.MCE.AddOperand()
         self._after_tilt_y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CATY)
         self._after_tilt_y_op.Param1 = self.main_row.SurfaceNumber
 
-        self._after_tilt_z_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_tilt_z_op = self.system.zos_sys.MCE.AddOperand()
         self._after_tilt_z_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CATZ)
         self._after_tilt_z_op.Param1 = self.main_row.SurfaceNumber
 
-        self._after_order_op = self.sys.zos_sys.MCE.AddOperand()
+        self._after_order_op = self.system.zos_sys.MCE.AddOperand()
         self._after_order_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CAOR)
         self._after_order_op.Param1 = self.main_row.SurfaceNumber
 
-        self._before_decenter_x_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_decenter_x_op = self.system.zos_sys.MCE.AddOperand()
         self._before_decenter_x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDX)
         self._before_decenter_x_op.Param1 = self.main_row.SurfaceNumber
 
-        self._before_decenter_y_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_decenter_y_op = self.system.zos_sys.MCE.AddOperand()
         self._before_decenter_y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDY)
         self._before_decenter_y_op.Param1 = self.main_row.SurfaceNumber
 
-        self._before_tilt_x_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_tilt_x_op = self.system.zos_sys.MCE.AddOperand()
         self._before_tilt_x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTX)
         self._before_tilt_x_op.Param1 = self.main_row.SurfaceNumber
 
-        self._before_tilt_y_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_tilt_y_op = self.system.zos_sys.MCE.AddOperand()
         self._before_tilt_y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTY)
         self._before_tilt_y_op.Param1 = self.main_row.SurfaceNumber
 
-        self._before_tilt_z_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_tilt_z_op = self.system.zos_sys.MCE.AddOperand()
         self._before_tilt_z_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTZ)
         self._before_tilt_z_op.Param1 = self.main_row.SurfaceNumber
 
-        self._before_order_op = self.sys.zos_sys.MCE.AddOperand()
+        self._before_order_op = self.system.zos_sys.MCE.AddOperand()
         self._before_order_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR)
         self._before_order_op.Param1 = self.main_row.SurfaceNumber
 
@@ -154,7 +154,7 @@ class Surface(optics.system.configuration.Surface):
 
         for i in range(1, 7):
 
-            op = self.sys.zos_sys.MCE.AddOperand()
+            op = self.system.zos_sys.MCE.AddOperand()
             op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM)
             op.Param1 = row.SurfaceNumber
             op.Param2 = i
@@ -215,7 +215,7 @@ class Surface(optics.system.configuration.Surface):
     @surface_type.setter
     def surface_type(self, value: kgpy.optics.system.configuration.surface.surface_type.SurfaceType):
         
-        if (self.sys is not None) and (value is not None):
+        if (self.system is not None) and (value is not None):
 
             self._surface_type = value.promote_to_zmx(self)
 
@@ -231,7 +231,7 @@ class Surface(optics.system.configuration.Surface):
     def conic(self, value: float):
         self._conic = value
 
-        if self.sys is not None:
+        if self.system is not None:
             self.main_row.Conic = self._conic
 
             if self.aperture_str in self.attr_rows:
@@ -249,7 +249,7 @@ class Surface(optics.system.configuration.Surface):
     @material.setter
     def material(self, val: surface.Material):
         
-        if self.sys is not None and val is not None:
+        if self.system is not None and val is not None:
 
             self._material = Material(val.name, self)
 
@@ -264,7 +264,7 @@ class Surface(optics.system.configuration.Surface):
     @aperture.setter
     def aperture(self, aper: surface.Aperture):
 
-        if (self.sys is not None) and (aper is not None):
+        if (self.system is not None) and (aper is not None):
 
             if self.aperture_str not in self.attr_rows:
                 self.insert_row(self.aperture_str, ZOSAPI.Editors.LDE.SurfaceType.Standard)
@@ -283,7 +283,7 @@ class Surface(optics.system.configuration.Surface):
     @mechanical_aperture.setter
     def mechanical_aperture(self, value: surface.Aperture):
 
-        if (self.sys is not None) and (value is not None):
+        if (self.system is not None) and (value is not None):
 
             self._mechanical_aperture = value.promote_to_zmx(self, self.main_str)
 
@@ -306,7 +306,7 @@ class Surface(optics.system.configuration.Surface):
 
         # If value unpopulated, read from Zemax
         if self._radius is None:
-            self._radius = self._attr_rows[self.main_str].Radius * self.sys.lens_units
+            self._radius = self._attr_rows[self.main_str].Radius * self.system.lens_units
 
         return self._radius
 
@@ -328,12 +328,12 @@ class Surface(optics.system.configuration.Surface):
         self._radius = val
         # noinspection PyPep8Naming
 
-        if self.sys is not None:
+        if self.system is not None:
 
-            self._attr_rows[self.main_str].Radius = val.to(self.sys.lens_units).value
+            self._attr_rows[self.main_str].Radius = val.to(self.system.lens_units).value
 
             if self.aperture_str in self.attr_rows:
-                self.attr_rows[self.aperture_str].Radius = val.to(self.sys.lens_units).value
+                self.attr_rows[self.aperture_str].Radius = val.to(self.system.lens_units).value
 
     @property
     def is_stop(self) -> bool:
@@ -342,7 +342,7 @@ class Surface(optics.system.configuration.Surface):
         """
 
         # If the surface is part of a ZOS system, return the stop flag of the main surface
-        if self.sys is not None:
+        if self.system is not None:
 
             # If the stop state has not been populated, read from zemax
             if self._is_stop is None:
@@ -378,11 +378,11 @@ class Surface(optics.system.configuration.Surface):
 
             # If there is a thickness row defined, return the value from that row
             if self.thickness_str in self._attr_rows:
-                self._thickness = self._attr_rows[self.thickness_str].Thickness * self.sys.lens_units
+                self._thickness = self._attr_rows[self.thickness_str].Thickness * self.system.lens_units
 
             # Otherwise, return the thickness value from the last row in the surface
             else:
-                self._thickness = self._attr_rows_list[-1][1].Thickness * self.sys.lens_units
+                self._thickness = self._attr_rows_list[-1][1].Thickness * self.system.lens_units
 
         return self._thickness
 
@@ -398,10 +398,10 @@ class Surface(optics.system.configuration.Surface):
         self._thickness = t
 
         # Update thickness of Zemax row if this surface is connected to a system.
-        if self.sys is not None:
+        if self.system is not None:
 
             # Convert Quantity to float in Zemax lens units
-            t_value = t.to(self.sys.lens_units).value
+            t_value = t.to(self.system.lens_units).value
 
             if self.explicit_csb or len(self.attr_rows) > 1:
 
@@ -481,7 +481,7 @@ class Surface(optics.system.configuration.Surface):
         self._before_surf_cs_break_list[self.config] = cs
 
         # Update coordinate break row if we're connected to a optics system
-        if self.sys is not None:
+        if self.system is not None:
 
             if self.explicit_csb or len(self.attr_rows) > 1:
                 if self.before_surf_cs_break_str not in self._attr_rows:
@@ -581,7 +581,7 @@ class Surface(optics.system.configuration.Surface):
         self._after_surf_cs_break_list[self.config] = cs
 
         # Update coordinate break row if we're connected to a optics system
-        if self.sys is not None and not self.main_row.IsImage:
+        if self.system is not None and not self.main_row.IsImage:
 
             if self.explicit_csb or len(self.attr_rows) > 1:
                 if self.after_surf_cs_break_str not in self._attr_rows:
@@ -783,7 +783,7 @@ class Surface(optics.system.configuration.Surface):
             row_ind = self.prev_surf_in_system.last_row_ind + 1
 
         # Create a new Zemax row based off of the index
-        new_row = self.sys.zos_sys.LDE.InsertNewSurfaceAt(row_ind)
+        new_row = self.system.zos_sys.LDE.InsertNewSurfaceAt(row_ind)
 
         # Change the type of the row to the requested type
         new_row.ChangeType(new_row.GetSurfaceTypeSettings(row_type))
@@ -799,7 +799,7 @@ class Surface(optics.system.configuration.Surface):
         # Add the new row to the attribute list
         self._attr_rows_list.insert(i, (attr_name, new_row))
 
-        self.sys._update_system_from_zmx()
+        self.system._update_system_from_zmx()
 
     def raytrace(self, configurations: List[int], surfaces: List[Surface], wavelengths: List[wavelength.Item],
                  field_x: np.ndarray, field_y: np.ndarray, pupil_x: np.ndarray, pupil_y: np.ndarray,
@@ -958,7 +958,7 @@ class Surface(optics.system.configuration.Surface):
         R_z = R_z.to(u.rad)
 
         # Construct vector from decenter parameters
-        X = Vector([X_x, X_y, X_z] * self.sys.lens_units)
+        X = Vector([X_x, X_y, X_z] * self.system.lens_units)
 
         # Construct rotation quaternion from tilt parameters
         Q = from_xyz_intrinsic_tait_bryan_angles(R_x, R_y, R_z, x_first=False)
@@ -981,9 +981,9 @@ class Surface(optics.system.configuration.Surface):
         X = cs.X.rotate(cs.Q.inverse())
 
         # Update the translation
-        X_x = X.x.to(self.sys.lens_units).value
-        X_y = X.y.to(self.sys.lens_units).value
-        X_z = X.z.to(self.sys.lens_units).value
+        X_x = X.x.to(self.system.lens_units).value
+        X_y = X.y.to(self.system.lens_units).value
+        X_z = X.z.to(self.system.lens_units).value
 
         # Update the rotation
         R_x, R_y, R_z = as_xyz_intrinsic_tait_bryan_angles(cs.Q)

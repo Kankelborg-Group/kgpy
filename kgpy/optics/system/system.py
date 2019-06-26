@@ -256,7 +256,7 @@ class System(collections.UserList):
                     # Insert new baffle surface into baffle component
                     baffle.append(baffle_surf)
                     
-                    surf.reset_cs()
+                    surf.update()
     
                     # Update the number of baffle passes
                     baffle_pass += 1

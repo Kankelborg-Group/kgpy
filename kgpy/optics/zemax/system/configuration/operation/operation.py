@@ -15,20 +15,58 @@ class Operation:
 
         self.operation_list = None          # type: tp.Optional[OperationList]
 
-    @property
-    def mce_operand(self) -> ZOSAPI.Editors.MCE.IMCERow:
-        return self.operation_list
+        self.operand_type = None
+        self.param1 = None
 
     @property
-    def index(self) -> int:
-        return self.operation_list.index(self)
+    def operand(self) -> tp.Optional[ZOSAPI.Editors.MCE.IMCERow]:
+
+        try:
+            mce = self.operation_list.configuration.system.zos.MCE
+        except AttributeError:
+            return None
+
+        try:
+            return mce.GetOperandAt(self.index)
+        except Exception:
+            mce.AddOperand()
+            return self.operand
 
     @property
-    def mce_operand_type(self):
+    def index(self) -> tp.Optional[int]:
+        try:
+            return self.operation_list.index(self)
+        except AttributeError:
+            return None
+
+    @property
+    def operand_type(self) -> ZOSAPI.Editors.MCE.MultiConfigOperandType:
         return self._mce_operand_type
 
-    @mce_operand_type.setter
-    def mce_operand_type(self, value):
+    @operand_type.setter
+    def operand_type(self, value: ZOSAPI.Editors.MCE.MultiConfigOperandType):
         self._mce_operand_type = value
 
         try:
+            self.operand.Type = value
+        except AttributeError:
+            pass
+        
+    @property
+    def param1(self) -> u.Quantity:
+        return self._mce_param1
+    
+    @param1.setter
+    def param1(self, value: u.Quantity):
+        self._mce_param1 = value
+
+        try:
+            self.operand.Param1 = value.to(self.operation_list.configuration.system.lens_units).value
+
+        except AttributeError:
+            pass
+
+    def update(self):
+
+        self.operand_type = self.operand_type
+        self.param1 = self.param1

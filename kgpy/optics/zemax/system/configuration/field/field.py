@@ -13,6 +13,15 @@ __all__ = ['Field']
 
 class Field(optics.system.configuration.Field):
 
+    x_op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.XFIE
+    y_op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.YFIE
+    weight_op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FLWT     # todo: check this constant
+    vdx_op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVDX
+    vdy_op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVDY
+    vcx_op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVCX
+    vcy_op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVCY
+    van_op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVAN
+
     class MultiConfigOps(enum.IntEnum):
 
         x = enum.auto()
@@ -30,7 +39,26 @@ class Field(optics.system.configuration.Field):
         super().__init__()
 
         self.field_list = None      # type: tp.Optional[FieldList]
-        self.zos_field = None       # type: tp.Optional[ZOSAPI.SystemData.IField]
+
+        self.x_op = optics.zemax.system.configuration.Operation()
+        self.y_op = optics.zemax.system.configuration.Operation()
+        self.weight_op = optics.zemax.system.configuration.Operation()
+        self.vdx_op = optics.zemax.system.configuration.Operation()
+        self.vdy_op = optics.zemax.system.configuration.Operation()
+        self.vcx_op = optics.zemax.system.configuration.Operation()
+        self.vcy_op = optics.zemax.system.configuration.Operation()
+        self.van_op = optics.zemax.system.configuration.Operation()
+
+        self.x_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.XFIE
+        self.y_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.YFIE
+        self.weight_op = ZOSAPI.Editors.MCE.MultiConfigOperandType.FLWT     # todo: check this constant
+        self.vdx_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVDX
+        self.vdy_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVDY
+        self.vcx_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVCX
+        self.vcy_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVCY
+        self.van_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.FVAN
+
+
 
     @classmethod
     def conscript(cls, field: optics.system.configuration.Field) -> 'Field':
@@ -50,68 +78,12 @@ class Field(optics.system.configuration.Field):
         return zmx_field
 
     @property
-    def field_list(self) -> FieldList:
-        return self._field_list
-
-    @field_list.setter
-    def field_list(self, value: FieldList):
-        self._field_list = value
-
-        try:
-            mce = self.field_list.configuration.system.zos.MCE
-            ops_list = self.field_list.configuration.system.operations_list
-        except AttributeError:
-            return
-
-        try:
-
-            self._x_op.mce_op
-            mce_y_op = mce.GetOperandAt(self._y_op.index)
-            mce_weight_op = mce.GetOperandAt(self._weight_op.index)
-
-            mce_vdx_op = mce.GetOperandAt(self._vdx_op.index)
-            mce_vdy_op = mce.GetOperandAt(self._vdy_op.index)
-            mce_vcx_op = mce.GetOperandAt(self._vcx_op.index)
-            mce_vcy_op = mce.GetOperandAt(self._vcy_op.index)
-
-        except AttributeError:
-
-
-        
-        try:
-
-            self._x_op = self.field_list.configuration.system.zos.MCE.AddOperand()
-            self._x_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.XFIE)
-
-            self._y_op = self.field_list.configuration.system.zos.MCE.AddOperand()
-            self._y_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.YFIE)
-
-            self._vdx_op = self.field_list.configuration.system.zos.MCE.AddOperand()
-            self._vdx_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVDX)
-
-            self._vdy_op = self.field_list.configuration.system.zos.MCE.AddOperand()
-            self._vdy_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVDY)
-
-            self._vcx_op = self.field_list.configuration.system.zos.MCE.AddOperand()
-            self._vcx_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVCX)
-
-            self._vcy_op = self.field_list.configuration.system.zos.MCE.AddOperand()
-            self._vcy_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVCY)
-
-            self._van_op = self.field_list.configuration.system.zos.MCE.AddOperand()
-            self._van_op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.FVAN)
-
-        except AttributeError:
-            pass
-
-    @property
     def zos_field(self) -> tp.Optional[ZOSAPI.SystemData.IField]:
 
         try:
             zos_fields = self.field_list.configuration.system.zos.SystemData.Fields
 
-        except AttributeError as e:
-            print(e)
+        except AttributeError:
             return None
 
         try:
@@ -119,42 +91,18 @@ class Field(optics.system.configuration.Field):
 
         except Exception as e:
             print(e)
-            zos_field = zos_fields.AddField(0.0, 0.0, 1.0)
+            zos_fields.AddField(0.0, 0.0, 1.0)
+            zos_field = self.zos_field
 
         return zos_field
 
-    @zos_field.setter
-    def zos_field(self, value: ZOSAPI.SystemData.IField):
-
-        self._zos_field = value
-
+    @property
+    def index(self) -> tp.Optional[int]:
         try:
-
-            self._x_op.Param1 = value.FieldNumber
-            self._y_op.Param1 = value.FieldNumber
-            self._vdx_op.Param1 = value.FieldNumber
-            self._vdy_op.Param1 = value.FieldNumber
-            self._vcx_op.Param1 = value.FieldNumber
-            self._vcy_op.Param1 = value.FieldNumber
-            self._van_op.Param1 = value.FieldNumber
-
+            return self.field_list.index(self)
         except AttributeError:
-            pass
-        
-        self.update()
-        
-    def update(self):
-        
-        self.x = self.x
-        self.y = self.y
-        self.weight = self.weight
-        
-        self.vdx = self.vdx
-        self.vdy = self.vdy
-        self.vcx = self.vcx
-        self.vcy = self.vcy
-        self.van = self.van
-                
+            return None
+
     @property
     def x(self) -> u.Quantity:
         return super().x
@@ -162,6 +110,12 @@ class Field(optics.system.configuration.Field):
     @x.setter
     def x(self, value: u.Quantity):
         super().x = value
+
+        try:
+            self.x_op.param1 = self.index + 1
+            self.x_op.update()
+        except TypeError:
+            return
 
         try:
             self.zos_field.X = value.to(u.deg).value
@@ -177,6 +131,12 @@ class Field(optics.system.configuration.Field):
         super().y = value
 
         try:
+            self.y_op.param1 = self.index + 1
+            self.y_op.update()
+        except TypeError:
+            return
+
+        try:
             self.zos_field.Y = value.to(u.deg).value
         except AttributeError:
             pass
@@ -188,6 +148,12 @@ class Field(optics.system.configuration.Field):
     @weight.setter
     def weight(self, value: u.Quantity):
         super().weight = value
+
+        try:
+            self.weight_op.param1 = self.index + 1
+            self.weight_op.update()
+        except TypeError:
+            return
 
         try:
             self.zos_field.Weight = float(value)
@@ -203,6 +169,12 @@ class Field(optics.system.configuration.Field):
         super().vdx = value
 
         try:
+            self.vdx_op.param1 = self.index + 1
+            self.vdx_op.update()
+        except TypeError:
+            return
+
+        try:
             self.zos_field.VDX = float(value)
         except AttributeError:
             pass
@@ -214,6 +186,12 @@ class Field(optics.system.configuration.Field):
     @vdy.setter
     def vdy(self, value: u.Quantity):
         super().vdy = value
+
+        try:
+            self.vdy_op.param1 = self.index + 1
+            self.vdy_op.update()
+        except TypeError:
+            return
 
         try:
             self.zos_field.VDY = float(value)
@@ -229,6 +207,12 @@ class Field(optics.system.configuration.Field):
         super().vcx = value
 
         try:
+            self.vcx_op.param1 = self.index + 1
+            self.vcx_op.update()
+        except TypeError:
+            return
+
+        try:
             self.zos_field.VCX = float(value)
         except AttributeError:
             pass
@@ -240,6 +224,12 @@ class Field(optics.system.configuration.Field):
     @vcy.setter
     def vcy(self, value: u.Quantity):
         super().vcy = value
+
+        try:
+            self.vcy_op.param1 = self.index + 1
+            self.vcy_op.update()
+        except TypeError:
+            return
 
         try:
             self.zos_field.VCY = float(value)
@@ -255,9 +245,27 @@ class Field(optics.system.configuration.Field):
         super().van = value
 
         try:
+            self.van_op.param1 = self.index + 1
+            self.van_op.update()
+        except TypeError:
+            return
+
+        try:
             self.zos_field.VAN = value.to(u.deg).value
         except AttributeError:
             pass
+
+    def update(self):
+
+        self.x = self.x
+        self.y = self.y
+        self.weight = self.weight
+
+        self.vdx = self.vdx
+        self.vdy = self.vdy
+        self.vcx = self.vcx
+        self.vcy = self.vcy
+        self.van = self.van
         
 
 

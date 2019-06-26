@@ -1,16 +1,12 @@
 
-from typing import Union, List
+import typing as tp
 import numpy as np
 import astropy.units as u
 from beautifultable import BeautifulTable
 
+from kgpy import optics, math
 
-
-from kgpy.math import CoordinateSystem, Vector, quaternion
-from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics.system.configuration.surface import SurfaceType, Standard
-from kgpy.optics.system.configuration.surface.aperture import Aperture
-from .material import Material
+from . import Aperture, Material
 
 __all__ = ['Surface']
 
@@ -24,69 +20,73 @@ class Surface:
     def __init__(self, name: str):
 
         # Attributes to be set by the Component and System classes
-        self.component = None                   # type: kgpy.optics.system.configuration.Component
-        self.sys = None                         # type: kgpy.optics.System
+        self.component = None                   # type: tp.Optional[optics.system.configuration.Component]
+        self.configuration = None
 
         # Initialize links to neighboring surfaces
-        self.prev_surf_in_system = None         # type: Surface
-        self.next_surf_in_system = None         # type: Surface
-        self.prev_surf_in_component = None      # type: Surface
-        self.next_surf_in_component = None      # type: Surface
+        self.prev_surf_in_system = None         # type: tp.Optional[Surface]
+        self.next_surf_in_system = None         # type: tp.Optional[Surface]
+        self.prev_surf_in_component = None      # type: tp.Optional[Surface]
+        self.next_surf_in_component = None      # type: tp.Optional[Surface]
 
         # Save input arguments as class variables
         self.name = name
         self.thickness = 0.0 * u.m
 
         # Coordinate breaks before/after surface
-        self.before_surf_cs_break = gcs()
-        self.after_surf_cs_break = gcs()
+        self.before_surf_cs_break = math.coordinate_system.GlobalCoordinateSystem()
+        self.after_surf_cs_break = math.coordinate_system.GlobalCoordinateSystem()
+
+        self.decenter_x = 0 * u.m
+        self.decenter_y = 0 * u.m
+        self.decenter_z = 0 * u.m
+        self.tilt_x = 0 * u.rad
+        self.tilt_y = 0 * u.rad
+        self.tilt_z = 0 * u.rad
 
         # Space for storing previous evaluations of the coordinate systems.
         # We store this information instead of evaluating on the fly since the evaluations are expensive.
         # These variables must be reset to None if the system changes.
         # Todo: These variables should be moved to ZmxSurface, and the properties in this class need to be overwritten
-        self._previous_cs = None
-        self._cs = None
-        self._front_cs = None
-        self._back_cs = None
+        # self._previous_cs = None
+        # self._cs = None
+        # self._front_cs = None
+        # self._back_cs = None
 
-        # Additional ZOSAPI.Editors.LDE.ILDERow attributes to be set by the user
-        # We need to modify private variables here so we don't inadvertently call properties in a subclass
         self.is_active = False
-        self._is_stop = False
-        self._radius = np.inf * u.mm    # type: u.Quantity
-        self._surface_type = Standard()           # type: SurfaceType
-        self._aperture = None
-        self._material = None
-        self._mechanical_aperture = None
-        self._conic = 0.0
+        self.is_stop = False
+        self.radius = np.inf * u.mm
+        self.conic = 0.0
+        self.aperture = None
+        self.mechanical_aperture = None
+        self.material = None
 
         self.translation_first = True
 
         self.explicit_csb = False
 
     @property
-    def config(self):
-        if self.sys is not None:
-            return self.sys.config
+    def configuration(self) -> optics.system.Configuration:
+        return self._configuration
 
-        else:
-            return 0
+    @configuration.setter
+    def configuration(self, value: optics.system.Configuration):
+        self._configuration = value
 
     @property
-    def before_surf_cs_break(self) -> CoordinateSystem:
+    def before_surf_cs_break(self) -> math.CoordinateSystem:
         return self._before_surf_cs_break
 
     @before_surf_cs_break.setter
-    def before_surf_cs_break(self, value: CoordinateSystem):
+    def before_surf_cs_break(self, value: math.CoordinateSystem):
         self._before_surf_cs_break = value
 
     @property
-    def after_surf_cs_break(self) -> CoordinateSystem:
+    def after_surf_cs_break(self) -> math.CoordinateSystem:
         return self._after_surf_cs_break
 
     @after_surf_cs_break.setter
-    def after_surf_cs_break(self, value: CoordinateSystem):
+    def after_surf_cs_break(self, value: math.CoordinateSystem):
         self._after_surf_cs_break = value
         
     @property
@@ -98,11 +98,11 @@ class Surface:
         self._material = value
         
     @property
-    def conic(self) -> float:
+    def conic(self) -> u.Quantity:
         return self._conic
     
     @conic.setter
-    def conic(self, value: float) -> None:
+    def conic(self, value: u.Quantity):
         self._conic = value
 
     @property
@@ -110,7 +110,7 @@ class Surface:
         return self._aperture
 
     @aperture.setter
-    def aperture(self, value: Aperture) -> None:
+    def aperture(self, value: Aperture):
         self._aperture = value
 
     @property
@@ -118,158 +118,112 @@ class Surface:
         return self._mechanical_aperture
 
     @mechanical_aperture.setter
-    def mechanical_aperture(self, value: Aperture) -> None:
+    def mechanical_aperture(self, value: Aperture):
         self._mechanical_aperture = value
 
     @property
     def decenter_x(self) -> u.Quantity:
 
-        x0 = self.before_surf_cs_break.X.x
-        x1 = self.after_surf_cs_break.X.x
-
-        if x0 != x1:
-            raise ValueError('Decenter X undefined for different translations before and after surface')
-
-        return x0
+        return self._decenter_x
 
     @decenter_x.setter
-    def decenter_x(self, val: u.Quantity) -> None:
+    def decenter_x(self, value: u.Quantity):
 
-        self.before_surf_cs_break.X.x = val
-        self.after_surf_cs_break.X.x = -val
+        self._decenter_x = value
 
-        self.reset_cs()
+        self.before_surf_cs_break.X.x = value
+        self.after_surf_cs_break.X.x = -value
+
+        self.update()
 
     @property
     def decenter_y(self) -> u.Quantity:
 
-        y0 = self.before_surf_cs_break.X.y
-        y1 = self.after_surf_cs_break.X.y
-
-        if y0 != y1:
-            raise ValueError('Decenter Y undefined for different translations before and after surface')
-
-        return y0
+        return self._decenter_y
 
     @decenter_y.setter
-    def decenter_y(self, val: u.Quantity) -> None:
+    def decenter_y(self, value: u.Quantity):
 
-        self.before_surf_cs_break.X.y = val
-        self.after_surf_cs_break.X.y = -val
+        self._decenter_y = value
 
-        self.reset_cs()
+        self.before_surf_cs_break.X.y = value
+        self.after_surf_cs_break.X.y = -value
+
+        self.update()
 
     @property
     def decenter_z(self) -> u.Quantity:
 
-        z0 = self.before_surf_cs_break.X.y
-        z1 = self.after_surf_cs_break.X.y
-
-        if z0 != z1:
-            raise ValueError('Decenter Z undefined for different translations before and after surface')
-
-        return z0
+        return self._decenter_z
 
     @decenter_z.setter
-    def decenter_z(self, val: u.Quantity) -> None:
+    def decenter_z(self, value: u.Quantity) -> None:
 
-        self.before_surf_cs_break.X.z = val
-        self.after_surf_cs_break.X.z = -val
+        self._decenter_z
 
-        self.reset_cs()
+        self.before_surf_cs_break.X.z = value
+        self.after_surf_cs_break.X.z = -value
+
+        self.update()
 
     @property
     def tilt_x(self) -> u.Quantity:
 
-        x0 = self.before_surf_cs_break.R_x
-
-        x1 = self.after_surf_cs_break.R_x
-
-        if x0 != x1:
-            raise ValueError('Tilt X undefined for different rotations before and after surface')
-
-        return x0
+        return self._tilt_x
 
     @tilt_x.setter
-    def tilt_x(self, val: u.Quantity):
+    def tilt_x(self, value: u.Quantity):
 
-        self.before_surf_cs_break.R_x = val
+        self._tilt_x = value
 
-        self.after_surf_cs_break.R_x = -val
+        self.before_surf_cs_break.R_x = value
+        self.after_surf_cs_break.R_x = -value
 
-        self.reset_cs()
+        self.update()
 
     @property
     def tilt_y(self) -> u.Quantity:
 
-        y0 = self.before_surf_cs_break.R_y
-
-        y1 = self.after_surf_cs_break.R_y
-
-        if y0 != y1:
-            raise ValueError('Tilt Y undefined for different rotations before and after surface')
-
-        return y0
+        return self._tilt_y
 
     @tilt_y.setter
-    def tilt_y(self, val: u.Quantity):
+    def tilt_y(self, value: u.Quantity):
 
-        self.before_surf_cs_break.R_y = val
+        self._tilt_y = value
 
-        self.after_surf_cs_break.R_y = -val
+        self.before_surf_cs_break.R_y = value
+        self.after_surf_cs_break.R_y = -value
 
-        self.reset_cs()
+        self.update()
 
     @property
     def tilt_z(self) -> u.Quantity:
 
-        z0 = self.before_surf_cs_break.R_z
-
-        z1 = self.after_surf_cs_break.R_z
-
-        if z0 != z1:
-            raise ValueError('Tilt Z undefined for different rotations before and after surface')
-
-        return z0
+        return self._tilt_z
 
     @tilt_z.setter
-    def tilt_z(self, val: u.Quantity):
+    def tilt_z(self, value: u.Quantity):
 
-        self.before_surf_cs_break.R_z = val
+        self._tilt_z = value
 
-        self.after_surf_cs_break.R_z = -val
+        self.before_surf_cs_break.R_z = value
+        self.after_surf_cs_break.R_z = -value
 
-        self.reset_cs()
+        self.update()
         
     @property
     def translation_first(self) -> bool:
-        return self.before_surf_cs_break.translation_first
+        return self._translation_first
     
     @translation_first.setter
     def translation_first(self, value: bool):
+
+        self._translation_first = value
+
         self.before_surf_cs_break.translation_first = value
         self.after_surf_cs_break.translation_first = not value
 
-        self.reset_cs()
-
-    @property
-    def surface_type(self):
-        """
-        Get the surface type: standard, paraxial, etc.
-
-        :return: The type of this surface
-        """
-        return self._surface_type
-
-    @surface_type.setter
-    def surface_type(self, val: SurfaceType) -> None:
-        """
-        Set the surface type of the surface.
-
-        :param val: New surface type.
-        :return: None
-        """
-        self._surface_type = val
+        self.update()
 
     @property
     def radius(self) -> u.Quantity:
@@ -288,12 +242,6 @@ class Surface:
         :param val: New radius of curvature. Must have units of length.
         :return: None
         """
-        if not isinstance(val, u.Quantity):
-            raise ValueError('Radius is of type astropy.units.Quantity')
-
-        if not val.unit.is_equivalent(u.m):
-            raise ValueError('Radius must have dimensions of length')
-
         self._radius = val
 
     @property
@@ -304,29 +252,21 @@ class Surface:
         return self._thickness
 
     @thickness.setter
-    def thickness(self, t: u.Quantity) -> None:
+    def thickness(self, value: u.Quantity) -> None:
         """
         Set the thickness of the surface
-        :param t: New surface thickness. Must have units of length
+        :param value: New surface thickness. Must have units of length
         :return: None
         """
 
-        # Check that the thickness parameter has the units attribute
-        if not isinstance(t, u.Quantity):
-            raise TypeError('thickness parameter must be an astropy.units.Quantity')
-
-        # Check that the thickness parameter has dimensions of length
-        if not t.unit.is_equivalent(u.m):
-            raise TypeError('thickness parameter does not have dimensions of length')
-
         # Update private storage variable
-        self._thickness = t
+        self._thickness = value
 
         # Reset coordinate systems since they need to be reevaluated with the new thickness.
-        self.reset_cs()
+        self.update()
 
     @property
-    def T(self) -> Vector:
+    def T(self) -> math.Vector:
         """
         Thickness vector
         :return: Vector pointing from the center of a surface's front face to the center of a surface's back face
@@ -335,152 +275,38 @@ class Surface:
 
     @property
     def is_object(self) -> bool:
-        """
-        :return: True if this is the object surface in a system, False otherwise.
-        If this surface is not associated with a system, this function returns False.
-        """
+        return self._is_object
 
-        # If the surface is part of the system, check if it is the object surface
-        if self.sys is not None:
-            return self.sys.object == self
-
-        # Otherwise, the surface is not part of a system, and we assume that it is not an object surface.
-        else:
-            return False
+    @is_object.setter
+    def is_object(self, value: bool):
+        self._is_object = value
 
     @property
     def is_stop(self) -> bool:
-        """
-        Check if a surface is the stop surface in the optical system.
-
-        :return: True if the surface is the stop, False otherwise.
-        """
         return self._is_stop
 
     @is_stop.setter
-    def is_stop(self, val: bool) -> None:
-        """
-        Set/unset this surface to be the stop surface.
-
-        :param val: New value for the flag.
-        :return: None
-        """
-        self._is_stop = val
+    def is_stop(self, value: bool):
+        self._is_stop = value
 
     @property
     def is_image(self) -> bool:
-        """
-        :return: True if this is the image surface in a system, False otherwise.
-        If this surface is not associated with a system, this function returns False.
-        """
+        return self._is_image
 
-        # If the surface is part of the system, check if it is the image surface
-        if self.sys is not None:
-            return self.sys.image == self
-
-        # Otherwise, the surface is not part of a system, and we assume that it is not an image surface.
-        else:
-            return False
-
-    def _relative_list_element(self, surf_list: List['Surface'], rel_index: int) -> Union['Surface', None]:
-        """
-        Finds the surface from a relative index to this surface for a given list of surfaces.
-        :param surf_list: The list of surfaces to index through
-        :param rel_index: The index relative to this surface that we are interested in.
-        :return: The surface at the given relative index if it exists, none otherwise.
-        """
-
-        # Find the index of this surface
-        ind = self._find_self_in_list(surf_list)
-
-        if ind is not None:
-
-            # Compute the global index of the surface that we are interested int
-            new_ind = ind + rel_index
-
-            # If the global index is a valid index, return the surface at that index.
-            if 0 <= new_ind < len(surf_list):
-                return surf_list[new_ind]
-
-        # Otherwise, the relative list element does not exist, and we return None.
-        return None
+    @is_image.setter
+    def is_image(self, value: bool):
+        self._is_image = value
 
     @property
-    def system_index(self) -> int:
+    def index(self) -> int:
         """
         :return: The index of this surface within the overall optical system
         """
 
-        return self._find_self_in_list(self.sys)
+        return self.configuration.index(self)
 
     @property
-    def component_index(self) -> int:
-        """
-        :return: The index of this surface within it's component
-        """
-
-        return self._find_self_in_list(self.component)
-
-    def _find_self_in_list(self, surf_list: List['Surface']) -> Union[int, None]:
-        """
-        Find the index of this surface in the provided list
-        :param surf_list: List to be searched for this surface
-        :return: The index of the surface if it exists in the list, None otherwise.
-        """
-
-        # Make an empty list to store the indices matching this surface
-        ind = []
-
-        # Loop through the provided list to check for any matches
-        for s, surf in enumerate(surf_list):
-
-            # If there are any matches append the index to our list of indices
-            if self == surf:
-                ind.append(s)
-
-        # If there were no matching surfaces found, return None
-        if len(ind) == 0:
-            return None
-
-        # If there was one matching surface found, return it's index
-        elif len(ind) == 1:
-            return ind[0]
-
-        # Otherwise, there was more than one matching surface found, and this is unexpected
-        else:
-            raise ValueError('More than one surface matches in list')
-
-    def reset_cs(self) -> None:
-        """
-        Resets the coordinate system for this surface and all surfaces after this surface in the system.
-
-        This function is intended to be used by System.insert() to make sure that the coordinate systems get
-        reinitialized appropriately after an new surface is inserted.
-        :return: None
-        """
-
-        # Set the current surface to this surface
-        surf = self
-
-        # Loop until there are no more surfaces
-        while True:
-
-            # Reset all the coordinate systems
-            surf._previous_cs = None
-            surf._cs = None
-            surf._front_cs = None
-            surf._back_cs = None
-
-            # If there is another surface in the system, update the current surface
-            if surf.next_surf_in_system is not None:
-                surf = surf.next_surf_in_system
-
-            # Otherwise there are no surfaces left and we can break out of the loop.
-            else:
-                break
-
-    @property
-    def previous_cs(self) -> CoordinateSystem:
+    def previous_cs(self) -> math.CoordinateSystem:
         """
         The coordinate system of the surface before this surface in the optical system.
         This is the coordinate system that this surface will be "attached" to.
@@ -513,7 +339,17 @@ class Surface:
         return self._previous_cs
 
     @property
-    def cs(self) -> CoordinateSystem:
+    def cs(self) -> math.CoordinateSystem:
+        return self._cs
+
+    @cs.setter
+    def cs(self, value: math.CoordinateSystem):
+        self._cs = value
+
+
+
+    @property
+    def cs(self) -> math.CoordinateSystem:
         """
         This coordinate system is the system associated with the face of a surface.
         For example: if the surface is a parabola, then the axis of rotation of the parabola would pass through the
@@ -528,7 +364,7 @@ class Surface:
         return self._cs
 
     @property
-    def front_cs(self) -> CoordinateSystem:
+    def front_cs(self) -> math.CoordinateSystem:
         """
         Coordinate system of the surface ignoring the local tilt/decenter of the surface.
         This is the coordinate system used to attach surfaces together.
@@ -544,7 +380,7 @@ class Surface:
         return self._front_cs
 
     @property
-    def back_cs(self) -> CoordinateSystem:
+    def back_cs(self) -> math.CoordinateSystem:
         """
         Coordinate system of the back face of the surface.
         Found by translating the coordinate system of the front face (without the tilt/decenter) by the thickness
@@ -558,21 +394,10 @@ class Surface:
 
         return self._back_cs
 
-    def __eq__(self, other: 'Surface'):
-        """
-        Check if two surface are equal by comparing all of their attributes
-        :param other: The other surface to check against this one.
-        :return: True if the two surfaces have the same values for all attributes, false otherwise.
-        """
-        a = self.name == other.name
-        # b = self.comment == other.comment
-        # d = self.thickness == other.thickness
-        e = self.component == other.component
 
-        return a and e
 
     @property
-    def table_headers(self) -> List[str]:
+    def table_headers(self) -> tp.List[str]:
         """
         List of headers used for printing table representation of surface
 
@@ -603,7 +428,7 @@ class Surface:
         Q = cs.Q
 
         # Convert to Tait-Bryant angles
-        T = quaternion.as_xyz_intrinsic_tait_bryan_angles(Q) * u.rad    # type: u.Quantity
+        T = math.quaternion.as_xyz_intrinsic_tait_bryan_angles(Q) * u.rad    # type: u.Quantity
 
         # Convert angles to degrees
         T = T.to(u.deg)
@@ -621,6 +446,48 @@ class Surface:
                 fmt(X.x), fmt(X.y), fmt(X.z), '',
                 fmt(T[0]), fmt(T[1]), fmt(T[2]), '',
                 self.is_stop]
+
+    def update(self) -> None:
+        """
+        Resets the coordinate system for this surface and all surfaces after this surface in the system.
+
+        This function is intended to be used by System.insert() to make sure that the coordinate systems get
+        reinitialized appropriately after an new surface is inserted.
+        :return: None
+        """
+
+        # Set the current surface to this surface
+        surf = self
+
+        # Loop until there are no more surfaces
+        while True:
+
+            # Reset all the coordinate systems
+            surf._previous_cs = None
+            surf._cs = None
+            surf._front_cs = None
+            surf._back_cs = None
+
+            # If there is another surface in the system, update the current surface
+            if surf.next_surf_in_system is not None:
+                surf = surf.next_surf_in_system
+
+            # Otherwise there are no surfaces left and we can break out of the loop.
+            else:
+                break
+
+    def __eq__(self, other: 'Surface'):
+        """
+        Check if two surface are equal by comparing all of their attributes
+        :param other: The other surface to check against this one.
+        :return: True if the two surfaces have the same values for all attributes, false otherwise.
+        """
+        a = self.name == other.name
+        # b = self.comment == other.comment
+        # d = self.thickness == other.thickness
+        e = self.component == other.component
+
+        return a and e
 
     def __str__(self) -> str:
         """
