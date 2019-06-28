@@ -1,29 +1,27 @@
-from kgpy import optics
 
 __all__ = ['Material']
 
 
 class Material:
-    
-    def __init__(self, name: str):
-        
-        self.name = name
 
-    def promote_to_zmx(self, surf: 'optics.ZmxSurface'):
-        
-        m = kgpy.optics.zemax.system.configuration.surface.material.Material(self.name, surf)
-        
-        return m
+    def __init__(self):
+
+        self.name = ''
+
 
 class Mirror(Material):
     
     def __init__(self):
-        
-        Material.__init__(self, 'MIRROR')
+
+        super().__init__()
+
+        self.name = 'mirror'
 
 
-class NoMaterial(Material):
+class EmptySpace(Material):
 
     def __init__(self):
-        
-        Material.__init__(self, '')
+
+        super().__init__()
+
+        self.name = 'empty space'

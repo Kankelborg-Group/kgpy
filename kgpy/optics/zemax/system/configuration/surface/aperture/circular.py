@@ -41,8 +41,8 @@ class Circular(Aperture, aperture.Circular):
             return s._S_CircularAperture
 
     @settings.setter
-    def settings(self, val: ISurfaceApertureCircular) -> None:
-        Aperture.settings.fset(self, val)
+    def settings(self, value: ISurfaceApertureCircular) -> None:
+        Aperture.settings.fset(self, value)
 
     @property
     def min_radius(self) -> u.Quantity:

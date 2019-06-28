@@ -1,22 +1,15 @@
 
 import typing as tp
-from win32com.client import CastTo
-from typing import List, Dict, Union, Tuple, Iterator
+import win32com.client
 import numpy as np
 import astropy.units as u
 from collections import OrderedDict
 from enum import IntEnum, auto
 
-from kgpy import optics
-
-import kgpy.optics
-from kgpy.math.quaternion import *
-from kgpy.math import Vector, CoordinateSystem
-from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
-from kgpy.optics.system.configuration import surface
+from kgpy import math, optics
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system.configuration.surface import Material
-from kgpy.optics.zemax.ZOSAPI.Editors.LDE import ILDERow
+
+from . import Aperture, Material
 
 __all__ = ['Surface']
 
@@ -48,6 +41,66 @@ class Surface(optics.system.configuration.Surface):
         after_surf_cs_break = auto()
         thickness = auto()
 
+    class CoordinateBreakOps:
+
+        def __init__(self):
+
+            self.decenter_x_op = optics.zemax.system.configuration.Operation()
+            self.decenter_y_op = optics.zemax.system.configuration.Operation()
+            self.tilt_x_op = optics.zemax.system.configuration.Operation()
+            self.tilt_y_op = optics.zemax.system.configuration.Operation()
+            self.tilt_z_op = optics.zemax.system.configuration.Operation()
+            self.order_op = optics.zemax.system.configuration.Operation()
+
+    class CoordinateBreakOpsAfter(CoordinateBreakOps):
+
+        def __init__(self):
+
+            super().__init__()
+
+            self.decenter_x_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CADX
+            self.decenter_y_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CADY
+            self.tilt_x_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATX
+            self.tilt_y_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATY
+            self.tilt_z_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATZ
+            self.order_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CAOR
+
+    class CoordinateBreakOpsBefore(CoordinateBreakOps):
+
+        def __init__(self):
+
+            super().__init__()
+
+            self.decenter_x_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDX
+            self.decenter_y_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDY
+            self.tilt_x_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTX
+            self.tilt_y_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTY
+            self.tilt_z_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTZ
+            self.order_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR
+
+    class ExplicitCoordinateBreakOps(CoordinateBreakOps):
+
+        def __init__(self):
+
+            super().__init__()
+
+            self.decenter_x_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDX
+            self.decenter_y_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDY
+            self.tilt_x_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTX
+            self.tilt_y_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTY
+            self.tilt_z_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTZ
+            self.order_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR
+
+    class ZemaxSubsurfaces:
+
+        def __init__(self):
+
+            self.before_cs_break = None     # type: tp.Optional[ZOSAPI.]
+            self.clear_aperture = None      # type: tp.Optional[Surface]
+            self.main = None                # type: tp.Optional[Surface]
+            self.after_cs_break = None      # type: tp.Optional[Surface]
+            self.thickness = None           # type: tp.Optional[Surface]
+
     # Dictionary that maps the attribute strings to their priority level
     priority_dict = {
         main_str:                   AttrPriority.main,
@@ -68,37 +121,36 @@ class Surface(optics.system.configuration.Surface):
 
         # Initialize list of ILDERows associated with class attributes.
         # This needs to be before the superclass constructor so properties such as thickness are defined
-        self._attr_rows = {}
+        # self._attr_rows = {}
 
         # Call superclass constructor
-        Surface.__init__(self, name)
+        super().__init__(name)
 
-        # Override the type of the system pointer
-        self.configuration = None
+        self.before = self.CoordinateBreakOpsBefore()
+        self.after = self.CoordinateBreakOpsAfter()
 
-        # Override the type of the neighboring surfaces
-        self.prev_surf_in_system = None         # type: Surface
-        self.next_surf_in_system = None         # type: Surface
-        self.prev_surf_in_component = None      # type: Surface
-        self.next_surf_in_component = None      # type: Surface
+        self.surface_type = ZOSAPI.Editors.LDE.SurfaceType.Standard
 
-        self.aperture = None
-        self.mechanical_aperture = None
-        self.material = None
-        self.surface_type = None
-
-        self.radius = np.inf * u.mm
-        self.conic = 0.0
-
-        self.explicit_csb = False
 
     @property
-    def configuration(self) -> tp.Union[None, 'optics.zemax.system.Configuration']:
-        return self._configuration
+    def zos_surface(self) -> tp.Optional[ZOSAPI.Editors.LDE.ILDERow]:
+
+        try:
+            return self.configuration.system.zos.LDE.GetSurfaceAt(self.index)
+
+        except AttributeError:
+            return None
+
+
+
+
+    @property
+    def configuration(self) -> tp.Optional['optics.zemax.system.Configuration']:
+        return super().configuration
 
     @configuration.setter
-    def configuration(self, value: tp.Union[None, 'optics.zemax.system.Configuration']):
-        self._configuration = value
+    def configuration(self, value: tp.Optional['optics.zemax.system.Configuration']):
+        super().configuration = value
 
     def _prep_mce(self):
 
@@ -159,8 +211,8 @@ class Surface(optics.system.configuration.Surface):
             op.Param1 = row.SurfaceNumber
             op.Param2 = i
 
-    @staticmethod
-    def conscript(surf: optics.system.configuration.Surface) -> 'Surface':
+    @classmethod
+    def conscript(cls, surf: optics.system.configuration.Surface) -> 'Surface':
         """
         Convert a Surface object to ZmxSurface object
         :param surf: Surface object to convert
@@ -173,8 +225,6 @@ class Surface(optics.system.configuration.Surface):
         zmx_surf.explicit_csb = surf.explicit_csb
 
         # Copy remaining attributes
-        zmx_surf.surface_type = surf.surface_type
-        zmx_surf.comment = surf.comment
         zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
         zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
         zmx_surf.component = surf.component
@@ -209,53 +259,49 @@ class Surface(optics.system.configuration.Surface):
     
     
     @property
-    def surface_type(self):
+    def surface_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
         return self._surface_type
     
     @surface_type.setter
-    def surface_type(self, value: kgpy.optics.system.configuration.surface.surface_type.SurfaceType):
-        
-        if (self.system is not None) and (value is not None):
+    def surface_type(self, value: ZOSAPI.Editors.LDE.SurfaceType):
 
-            self._surface_type = value.promote_to_zmx(self)
+        self._surface_type = value
 
-        else:
+        try:
+            self.zos_surface.Type = value
 
-            self._surface_type = value
+        except AttributeError:
+            pass
+
     
     @property
-    def conic(self) -> float:
-        return self._conic
+    def conic(self) -> u.Quantity:
+        return super().conic
     
     @conic.setter
-    def conic(self, value: float):
-        self._conic = value
+    def conic(self, value: u.Quantity):
+        super().conic = value
 
-        if self.system is not None:
-            self.main_row.Conic = self._conic
+        try:
+            self.zos_surface.Conic = float(value)
 
-            if self.aperture_str in self.attr_rows:
-                self.attr_rows[self.aperture_str].Conic = self._conic
-
-    
-    @property
-    def attr_rows(self):
-        return self._attr_rows
+        except AttributeError:
+            pass
 
     @property
-    def material(self) -> surface.Material:
-        return self._material
+    def material(self) -> Material:
+        return super().material
 
     @material.setter
-    def material(self, val: surface.Material):
+    def material(self, value: Material):
         
-        if self.system is not None and val is not None:
+        super().material = value
 
-            self._material = Material(val.name, self)
+        try:
+            self.zos_surface.Material = value.zos_str
 
-        else:
-
-            self._material = val
+        except AttributeError:
+            pass
 
     @property
     def aperture(self) -> surface.Aperture:

@@ -47,8 +47,8 @@ class MultiPolygon(Aperture, aperture.MultiPolygon):
             return s._S_UserAperture
 
     @settings.setter
-    def settings(self, val: ISurfaceApertureUser) -> None:
-        Aperture.settings.fset(self, val)
+    def settings(self, value: ISurfaceApertureUser) -> None:
+        Aperture.settings.fset(self, value)
 
     @property
     def points(self) -> u.Quantity:

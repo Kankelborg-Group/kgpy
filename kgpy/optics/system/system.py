@@ -1,6 +1,5 @@
 
 import typing as tp
-from copy import deepcopy
 import pickle
 import collections
 import numpy as np
@@ -176,7 +175,7 @@ class System(collections.UserList):
 
                 aper_lst.append(np.stack(poly.exterior.xy).transpose() * self.lens_units)
 
-            surface.mechanical_aperture = configuration.surface.aperture.MultiPolygon(aper_lst)
+            surface.mechanical_aperture = kgpy.optics.system.configuration.surface.aperture.aperture.MultiPolygon(aper_lst)
 
         # Write dxf file
         with r12writer(component.name + '.dxf') as dxf:

@@ -31,8 +31,8 @@ class Spider(Aperture, aperture.Spider):
         return s._S_Spider
 
     @settings.setter
-    def settings(self, val: ISurfaceApertureSpider) -> None:
-        Aperture.settings.fset(self, val)
+    def settings(self, value: ISurfaceApertureSpider) -> None:
+        Aperture.settings.fset(self, value)
 
     @property
     def arm_width(self) -> u.Quantity:

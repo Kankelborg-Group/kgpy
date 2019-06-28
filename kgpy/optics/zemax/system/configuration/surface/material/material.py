@@ -1,28 +1,27 @@
 
 from kgpy import optics
-from kgpy.optics.system.configuration.surface.material import Material as Base
 
-__all__ = ['Material']
+__all__ = ['Material', 'Mirror', 'EmptySpace']
 
 
-class Material(Base):
-    
-    def __init__(self, name: str, surf: 'optics.ZmxSurface'):
-        
-        self.surf = surf
-        
-        Base.__init__(self, name)
-        
-        surf.main_row.Material = name 
-        
+class Material(optics.system.configuration.surface.Material):
 
-        
-    @property
-    def name(self) -> str:
-        
-        return self.surf.main_row.Material
-    
-    @name.setter
-    def name(self, val: str):
-        
-        self.surf.main_row.Material = val
+    def __init__(self):
+
+        super().__init__()
+
+        self.zos_str = ''
+
+
+class Mirror(Material, optics.system.configuration.surface.material.Mirror):
+
+    def __init__(self):
+
+        super().__init__()
+
+        self.zos_str = 'MIRROR'
+
+
+class EmptySpace(Material, optics.system.configuration.surface.material.EmptySpace):
+
+    pass

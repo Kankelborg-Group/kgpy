@@ -23,19 +23,13 @@ class Surface:
         self.component = None                   # type: tp.Optional[optics.system.configuration.Component]
         self.configuration = None
 
-        # Initialize links to neighboring surfaces
-        self.prev_surf_in_system = None         # type: tp.Optional[Surface]
-        self.next_surf_in_system = None         # type: tp.Optional[Surface]
-        self.prev_surf_in_component = None      # type: tp.Optional[Surface]
-        self.next_surf_in_component = None      # type: tp.Optional[Surface]
-
         # Save input arguments as class variables
         self.name = name
         self.thickness = 0.0 * u.m
 
         # Coordinate breaks before/after surface
-        self.before_surf_cs_break = math.coordinate_system.GlobalCoordinateSystem()
-        self.after_surf_cs_break = math.coordinate_system.GlobalCoordinateSystem()
+        self.before_surf_cs_break = math.coordinate_system.CoordinateSystem()
+        self.after_surf_cs_break = math.coordinate_system.CoordinateSystem()
 
         self.decenter_x = 0 * u.m
         self.decenter_y = 0 * u.m
@@ -48,13 +42,15 @@ class Surface:
         # We store this information instead of evaluating on the fly since the evaluations are expensive.
         # These variables must be reset to None if the system changes.
         # Todo: These variables should be moved to ZmxSurface, and the properties in this class need to be overwritten
-        # self._previous_cs = None
-        # self._cs = None
-        # self._front_cs = None
-        # self._back_cs = None
+        self._previous_cs = None
+        self._cs = None
+        self._front_cs = None
+        self._back_cs = None
 
         self.is_active = False
+        self.is_object = False
         self.is_stop = False
+        self.is_image = False
         self.radius = np.inf * u.mm
         self.conic = 0.0
         self.aperture = None
@@ -159,7 +155,7 @@ class Surface:
     @decenter_z.setter
     def decenter_z(self, value: u.Quantity) -> None:
 
-        self._decenter_z
+        self._decenter_z = value
 
         self.before_surf_cs_break.X.z = value
         self.after_surf_cs_break.X.z = -value
@@ -297,13 +293,7 @@ class Surface:
     def is_image(self, value: bool):
         self._is_image = value
 
-    @property
-    def index(self) -> int:
-        """
-        :return: The index of this surface within the overall optical system
-        """
 
-        return self.configuration.index(self)
 
     @property
     def previous_cs(self) -> math.CoordinateSystem:
@@ -319,33 +309,13 @@ class Surface:
         # Only re-evaluate if the storage variable is unpopulated
         if self._previous_cs is None:
 
-            # If this is not the first surface in the system
-            if self.prev_surf_in_system is not None:
+            try:
+                self._previous_cs = self.previous_surface.back_cs
 
-                # If the previous surface in the system is not the object system
-                if not self.prev_surf_in_system.is_object:
-
-                    # Grab a pointer to the coordinate system of the back of the previous surface
-                    self._previous_cs = self.prev_surf_in_system.back_cs
-
-                # If the previous surface in the system is the object surface.
-                else:
-                    self._previous_cs = gcs()
-
-            # Otherwise this is the first surface in the system
-            else:
-                self._previous_cs = gcs()
+            except AttributeError:
+                self._previous_cs = math.CoordinateSystem()
 
         return self._previous_cs
-
-    @property
-    def cs(self) -> math.CoordinateSystem:
-        return self._cs
-
-    @cs.setter
-    def cs(self, value: math.CoordinateSystem):
-        self._cs = value
-
 
 
     @property
@@ -475,6 +445,36 @@ class Surface:
             # Otherwise there are no surfaces left and we can break out of the loop.
             else:
                 break
+
+    @property
+    def index(self) -> int:
+        """
+        :return: The index of this surface within the overall optical system
+        """
+
+        return self.configuration.index(self)
+
+    @property
+    def previous_surface(self) -> tp.Optional['Surface']:
+
+        i = self.index
+
+        if i != 0:
+            return self.configuration[i - 1]
+
+        return None
+
+    @property
+    def next_surface(self):
+
+        i = self.index
+        n_surf = len(self.configuration)
+
+        if (i + 1) % n_surf != 0:
+
+            return self.configuration[i + 1]
+
+        return None
 
     def __eq__(self, other: 'Surface'):
         """

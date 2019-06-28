@@ -17,6 +17,7 @@ class Operation:
 
         self.operand_type = None
         self.param1 = None
+        self.param2 = None
 
     @property
     def operand(self) -> tp.Optional[ZOSAPI.Editors.MCE.IMCERow]:
@@ -62,6 +63,20 @@ class Operation:
 
         try:
             self.operand.Param1 = value.to(self.operation_list.configuration.system.lens_units).value
+
+        except AttributeError:
+            pass
+
+    @property
+    def param2(self) -> u.Quantity:
+        return self._mce_param2
+
+    @param2.setter
+    def param2(self, value: u.Quantity):
+        self._mce_param2 = value
+
+        try:
+            self.operand.Param2 = value.to(self.operation_list.configuration.system.lens_units).value
 
         except AttributeError:
             pass

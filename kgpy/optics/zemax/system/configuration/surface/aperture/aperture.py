@@ -1,69 +1,94 @@
 
-from abc import ABC, abstractmethod
+import abc
+import typing as tp
 import astropy.units as u
 
 from kgpy import optics
-from kgpy.optics import zemax
-from kgpy.optics.zemax.ZOSAPI.Editors.LDE import SurfaceApertureTypes, ISurfaceApertureType, \
-    ISurfaceApertureCircular
+from kgpy.optics.zemax import ZOSAPI
+
 
 __all__ = ['Aperture']
 
-
-class Aperture(ABC):
-
-    def __init__(self, surf: 'optics.ZmxSurface', attr_str: str):
-
-        self.surf = surf
-    
-        self.attr_str = attr_str
-
-        self.is_obscuration = False
+# need to initialize settings when appended onto system
 
 
-    @property
-    @abstractmethod
-    def aperture_type(self) -> SurfaceApertureTypes:
-        pass
+class Aperture(optics.system.configuration.surface.Aperture):
+
+    def __init__(self):
+
+        super().__init__()
+
+        self.aperture_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.none
+
+        self.settings = None
+
 
     @property
-    @abstractmethod
-    def settings(self) -> ISurfaceApertureType:
+    def aperture_type(self) -> ZOSAPI.Editors.LDE.SurfaceApertureTypes:
+        return self._aperture_type
 
-        return self.surf.attr_rows[self.attr_str].ApertureData.CurrentTypeSettings
+    @aperture_type.setter
+    def aperture_type(self, value: ZOSAPI.Editors.LDE.SurfaceApertureTypes):
+        self._aperture_type = value
+
+        try:
+            self.surface.zos_surface.ApertureData.CurrentType = value
+
+        except AttributeError:
+            pass
+
+    @property
+    def settings(self) -> tp.Optional[ZOSAPI.Editors.LDE.ISurfaceApertureType]:
+
+        return self._settings
+
+        # return self.surface.zos_surface.ApertureData.CurrentTypeSettings
 
     @settings.setter
-    @abstractmethod
-    def settings(self, val: ISurfaceApertureType) -> None:
+    def settings(self, value: tp.Optional[ZOSAPI.Editors.LDE.ISurfaceApertureType]):
 
-        self.surf.attr_rows[self.attr_str].ApertureData.ChangeApertureTypeSettings(val)
+        self._settings = value
+
+        try:
+            self.surface.zos_surface.ApertureData.ChangeApertureTypeSettings(value)
+
+        except AttributeError:
+            pass
+
+    @property
+    def surface(self) -> optics.zemax.system.configuration.Surface:
+        return super().surface
+
+    @surface.setter
+    def surface(self, value: optics.zemax.system.configuration.Surface):
+        super().surface = value
 
     @property
     def decenter_x(self) -> u.Quantity:
 
-        s = self.settings  # type: ISurfaceApertureCircular
-
-        return s.ApertureXDecenter * self.surf.sys.lens_units
+        return super().decenter_x
 
     @decenter_x.setter
-    def decenter_x(self, val: u.Quantity):
+    def decenter_x(self, value: u.Quantity):
+
+        super().decenter_x = value
 
         s = self.settings
-        s.ApertureXDecenter = val.to(self.surf.sys.lens_units).value
+        s.ApertureXDecenter = value.to(self.surface.configuration.system.lens_units).value
         self.settings = s
 
     @property
     def decenter_y(self) -> u.Quantity:
 
-        s = self.settings       # type: ISurfaceApertureCircular
-
-        return s.ApertureYDecenter * self.surf.sys.lens_units
+        return super().decenter_y
 
     @decenter_y.setter
-    def decenter_y(self, val: u.Quantity):
+    def decenter_y(self, value: u.Quantity):
+
+        super().decenter_y = value
 
         s = self.settings
-        s.ApertureYDecenter = val.to(self.surf.sys.lens_units).value
+        s.ApertureYDecenter = value.to(self.surface.configuration.system.lens_units).value
         self.settings = s
 
     @property
@@ -76,7 +101,19 @@ class Aperture(ABC):
 
         self._is_obscuration = value
 
-        self.settings = self.surf.attr_rows[self.attr_str].ApertureData.CreateApertureTypeSettings(self.aperture_type)
+        s = self.settings
+        s.IsObscuration = value
+        self.settings = s
+
+    def update(self):
+
+        self.aperture_type = self.aperture_type
+        self.settings = self.settings
+
+        self.decenter_x = self.decenter_x
+        self.decenter_y = self.decenter_y
+        self.is_obscuration = self.is_obscuration
+
 
 
 
