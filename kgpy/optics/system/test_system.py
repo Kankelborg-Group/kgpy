@@ -7,7 +7,7 @@ from quaternion import from_euler_angles as euler
 
 from kgpy.optics import Surface, Component, System
 from kgpy.math import Vector
-from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
+from kgpy.math.geometry.coordinate_system.coordinate_system import GlobalCoordinateSystem as gcs
 
 __all__ = ['system', 'TestSystem']
 

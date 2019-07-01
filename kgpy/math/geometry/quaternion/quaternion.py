@@ -1,15 +1,20 @@
 
-from typing import Union, List
+import typing as tp
 import numpy as np
 from numpy import sin, cos
-from quaternion import quaternion, as_quat_array, as_float_array
+import quaternion
 
-__all__ = ['from_xyz_intrinsic_tait_bryan_angles', 'as_xyz_intrinsic_tait_bryan_angles']
+__all__ = ['Quaternion']
 
 
-def from_xyz_intrinsic_tait_bryan_angles(alpha_beta_gamma: Union[float, List[float], np.ndarray],
-                                         beta: Union[float, np.ndarray] = None, gamma: Union[float, np.ndarray] = None,
-                                         x_first=True) -> quaternion:
+class Quaternion(quaternion.quaternion):
+
+    pass
+
+
+def from_xyz_intrinsic_tait_bryan_angles(alpha_beta_gamma: tp.Union[float, tp.List[float], np.ndarray],
+                                         beta: tp.Union[float, np.ndarray] = None,
+                                         gamma: tp.Union[float, np.ndarray] = None, x_first=True) -> quaternion:
     """
     Based on the quaternion/from_euler_angles() function in numpy-quaternion.
     The conversions from Tait-Bryan angles were taken from this Wikipedia page:

@@ -11,6 +11,25 @@ from . import Aperture, Material
 __all__ = ['Surface']
 
 
+class SurfaceCoordinateSystem(math.geometry.CoordinateSystem):
+
+    def __init__(self, translation_first=True):
+
+        super().__init__(translation_first)
+
+        self.surface = None     # type: optics.system.configuration.Surface
+
+class PreCoordinateSystem(SurfaceCoordinateSystem):
+
+    @property
+    def (self):
+        return
+
+    @.setter
+    def (self, value):
+        pass
+
+
 class Surface:
     """
     This class represents a single optical surface. This class should be a drop-in replacement for a Zemax surface, and
@@ -20,71 +39,41 @@ class Surface:
     def __init__(self, name: str):
 
         # Attributes to be set by the Component and System classes
-        self.component = None                   # type: tp.Optional[optics.system.configuration.Component]
         self.configuration = None
 
         # Save input arguments as class variables
         self.name = name
         self.thickness = 0.0 * u.m
 
-        # Coordinate breaks before/after surface
-        self.before_surf_cs_break = math.coordinate_system.CoordinateSystem()
-        self.after_surf_cs_break = math.coordinate_system.CoordinateSystem()
-
-        self.decenter_x = 0 * u.m
-        self.decenter_y = 0 * u.m
-        self.decenter_z = 0 * u.m
-        self.tilt_x = 0 * u.rad
-        self.tilt_y = 0 * u.rad
-        self.tilt_z = 0 * u.rad
 
         # Space for storing previous evaluations of the coordinate systems.
         # We store this information instead of evaluating on the fly since the evaluations are expensive.
         # These variables must be reset to None if the system changes.
         # Todo: These variables should be moved to ZmxSurface, and the properties in this class need to be overwritten
-        self._previous_cs = None
-        self._cs = None
+        self._pre_cs = None
         self._front_cs = None
+        self._post_cs = None
         self._back_cs = None
 
         self.is_active = False
         self.is_object = False
         self.is_stop = False
         self.is_image = False
+
         self.radius = np.inf * u.mm
         self.conic = 0.0
+
         self.aperture = None
-        self.mechanical_aperture = None
         self.material = None
 
-        self.translation_first = True
-
-        self.explicit_csb = False
-
     @property
-    def configuration(self) -> optics.system.Configuration:
+    def configuration(self) -> tp.Optional[optics.system.Configuration]:
         return self._configuration
 
     @configuration.setter
-    def configuration(self, value: optics.system.Configuration):
+    def configuration(self, value: tp.Optional[optics.system.Configuration]):
         self._configuration = value
 
-    @property
-    def before_surf_cs_break(self) -> math.CoordinateSystem:
-        return self._before_surf_cs_break
-
-    @before_surf_cs_break.setter
-    def before_surf_cs_break(self, value: math.CoordinateSystem):
-        self._before_surf_cs_break = value
-
-    @property
-    def after_surf_cs_break(self) -> math.CoordinateSystem:
-        return self._after_surf_cs_break
-
-    @after_surf_cs_break.setter
-    def after_surf_cs_break(self, value: math.CoordinateSystem):
-        self._after_surf_cs_break = value
-        
     @property
     def material(self) -> Material:
         return self._material
@@ -108,118 +97,6 @@ class Surface:
     @aperture.setter
     def aperture(self, value: Aperture):
         self._aperture = value
-
-    @property
-    def mechanical_aperture(self) -> Aperture:
-        return self._mechanical_aperture
-
-    @mechanical_aperture.setter
-    def mechanical_aperture(self, value: Aperture):
-        self._mechanical_aperture = value
-
-    @property
-    def decenter_x(self) -> u.Quantity:
-
-        return self._decenter_x
-
-    @decenter_x.setter
-    def decenter_x(self, value: u.Quantity):
-
-        self._decenter_x = value
-
-        self.before_surf_cs_break.X.x = value
-        self.after_surf_cs_break.X.x = -value
-
-        self.update()
-
-    @property
-    def decenter_y(self) -> u.Quantity:
-
-        return self._decenter_y
-
-    @decenter_y.setter
-    def decenter_y(self, value: u.Quantity):
-
-        self._decenter_y = value
-
-        self.before_surf_cs_break.X.y = value
-        self.after_surf_cs_break.X.y = -value
-
-        self.update()
-
-    @property
-    def decenter_z(self) -> u.Quantity:
-
-        return self._decenter_z
-
-    @decenter_z.setter
-    def decenter_z(self, value: u.Quantity) -> None:
-
-        self._decenter_z = value
-
-        self.before_surf_cs_break.X.z = value
-        self.after_surf_cs_break.X.z = -value
-
-        self.update()
-
-    @property
-    def tilt_x(self) -> u.Quantity:
-
-        return self._tilt_x
-
-    @tilt_x.setter
-    def tilt_x(self, value: u.Quantity):
-
-        self._tilt_x = value
-
-        self.before_surf_cs_break.R_x = value
-        self.after_surf_cs_break.R_x = -value
-
-        self.update()
-
-    @property
-    def tilt_y(self) -> u.Quantity:
-
-        return self._tilt_y
-
-    @tilt_y.setter
-    def tilt_y(self, value: u.Quantity):
-
-        self._tilt_y = value
-
-        self.before_surf_cs_break.R_y = value
-        self.after_surf_cs_break.R_y = -value
-
-        self.update()
-
-    @property
-    def tilt_z(self) -> u.Quantity:
-
-        return self._tilt_z
-
-    @tilt_z.setter
-    def tilt_z(self, value: u.Quantity):
-
-        self._tilt_z = value
-
-        self.before_surf_cs_break.R_z = value
-        self.after_surf_cs_break.R_z = -value
-
-        self.update()
-        
-    @property
-    def translation_first(self) -> bool:
-        return self._translation_first
-    
-    @translation_first.setter
-    def translation_first(self, value: bool):
-
-        self._translation_first = value
-
-        self.before_surf_cs_break.translation_first = value
-        self.after_surf_cs_break.translation_first = not value
-
-        self.update()
 
     @property
     def radius(self) -> u.Quantity:
@@ -262,12 +139,12 @@ class Surface:
         self.update()
 
     @property
-    def T(self) -> math.Vector:
+    def T(self) -> math.geometry.Vector:
         """
         Thickness vector
         :return: Vector pointing from the center of a surface's front face to the center of a surface's back face
         """
-        return self.thickness * self.front_cs.zh
+        return self.thickness * self.post_cs.z_hat
 
     @property
     def is_object(self) -> bool:
@@ -293,74 +170,90 @@ class Surface:
     def is_image(self, value: bool):
         self._is_image = value
 
+    @property
+    def pre_cs(self) -> math.geometry.CoordinateSystem:
+        return self._pre_cs
+
+    @pre_cs.setter
+    def pre_cs(self, value: math.geometry.CoordinateSystem):
+        self._pre_cs = value
+
+        self.front_cs = self.front_cs_
+
+    @property
+    def pre_cs_(self):
+
+        try:
+            return self.previous_surface.back_cs
+
+        except AttributeError:
+            return math.geometry.CoordinateSystem()
+
+    @property
+    def front_cs(self) -> math.geometry.CoordinateSystem:
+        return self._front_cs
+
+    @front_cs.setter
+    def front_cs(self, value: math.geometry.CoordinateSystem):
+        self._front_cs = value
+
+        self.post_cs = self.post_cs_
+
+    @property
+    def front_cs_(self) -> math.geometry.CoordinateSystem:
+        return self.pre_cs @ self.pre_tilt_decenter
+
+    @property
+    def back_cs(self) -> math.geometry.CoordinateSystem:
+        return self._back_cs
+
+    @back_cs.setter
+    def back_cs(self, value: math.geometry.CoordinateSystem):
+        self._back_cs = value
+
+        try:
+            self.next_surface.pre_cs = self.next_surface.pre_cs_
+
+        except AttributeError:
+            pass
+
+    @property
+    def back_cs_(self):
+        return self.post_cs + self.T
+
 
 
     @property
-    def previous_cs(self) -> math.CoordinateSystem:
-        """
-        The coordinate system of the surface before this surface in the optical system.
-        This is the coordinate system that this surface will be "attached" to.
-        There is a hierarchy to this function as follows: last surface in system -> last surface in component -> first
-        surface in component -> first surface in system.
-        So the coordinate system previous to this surface is determined by the hierarchy above.
-        :return: The last CoordinateSystem in the optical system
-        """
+    def pre_cs(self) -> math.geometry.CoordinateSystem:
+        self._front_cs = self._pre_cs @ self.pre_tilt_decenter
 
-        # Only re-evaluate if the storage variable is unpopulated
-        if self._previous_cs is None:
-
-            try:
-                self._previous_cs = self.previous_surface.back_cs
-
-            except AttributeError:
-                self._previous_cs = math.CoordinateSystem()
-
-        return self._previous_cs
+        return self._pre_cs
 
 
     @property
-    def cs(self) -> math.CoordinateSystem:
-        """
-        This coordinate system is the system associated with the face of a surface.
-        For example: if the surface is a parabola, then the axis of rotation of the parabola would pass through the
-        origin of this coordinate system.
-        :return: Coordinate system of the surface face
-        """
-
-        # Only re-evaluate if the storage variable is unpopulated
-        if self._cs is None:
-            self._cs = self.previous_cs @ self.before_surf_cs_break
-
-        return self._cs
-
-    @property
-    def front_cs(self) -> math.CoordinateSystem:
-        """
-        Coordinate system of the surface ignoring the local tilt/decenter of the surface.
-        This is the coordinate system used to attach surfaces together.
-        For example: if we needed to tilt a surface but keep the direction of propagation the same, this coordinate
-        system is the original coordinate system of the surface.
-        :return: Coordinate system of the surface face ignoring tilt/decenter.
-        """
+    def cs(self) -> math.geometry.CoordinateSystem:
 
         # Only re-evaluate if the storage variable is unpopulated
         if self._front_cs is None:
-            self._front_cs = self.cs @ self.after_surf_cs_break
+            pre_tilt_decenter
 
         return self._front_cs
 
     @property
-    def back_cs(self) -> math.CoordinateSystem:
-        """
-        Coordinate system of the back face of the surface.
-        Found by translating the coordinate system of the front face (without the tilt/decenter) by the thickness
-        vector.
-        :return: Coordinate system of the back face of the surface.
-        """
+    def post_cs(self) -> math.geometry.CoordinateSystem:
+
+        # Only re-evaluate if the storage variable is unpopulated
+        if self._front_cs is None:
+            self._front_cs = self.cs @ self.post_tilt_decenter
+
+        return self._front_cs
+
+    @property
+    def back_cs(self) -> math.geometry.CoordinateSystem:
 
         # Only re-evaluate if the storage variable is unpopulated
         if self._back_cs is None:
-            self._back_cs = self.front_cs + self.T
+            self._back_cs = self.post_cs + self.T
 
         return self._back_cs
 
@@ -394,11 +287,11 @@ class Surface:
 
         # Store shorthand versions of coordinate system variables
         cs = self.cs
-        X = cs.X
-        Q = cs.Q
+        X = cs.translation
+        Q = cs.rotation
 
         # Convert to Tait-Bryant angles
-        T = math.quaternion.as_xyz_intrinsic_tait_bryan_angles(Q) * u.rad    # type: u.Quantity
+        T = kgpy.math.geometry.quaternion.quaternion.as_xyz_intrinsic_tait_bryan_angles(Q) * u.rad    # type: u.Quantity
 
         # Convert angles to degrees
         T = T.to(u.deg)
@@ -433,8 +326,8 @@ class Surface:
         while True:
 
             # Reset all the coordinate systems
-            surf._previous_cs = None
-            surf._cs = None
+            surf._pre_cs = None
+            surf._front_cs = None
             surf._front_cs = None
             surf._back_cs = None
 

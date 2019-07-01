@@ -46,27 +46,27 @@ class Rectangular:
 
     @property
     def dX0(self) -> Vector:
-        return -(self.dx0 * self.cs.xh)
+        return -(self.dx0 * self.cs.x_hat)
 
     @property
     def dX1(self) -> Vector:
-        return self.dx1 * self.cs.xh
+        return self.dx1 * self.cs.x_hat
 
     @property
     def dY0(self) -> Vector:
-        return -(self.dy0 * self.cs.yh)
+        return -(self.dy0 * self.cs.y_hat)
 
     @property
     def dY1(self) -> Vector:
-        return self.dy1 * self.cs.yh
+        return self.dy1 * self.cs.y_hat
 
     @property
     def dZ0(self) -> Vector:
-        return -(self.dz0 * self.cs.zh)
+        return -(self.dz0 * self.cs.z_hat)
 
     @property
     def dZ1(self) -> Vector:
-        return self.dz1 * self.cs.zh
+        return self.dz1 * self.cs.z_hat
 
 
 class Cylindrical:
@@ -96,9 +96,9 @@ class Cylindrical:
 
     @property
     def dZ0(self) -> Vector:
-        return -(self.dz0 * self.cs.zh)
+        return -(self.dz0 * self.cs.z_hat)
 
     @property
     def dZ1(self) -> Vector:
-        return self.dz1 * self.cs.zh
+        return self.dz1 * self.cs.z_hat
 

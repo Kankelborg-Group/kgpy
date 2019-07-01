@@ -1,13 +1,12 @@
 
 import pytest
-from copy import deepcopy
 from numbers import Real
 import numpy as np
 import quaternion as q
 import astropy.units as u
 
 from kgpy.math import Vector, CoordinateSystem
-from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
+from kgpy.math.geometry.coordinate_system.coordinate_system import GlobalCoordinateSystem as gcs
 
 __all__ = ['TestCoordinateSystem']
 
@@ -38,8 +37,8 @@ class TestCoordinateSystem:
         cs = CoordinateSystem(X, Q)
 
         # Check that x-hat is orthogonal to the other unit vectors
-        assert abs(cs.xh.dot(cs.yh)) < 1e-10
-        assert abs(cs.xh.dot(cs.zh)) < 1e-10
+        assert abs(cs.x_hat.dot(cs.y_hat)) < 1e-10
+        assert abs(cs.x_hat.dot(cs.z_hat)) < 1e-10
 
     def test__str__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
@@ -88,9 +87,9 @@ class TestCoordinateSystem:
         cs0 = cs + a
 
         # Check that the translation is what was expected
-        assert cs0.X.x == X.x + a.x
-        assert cs0.X.y == X.y + a.y
-        assert cs0.X.z == X.z + a.z
+        assert cs0.translation.x == X.x + a.x
+        assert cs0.translation.y == X.y + a.y
+        assert cs0.translation.z == X.z + a.z
 
     def test__radd__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
@@ -106,9 +105,9 @@ class TestCoordinateSystem:
         cs0 = a + cs
 
         # Check that the translation is what was expected
-        assert cs0.X.x == X.x + a.x
-        assert cs0.X.y == X.y + a.y
-        assert cs0.X.z == X.z + a.z
+        assert cs0.translation.x == X.x + a.x
+        assert cs0.translation.y == X.y + a.y
+        assert cs0.translation.z == X.z + a.z
 
     def test__mul__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 
@@ -125,7 +124,7 @@ class TestCoordinateSystem:
 
         # If multiplication operation is correct, the quaternion attribute of the new coordinate system should be nearly
         # equal to the zero rotation quaternion
-        assert np.isclose(cs2.Q, gcs().Q)
+        assert np.isclose(cs2.rotation, gcs().Q)
 
     def test__matmul__(self, x: Real, y: Real, z: Real, a: Real, b: Real, c: Real):
 

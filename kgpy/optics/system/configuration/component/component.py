@@ -1,12 +1,8 @@
 
 from typing import List, Union, Dict
-from copy import deepcopy
-import astropy.units as u
 
-import kgpy.optics
 from kgpy.optics.system.configuration import Surface
-from kgpy.math import Vector, CoordinateSystem
-from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
+from kgpy.math import Vector
 
 __all__ = ['Component']
 
@@ -63,7 +59,7 @@ class Component:
 
         # Subtract translation vector from the back face of the last surface in the component from the translation
         # vector to the first surface of the component.
-        return self._surfaces[-1].back_cs.X - self._surfaces[0].front_cs.X
+        return self._surfaces[-1].back_cs.translation - self._surfaces[0].post_cs.translation
 
     def append(self, surface: Surface) -> None:
         """

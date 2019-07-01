@@ -225,8 +225,8 @@ class Surface(optics.system.configuration.Surface):
         zmx_surf.explicit_csb = surf.explicit_csb
 
         # Copy remaining attributes
-        zmx_surf.before_surf_cs_break = surf.before_surf_cs_break
-        zmx_surf.after_surf_cs_break = surf.after_surf_cs_break
+        zmx_surf.before_surf_cs_break = surf.pre_tilt_decenter
+        zmx_surf.after_surf_cs_break = surf.post_tilt_decenter
         zmx_surf.component = surf.component
         zmx_surf.aperture = surf.aperture
         zmx_surf.mechanical_aperture = surf.mechanical_aperture
@@ -249,8 +249,8 @@ class Surface(optics.system.configuration.Surface):
         # Initialize private variables associated with each property
         zmx_surf._thickness = None
         zmx_surf._tilt_dec = None
-        zmx_surf._before_surf_cs_break = None
-        zmx_surf._after_surf_cs_break = None
+        zmx_surf._pre_tilt_decenter = None
+        zmx_surf._post_tilt_decenter = None
         zmx_surf._is_stop = None
         zmx_surf._radius = None
 

@@ -222,24 +222,24 @@ class System(collections.UserList):
                     continue
     
                 # Compute the intersection between the thickness vector and the x-y plane of the baffle, if it exists.
-                intercept = baffle_cs.xy_intercept(surf.front_cs.X, surf.back_cs.X)
+                intercept = baffle_cs.xy_intercept(surf.post_cs.X, surf.back_cs.X)
     
                 # If the intercept exists, insert the new baffle
                 if intercept is not None:
 
                     # Compute the new thickness vectors for both to
-                    t1 = intercept - surf.front_cs.X  # New thickness of original surface
+                    t1 = intercept - surf.post_cs.X  # New thickness of original surface
                     t2 = surf.back_cs.X - intercept  # Thickness of new surface to be added after the baffle
     
                     # Modify the original surface to have the correct thickness
-                    surf.thickness = t1.dot(surf.front_cs.zh)
+                    surf.thickness = t1.dot(surf.post_cs.z_hat)
     
                     # Calculate the tilt/decenter required to put the baffle in the correct place
                     cs = baffle_cs.diff(surf.back_cs)
                     cs.X.z = 0 * u.mm
 
                     # Create new baffle surface
-                    baffle_thickness = t2.dot(surf.front_cs.zh)
+                    baffle_thickness = t2.dot(surf.post_cs.z_hat)
                     baffle_surf = optics.Surface(baffle_name + str(baffle_pass), thickness=baffle_thickness)
                     for c in range(self.num_configurations):
                         self.config = c

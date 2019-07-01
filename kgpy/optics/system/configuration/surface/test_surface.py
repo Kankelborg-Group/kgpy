@@ -8,7 +8,7 @@ import quaternion as q
 from copy import deepcopy
 
 from kgpy.math import Vector, CoordinateSystem
-from kgpy.math.coordinate_system import GlobalCoordinateSystem as gcs
+from kgpy.math.geometry.coordinate_system.coordinate_system import GlobalCoordinateSystem as gcs
 from kgpy.optics import Surface, Component, System
 
 
@@ -112,7 +112,7 @@ class TestSurface:
 
 
         # Check that the surfaces return the global coordinate system by default
-        assert s1.previous_cs == gcs()
+        assert s1.pre_cs == gcs()
 
         # Add the three surfaces to two components, with the second component getting two surfaces
         cs = gcs() * q.from_euler_angles(0, np.pi/2, 0)
@@ -124,9 +124,9 @@ class TestSurface:
         c2.append(s3)
 
         # Check that the coordinate systems are correct for independent components
-        assert s1.previous_cs.isclose(gcs())
-        assert s2.previous_cs.isclose(gcs())
-        assert s3.previous_cs.isclose(gcs())
+        assert s1.pre_cs.isclose(gcs())
+        assert s2.pre_cs.isclose(gcs())
+        assert s3.pre_cs.isclose(gcs())
 
         # Place the components into a test system
         sys = System('sys')
@@ -135,9 +135,9 @@ class TestSurface:
         sys.insert(s3, -1)
 
         # Check that the coordinate systems are correct for the two components appended together
-        assert s1.previous_cs.isclose(gcs())
-        assert s2.previous_cs.isclose(gcs() + t * cs.zh_g)
-        assert s3.previous_cs.isclose(gcs() + 2 * t * cs.zh_g )
+        assert s1.pre_cs.isclose(gcs())
+        assert s2.pre_cs.isclose(gcs() + t * cs.zh_g)
+        assert s3.pre_cs.isclose(gcs() + 2 * t * cs.zh_g)
 
     def test_cs(self):
         """
@@ -158,9 +158,9 @@ class TestSurface:
         s1 = Surface('s1', thickness=t)
         s2 = Surface('s2', thickness=t)
 
-        s1.before_surf_cs_break = cs
-        s2.before_surf_cs_break = cs
-        s2.after_surf_cs_break = cs.inverse
+        s1.pre_tilt_decenter = cs
+        s2.pre_tilt_decenter = cs
+        s2.post_tilt_decenter = cs.inverse
 
         sys = System('test')
         sys.insert(s1, -1)
@@ -195,9 +195,9 @@ class TestSurface:
         s4 = Surface('Surface 4', thickness=t)
 
         # Set coordinate breaks
-        s2.before_surf_cs_break = cs
-        s3.before_surf_cs_break = cs
-        s4.before_surf_cs_break = cs
+        s2.pre_tilt_decenter = cs
+        s3.pre_tilt_decenter = cs
+        s4.pre_tilt_decenter = cs
 
         # Add the test surfaces to a system
         sys = System('sys')
@@ -224,7 +224,7 @@ class TestSurface:
 
         # Create test surface
         s = Surface('s', thickness=X.mag)
-        s.before_surf_cs_break = cs
+        s.pre_tilt_decenter = cs
 
         # Check that the back surface is two millimeters from the origin in each axis
         assert s.back_cs.isclose(cs + X)
@@ -246,9 +246,9 @@ class TestSurface:
         s4 = Surface('Surface 4', thickness=t)
 
         # Set coordinate breaks
-        s2.before_surf_cs_break = cs
-        s3.before_surf_cs_break = cs
-        s4.before_surf_cs_break = cs
+        s2.pre_tilt_decenter = cs
+        s3.pre_tilt_decenter = cs
+        s4.pre_tilt_decenter = cs
 
         # Add the test surfaces to a system
         sys = System('sys')

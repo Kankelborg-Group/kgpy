@@ -1,7 +1,7 @@
-from .surface import Surface
 from .aperture import Aperture
 from .material import Material
-from .surface_type import SurfaceType
+from .surface import Surface
+from .coordinate_break import CoordinateBreak
+from .multi_surface import MultiSurface
 
 from . import aperture
-from . import surface_type

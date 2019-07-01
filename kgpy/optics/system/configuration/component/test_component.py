@@ -2,8 +2,7 @@
 import pytest
 import astropy.units as u
 
-from kgpy.optics import Surface, Component, System
-from kgpy.math.coordinate_system import GlobalCoordinateSystem
+from kgpy.optics import Surface, Component
 
 __all__ = ['TestComponent']
 
