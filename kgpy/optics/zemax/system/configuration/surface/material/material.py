@@ -11,17 +11,7 @@ class Material(optics.system.configuration.surface.Material):
 
         super().__init__()
 
-        self._zemax_surface = zemax_surface
-
-        self._zos_str = ''
-
-    @property
-    def zemax_surface(self) -> ZOSAPI.Editors.LDE.ILDERow:
-        return self._zemax_surface
-
-    @property
-    def zemax_str(self) -> str:
-        return self._zos_str
+        zemax_surface.Material = ''
 
 
 class Mirror(optics.system.configuration.surface.material.Mirror, Material):
@@ -31,7 +21,7 @@ class Mirror(optics.system.configuration.surface.material.Mirror, Material):
         super().__init__()
         Material.__init__(self, zemax_surface)
 
-        self._zos_str = 'MIRROR'
+        zemax_surface.Material = 'MIRROR'
 
 
 class EmptySpace(Material, optics.system.configuration.surface.material.EmptySpace):

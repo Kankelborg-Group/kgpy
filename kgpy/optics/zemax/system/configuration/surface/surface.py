@@ -66,22 +66,15 @@ class Surface(optics.system.configuration.Surface):
             self.tilt_z_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTZ
             self.order_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR
 
-    def __init__(self, zemax_surface: ZOSAPI.Editors.LDE.ILDERow, *args, **kwargs):
+    def __init__(self,
+                 zemax_surface: ZOSAPI.Editors.LDE.ILDERow,
+                 *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
-        self._zemax_surface = zemax_surface
-
-        self.before = self.CoordinateBreakOpsBefore()
-        self.after = self.CoordinateBreakOpsAfter()
-
-        self.surface_type = ZOSAPI.Editors.LDE.SurfaceType.Standard
-
-    @property
-    def zemax_surface(self) -> ZOSAPI.Editors.LDE.ILDERow:
-        return self._zemax_surface
-
-
+        zemax_surface.Comment = self.name
+        zemax_surface.IsStop = self.is_stop
+        zemax_surface.Thickness = self.thickness
 
     def _prep_mce(self):
 

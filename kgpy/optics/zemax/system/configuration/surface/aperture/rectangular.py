@@ -16,14 +16,14 @@ class Rectangular(optics.system.configuration.surface.aperture.Rectangular, Aper
 
         super().__init__(*args, **kwargs)
 
-        Aperture.__init__(self, zemax_surface)
+        Aperture.__init__(self)
 
         if self.is_obscuration:
             aperture_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularObscuration
         else:
             aperture_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularAperture
 
-        settings = self.zemax_surface.ApertureData.CreateApertureTypeSettings(
+        settings = zemax_surface.ApertureData.CreateApertureTypeSettings(
             aperture_type)     # type: ZOSAPI.Editors.LDE.ISurfaceApertureRectangular
 
         settings.ApertureXDecenter = self.decenter_x
@@ -31,4 +31,4 @@ class Rectangular(optics.system.configuration.surface.aperture.Rectangular, Aper
         settings.XHalfWidth = self.half_width_x
         settings.YHalfWidth = self.half_width_y
 
-        self.zemax_surface.ApertureData.ChangeApertureTypeSettings(settings)
+        zemax_surface.ApertureData.ChangeApertureTypeSettings(settings)

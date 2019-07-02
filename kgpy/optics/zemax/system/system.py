@@ -38,10 +38,10 @@ class System(optics.System):
         `{PythonEnv}/Lib/site-packages/win32com/gen_py/*.*`
     """
 
-    def __init__(self, configurations: tp.List[Configuration] = None):
+    def __init__(self, zemax_system: ZOSAPI.IOpticalSystem, *args, **kwargs):
 
         # Call superclass constructor
-        super().__init__(configurations)
+        super().__init__(*args, **kwargs)
 
         # Initialize private variables
         self._lens_units = None
