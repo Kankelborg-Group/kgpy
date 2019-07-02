@@ -14,61 +14,31 @@ class CoordinateSystem:
     a coordinate system is described by a 3D translation and a 3D rotation from some global coordinate system.
     """
 
-    _x = geometry.Vector()
-    _y = geometry.Vector()
-    _z = geometry.Vector()
+    def __init__(self, translation=geometry.Vector(), rotation=geometry.Quaternion(),
+                 translation_first=True):
 
-    _x.x = 1
-    _y.y = 1
-    _z.z = 1
-
-    def __init__(self, translation_first=True):
+        if not translation_first:
+            translation = translation.rotate(rotation)
 
         # Save input arguments to class variables
-        self.translation = geometry.transformation.Translation()
-        self.rotation = geometry.transformation.Rotation()
+        self._translation = translation
+        self._rotation = rotation
 
-        self.translation_first = translation_first
+        self._x_hat = geometry.Vector([1, 0, 0] * u.dimensionless_unscaled)
+        self._y_hat = geometry.Vector([0, 1, 0] * u.dimensionless_unscaled)
+        self._z_hat = geometry.Vector([0, 0, 1] * u.dimensionless_unscaled)
+
+        self._x_hat = self._x_hat.rotate(self.rotation)
+        self._y_hat = self._y_hat.rotate(self.rotation)
+        self._z_hat = self._z_hat.rotate(self.rotation)
 
     @property
-    def translation(self) -> geometry.transformation.Translation:
+    def translation(self) -> geometry.Vector:
         return self._translation
 
-    @translation.setter
-    def translation(self, value: geometry.transformation.Translation):
-        self._translation = value
-
-        self._translation
-
     @property
-    def rotation(self) -> geometry.transformation.Rotation:
+    def rotation(self) -> geometry.Quaternion:
         return self._rotation
-
-    @rotation.setter
-    def rotation(self, value: geometry.transformation.Rotation):
-
-        self._rotation = value
-
-        self._x_hat = self._x.rotate(value)
-        self._y_hat = self._y.rotate(value)
-        self._z_hat = self._z.rotate(value)
-
-    @property
-    def translation_first(self) -> bool:
-        return self._translation_first
-
-    @translation_first.setter
-    def translation_first(self, value: bool):
-
-        if value != self._translation_first:
-
-            if value is False:
-                self.translation.rotate(self.rotation)
-
-            else:
-                self.translation.rotate(self.rotation.inverse())
-
-        self._translation_first = value
 
     @property
     def x_hat(self) -> geometry.Vector:
@@ -82,14 +52,6 @@ class CoordinateSystem:
     def z_hat(self) -> geometry.Vector:
         return self._z_hat
 
-    def __str__(self) -> str:
-        """
-        :return: Human-readable string representation of this coordinate system
-        """
-        return 'CoordinateSystem(' + self.translation.__str__() + ', ' + self.rotation.__str__() + ')'
-
-    __repr__ = __str__
-
     def __eq__(self, other: 'CoordinateSystem') -> bool:
         """
         Check if two coordinate systems are equal by checking if the translation vectors are equal and the rotation
@@ -101,12 +63,11 @@ class CoordinateSystem:
         # Check if the translation and rotation is the same in the other coordinate system
         a = self.translation == other.translation
         b = self.rotation == other.rotation
-        c = self.translation_first = other.translation_first
 
         # return True if the translation and rotation is the same for both coordinate systems
-        return a and b and c
+        return a and b
 
-    def __add__(self, other: geometry.transformation.Translation) -> 'CoordinateSystem':
+    def __add__(self, other: geometry.Vector) -> 'CoordinateSystem':
         """
         Add a vector to the current coordinate system.
         This operation translates the origin of the coordinate system by the Vector other.
@@ -114,21 +75,19 @@ class CoordinateSystem:
         :return: New coordinate system after translation
         """
 
-        cs = self.copy()
+        translation = self.translation.__add__(other)
 
-        cs.translation += other.X
-
-        return cs
+        return type(self)(translation, self.rotation)
 
     # Define the reverse addition operator so that both Vector + CoordinateSystem and CoordinateSystem + Vector are
     # allowed.
     __radd__ = __add__
 
-    def __sub__(self, other: geometry.transformation.Translation) -> 'CoordinateSystem':
+    def __sub__(self, other: geometry.Vector) -> 'CoordinateSystem':
 
-        return self.__add__(-other)
+        return self.__add__(other.__neg__())
 
-    def __mul__(self, other: geometry.transformation.Rotation) -> 'CoordinateSystem':
+    def __mul__(self, other: geometry.Quaternion) -> 'CoordinateSystem':
         """
         Multiply the coordinate system by the quaternion other.
         This operation rotates the coordinate system by the quaternion other.
@@ -136,11 +95,8 @@ class CoordinateSystem:
         :return: The rotated coordinate system
         """
 
-        cs = self.copy()
-
-        cs.rotation *= other
-
-        return cs
+        rotation = self.rotation * other
+        return type(self)(self.translation, rotation)
 
     # Note that the reverse multiplication operation is not defined here since quaternion products do not commute
 
@@ -152,16 +108,19 @@ class CoordinateSystem:
         :return: a new coordinate system representing the composition of self and other.
         """
 
-        cs1 = self.copy()
-        cs2 = other.copy()
+        cs = self.__add__(other.translation)
 
-        cs1.translation_first = True
-        cs2.translation_first = True
+        cs = cs.__mul__(other.rotation)
 
-        cs1.translation += cs2.translation
-        cs1.rotation *= cs2.rotation
+        return cs
 
-        return cs1
+    def __str__(self) -> str:
+        """
+        :return: Human-readable string representation of this coordinate system
+        """
+        return 'CoordinateSystem(' + self.translation.__str__() + ', ' + self.rotation.__str__() + ')'
+
+    __repr__ = __str__
 
     @property
     def inverse(self):
@@ -172,11 +131,10 @@ class CoordinateSystem:
         :return: The inverse of this coordinate system.
         """
 
-        cs = self.copy()
-        cs.translation = cs.translation.inverse
-        cs.rotation = cs.rotation.inverse
+        translation = self.translation.__neg__()
+        rotation = self.rotation.inverse()
 
-        return cs
+        return type(self)(translation, rotation)
 
     def diff(self, other: 'CoordinateSystem'):
         """
@@ -186,7 +144,7 @@ class CoordinateSystem:
         :return: New coordinate system representing the difference between the two coordinate systems.
         """
 
-        return other.inverse @ self
+        return other.inverse.__matmul__(self)
 
     def isclose(self, other: 'CoordinateSystem') -> bool:
         """
@@ -215,7 +173,7 @@ class CoordinateSystem:
         """
 
         # Change parameter names to be the same as the stackoverflow answer cited above
-        unit = v1.X.unit
+        unit = v1._components.unit
         epsilon = 1e-6 * unit
         p0 = v1
         p1 = v2
@@ -241,14 +199,6 @@ class CoordinateSystem:
 
         return None
 
-    def copy(self) -> 'CoordinateSystem':
-
-        c = type(self)(self.translation_first)
-
-        c.translation = self.translation.copy()
-        c.rotation = self.rotation.copy()
-
-        return c
 
 
 

@@ -21,49 +21,42 @@ class Vector:
     Represents a 3D vector
     """
 
-    def __init__(self):
+    def __init__(self, components: u.Quantity = None):
+
+        if components is None:
+            components = [0, 0, 0] * u.dimensionless_unscaled
 
         # Save input to class variable
-        self.X = [0, 0, 0] * u.dimensionless_unscaled       # type: u.Quantity
+        self._components = components
 
     @property
     def x(self) -> u.Quantity:
-        return self.X[Axis.x]
-
-    @x.setter
-    def x(self, x: u.Quantity):
-        self.X[Axis.x] = x
+        return self._components[Axis.x]
 
     @property
     def y(self) -> u.Quantity:
-        return self.X[Axis.y]
-
-    @y.setter
-    def y(self, y: u.Quantity):
-        self.X[Axis.y] = y
+        return self._components[Axis.y]
 
     @property
     def z(self) -> u.Quantity:
-        return self.X[Axis.z]
+        return self._components[Axis.z]
 
-    @z.setter
-    def z(self, z: u.Quantity):
-        self.X[Axis.z] = z
+    @property
+    def components(self) -> u.Quantity:
+        return self._components
 
     def __eq__(self, other: 'Vector'):
 
-        return np.all(self.X == other.X.to(self.X.unit))
+        return np.all(self._components == other._components.to(self._components.unit))
 
     def __neg__(self) -> 'Vector':
         """
         Reverse the direction of a vector
         :return: a new vector with the values of each component negated
         """
-        v = self.copy()
 
-        v.X = -v.X
-
-        return v
+        components = self._components.__neg__()
+        return type(self)(components)
 
     def __add__(self, other: 'Vector') -> 'Vector':
         """
@@ -71,9 +64,8 @@ class Vector:
         :param other: Another vector
         :return: The sum of both vectors
         """
-        v = self.copy()
-        v.X += other.X
-        return v
+        components = self._components.__add__(other._components)
+        return type(self)(components)
 
     def __sub__(self, other: 'Vector') -> 'Vector':
         """
@@ -81,7 +73,7 @@ class Vector:
         :param other: Another vector
         :return: The difference of this Vector and the Vector other
         """
-        return self.__add__(-other)
+        return self.__add__(other.__neg__())
 
     def __mul__(self, other: tp.Union[int, float, u.Quantity, u.Unit]) -> 'Vector':
         """
@@ -89,9 +81,8 @@ class Vector:
         :param other: a scalar value
         :return: The original vector where every component has been scaled by other
         """
-        v = self.copy()
-        v.X *= other
-        return v
+        components = self._components.__mul__(other)
+        return type(self)(components)
 
     # This is needed to make astropy.units respect our version of the __rmul__ op, for more information see
     # https://stackoverflow.com/a/41948659
@@ -107,7 +98,7 @@ class Vector:
         :return: Result of the dot product
         """
 
-        return self.X.dot(other.X)
+        return self._components.dot(other._components)
 
     def cross(self, other: 'Vector') -> 'Vector':
         """
@@ -116,20 +107,15 @@ class Vector:
         :return: a Vector orthogonal to both of the input Vectors.
         """
 
-        v = self.copy()
-        v.X = np.cross(self.X, other.X.to(self.X.unit)) << (self.X.unit**2)
+        components = np.cross(self._components, other._components) << (self._components.unit * other._components.unit)
 
-        return v
+        return type(self)(components)
 
-    def rotate(self, Q: math.geometry.Quaternion):
+    def rotate(self, q: math.geometry.Quaternion):
 
-        v = self.copy()
+        components = q.rotate_vectors(q, self._components) << self._components.unit
 
-        # quaternion.rotate_vectors operates on numpy.ndarray surf_types (not astropy.units.Quantity surf_types), so we need to
-        # explicitly include the unit
-        v.X = q.rotate_vectors(Q, self.X) << self.X.unit
-
-        return v
+        return type(self)(components)
 
 
     @property
@@ -139,7 +125,7 @@ class Vector:
         :return: L2 norm of the vector
         """
 
-        return np.linalg.norm(self.X) << self.X.unit
+        return np.linalg.norm(self._components) << self._components.unit
 
     def normalize(self) -> 'Vector':
 
@@ -165,22 +151,14 @@ class Vector:
         # function and not care about the units of self or other (as long as they're compatible of course).
         x = self - other
 
-        return np.isclose(x.X.value, [0, 0, 0]).all()
-
-    def copy(self) -> 'Vector':
-
-        c = type(self)()
-
-        c.X = self.X.copy()
-
-        return c
+        return np.isclose(x._components.value, [0, 0, 0]).all()
 
     def __str__(self) -> str:
         """
         Print a string representation of the vector
         :return: The string representation of the underlying numpy.ndarray
         """
-        return 'vector(' + str(self.X) + ')'
+        return 'vector(' + str(self._components) + ')'
 
     def __repr__(self) -> str:
 
@@ -193,7 +171,7 @@ class Vector:
         :return:
         """
         try:
-            return np.array(self.X.to_value(u.dimensionless_unscaled), dtype=dtype)
+            return np.array(self._components.to_value(u.dimensionless_unscaled), dtype=dtype)
         except (u.UnitsError, TypeError):
             raise TypeError('only dimensionless scalar quantities can be '
                             'converted to numpy arrays')

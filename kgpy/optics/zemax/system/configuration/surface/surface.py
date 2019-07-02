@@ -15,31 +15,6 @@ __all__ = ['Surface']
 
 
 class Surface(optics.system.configuration.Surface):
-    """
-    Child of the Surface class which acts as a wrapper around the Zemax API ILDERow class (a Zemax surface).
-    The ZmxSurface class is intended to be used temporarily as the functionality in the ILDERow class is implemented in
-    the Surface superclass.
-    """
-
-    main_str = 'main'
-    before_surf_cs_break_str = 'before_surf_cs_break'
-    after_surf_cs_break_str = 'after_surf_cs_break'
-    thickness_str = 'thickness'
-    stop_str = 'stop'
-    aperture_str = 'aper'
-    mech_aper_str = 'mech_aper'
-
-    class AttrPriority(IntEnum):
-        """
-        Enumeration class to describe the priority that each attribute gets when the surface is written to file.
-        """
-
-        before_surf_cs_break = auto()
-        aper = auto()
-        mech_aper = auto()
-        main = auto()
-        after_surf_cs_break = auto()
-        thickness = auto()
 
     class CoordinateBreakOps:
 
@@ -91,66 +66,22 @@ class Surface(optics.system.configuration.Surface):
             self.tilt_z_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTZ
             self.order_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR
 
-    class ZemaxSubsurfaces:
+    def __init__(self, zemax_surface: ZOSAPI.Editors.LDE.ILDERow, *args, **kwargs):
 
-        def __init__(self):
+        super().__init__(*args, **kwargs)
 
-            self.before_cs_break = None     # type: tp.Optional[ZOSAPI.]
-            self.clear_aperture = None      # type: tp.Optional[Surface]
-            self.main = None                # type: tp.Optional[Surface]
-            self.after_cs_break = None      # type: tp.Optional[Surface]
-            self.thickness = None           # type: tp.Optional[Surface]
-
-    # Dictionary that maps the attribute strings to their priority level
-    priority_dict = {
-        main_str:                   AttrPriority.main,
-        before_surf_cs_break_str:   AttrPriority.before_surf_cs_break,
-        after_surf_cs_break_str:    AttrPriority.after_surf_cs_break,
-        thickness_str:              AttrPriority.thickness,
-        aperture_str:                   AttrPriority.aper,
-        mech_aper_str:              AttrPriority.mech_aper
-    }
-
-    def __init__(self, name: str):
-        """
-        Constructor for the ZmxSurface class.
-        This constructor places the surface at the origin of the global coordinate system, it needs to be moved into
-        place after the call to this function.
-        :param name: Human-readable name of the surface
-        """
-
-        # Initialize list of ILDERows associated with class attributes.
-        # This needs to be before the superclass constructor so properties such as thickness are defined
-        # self._attr_rows = {}
-
-        # Call superclass constructor
-        super().__init__(name)
+        self._zemax_surface = zemax_surface
 
         self.before = self.CoordinateBreakOpsBefore()
         self.after = self.CoordinateBreakOpsAfter()
 
         self.surface_type = ZOSAPI.Editors.LDE.SurfaceType.Standard
 
-
     @property
-    def zos_surface(self) -> tp.Optional[ZOSAPI.Editors.LDE.ILDERow]:
-
-        try:
-            return self.configuration.system.zos.LDE.GetSurfaceAt(self.index)
-
-        except AttributeError:
-            return None
+    def zemax_surface(self) -> ZOSAPI.Editors.LDE.ILDERow:
+        return self._zemax_surface
 
 
-
-
-    @property
-    def configuration(self) -> tp.Optional['optics.zemax.system.Configuration']:
-        return super().configuration
-
-    @configuration.setter
-    def configuration(self, value: tp.Optional['optics.zemax.system.Configuration']):
-        super().configuration = value
 
     def _prep_mce(self):
 
@@ -298,7 +229,7 @@ class Surface(optics.system.configuration.Surface):
         super().material = value
 
         try:
-            self.zos_surface.Material = value.zos_str
+            self.zos_surface.Material = value.zemax_str
 
         except AttributeError:
             pass

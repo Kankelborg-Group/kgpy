@@ -1,7 +1,6 @@
 
 import typing as tp
 import pickle
-import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
@@ -16,17 +15,23 @@ from . import Configuration, configuration
 __all__ = ['System']
 
 
-class System(collections.UserList):
+class System:
 
-    def __init__(self, configurations: tp.List[Configuration] = None):
+    def __init__(self, name: str = '', configurations: tp.List[Configuration] = None):
 
-        super().__init__(configurations)
+        if configurations is None:
+            configurations = []
 
-        self.name = ''
+        self._name = name
+        self._configurations = configurations
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     @property
     def configurations(self) -> tp.List[Configuration]:
-        return self.data
+        return self._configurations
 
     def add_baffle(self, baffle_name: str, baffle_cs: math.CoordinateSystem,
                    pass_surfaces: tp.Union[None, tp.List[tp.Union[None, configuration.Surface]]] = None,
