@@ -33,6 +33,12 @@ class System:
     def configurations(self) -> tp.List[Configuration]:
         return self._configurations
 
+
+
+
+
+
+
     def add_baffle(self, baffle_name: str, baffle_cs: math.CoordinateSystem,
                    pass_surfaces: tp.Union[None, tp.List[tp.Union[None, configuration.Surface]]] = None,
                    margin: u.Quantity = 1 * u.mm) -> configuration.Component:
