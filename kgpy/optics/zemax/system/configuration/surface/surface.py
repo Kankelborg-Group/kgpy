@@ -20,12 +20,12 @@ class Surface(optics.system.configuration.Surface):
 
         def __init__(self):
 
-            self.decenter_x_op = optics.zemax.system.configuration.Operation()
-            self.decenter_y_op = optics.zemax.system.configuration.Operation()
-            self.tilt_x_op = optics.zemax.system.configuration.Operation()
-            self.tilt_y_op = optics.zemax.system.configuration.Operation()
-            self.tilt_z_op = optics.zemax.system.configuration.Operation()
-            self.order_op = optics.zemax.system.configuration.Operation()
+            self.decenter_x_op = optics.zemax.system_module.configuration.Operation()
+            self.decenter_y_op = optics.zemax.system_module.configuration.Operation()
+            self.tilt_x_op = optics.zemax.system_module.configuration.Operation()
+            self.tilt_y_op = optics.zemax.system_module.configuration.Operation()
+            self.tilt_z_op = optics.zemax.system_module.configuration.Operation()
+            self.order_op = optics.zemax.system_module.configuration.Operation()
 
     class CoordinateBreakOpsAfter(CoordinateBreakOps):
 

@@ -3,14 +3,14 @@ from typing import List, Tuple, Union
 import astropy.units as u
 from shapely.geometry import Polygon
 
-from kgpy.math import CoordinateSystem, Vector
+from kgpy import math
 
 __all__ = ['Rectangular', 'Cylindrical']
 
 
 class Rectangular:
 
-    def __init__(self, cs: CoordinateSystem, dx: Union[u.Quantity, Tuple[u.Quantity, u.Quantity]],
+    def __init__(self, cs: math.geometry.CoordinateSystem, dx: Union[u.Quantity, Tuple[u.Quantity, u.Quantity]],
                  dy: Union[u.Quantity, Tuple[u.Quantity, u.Quantity]],
                  dz: Union[u.Quantity, Tuple[u.Quantity, u.Quantity]]):
 
@@ -45,33 +45,33 @@ class Rectangular:
             self.dz1 = dz
 
     @property
-    def dX0(self) -> Vector:
+    def dX0(self) -> math.geometry.Vector:
         return -(self.dx0 * self.cs.x_hat)
 
     @property
-    def dX1(self) -> Vector:
+    def dX1(self) -> math.geometry.Vector:
         return self.dx1 * self.cs.x_hat
 
     @property
-    def dY0(self) -> Vector:
+    def dY0(self) -> math.geometry.Vector:
         return -(self.dy0 * self.cs.y_hat)
 
     @property
-    def dY1(self) -> Vector:
+    def dY1(self) -> math.geometry.Vector:
         return self.dy1 * self.cs.y_hat
 
     @property
-    def dZ0(self) -> Vector:
+    def dZ0(self) -> math.geometry.Vector:
         return -(self.dz0 * self.cs.z_hat)
 
     @property
-    def dZ1(self) -> Vector:
+    def dZ1(self) -> math.geometry.Vector:
         return self.dz1 * self.cs.z_hat
 
 
 class Cylindrical:
 
-    def __init__(self, cs: CoordinateSystem, dr: Union[u.Quantity, Tuple[u.Quantity, u.Quantity]],
+    def __init__(self, cs: math.geometry.CoordinateSystem, dr: Union[u.Quantity, Tuple[u.Quantity, u.Quantity]],
                  dz: Union[u.Quantity, Tuple[u.Quantity, u.Quantity]]):
         # Save coordinate system
         self.cs = cs
@@ -95,10 +95,10 @@ class Cylindrical:
             self.dz1 = dz
 
     @property
-    def dZ0(self) -> Vector:
+    def dZ0(self) -> math.geometry.Vector:
         return -(self.dz0 * self.cs.z_hat)
 
     @property
-    def dZ1(self) -> Vector:
+    def dZ1(self) -> math.geometry.Vector:
         return self.dz1 * self.cs.z_hat
 

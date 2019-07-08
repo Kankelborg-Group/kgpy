@@ -1,10 +1,8 @@
 from . import field
 from . import wavelength
 from . import surface
-from . import component
 
-from .field import Field, FieldList
-from .wavelength import Wavelength, WavelengthList
+from .field import Field
+from .wavelength import Wavelength
 from .surface import Surface
-from .component import Component
 from .configuration import Configuration

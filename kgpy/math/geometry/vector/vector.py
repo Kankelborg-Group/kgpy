@@ -11,9 +11,9 @@ __all__ = ['Vector']
 
 
 class Axis(enum.IntEnum):
-    x = enum.auto()
-    y = enum.auto()
-    z = enum.auto()
+    x = 0
+    y = 1
+    z = 2
 
 
 class Vector:
@@ -21,7 +21,7 @@ class Vector:
     Represents a 3D vector
     """
 
-    def __init__(self, components: u.Quantity = None):
+    def __init__(self, components: tp.Optional[u.Quantity] = None):
 
         if components is None:
             components = [0, 0, 0] * u.dimensionless_unscaled
@@ -111,9 +111,9 @@ class Vector:
 
         return type(self)(components)
 
-    def rotate(self, q: math.geometry.Quaternion):
+    def rotate(self, value: 'math.geometry.Quaternion'):
 
-        components = q.rotate_vectors(q, self._components) << self._components.unit
+        components = q.rotate_vectors(value, self._components) << self._components.unit
 
         return type(self)(components)
 
@@ -131,7 +131,7 @@ class Vector:
 
         return self * (1 / self.mag)
 
-    def angle_between(self, other: 'Vector'):
+    def angle_between(self, other: 'Vector') -> u.Quantity:
 
         a = self.cross(other).mag
 

@@ -1,1 +1,1 @@
-
+from . import rigid_body

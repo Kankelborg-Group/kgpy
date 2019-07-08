@@ -24,16 +24,16 @@ class FieldList(optics.system.configuration.FieldList):
 
         for field in field_list:
 
-            zmx_field = optics.zemax.system.configuration.Field.conscript(field)
+            zmx_field = optics.zemax.system_module.configuration.Field.conscript(field)
 
             zmx_field_list.append(zmx_field)
 
     @property
-    def configuration(self) -> optics.zemax.system.Configuration:
+    def configuration(self) -> optics.zemax.system_module.Configuration:
         return self._configuration
 
     @configuration.setter
-    def configuration(self, value: optics.zemax.system.Configuration):
+    def configuration(self, value: optics.zemax.system_module.Configuration):
         self._configuration = value
         
         self.update()

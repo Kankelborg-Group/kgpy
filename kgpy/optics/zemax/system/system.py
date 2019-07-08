@@ -74,7 +74,7 @@ class System(optics.System):
 
         for config in sys:
 
-            zmx_config = optics.zemax.system.Configuration.conscript(config)
+            zmx_config = optics.zemax.system_module.Configuration.conscript(config)
 
             zmx_sys.append(zmx_config)
 

@@ -35,7 +35,7 @@ class MultiSurface:
         self._mechanical_aperture.aperture = value
         
     @property
-    def pre_tilt_decenter(self) -> math.CoordinateSystem:
+    def pre_tilt_decenter(self) -> math.geometry.CoordinateSystem:
         return self._pre_tilt_decenter.pre_tilt_decenter
     
     @pre_tilt_decenter.setter

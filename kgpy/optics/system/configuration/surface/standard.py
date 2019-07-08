@@ -26,6 +26,8 @@ class Standard(Surface):
 
         if radius is None:
             radius = np.inf * u.m
+        if material is None:
+            material = optics.system.configuration.surface.material.EmptySpace()
         if conic is None:
             conic = 0 * u.dimensionless_unscaled
         if pre_tilt_decenter is None:

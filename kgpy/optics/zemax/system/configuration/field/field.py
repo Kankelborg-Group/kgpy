@@ -40,14 +40,14 @@ class Field(optics.system.configuration.Field):
 
         self.field_list = None      # type: tp.Optional[FieldList]
 
-        self.x_op = optics.zemax.system.configuration.Operation()
-        self.y_op = optics.zemax.system.configuration.Operation()
-        self.weight_op = optics.zemax.system.configuration.Operation()
-        self.vdx_op = optics.zemax.system.configuration.Operation()
-        self.vdy_op = optics.zemax.system.configuration.Operation()
-        self.vcx_op = optics.zemax.system.configuration.Operation()
-        self.vcy_op = optics.zemax.system.configuration.Operation()
-        self.van_op = optics.zemax.system.configuration.Operation()
+        self.x_op = optics.zemax.system_module.configuration.Operation()
+        self.y_op = optics.zemax.system_module.configuration.Operation()
+        self.weight_op = optics.zemax.system_module.configuration.Operation()
+        self.vdx_op = optics.zemax.system_module.configuration.Operation()
+        self.vdy_op = optics.zemax.system_module.configuration.Operation()
+        self.vcx_op = optics.zemax.system_module.configuration.Operation()
+        self.vcy_op = optics.zemax.system_module.configuration.Operation()
+        self.van_op = optics.zemax.system_module.configuration.Operation()
 
         self.x_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.XFIE
         self.y_op.operand_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.YFIE

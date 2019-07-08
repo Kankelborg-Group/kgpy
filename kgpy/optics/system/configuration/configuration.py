@@ -5,7 +5,7 @@ import astropy.units as u
 from beautifultable import BeautifulTable
 
 from kgpy import optics
-from . import Wavelength, Field, Surface, Component
+from . import Wavelength, Field, Surface
 from . import surface
 
 __all__ = ['Configuration']

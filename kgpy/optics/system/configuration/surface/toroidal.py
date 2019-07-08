@@ -8,7 +8,7 @@ __all__ = ['Toroidal']
 
 class Toroidal(Standard):
 
-    def __init__(self, radius_of_rotation: u.Quantity = None, *args, **kwargs):
+    def __init__(self, *args, radius_of_rotation: u.Quantity = None, **kwargs):
 
         super().__init__(*args, **kwargs)
 

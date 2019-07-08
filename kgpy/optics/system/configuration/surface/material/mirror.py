@@ -6,4 +6,5 @@ __all__ = ['Mirror']
 
 class Mirror(Material):
 
-    pass
+    def __str__(self):
+        return 'MIRROR'

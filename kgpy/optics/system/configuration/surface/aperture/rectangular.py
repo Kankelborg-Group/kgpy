@@ -9,7 +9,6 @@ __all__ = ['Rectangular']
 class Rectangular(Aperture):
 
     def __init__(self, *args,
-                 is_obscuration: bool = False,
                  decenter_x: u.Quantity = None,
                  decenter_y: u.Quantity = None,
                  half_width_x: u.Quantity = None,
@@ -28,22 +27,17 @@ class Rectangular(Aperture):
         if half_width_y is None:
             half_width_y = 0 * u.m
 
-        self._is_obscuration = is_obscuration
         self._decenter_x = decenter_x
         self._decenter_y = decenter_y
         self._half_width_x = half_width_x
         self._half_width_y = half_width_y
 
         self._points = u.Quantity([
-            [self.half_width_x, self.half_width_y],
-            [self.half_width_x, -self.half_width_y],
-            [-self.half_width_x, -self.half_width_y],
-            [-self.half_width_x, self.half_width_y],
+            u.Quantity([self.half_width_x, self.half_width_y]),
+            u.Quantity([self.half_width_x, -self.half_width_y]),
+            u.Quantity([-self.half_width_x, -self.half_width_y]),
+            u.Quantity([-self.half_width_x, self.half_width_y]),
         ])
-
-    @property
-    def is_obscuration(self) -> bool:
-        return self._is_obscuration
 
     @property
     def decenter_x(self) -> u.Quantity:

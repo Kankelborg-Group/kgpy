@@ -4,7 +4,7 @@ import numpy as np
 from numpy import sin, cos
 import quaternion
 
-__all__ = ['Quaternion']
+__all__ = ['Quaternion', 'as_xyz_intrinsic_tait_bryan_angles', 'from_xyz_intrinsic_tait_bryan_angles']
 
 
 class Quaternion(quaternion.quaternion):
@@ -14,7 +14,7 @@ class Quaternion(quaternion.quaternion):
 
 def from_xyz_intrinsic_tait_bryan_angles(alpha_beta_gamma: tp.Union[float, tp.List[float], np.ndarray],
                                          beta: tp.Union[float, np.ndarray] = None,
-                                         gamma: tp.Union[float, np.ndarray] = None, x_first=True) -> quaternion:
+                                         gamma: tp.Union[float, np.ndarray] = None, x_first=True) -> Quaternion:
     """
     Based on the quaternion/from_euler_angles() function in numpy-quaternion.
     The conversions from Tait-Bryan angles were taken from this Wikipedia page:
@@ -57,14 +57,14 @@ def from_xyz_intrinsic_tait_bryan_angles(alpha_beta_gamma: tp.Union[float, tp.Li
     R[..., 2] = cos(alpha / 2) * sin(beta / 2) * cos(gamma / 2) + sin(alpha / 2) * cos(beta / 2) * sin(gamma / 2)  # y
     R[..., 3] = cos(alpha / 2) * cos(beta / 2) * sin(gamma / 2) - sin(alpha / 2) * sin(beta / 2) * cos(gamma / 2)  # z
 
-    return as_quat_array(R)
+    return quaternion.as_quat_array(R)
 
 
-def as_xyz_intrinsic_tait_bryan_angles(q: quaternion, x_first=True) -> np.ndarray:
+def as_xyz_intrinsic_tait_bryan_angles(q: Quaternion, x_first=True) -> np.ndarray:
     """
     Convert a quaternion to Tait-Bryan angles using the same conventions described in the function above.
 
-    :param q: Quaterion to express in terms of Tait-Bryan angles
+    :param q: Quaternion to express in terms of Tait-Bryan angles
     :return:
     """
 
@@ -72,7 +72,7 @@ def as_xyz_intrinsic_tait_bryan_angles(q: quaternion, x_first=True) -> np.ndarra
     alpha_beta_gamma = np.empty(q.shape + (3,), dtype=np.float)
 
     # Convert quaternion to raw numpy array
-    q = as_float_array(q)
+    q = quaternion.as_float_array(q)
 
     # Save shortcuts to the components of the quaternion
     q_r = q[..., 0]

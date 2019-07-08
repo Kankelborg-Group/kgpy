@@ -29,21 +29,4 @@ class Linear(Array):
 
     def calc_linear_channels(self) -> t.List[Spectrograph]:
 
-        dl = self.wavl_max - self.wavl_min
-
-        a = dl / (self.num_channels * (1 - self.overlap_factor) - self.overlap_factor)
-
-        b = self.overlap_factor * a
-
-        channels = []
-
-        w_max = self.wavl_min
-
-        for c in range(self.num_channels):
-
-            w_min = w_max - b
-            w_max = w_min + a
-
-            channels.append(Spectrograph(w_min, w_max))
-
-        return channels
+        pass

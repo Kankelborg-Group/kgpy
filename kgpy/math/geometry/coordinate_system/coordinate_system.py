@@ -14,7 +14,8 @@ class CoordinateSystem:
     a coordinate system is described by a 3D translation and a 3D rotation from some global coordinate system.
     """
 
-    def __init__(self, translation=geometry.Vector(), rotation=geometry.Quaternion(),
+    def __init__(self, translation=geometry.Vector([0, 0, 0] * u.m),
+                 rotation=geometry.quaternion.from_xyz_intrinsic_tait_bryan_angles(0, 0, 0),
                  translation_first=True):
 
         if not translation_first:
@@ -31,6 +32,20 @@ class CoordinateSystem:
         self._x_hat = self._x_hat.rotate(self.rotation)
         self._y_hat = self._y_hat.rotate(self.rotation)
         self._z_hat = self._z_hat.rotate(self.rotation)
+
+    @classmethod
+    def from_polar_coordinates(cls,
+                               r: u.Quantity,
+                               phi: u.Quantity,
+                               origin: 'CoordinateSystem'
+                               ) -> 'CoordinateSystem':
+
+        translation = r * origin.x_hat
+        rotation = geometry.quaternion.from_xyz_intrinsic_tait_bryan_angles(0, 0, phi.to(u.rad).value)
+        cs = CoordinateSystem(translation, rotation, translation_first=False)
+        cs = origin @ cs
+
+        return cs
 
     @property
     def translation(self) -> geometry.Vector:
@@ -134,7 +149,7 @@ class CoordinateSystem:
         translation = self.translation.__neg__()
         rotation = self.rotation.inverse()
 
-        return type(self)(translation, rotation)
+        return type(self)(translation, rotation, translation_first=False)
 
     def diff(self, other: 'CoordinateSystem'):
         """

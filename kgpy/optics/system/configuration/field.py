@@ -1,7 +1,7 @@
 
 import astropy.units as u
 
-__all__ = []
+__all__ = ['Field']
 
 
 class Field:

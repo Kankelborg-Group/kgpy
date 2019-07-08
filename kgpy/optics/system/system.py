@@ -33,15 +33,9 @@ class System:
     def configurations(self) -> tp.List[Configuration]:
         return self._configurations
 
-
-
-
-
-
-
-    def add_baffle(self, baffle_name: str, baffle_cs: math.CoordinateSystem,
+    def add_baffle(self, baffle_name: str, baffle_cs: math.geometry.CoordinateSystem,
                    pass_surfaces: tp.Union[None, tp.List[tp.Union[None, configuration.Surface]]] = None,
-                   margin: u.Quantity = 1 * u.mm) -> configuration.Component:
+                   margin: u.Quantity = 1 * u.mm) -> 'configuration.Component':
 
         comp = self.add_baffle_component(baffle_name, baffle_cs)
 
@@ -49,12 +43,12 @@ class System:
 
         return comp
 
-    def calc_baffle_aperture(self, component: configuration.Component, pass_surfaces:
-                             tp.Union[None, tp.List[tp.Union[None, optics.system.configuration.Surface]]] = None,
+    def calc_baffle_aperture(self, component: 'configuration.Component', pass_surfaces:
+                             tp.Union[None, tp.List[tp.Union[None, 'optics.system.configuration.Surface']]] = None,
                              margin: u.Quantity = 1 * u.mm):
 
         if pass_surfaces is None:
-            pass_surfaces = len(component) * [None]     # type: List[Union[None, List[Surface]]]
+            pass_surfaces = len(component) * [None]     # type: tp.List[tp.Union[None, tp.List[Surface]]]
 
         # n = 15
         # m = 15
@@ -200,7 +194,8 @@ class System:
                 dxf.add_polyline(pts)
                 # dxf.add_solid(pts)
 
-    def add_baffle_component(self, baffle_name: str, baffle_cs: math.CoordinateSystem) -> configuration.Component:
+    def add_baffle_component(self, baffle_name: str, baffle_cs: math.geometry.CoordinateSystem
+                             ) -> 'configuration.Component':
         """
         Add a baffle to the system at the specified coordinate system across the x-y plane.
         This function automatically calculates how many times the raypath crosses the baffle plane, and constructs the
