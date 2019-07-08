@@ -104,12 +104,12 @@ class DiffractionGrating(ZmxSurfaceType, surface_type.DiffractionGrating):
     @property
     def groove_frequency(self) -> u.Quantity:
 
-        return self.surface_data.LinesPerMicrometer * (1 / u.um)
+        return self.surface_data.LinesPerMicroMeter * (1 / u.um)
 
     @groove_frequency.setter
     def groove_frequency(self, val: u.Quantity) -> None:
 
-        self.surface_data.LinesPerMicrometer = val.to(1 / u.um).value
+        self.surface_data.LinesPerMicroMeter = val.to(1 / u.um).value
 
     @property
     def diffraction_order(self) -> int:

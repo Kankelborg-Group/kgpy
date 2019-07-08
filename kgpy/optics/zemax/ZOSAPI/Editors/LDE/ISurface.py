@@ -62,8 +62,8 @@ class ISurfaceDiffractionGrating(ISurface):
 
     DiffractionOrder = None             # type: int
     DiffractionOrderCell = None         # type: ZOSAPI.Editors.IEditorCell
-    LinesPerMicrometer = None           # type: float
-    LinesPerMicrometerCell = None       # type: ZOSAPI.Editors.IEditorCell
+    LinesPerMicroMeter = None           # type: float
+    LinesPerMicroMeterCell = None       # type: ZOSAPI.Editors.IEditorCell
 
 
 class ISurfaceEllipticalGrating1(ISurface):

@@ -141,7 +141,7 @@ def add_diffraction_grating_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
     )  # type: ZOSAPI.Editors.LDE.ISurfaceDiffractionGrating
 
     zemax_surface_data.DiffractionOrder = surface.diffraction_order
-    zemax_surface_data.LinesPerMicrometer = surface.groove_frequency.to(1 / u.um).value
+    zemax_surface_data.LinesPerMicroMeter = surface.groove_frequency.to(1 / u.um).value
 
 
 def add_toroidal_surface_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
