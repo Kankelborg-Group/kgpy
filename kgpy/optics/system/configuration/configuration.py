@@ -123,3 +123,7 @@ class Configuration:
         table.detect_numerics = False
 
         return table.__str__()
+
+
+
+

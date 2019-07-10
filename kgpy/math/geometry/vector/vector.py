@@ -127,7 +127,8 @@ class Vector:
 
         return np.linalg.norm(self._components) << self._components.unit
 
-    def normalize(self) -> 'Vector':
+    @property
+    def normalized(self) -> 'Vector':
 
         return self * (1 / self.mag)
 
