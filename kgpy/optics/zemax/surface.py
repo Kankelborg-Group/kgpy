@@ -219,11 +219,13 @@ def add_surfaces_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
         ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC,
     ]
 
+    zemax_stop_surface = None
+
     for surface_index, surface in enumerate(surfaces):
 
         if configuration_index == 0:
 
-            if surface_index >= zemax_system.LDE.NumberOfSurfaces - 1:
+            if surface_index >= zemax_system.LDE.NumberOfSurfaces - 1 <= surface_index < len(surfaces) - 1:
                 zemax_system.LDE.AddSurface()
 
             for op_type in surface_op_types:
@@ -231,11 +233,15 @@ def add_surfaces_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
                 op.ChangeType(op_type)
                 op.Param1 = surface_index
 
+
         zemax_surface = zemax_system.LDE.GetSurfaceAt(surface_index)
 
         zemax_surface.Comment = surface.name
-        zemax_surface.IsStop = surface.is_stop
+        # zemax_surface.IsStop = surface.is_stop
         zemax_surface.Thickness = surface.thickness.to(zemax_units).value
+
+        if surface.is_stop:
+            zemax_surface.IsStop = surface.is_stop
 
         if isinstance(surface, optics.system.configuration.surface.Standard):
 
@@ -257,9 +263,7 @@ def add_surfaces_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
             add_coordinate_break_surface_to_zemax_system(zemax_system, zemax_surface, zemax_units, configuration_index,
                                                          surface_index, surface)
 
-
-
-
+        print(surface.name, zemax_surface.IsStop, surface.is_stop)
 
 
 

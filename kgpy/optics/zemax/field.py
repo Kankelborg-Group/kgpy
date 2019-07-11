@@ -43,5 +43,5 @@ def add_fields_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
         zemax_field.VDX = float(field.vdx)
         zemax_field.VDY = float(field.vdy)
         zemax_field.VCX = float(field.vcx)
-        zemax_field.VCY = float(field.vdx)
+        zemax_field.VCY = float(field.vcy)
         zemax_field.VAN = float(field.van.to(u.deg).value)

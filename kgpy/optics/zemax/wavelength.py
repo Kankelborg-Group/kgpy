@@ -27,7 +27,7 @@ def add_wavelengths_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
 
             for op_type in wavelength_op_types:
                 op = zemax_system.MCE.AddOperand()
-                op.Type = op_type
+                op.ChangeType(op_type)
                 op.Param1 = wavelength_index
 
         else:
