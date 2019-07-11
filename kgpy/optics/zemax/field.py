@@ -31,7 +31,7 @@ def add_fields_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
 
             for op_type in field_op_types:
                 op = zemax_system.MCE.AddOperand()
-                op.Type = op_type
+                op.ChangeType(op_type)
                 op.Param1 = field_index
 
         else:
@@ -44,4 +44,4 @@ def add_fields_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
         zemax_field.VDY = float(field.vdy)
         zemax_field.VCX = float(field.vcx)
         zemax_field.VCY = float(field.vdx)
-        zemax_field.VAN = float(field.van)
+        zemax_field.VAN = float(field.van.to(u.deg).value)

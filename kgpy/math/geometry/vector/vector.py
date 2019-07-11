@@ -125,7 +125,7 @@ class Vector:
         :return: L2 norm of the vector
         """
 
-        return np.linalg.norm(self._components) << self._components.unit
+        return np.linalg.norm(self.components.value) << self.components.unit
 
     @property
     def normalized(self) -> 'Vector':

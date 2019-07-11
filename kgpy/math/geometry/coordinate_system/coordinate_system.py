@@ -188,8 +188,8 @@ class CoordinateSystem:
         """
 
         # Change parameter names to be the same as the stackoverflow answer cited above
-        unit = v1._components.unit
-        epsilon = 1e-6 * unit
+        unit = v1.components.unit
+        epsilon = 1e-20 * unit
         p0 = v1
         p1 = v2
         p_co = self.translation
@@ -206,6 +206,11 @@ class CoordinateSystem:
             w = p0 - p_co
             fac = -p_no.dot(w) / dot
 
+            # the factor of the point between p0 -> p1 (0 - 1)
+            # if 'fac' is between (0 - 1) the point intersects with the segment.
+            # otherwise:
+            #  < 0.0: behind p0.
+            #  > 1.0: infront of p1.
             if (fac >= 0.0) and (fac <= 1.0):
 
                 u = fac * u
