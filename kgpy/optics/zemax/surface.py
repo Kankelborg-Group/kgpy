@@ -263,9 +263,6 @@ def add_surfaces_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
             add_coordinate_break_surface_to_zemax_system(zemax_system, zemax_surface, zemax_units, configuration_index,
                                                          surface_index, surface)
 
-        print(surface.name, zemax_surface.IsStop, surface.is_stop)
-
-
 
 
 

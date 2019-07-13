@@ -123,7 +123,8 @@ class CoordinateSystem:
         :return: a new coordinate system representing the composition of self and other.
         """
 
-        cs = self.__add__(other.translation)
+        # cs = self.__add__(other.translation)
+        cs = self.__add__(other.translation.rotate(self.rotation))
 
         cs = cs.__mul__(other.rotation)
 
