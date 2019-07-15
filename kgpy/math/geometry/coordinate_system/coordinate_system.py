@@ -14,24 +14,23 @@ class CoordinateSystem:
     a coordinate system is described by a 3D translation and a 3D rotation from some global coordinate system.
     """
 
-    def __init__(self, translation=geometry.Vector([0, 0, 0] * u.m),
-                 rotation=geometry.quaternion.from_xyz_intrinsic_tait_bryan_angles(0, 0, 0),
+    def __init__(self,
+                 translation=geometry.Vector([0, 0, 0] * u.m),
+                 rotation=geometry.Vector([0, 0, 0,] * u.deg),
                  translation_first=True):
-
-        if not translation_first:
-            translation = translation.rotate(rotation)
 
         # Save input arguments to class variables
         self._translation = translation
         self._rotation = rotation
+        self._translation_first = translation_first
 
         self._x_hat = geometry.Vector([1, 0, 0] * u.dimensionless_unscaled)
         self._y_hat = geometry.Vector([0, 1, 0] * u.dimensionless_unscaled)
         self._z_hat = geometry.Vector([0, 0, 1] * u.dimensionless_unscaled)
 
-        self._x_hat = self._x_hat.rotate(self.rotation)
-        self._y_hat = self._y_hat.rotate(self.rotation)
-        self._z_hat = self._z_hat.rotate(self.rotation)
+        # self._x_hat = self._x_hat.rotate(self.rotation)
+        # self._y_hat = self._y_hat.rotate(self.rotation)
+        # self._z_hat = self._z_hat.rotate(self.rotation)
 
     @classmethod
     def from_polar_coordinates(cls,
@@ -41,7 +40,7 @@ class CoordinateSystem:
                                ) -> 'CoordinateSystem':
 
         translation = r * origin.x_hat
-        rotation = geometry.quaternion.from_xyz_intrinsic_tait_bryan_angles(0, 0, phi.to(u.rad).value)
+        rotation = geometry.quaternion.from_zyx_intrinsic_tait_bryan_angles(0, 0, phi.to(u.rad).value)
         cs = CoordinateSystem(translation, rotation, translation_first=False)
         cs = origin @ cs
 
@@ -54,6 +53,10 @@ class CoordinateSystem:
     @property
     def rotation(self) -> geometry.Quaternion:
         return self._rotation
+
+    @property
+    def translation_first(self) -> bool:
+        return self._translation_first
 
     @property
     def x_hat(self) -> geometry.Vector:
@@ -78,9 +81,10 @@ class CoordinateSystem:
         # Check if the translation and rotation is the same in the other coordinate system
         a = self.translation == other.translation
         b = self.rotation == other.rotation
+        c = self.translation_first == other.translation_first
 
         # return True if the translation and rotation is the same for both coordinate systems
-        return a and b
+        return a and b and c
 
     def __add__(self, other: geometry.Vector) -> 'CoordinateSystem':
         """
@@ -92,7 +96,7 @@ class CoordinateSystem:
 
         translation = self.translation.__add__(other)
 
-        return type(self)(translation, self.rotation)
+        return type(self)(translation, self.rotation, self.translation_first)
 
     # Define the reverse addition operator so that both Vector + CoordinateSystem and CoordinateSystem + Vector are
     # allowed.
@@ -111,7 +115,7 @@ class CoordinateSystem:
         """
 
         rotation = self.rotation * other
-        return type(self)(self.translation, rotation)
+        return type(self)(self.translation, rotation, self.translation_first)
 
     # Note that the reverse multiplication operation is not defined here since quaternion products do not commute
 
@@ -123,7 +127,10 @@ class CoordinateSystem:
         :return: a new coordinate system representing the composition of self and other.
         """
 
-        # cs = self.__add__(other.translation)
+
+        if self.translation_first != other.translation_first:
+            other = other.inverse
+
         cs = self.__add__(other.translation.rotate(self.rotation))
 
         cs = cs.__mul__(other.rotation)
@@ -139,20 +146,28 @@ class CoordinateSystem:
     __repr__ = __str__
 
     @property
-    def inverse(self):
-        """
-        Compute the inverse of this coordinate system.
-        The inverse is defined as the coordinate system that when composed with this coordinate system, equals the
-        global coordinate system (no rotations / no translations).
-        :return: The inverse of this coordinate system.
-        """
+    def inverse_translation_order_explicit(self) -> 'CoordinateSystem':
 
-        translation = self.translation.__neg__()
+        return type(self)(self.translation, self.rotation, not self.translation_first)
+
+    @property
+    def inverse_translation_order_implicit(self) -> 'CoordinateSystem':
+
+        translation = -self.translation.rotate(self.rotation)
         rotation = self.rotation.inverse()
 
-        return type(self)(translation, rotation, translation_first=False)
+        return type(self)(translation, rotation, self.translation_first)
 
-    def diff(self, other: 'CoordinateSystem'):
+    @property
+    def inverse(self) -> 'CoordinateSystem':
+
+        translation = -self.translation
+        rotation = -self.rotation
+
+        return type(self)(translation, rotation, not self.translation_first)
+
+
+    def diff(self, other: 'CoordinateSystem') -> 'CoordinateSystem':
         """
         Calculate the difference between this coordinate system and another coordinate system.
         In other words: what coordinate system would need to be composed with other to result in this coordinate system.
@@ -160,7 +175,7 @@ class CoordinateSystem:
         :return: New coordinate system representing the difference between the two coordinate systems.
         """
 
-        return other.inverse.__matmul__(self)
+        return other.inverse_translation_order_implicit.__matmul__(self)
 
     def isclose(self, other: 'CoordinateSystem') -> bool:
         """

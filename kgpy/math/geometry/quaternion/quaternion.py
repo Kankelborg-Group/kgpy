@@ -1,20 +1,25 @@
-
 import typing as tp
 import numpy as np
 from numpy import sin, cos
 import quaternion
 
-__all__ = ['Quaternion', 'as_xyz_intrinsic_tait_bryan_angles', 'from_xyz_intrinsic_tait_bryan_angles']
+__all__ = [
+    'Quaternion',
+    'as_zyx_intrinsic_tait_bryan_angles',
+    'as_xyz_intrinsic_tait_bryan_angles',
+    'from_zyx_intrinsic_tait_bryan_angles',
+    'from_xyz_intrinsic_tait_bryan_angles',
+]
 
 
 class Quaternion(quaternion.quaternion):
-
     pass
 
 
-def from_xyz_intrinsic_tait_bryan_angles(alpha_beta_gamma: tp.Union[float, tp.List[float], np.ndarray],
+def from_zyx_intrinsic_tait_bryan_angles(alpha_beta_gamma: tp.Union[float, tp.List[float], np.ndarray],
                                          beta: tp.Union[float, np.ndarray] = None,
-                                         gamma: tp.Union[float, np.ndarray] = None, x_first=True) -> Quaternion:
+                                         gamma: tp.Union[float, np.ndarray] = None
+                                         ) -> Quaternion:
     """
     Based on the quaternion/from_euler_angles() function in numpy-quaternion.
     The conversions from Tait-Bryan angles were taken from this Wikipedia page:
@@ -41,12 +46,6 @@ def from_xyz_intrinsic_tait_bryan_angles(alpha_beta_gamma: tp.Union[float, tp.Li
         alpha = np.asarray(alpha_beta_gamma, dtype=np.double)
         beta = np.asarray(beta, dtype=np.double)
         gamma = np.asarray(gamma, dtype=np.double)
-        
-    if not x_first:
-        
-        tmp = alpha.copy()
-        alpha = gamma
-        gamma = tmp
 
     # Set up the output array
     R = np.empty(np.broadcast(alpha, beta, gamma).shape + (4,), dtype=np.double)
@@ -60,7 +59,36 @@ def from_xyz_intrinsic_tait_bryan_angles(alpha_beta_gamma: tp.Union[float, tp.Li
     return quaternion.as_quat_array(R)
 
 
-def as_xyz_intrinsic_tait_bryan_angles(q: Quaternion, x_first=True) -> np.ndarray:
+def from_xyz_intrinsic_tait_bryan_angles(alpha_beta_gamma: tp.Union[float, tp.List[float], np.ndarray],
+                                         beta: tp.Union[float, np.ndarray] = None,
+                                         gamma: tp.Union[float, np.ndarray] = None
+                                         ) -> Quaternion:
+    if gamma is None:
+        alpha_beta_gamma = np.asarray(alpha_beta_gamma, dtype=np.double)
+        alpha = alpha_beta_gamma[..., 0]
+        beta = alpha_beta_gamma[..., 1]
+        gamma = alpha_beta_gamma[..., 2]
+    else:
+        alpha = np.asarray(alpha_beta_gamma, dtype=np.double)
+        beta = np.asarray(beta, dtype=np.double)
+        gamma = np.asarray(gamma, dtype=np.double)
+
+    tmp = alpha.copy()
+    alpha = gamma
+    beta = -beta
+    gamma = tmp
+
+    q = from_zyx_intrinsic_tait_bryan_angles(alpha, beta, gamma)
+
+    tmp = q.x
+    q.x = q.z
+    q.y = -q.y
+    q.z = tmp
+
+    return q
+
+
+def as_zyx_intrinsic_tait_bryan_angles(q: Quaternion) -> np.ndarray:
     """
     Convert a quaternion to Tait-Bryan angles using the same conventions described in the function above.
 
@@ -84,11 +112,22 @@ def as_xyz_intrinsic_tait_bryan_angles(q: Quaternion, x_first=True) -> np.ndarra
     alpha_beta_gamma[..., 0] = np.arctan2(2 * (q_r * q_i + q_j * q_k), 1 - 2 * (q_i * q_i + q_j * q_j))
     alpha_beta_gamma[..., 1] = np.arcsin(2 * (q_r * q_j - q_k * q_i))
     alpha_beta_gamma[..., 2] = np.arctan2(2 * (q_r * q_k + q_i * q_j), 1 - 2 * (q_j * q_j + q_k * q_k))
-    
-    if not x_first:
-    
-        tmp = np.copy(alpha_beta_gamma[..., 0])
-        alpha_beta_gamma[..., 0] = alpha_beta_gamma[..., 2]
-        alpha_beta_gamma[..., 2] = tmp
 
     return alpha_beta_gamma
+
+
+def as_xyz_intrinsic_tait_bryan_angles(q: Quaternion) -> np.ndarray:
+
+    tmp = q.x
+    q.x = q.z
+    q.y = -q.y
+    q.z = tmp
+
+    a = as_zyx_intrinsic_tait_bryan_angles(q)
+
+    tmp = a[..., 0]
+    a[..., 0] = a[..., 2]
+    a[..., 1] = -a[..., 1]
+    a[..., 2] = tmp
+
+    return a

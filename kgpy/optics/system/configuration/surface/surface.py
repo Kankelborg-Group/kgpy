@@ -75,7 +75,7 @@ class Surface:
         Q = cs.rotation
 
         # Convert to Tait-Bryant angles
-        T = math.geometry.quaternion.quaternion.as_xyz_intrinsic_tait_bryan_angles(Q) * u.rad    # type: u.Quantity
+        T = math.geometry.quaternion.quaternion.as_zyx_intrinsic_tait_bryan_angles(Q) * u.rad    # type: u.Quantity
 
         # Convert angles to degrees
         T = T.to(u.deg)

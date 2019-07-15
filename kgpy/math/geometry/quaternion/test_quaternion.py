@@ -14,9 +14,9 @@ def test_xyz_intrinsic_tait_bryan_angles(a, b, c):
 
     print(a, b, c)
 
-    q = from_xyz_intrinsic_tait_bryan_angles(a, b, c)
+    q = from_zyx_intrinsic_tait_bryan_angles(a, b, c)
 
-    a1, b1, c1 = as_xyz_intrinsic_tait_bryan_angles(q)
+    a1, b1, c1 = as_zyx_intrinsic_tait_bryan_angles(q)
 
     assert isclose(a, a1)
     assert isclose(b, b1)

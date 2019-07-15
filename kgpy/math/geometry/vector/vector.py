@@ -111,9 +111,39 @@ class Vector:
 
         return type(self)(components)
 
-    def rotate(self, value: 'math.geometry.Quaternion'):
+    def rotate(self, value: 'Vector', inverse=False):
 
-        components = q.rotate_vectors(value, self._components) << self._components.unit
+        print(value)
+
+        a = value.x
+        b = value.y
+        c = value.z
+
+        r_x = np.array([
+            [1, 0, 0],
+            [0, np.cos(a), -np.sin(a)],
+            [0, np.sin(a), np.cos(a)]
+        ])
+
+        r_y = np.array([
+            [np.cos(b), 0, np.sin(b)],
+            [0, 1, 0],
+            [-np.sin(b), 0, np.cos(b)],
+        ])
+
+        r_z = np.array([
+            [np.cos(c), -np.sin(c), 0],
+            [np.sin(c), np.cos(c), 0],
+            [0, 0, 1]
+        ])
+
+        if not inverse:
+            r = r_z @ r_y @ r_x
+
+        else:
+            r = r_x @ r_y @ r_z
+
+        components = r @ self.components
 
         return type(self)(components)
 
