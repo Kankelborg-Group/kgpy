@@ -15,8 +15,8 @@ class CoordinateSystem:
     """
 
     def __init__(self,
-                 translation=geometry.Vector([0, 0, 0] * u.m),
-                 rotation=geometry.Vector([0, 0, 0,] * u.deg),
+                 translation=geometry.Vector([0, 0, 0, ] * u.m),
+                 rotation=geometry.Vector([0, 0, 0, ] * u.deg),
                  translation_first=True):
 
         # Save input arguments to class variables
@@ -28,9 +28,10 @@ class CoordinateSystem:
         self._y_hat = geometry.Vector([0, 1, 0] * u.dimensionless_unscaled)
         self._z_hat = geometry.Vector([0, 0, 1] * u.dimensionless_unscaled)
 
-        # self._x_hat = self._x_hat.rotate(self.rotation)
-        # self._y_hat = self._y_hat.rotate(self.rotation)
-        # self._z_hat = self._z_hat.rotate(self.rotation)
+        is_inverse = not translation_first
+        self._x_hat = self._x_hat.rotate(self.rotation, is_inverse)
+        self._y_hat = self._y_hat.rotate(self.rotation, is_inverse)
+        self._z_hat = self._z_hat.rotate(self.rotation, is_inverse)
 
     @classmethod
     def from_polar_coordinates(cls,
@@ -106,7 +107,7 @@ class CoordinateSystem:
 
         return self.__add__(other.__neg__())
 
-    def __mul__(self, other: geometry.Quaternion) -> 'CoordinateSystem':
+    def __mul__(self, other: geometry.Vector) -> 'CoordinateSystem':
         """
         Multiply the coordinate system by the quaternion other.
         This operation rotates the coordinate system by the quaternion other.
@@ -114,7 +115,7 @@ class CoordinateSystem:
         :return: The rotated coordinate system
         """
 
-        rotation = self.rotation * other
+        rotation = geometry.Vector(self.rotation.components + other.components)
         return type(self)(self.translation, rotation, self.translation_first)
 
     # Note that the reverse multiplication operation is not defined here since quaternion products do not commute
@@ -127,13 +128,18 @@ class CoordinateSystem:
         :return: a new coordinate system representing the composition of self and other.
         """
 
+        if not self.translation_first:
+            translation = other.translation.rotate(self.rotation, inverse=True)
+            rotation = -other.rotation
 
-        if self.translation_first != other.translation_first:
-            other = other.inverse
+        else:
+            translation = other.translation.rotate(self.rotation)
+            rotation = other.rotation
 
-        cs = self.__add__(other.translation.rotate(self.rotation))
+        cs = self
 
-        cs = cs.__mul__(other.rotation)
+        cs += translation
+        cs *= rotation
 
         return cs
 
@@ -165,7 +171,6 @@ class CoordinateSystem:
         rotation = -self.rotation
 
         return type(self)(translation, rotation, not self.translation_first)
-
 
     def diff(self, other: 'CoordinateSystem') -> 'CoordinateSystem':
         """

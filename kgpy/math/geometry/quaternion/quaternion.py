@@ -118,9 +118,11 @@ def as_zyx_intrinsic_tait_bryan_angles(q: Quaternion) -> np.ndarray:
 
 def as_xyz_intrinsic_tait_bryan_angles(q: Quaternion) -> np.ndarray:
 
-    tmp = q.x
-    q.x = q.z
-    q.y = -q.y
+    q = quaternion.as_float_array(q)
+
+    tmp = q[..., 1]
+    q[..., 1] = q[..., 3]
+    q[..., 2] = -q[..., 2]
     q.z = tmp
 
     a = as_zyx_intrinsic_tait_bryan_angles(q)

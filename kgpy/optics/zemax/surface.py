@@ -92,18 +92,14 @@ def add_standard_surface_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
 
     if surface.pre_tilt_decenter.translation_first:
         zemax_surface.TiltDecenterData.BeforeSurfaceOrder = 0
-        tait_bryant_angles = math.geometry.quaternion.as_xyz_intrinsic_tait_bryan_angles(
-            surface.pre_tilt_decenter.rotation)
-
     else:
         zemax_surface.TiltDecenterData.BeforeSurfaceOrder = 1
-        tait_bryant_angles = math.geometry.quaternion.as_zyx_intrinsic_tait_bryan_angles(
-            surface.pre_tilt_decenter.rotation)
 
+    rotation = surface.pre_tilt_decenter.rotation
 
-    zemax_surface.TiltDecenterData.BeforeSurfaceTiltX = (tait_bryant_angles[0] << u.rad).to(u.deg).value
-    zemax_surface.TiltDecenterData.BeforeSurfaceTiltY = (tait_bryant_angles[1] << u.rad).to(u.deg).value
-    zemax_surface.TiltDecenterData.BeforeSurfaceTiltZ = (tait_bryant_angles[2] << u.rad).to(u.deg).value
+    zemax_surface.TiltDecenterData.BeforeSurfaceTiltX = rotation.x.to(u.deg).value
+    zemax_surface.TiltDecenterData.BeforeSurfaceTiltY = rotation.y.to(u.deg).value
+    zemax_surface.TiltDecenterData.BeforeSurfaceTiltZ = rotation.z.to(u.deg).value
 
     zemax_surface.TiltDecenterData.AfterSurfaceDecenterX = surface.post_tilt_decenter.translation.x.to(
         zemax_units).value
@@ -112,17 +108,14 @@ def add_standard_surface_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
 
     if surface.post_tilt_decenter.translation_first:
         zemax_surface.TiltDecenterData.BeforeSurfaceOrder = 0
-        tait_bryant_angles = math.geometry.quaternion.as_xyz_intrinsic_tait_bryan_angles(
-            surface.post_tilt_decenter.rotation)
-
     else:
         zemax_surface.TiltDecenterData.BeforeSurfaceOrder = 1
-        tait_bryant_angles = math.geometry.quaternion.as_zyx_intrinsic_tait_bryan_angles(
-            surface.post_tilt_decenter.rotation)
 
-    zemax_surface.TiltDecenterData.AfterSurfaceTiltX = (tait_bryant_angles[0] << u.rad).to(u.deg).value
-    zemax_surface.TiltDecenterData.AfterSurfaceTiltY = (tait_bryant_angles[1] << u.rad).to(u.deg).value
-    zemax_surface.TiltDecenterData.AfterSurfaceTiltZ = (tait_bryant_angles[2] << u.rad).to(u.deg).value
+    rotation = surface.pre_tilt_decenter.rotation
+
+    zemax_surface.TiltDecenterData.AfterSurfaceTiltX = rotation.x.to(u.deg).value
+    zemax_surface.TiltDecenterData.AfterSurfaceTiltY = rotation.y.to(u.deg).value
+    zemax_surface.TiltDecenterData.AfterSurfaceTiltZ = rotation.z.to(u.deg).value
 
     add_aperture_to_zemax_surface(zemax_system, zemax_surface, zemax_units, configuration_index, surface_index,
                                   surface.aperture)
@@ -219,17 +212,15 @@ def add_coordinate_break_surface_to_zemax_system(zemax_system: ZOSAPI.IOpticalSy
 
     if surface.tilt_decenter.translation_first:
         zemax_surface_data.Order = 0
-        tait_bryant_angles = math.geometry.quaternion.as_xyz_intrinsic_tait_bryan_angles(
-            surface.tilt_decenter.rotation)
 
     else:
         zemax_surface_data.Order = 1
-        tait_bryant_angles = math.geometry.quaternion.as_zyx_intrinsic_tait_bryan_angles(
-            surface.tilt_decenter.rotation)
 
-    zemax_surface_data.TiltAbout_X = (tait_bryant_angles[0] << u.rad).to(u.deg).value
-    zemax_surface_data.TiltAbout_Y = (tait_bryant_angles[1] << u.rad).to(u.deg).value
-    zemax_surface_data.TiltAbout_Z = (tait_bryant_angles[2] << u.rad).to(u.deg).value
+    rotation = surface.tilt_decenter.rotation
+
+    zemax_surface_data.TiltAbout_X = rotation.x.to(u.deg).value
+    zemax_surface_data.TiltAbout_Y = rotation.y.to(u.deg).value
+    zemax_surface_data.TiltAbout_Z = rotation.z.to(u.deg).value
 
 
 def add_surfaces_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,

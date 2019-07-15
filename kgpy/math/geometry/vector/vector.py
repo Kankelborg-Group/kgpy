@@ -113,8 +113,6 @@ class Vector:
 
     def rotate(self, value: 'Vector', inverse=False):
 
-        print(value)
-
         a = value.x
         b = value.y
         c = value.z
