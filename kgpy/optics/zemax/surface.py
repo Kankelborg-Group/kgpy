@@ -85,15 +85,15 @@ def add_standard_surface_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
     zemax_surface.Material = str(surface.material)
     zemax_surface.Conic = float(surface.conic)
 
-    zemax_surface.TiltDecenterData.BeforeSurfaceDecenterX = surface.pre_tilt_decenter.translation.x.to(
-        zemax_units).value
-    zemax_surface.TiltDecenterData.BeforeSurfaceDecenterY = surface.pre_tilt_decenter.translation.y.to(
-        zemax_units).value
-
     if surface.pre_tilt_decenter.translation_first:
         zemax_surface.TiltDecenterData.BeforeSurfaceOrder = 0
+
     else:
         zemax_surface.TiltDecenterData.BeforeSurfaceOrder = 1
+
+    translation = surface.pre_tilt_decenter.translation
+    zemax_surface.TiltDecenterData.BeforeSurfaceDecenterX = translation.x.to(zemax_units).value
+    zemax_surface.TiltDecenterData.BeforeSurfaceDecenterY = translation.y.to(zemax_units).value
 
     rotation = surface.pre_tilt_decenter.rotation
 
@@ -101,15 +101,17 @@ def add_standard_surface_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
     zemax_surface.TiltDecenterData.BeforeSurfaceTiltY = rotation.y.to(u.deg).value
     zemax_surface.TiltDecenterData.BeforeSurfaceTiltZ = rotation.z.to(u.deg).value
 
-    zemax_surface.TiltDecenterData.AfterSurfaceDecenterX = surface.post_tilt_decenter.translation.x.to(
-        zemax_units).value
-    zemax_surface.TiltDecenterData.AfterSurfaceDecenterY = surface.post_tilt_decenter.translation.y.to(
-        zemax_units).value
-
     if surface.post_tilt_decenter.translation_first:
-        zemax_surface.TiltDecenterData.BeforeSurfaceOrder = 0
+        zemax_surface.TiltDecenterData.AfterSurfaceOrder = 0
+
     else:
-        zemax_surface.TiltDecenterData.BeforeSurfaceOrder = 1
+        zemax_surface.TiltDecenterData.AfterSurfaceOrder = 1
+
+    translation = surface.post_tilt_decenter.translation
+    zemax_surface.TiltDecenterData.AfterSurfaceDecenterX = translation.x.to(zemax_units).value
+    zemax_surface.TiltDecenterData.AfterSurfaceDecenterY = translation.y.to(zemax_units).value
+
+
 
     rotation = surface.pre_tilt_decenter.rotation
 
@@ -207,14 +209,17 @@ def add_coordinate_break_surface_to_zemax_system(zemax_system: ZOSAPI.IOpticalSy
         ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak.__name__
     )  # type: ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak
 
-    zemax_surface_data.Decenter_X = surface.tilt_decenter.translation.x.to(zemax_units).value
-    zemax_surface_data.Decenter_Y = surface.tilt_decenter.translation.y.to(zemax_units).value
+
 
     if surface.tilt_decenter.translation_first:
         zemax_surface_data.Order = 0
 
     else:
         zemax_surface_data.Order = 1
+
+    translation = surface.tilt_decenter.translation
+    zemax_surface_data.Decenter_X = translation.x.to(zemax_units).value
+    zemax_surface_data.Decenter_Y = translation.y.to(zemax_units).value
 
     rotation = surface.tilt_decenter.rotation
 

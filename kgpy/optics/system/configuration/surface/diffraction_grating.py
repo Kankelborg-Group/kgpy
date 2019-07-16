@@ -43,6 +43,6 @@ def wavelength_from_vectors(input_vector: math.geometry.Vector,
     sin_alpha = input_vector.normalized.dot(phi_hat)
     sin_beta = output_vector.normalized.dot(phi_hat)
 
-    wavelength = (sin_alpha + sin_beta) / (diffraction_order * groove_frequency)
+    wavelength = -(sin_alpha + sin_beta) / (diffraction_order * groove_frequency)
 
     return wavelength

@@ -52,6 +52,10 @@ class CoordinateSystem:
         return self._translation
 
     @property
+    def translation_global(self):
+        return self._translation.rotate(self.rotation, not self.translation_first)
+
+    @property
     def rotation(self) -> geometry.Quaternion:
         return self._rotation
 
@@ -128,20 +132,22 @@ class CoordinateSystem:
         :return: a new coordinate system representing the composition of self and other.
         """
 
+
+        self_translation = self.translation
+
         if not self.translation_first:
-            translation = other.translation.rotate(self.rotation, inverse=True)
-            rotation = -other.rotation
+            self_translation = self_translation.rotate(self.rotation, inverse=True)
 
-        else:
-            translation = other.translation.rotate(self.rotation)
-            rotation = other.rotation
 
-        cs = self
+        other_translation = other.translation.rotate(self.rotation)
 
-        cs += translation
-        cs *= rotation
+        if not other.translation_first:
+            other_translation = other_translation.rotate(other.rotation, inverse=True)
 
-        return cs
+        translation = self_translation + other_translation
+        rotation = self.rotation + other.rotation
+
+        return type(self)(translation, rotation)
 
     def __str__(self) -> str:
         """
@@ -213,7 +219,8 @@ class CoordinateSystem:
         epsilon = 1e-20 * unit
         p0 = v1
         p1 = v2
-        p_co = self.translation
+        p_co = self.translation_global
+
         p_no = self.z_hat
 
         # Compute vector from start to end point
