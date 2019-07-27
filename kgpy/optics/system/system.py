@@ -4,9 +4,9 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-from shapely.geometry import Polygon, MultiPoint, MultiPolygon
-from shapely.ops import unary_union
-from ezdxf.r12writer import r12writer
+# from shapely.geometry import Polygon, MultiPoint, MultiPolygon
+# from shapely.ops import unary_union
+# from ezdxf.r12writer import r12writer
 
 from kgpy import optics, math
 

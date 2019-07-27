@@ -6,8 +6,7 @@ import astropy.units as u
 from kgpy.optics.zemax import ZOSAPI
 
 
-def raytrace(self,
-             zemax_system: ZOSAPI.IOpticalSystem,
+def raytrace(zemax_system: ZOSAPI.IOpticalSystem,
              configuration_index: int,
              surface_index: int,
              wavelength_indices: tp.List[int],
@@ -37,12 +36,12 @@ def raytrace(self,
     X = np.empty(sh)
     Y = np.empty(sh)
 
-    old_config = self.config
+    old_config = zemax_system.MCE.CurrentConfiguration
 
     zemax_system.MCE.SetCurrentConfiguration(configuration_index + 1)
 
     # Initialize raytrace
-    rt = self.zos_sys.Tools.OpenBatchRayTrace()  # raytrace object
+    rt = zemax_system.Tools.OpenBatchRayTrace()  # raytrace object
     tool = zemax_system.Tools.CurrentTool  # pointer to active tool
 
     surf = zemax_system.LDE.GetSurfaceAt(surface_index)
@@ -74,7 +73,7 @@ def raytrace(self,
                         py = Py[fi, fj, pi, pj]
 
                         # Write ray to pipe
-                        rt_dat.AddRay(wavl.WavelengthNumber, fx, fy, px, py,
+                        rt_dat.AddRay(wavl.WavelengthNumber, fx.to(u.deg).value, fy.to(u.deg).value, px, py,
                                       ZOSAPI.Tools.RayTrace.OPDMode.None_)
 
                 # Execute the raytrace
@@ -97,6 +96,6 @@ def raytrace(self,
 
     tool.Close()
 
-    self.config = old_config
+    zemax_system.MCE.CurrentConfiguration = old_config
 
     return V, X, Y

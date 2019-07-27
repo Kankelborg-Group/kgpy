@@ -1,7 +1,6 @@
 
 from typing import List, Tuple, Union
 import astropy.units as u
-from shapely.geometry import Polygon
 
 from kgpy import math
 
