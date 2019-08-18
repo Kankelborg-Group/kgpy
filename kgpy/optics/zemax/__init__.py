@@ -1,3 +1,3 @@
 from . import ZOSAPI
 from . import system_module
-from .raytrace import raytrace
+from .rays import trace_to_image, ReturnIndices
