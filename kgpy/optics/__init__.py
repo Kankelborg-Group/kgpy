@@ -1,4 +1,4 @@
 
-from . import zemax
+#from . import zemax
 
 from .system import System
