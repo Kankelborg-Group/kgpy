@@ -2,15 +2,16 @@ from setuptools import setup, find_packages
 
 setup(
     name='kgpy',
-    version='0.0.2',
+    version='0.0.1',
     packages=find_packages(),
     install_requires=[
         'numpy',
         'matplotlib',
         'scipy',
-        'astropy',
-        'beautifultable',
-        'pywin32 ; platform_system=="Windows"',
+        'astropy'
+        'beautifultable'
+        'numpy-quaternion'
+        'pywin32 ; platform_system=="Windows"'
     ],
     url='https://titan.ssel.montana.edu/gitlab/Kankelborg-Group/kgpy',
     license='',
