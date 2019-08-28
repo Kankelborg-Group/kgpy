@@ -8,10 +8,11 @@ setup(
         'numpy',
         'matplotlib',
         'scipy',
-        'astropy'
-        'beautifultable'
-        'numpy-quaternion'
-        'pywin32 ; platform_system=="Windows"'
+        'astropy',
+        'beautifultable',
+        'numba',
+        'numpy-quaternion',
+        'pywin32 ; platform_system=="Windows"',
     ],
     url='https://titan.ssel.montana.edu/gitlab/Kankelborg-Group/kgpy',
     license='',
