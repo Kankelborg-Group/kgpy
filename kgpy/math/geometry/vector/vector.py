@@ -3,7 +3,6 @@ import enum
 import typing as tp
 import numpy as np
 import astropy.units as u
-import quaternion as q
 
 from kgpy import math
 
