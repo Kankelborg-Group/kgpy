@@ -46,3 +46,6 @@
 
 # Mac OSX aliases
 *alias
+
+# Pip
+*.egg-info/
