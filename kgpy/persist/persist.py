@@ -18,18 +18,26 @@ def persist(func: tp.Callable, pkg_filter_list: tp.Optional[tp.List] = None, ):
 
         module = inspect.getmodule(func)
 
-        p = cache_path(module)
+        arg_cache = klepto.archives.file_archive(name=cache_directory(module, func) / 'args',
+                                                 serialized=True, cached=True)
 
-        if obj_path(p).exists():
-            if cls.pydeps_path(p).exists():
-                if cls.pydeps_unchanged(p, module=module, pkg_list=pkg_list):
-                    return cls.load(p)
+        for arg in args:
 
-        self = type.__call__(cls, *args, **kwargs)
+            
 
-        cls.save(self, p)
 
-        return self
+
+
+        # if obj_path(p).exists():
+        #     if cls.pydeps_path(p).exists():
+        #         if cls.pydeps_unchanged(p, module=module, pkg_list=pkg_list):
+        #             return cls.load(p)
+        #
+        # self = type.__call__(cls, *args, **kwargs)
+        #
+        # cls.save(self, p)
+        #
+        # return self
 
     return persist_wrapper
 
@@ -83,12 +91,13 @@ def kwargs_path(mcs, path: pathlib.Path) -> pathlib.Path:
     return path / pathlib.Path('kwargs')
 
 
-def cache_directory(module: types.ModuleType) -> pathlib.Path:
+def cache_directory(module: types.ModuleType, func: tp.Callable) -> pathlib.Path:
 
     module_path = pathlib.Path(module.__file__).parent
-    pickle_path = pathlib.Path('.cache')
-    name_path = pathlib.Path(module.__name__)
-    path = module_path / pickle_path / name_path
+    cache_path = pathlib.Path('.cache')
+    module_name = pathlib.Path(module.__name__.split('.')[-1])
+    func_name = pathlib.Path(func.__name__)
+    path = module_path / cache_path / module_name / func_name
     path.mkdir(parents=True, exist_ok=True)
 
     return path

@@ -2,19 +2,28 @@
 from pathlib import Path
 
 import kgpy
-from . import Persist
 from .test_package import TestPackage
-from kgpy.optics import ZmxSystem
+from . import persist
+# from kgpy.optics import ZmxSystem/
 
-class TestPersist:
 
-    def test__init__(self):
+def test_persist():
 
-        val = TestPackage()
+    f = persist.persist(TestPackage.f)
 
-    def test_get_imports(self):
+    f(1, 2, a=3)
 
-        imports = ZmxSystem.get_pydeps(pkg_list=Path(kgpy.__file__).parent)
 
-        for im in imports:
-            print(im)
+
+# class TestPersist:
+#
+#     def test__init__(self):
+#
+#         val = TestPackage()
+#
+#     def test_get_imports(self):
+#
+#         imports = ZmxSystem.get_pydeps(pkg_list=Path(kgpy.__file__).parent)
+#
+#         for im in imports:
+#             print(im)
