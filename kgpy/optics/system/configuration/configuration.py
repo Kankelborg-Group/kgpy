@@ -1,12 +1,9 @@
 
 import typing as tp
-import numpy as np
 import astropy.units as u
 from beautifultable import BeautifulTable
 
-from kgpy import optics
 from . import Wavelength, Field, SurfaceArray
-from . import surface
 
 __all__ = ['Configuration']
 

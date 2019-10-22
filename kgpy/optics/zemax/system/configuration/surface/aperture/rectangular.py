@@ -1,8 +1,3 @@
-
-import typing as tp
-import astropy.units as u
-
-from kgpy import optics
 from kgpy.optics.zemax import ZOSAPI
 
 from . import Aperture
@@ -10,7 +5,7 @@ from . import Aperture
 __all__ = ['Rectangular']
 
 
-class Rectangular(optics.system.configuration.surface.aperture.Rectangular, Aperture):
+class Rectangular(kgpy.optics.system.surface.aperture.Rectangular, Aperture):
 
     def __init__(self, zemax_surface, *args, **kwargs):
 

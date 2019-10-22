@@ -1,5 +1,3 @@
-
-from kgpy import optics
 from kgpy.optics.zemax import ZOSAPI
 
 from . import Surface
@@ -7,7 +5,7 @@ from . import Surface
 __all__ = []
 
 
-class Standard(optics.system.configuration.surface.Standard, Surface):
+class Standard(kgpy.optics.system.surface.Standard, Surface):
 
     def __init__(self, zemax_surface: ZOSAPI.Editors.LDE.ILDERow,
                  *args, **kwargs):

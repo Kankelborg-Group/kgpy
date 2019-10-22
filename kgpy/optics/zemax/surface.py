@@ -23,7 +23,7 @@ def add_aperture_to_zemax_surface(zemax_system: ZOSAPI.IOpticalSystem,
         ZOSAPI.Editors.MCE.MultiConfigOperandType.APMX
     ]
 
-    if isinstance(aperture, optics.system.configuration.surface.aperture.Rectangular):
+    if isinstance(aperture, kgpy.optics.system.surface.aperture.Rectangular):
 
         if configuration_index == 0:
 
@@ -261,22 +261,22 @@ def add_surfaces_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
         if surface.is_stop:
             zemax_surface.IsStop = surface.is_stop
 
-        if isinstance(surface, optics.system.configuration.surface.Standard):
+        if isinstance(surface, kgpy.optics.system.surface.Standard):
 
             add_standard_surface_to_zemax_system(zemax_system, zemax_surface, zemax_units, configuration_index,
                                                  surface_index, surface)
 
-            if isinstance(surface, optics.system.configuration.surface.DiffractionGrating):
+            if isinstance(surface, kgpy.optics.system.surface.DiffractionGrating):
 
                 add_diffraction_grating_to_zemax_system(zemax_system, zemax_surface, configuration_index, surface_index,
                                                         surface)
 
-            if isinstance(surface, optics.system.configuration.surface.Toroidal):
+            if isinstance(surface, kgpy.optics.system.surface.Toroidal):
 
                 add_toroidal_surface_to_zemax_system(zemax_system, zemax_surface, zemax_units, configuration_index,
                                                      surface_index, surface)
 
-        if isinstance(surface, optics.system.configuration.surface.CoordinateBreak):
+        if isinstance(surface, kgpy.optics.system.surface.CoordinateBreak):
 
             add_coordinate_break_surface_to_zemax_system(zemax_system, zemax_surface, zemax_units, configuration_index,
                                                          surface_index, surface)
