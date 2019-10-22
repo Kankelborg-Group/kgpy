@@ -13,6 +13,7 @@ setup(
         'numpy-quaternion',
         'numba',
         'pywin32 ; platform_system=="Windows"',
+        'nptyping',
     ],
     url='https://titan.ssel.montana.edu/gitlab/Kankelborg-Group/kgpy',
     license='',
