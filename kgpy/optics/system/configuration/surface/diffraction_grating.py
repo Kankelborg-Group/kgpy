@@ -9,22 +9,11 @@ from . import Standard
 __all__ = ['DiffractionGrating']
 
 
-class DiffractionGrating(Standard):
+@dataclasses.dataclass
+class DiffractionGrating:
 
-    def __init__(self, *args, diffraction_order: int = 1, groove_frequency: u.Quantity = 1000 / u.um, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        self._diffraction_order = diffraction_order
-        self._groove_frequency = groove_frequency
-
-    @property
-    def diffraction_order(self) -> int:
-        return self._diffraction_order
-
-    @property
-    def groove_frequency(self) -> u.Quantity:
-        return self._groove_frequency
+    diffraction_order: u.Quantity = [[0]] * u.dimensionless_unscaled
+    groove_frequency: u.Quantity = [[0]] * (1 / u.mm)
 
 
 def wavelength_from_vectors(input_vector: math.geometry.Vector,
