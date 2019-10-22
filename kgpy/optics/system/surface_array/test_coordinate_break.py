@@ -9,3 +9,4 @@ class TestCoordinateBreak:
 
         assert c.decenter.ndim == 3
         assert c.decenter.shape[~0] == 3
+
