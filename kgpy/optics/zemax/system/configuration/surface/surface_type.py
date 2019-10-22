@@ -4,7 +4,7 @@ from win32com.client import CastTo
 import astropy.units as u
 
 from kgpy import optics
-from kgpy.optics.system.surface import surface_type
+from kgpy.optics.system.surface_array import surface_type
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import SurfaceType, ISurfaceTypeSettings, ISurfaceToroidal, \
     ISurfaceDiffractionGrating, ISurfaceEllipticalGrating1
 
