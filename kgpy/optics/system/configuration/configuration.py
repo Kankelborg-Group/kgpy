@@ -5,7 +5,7 @@ import astropy.units as u
 from beautifultable import BeautifulTable
 
 from kgpy import optics
-from . import Wavelength, Field, Surface
+from . import Wavelength, Field, SurfaceArray
 from . import surface
 
 __all__ = ['Configuration']
@@ -21,7 +21,7 @@ class Configuration:
     def __init__(self,
                  name: str = '',
                  entrance_pupil_radius: u.Quantity = None,
-                 surfaces: tp.List[Surface] = None,
+                 surfaces: tp.List[SurfaceArray] = None,
                  wavelengths: tp.List[Wavelength] = None,
                  fields: tp.List[Field] = None
                  ):
@@ -58,7 +58,7 @@ class Configuration:
         return self._entrance_pupil_radius
 
     @property
-    def surfaces(self) -> tp.List[Surface]:
+    def surfaces(self) -> tp.List[SurfaceArray]:
         return self._surfaces
 
     @property
@@ -70,21 +70,21 @@ class Configuration:
         return self._fields
 
     @property
-    def object(self) -> Surface:
+    def object(self) -> SurfaceArray:
         """
         :return: The object surface within the system, defined as the first surface in the list of surfaces.
         """
         return self._object
 
     @property
-    def image(self) -> Surface:
+    def image(self) -> SurfaceArray:
         """
         :return: The image surface within the system
         """
         return self._image
 
     @property
-    def stop(self) -> Surface:
+    def stop(self) -> SurfaceArray:
         """
         :return: The stop surface within the system
         """

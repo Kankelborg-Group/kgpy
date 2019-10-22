@@ -1,9 +1,9 @@
 
-from . import Surface
+from . import SurfaceArray
 
 __all__ = ['Paraxial']
 
 
-class Paraxial(Surface):
+class Paraxial(SurfaceArray):
 
     pass

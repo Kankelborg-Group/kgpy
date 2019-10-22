@@ -1,7 +1,7 @@
 
 from typing import List, Union, Dict
 
-from kgpy.optics.system.configuration import Surface
+from kgpy.optics.system.configuration import SurfaceArray
 from kgpy.math import Vector
 
 __all__ = ['Component']
@@ -30,14 +30,14 @@ class Component:
 
         # The surfaces within the component are stored as a linked list.
         # This attribute is a pointer to the first element of this list.
-        self._surfaces = []          # type: List[Surface]
+        self._surfaces = []          # type: List[SurfaceArray]
         
     @property
     def surfaces(self):
         return self._surfaces
 
     @property
-    def first_surface(self) -> Union[Surface, None]:
+    def first_surface(self) -> Union[SurfaceArray, None]:
         """
         :return: The first surface in the component if it exists, otherwise return None
         """
@@ -61,7 +61,7 @@ class Component:
         # vector to the first surface of the component.
         return self._surfaces[-1].back_cs.translation - self._surfaces[0].post_cs.translation
 
-    def append(self, surface: Surface) -> None:
+    def append(self, surface: SurfaceArray) -> None:
         """
         Add provided surface to the end of the list of surfaces.
         :param surface: Surface to add to the end of the component
@@ -75,7 +75,7 @@ class Component:
         self._surfaces.append(surface)
 
     @property
-    def _surfaces_dict(self) -> Dict[str, Surface]:
+    def _surfaces_dict(self) -> Dict[str, SurfaceArray]:
         """
         :return: a dictionary where the key is the surface name and the value is the surface.
         """
@@ -131,7 +131,7 @@ class Component:
 
         return any(surf == item for surf in self._surfaces)
 
-    def __getitem__(self, item: Union[int, str]) -> Surface:
+    def __getitem__(self, item: Union[int, str]) -> SurfaceArray:
         """
         Gets the surface at index i within the component, or the surface with the name item
         Accessed using the square bracket operator, e.g. surf = sys[i]

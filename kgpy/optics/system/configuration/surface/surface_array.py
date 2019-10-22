@@ -1,23 +1,18 @@
 import dataclasses
-import typing as tp
 import numpy as np
+import nptyping as npt
 import astropy.units as u
-from beautifultable import BeautifulTable
 
-from kgpy import optics, math
-
-from . import Aperture, Material
-
-__all__ = ['Surface']
+__all__ = ['SurfaceArray']
 
 
 @dataclasses.dataclass
-class Surface:
+class SurfaceArray:
     """
     This class represents a single optical surface. This class should be a drop-in replacement for a Zemax surface, and
     have all the same properties and behaviors.
     """
 
-    name: str = ''
-    is_stop: bool = False
-    thickness: u.Quantity = None
+    name: npt.Array[str] = np.array('')
+    is_stop: npt.Array[bool] = np.array(False)
+    thickness: u.Quantity = 0 * u.mm

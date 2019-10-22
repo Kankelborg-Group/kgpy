@@ -34,7 +34,7 @@ class System:
         return self._configurations
 
     def add_baffle(self, baffle_name: str, baffle_cs: math.geometry.CoordinateSystem,
-                   pass_surfaces: tp.Union[None, tp.List[tp.Union[None, configuration.Surface]]] = None,
+                   pass_surfaces: tp.Union[None, tp.List[tp.Union[None, configuration.SurfaceArray]]] = None,
                    margin: u.Quantity = 1 * u.mm) -> 'configuration.Component':
 
         comp = self.add_baffle_component(baffle_name, baffle_cs)
@@ -273,7 +273,7 @@ class System:
 
         return baffle
 
-    def square_raytrace(self, configurations: tp.List[int], surfaces: tp.List[configuration.Surface],
+    def square_raytrace(self, configurations: tp.List[int], surfaces: tp.List[configuration.SurfaceArray],
                         wavelengths: tp.List[configuration.Wavelength],
                         num_field, num_pupil):
 
@@ -288,7 +288,7 @@ class System:
 
         return self.raytrace(configurations, surfaces, wavelengths, field_x, field_y, pupil_x, pupil_y)
             
-    def raytrace(self, configurations: tp.List[int], surfaces: tp.List[configuration.Surface],
+    def raytrace(self, configurations: tp.List[int], surfaces: tp.List[configuration.SurfaceArray],
                  wavelengths: tp.List[configuration.Wavelength], field_x: np.ndarray, field_y: np.ndarray,
                  pupil_x: np.ndarray, pupil_y: np.ndarray
                  ) -> tp.Tuple[np.ndarray, np.ndarray, np.ndarray]:

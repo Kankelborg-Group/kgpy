@@ -1,14 +1,14 @@
-
+import dataclasses
 import astropy.units as u
 
 from kgpy import math
 
-from . import Surface
+from . import SurfaceArray
 
 __all__ = ['CoordinateBreak']
 
 
-class CoordinateBreak(Surface):
+class CoordinateBreak(SurfaceArray):
 
     def __init__(self, *args,
                  tilt_decenter: math.geometry.CoordinateSystem = None,

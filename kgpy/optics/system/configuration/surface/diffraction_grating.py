@@ -1,4 +1,4 @@
-
+import dataclasses
 import typing as tp
 import astropy.units as u
 

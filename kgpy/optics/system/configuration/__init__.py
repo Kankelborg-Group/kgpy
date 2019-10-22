@@ -5,5 +5,5 @@ from . import surface
 
 from .field import Field
 from .wavelength import Wavelength
-from .surface import Surface
+from .surface import SurfaceArray
 from .configuration import Configuration

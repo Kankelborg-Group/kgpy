@@ -14,7 +14,7 @@ from . import Aperture, Material
 __all__ = ['Surface']
 
 
-class Surface(optics.system.configuration.Surface):
+class Surface(optics.system.configuration.SurfaceArray):
 
     class CoordinateBreakOps:
 
@@ -136,7 +136,7 @@ class Surface(optics.system.configuration.Surface):
             op.Param2 = i
 
     @classmethod
-    def conscript(cls, surf: optics.system.configuration.Surface) -> 'Surface':
+    def conscript(cls, surf: optics.system.configuration.SurfaceArray) -> 'Surface':
         """
         Convert a Surface object to ZmxSurface object
         :param surf: Surface object to convert
