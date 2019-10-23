@@ -3,12 +3,12 @@ import astropy.units as u
 
 from kgpy import math
 
-from . import SurfaceArray
+from . import Surface
 
 __all__ = ['CoordinateBreak']
 
 
-class CoordinateBreak:
+class CoordinateBreak(Surface):
 
-    decenter: u.Quantity = [[[0, 0, 0]]] * u.m
-    tilt: u.Quantity = [[[0, 0, 0]]] * u.deg
+    decenter: u.Quantity = [0, 0, 0] * u.m
+    tilt: u.Quantity = [0, 0, 0] * u.deg

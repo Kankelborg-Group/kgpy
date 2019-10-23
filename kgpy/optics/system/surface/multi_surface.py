@@ -3,20 +3,22 @@ import typing as tp
 import astropy.units as u
 
 from kgpy import math
-from . import Aperture, SurfaceArray, CoordinateBreak
+from . import Aperture, Surface, CoordinateBreak
 
 __all__ = ['MultiSurface']
 
 
 class MultiSurface:
 
+
+
     def __init__(self, name: str):
 
         self._pre_tilt_decenter = CoordinateBreak(name + '.pre_coordinate_break')
-        self._aperture = SurfaceArray(name + '.aperture')
-        self._mechanical_aperture = SurfaceArray(name + '.mechanical_aperture')
+        self._aperture = Surface(name + '.aperture')
+        self._mechanical_aperture = Surface(name + '.mechanical_aperture')
         self._post_tilt_decenter = CoordinateBreak(name + '.post_coordinate_break')
-        self._thickness = SurfaceArray(name + '.post_coordinate_break')
+        self._thickness = Surface(name + '.post_coordinate_break')
 
     @property
     def aperture(self) -> Aperture:

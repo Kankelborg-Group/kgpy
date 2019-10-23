@@ -1,5 +1,7 @@
+import nptyping as npt
+import astropy.units as u
 
-from . import Standard
+from . import Standard, Material, Aperture
 
 
 class TestStandard:
@@ -8,4 +10,6 @@ class TestStandard:
 
         s = Standard()
 
-        print(s.tilt_after.shape)
+        assert isinstance(s.radius, u.Quantity)
+        assert isinstance(s.conic, u.Quantity)
+        assert s.material is None or isinstance(s.material, Material) or isinstance(s.material, npt.Array[Material])

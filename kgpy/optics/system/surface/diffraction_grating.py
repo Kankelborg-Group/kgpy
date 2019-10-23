@@ -10,10 +10,10 @@ __all__ = ['DiffractionGrating']
 
 
 @dataclasses.dataclass
-class DiffractionGrating:
+class DiffractionGrating(Standard):
 
-    diffraction_order: u.Quantity = [[0]] * u.dimensionless_unscaled
-    groove_frequency: u.Quantity = [[0]] * (1 / u.mm)
+    diffraction_order: u.Quantity = 0 * u.dimensionless_unscaled
+    groove_frequency: u.Quantity = 0 * (1 / u.mm)
 
 
 def wavelength_from_vectors(input_vector: math.geometry.Vector,

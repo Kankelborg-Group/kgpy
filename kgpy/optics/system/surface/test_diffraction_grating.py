@@ -7,5 +7,4 @@ class TestDiffractionGrating:
 
         d = DiffractionGrating()
 
-        assert d.diffraction_order.ndim == 2
-        assert d.groove_frequency.ndim == 2
+
