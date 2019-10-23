@@ -2,7 +2,7 @@
 import astropy.units as u
 
 from kgpy import optics
-from kgpy.optics.system.surface_array import aperture
+from kgpy.optics.system.surface import aperture
 from .aperture import Aperture
 from kgpy.optics.zemax.ZOSAPI.Editors.LDE import SurfaceApertureTypes, ISurfaceApertureSpider
 
