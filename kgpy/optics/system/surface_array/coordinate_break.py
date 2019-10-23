@@ -8,7 +8,7 @@ from . import SurfaceArray
 __all__ = ['CoordinateBreak']
 
 
-class CoordinateBreak(SurfaceArray):
+class CoordinateBreak:
 
-    decenter: u.Quantity = [[0, 0, 0]] * u.m
-    tilt: u.Quantity = [[0, 0, 0]] * u.deg
+    decenter: u.Quantity = [[[0, 0, 0]]] * u.m
+    tilt: u.Quantity = [[[0, 0, 0]]] * u.deg

@@ -4,4 +4,4 @@ from . import wavelength
 
 from .field import Field
 from .wavelength import Wavelength
-from .configuration import Configuration
+# from .configuration import Configuration
