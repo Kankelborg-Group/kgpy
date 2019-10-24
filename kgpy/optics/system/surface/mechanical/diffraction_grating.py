@@ -1,0 +1,54 @@
+import dataclasses
+import typing as tp
+import nptyping as npt
+import astropy.units as u
+
+__all__ = ['DiffractionGrating']
+
+from kgpy.optics.system import surface
+from . import Standard
+
+
+@dataclasses.dataclass
+class DiffractionGrating(Standard):
+
+    main_surface: tp.Union[surface.DiffractionGrating, 'DiffractionGrating'] = surface.DiffractionGrating()
+
+    @classmethod
+    def from_surface_params(
+            cls,
+            diffraction_order: u.Quantity = 0 * u.dimensionless_unscaled,
+            groove_frequency: u.Quantity = 0 * (1 / u.mm),
+            **kwargs,
+    ):
+
+        s = super().from_surface_params(**kwargs)
+
+        main_surf = surface.DiffractionGrating(
+            name=s.name,
+            is_stop=s.is_stop,
+            is_detector=s.is_detector,
+            thickness=s.thickness,
+            radius=s.radius,
+            conic=s.conic,
+            material=s.material,
+            aperture=s.mechanical_aperture,
+            diffraction_order=diffraction_order,
+            groove_frequency=groove_frequency,
+        )
+
+        return cls(
+            coordinate_break_before=s.coordinate_break_before,
+            aperture_surface=s.aperture_surface,
+            main_surface=main_surf,
+            coordinate_break_after_z=s.coordinate_break_after_z,
+            coordinate_break_after=s.coordinate_break_after
+        )
+
+    @property
+    def diffraction_order(self):
+        return self.main_surface.diffraction_order
+
+    @property
+    def groove_frequency(self):
+        return self.main_surface.groove_frequency

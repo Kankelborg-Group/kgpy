@@ -3,51 +3,54 @@ import typing as tp
 import nptyping as npt
 import astropy.units as u
 
-from kgpy.optics.system.surface import Material, Aperture, Standard, CoordinateBreak
+from kgpy.optics.system import surface
 
-__all__ = ['MultiSurface']
+__all__ = ['Standard']
 
 
 @dataclasses.dataclass
-class MultiSurface:
+class Standard:
 
-    coordinate_break_before: CoordinateBreak = CoordinateBreak()
-    aperture_surface: Standard = Standard()
-    main_surface: Standard = Standard()
-    coordinate_break_after_z: CoordinateBreak = CoordinateBreak()
-    coordinate_break_after: CoordinateBreak = CoordinateBreak()
+    coordinate_break_before: surface.CoordinateBreak = surface.CoordinateBreak()
+    aperture_surface: surface.Standard = surface.Standard()
+    main_surface: tp.Union[surface.Standard, 'Standard'] = surface.Standard()
+    coordinate_break_after_z: surface.CoordinateBreak = surface.CoordinateBreak()
+    coordinate_break_after: surface.CoordinateBreak = surface.CoordinateBreak()
 
     @classmethod
     def from_surface_params(
             cls,
             name: tp.Union[str, npt.Array[str]] = '',
             is_stop: tp.Union[bool, npt.Array[bool]] = False,
+            is_detector: tp.Union[bool, npt.Array[bool]] = False,
             thickness: u.Quantity = 0 * u.mm,
             radius: u.Quantity = 0 * u.mm,
             conic: u.Quantity = 0 * u.dimensionless_unscaled,
-            material: tp.Union[tp.Optional[Material], npt.Array[tp.Optional[Material]]] = None,
-            aperture: tp.Union[tp.Optional[Aperture], npt.Array[tp.Optional[Aperture]]] = None,
-            mechanical_aperture: tp.Union[tp.Optional[Aperture], npt.Array[tp.Optional[Aperture]]] = None,
+            material: tp.Union[tp.Optional[surface.Material], npt.Array[tp.Optional[surface.Material]]] = None,
+            aperture: tp.Union[tp.Optional[surface.Aperture], npt.Array[tp.Optional[surface.Aperture]]] = None,
+            mechanical_aperture: tp.Union[tp.Optional[surface.Aperture],
+                                          npt.Array[tp.Optional[surface.Aperture]]] = None,
             decenter_before: u.Quantity = [0, 0, 0] * u.m,
             decenter_after: u.Quantity = [0, 0, 0] * u.m,
             tilt_before: u.Quantity = [0, 0, 0] * u.deg,
             tilt_after: u.Quantity = [0, 0, 0] * u.deg,
-    ):
+    ) -> 'Standard':
 
-        cb_before = CoordinateBreak(
+        cb_before = surface.CoordinateBreak(
             name=name + '.cb_before',
             tilt=tilt_before,
             decenter=decenter_before,
         )
 
-        aper_surf = Standard(
+        aper_surf = surface.Standard(
             name=name + '.aperture',
             aperture=aperture,
         )
 
-        main_surf = Standard(
+        main_surf = surface.Standard(
             name=name,
             is_stop=is_stop,
+            is_detector=is_detector,
             radius=radius,
             conic=conic,
             material=material,
@@ -63,12 +66,12 @@ class MultiSurface:
         decenter_after_z[..., :~0] = 0
         decenter_after[..., ~0] = 0
 
-        cb_after_z = CoordinateBreak(
+        cb_after_z = surface.CoordinateBreak(
             name=name + '.cb_after_z',
             decenter=decenter_after_z,
         )
 
-        cb_after = CoordinateBreak(
+        cb_after = surface.CoordinateBreak(
             name=name+'.cb_after',
             thickness=thickness,
             tilt=tilt_after,
@@ -86,6 +89,10 @@ class MultiSurface:
         return self.main_surface.is_stop
 
     @property
+    def is_detector(self):
+        return self.main_surface.is_detector
+
+    @property
     def thickness(self):
         return self.coordinate_break_after.thickness
 
@@ -100,6 +107,14 @@ class MultiSurface:
     @property
     def material(self):
         return self.main_surface.material
+
+    @property
+    def aperture(self):
+        return self.aperture_surface.aperture
+
+    @property
+    def mechanical_aperture(self):
+        return self.main_surface.aperture
 
     @property
     def decenter_before(self):
