@@ -3,7 +3,7 @@ import typing as tp
 import nptyping as npt
 import astropy.units as u
 
-from . import Material, Aperture, Standard, CoordinateBreak
+from kgpy.optics.system.surface import Material, Aperture, Standard, CoordinateBreak
 
 __all__ = ['MultiSurface']
 
