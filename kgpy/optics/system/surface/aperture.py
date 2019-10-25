@@ -7,11 +7,14 @@ import astropy.units as u
 
 from kgpy import math, optics
 
-__all__ = ['Aperture']
+__all__ = ['Aperture', 'Circular', 'Rectangular', 'RegularPolygon', 'Spider']
 
 
 @dataclasses.dataclass
 class Aperture(abc.ABC):
+
+    decenter_x: u.Quantity = 0 * u.mm
+    decenter_y: u.Quantity = 0 * u.mm
 
     is_obscuration: tp.Union[bool, npt.Array[bool]] = False
 
@@ -30,8 +33,6 @@ class Circular(Aperture):
 @dataclasses.dataclass
 class Rectangular(Aperture):
 
-    decenter_x: u.Quantity = 0 * u.mm
-    decenter_y: u.Quantity = 0 * u.mm
     half_width_x: u.Quantity = 0 * u.mm
     half_width_y: u.Quantity = 0 * u.mm
 
@@ -64,3 +65,10 @@ class RegularPolygon(Aperture):
         pts = pts.transpose()   # type: u.Quantity
 
         return pts
+
+
+@dataclasses.dataclass
+class Spider(Aperture):
+
+    arm_half_width: u.Quantity = 0 * u.mm
+    num_arms: int = 2
