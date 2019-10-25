@@ -9,4 +9,4 @@ __all__ = ['Toroidal']
 @dataclasses.dataclass
 class Toroidal(Standard):
 
-    radius_of_rotation = 0 * u.mm
+    radius_of_rotation: u.Quantity = 0 * u.mm
