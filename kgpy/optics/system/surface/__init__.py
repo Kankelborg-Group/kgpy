@@ -8,3 +8,5 @@ from .toroidal import Toroidal
 from .elliptical_grating import EllipticalGrating1
 
 from . import aperture
+from . import material
+from . import mechanical
