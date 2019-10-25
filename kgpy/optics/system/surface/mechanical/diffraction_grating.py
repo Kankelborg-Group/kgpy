@@ -1,12 +1,11 @@
 import dataclasses
 import typing as tp
-import nptyping as npt
 import astropy.units as u
-
-__all__ = ['DiffractionGrating']
 
 from kgpy.optics.system import surface
 from . import Standard
+
+__all__ = ['DiffractionGrating']
 
 
 @dataclasses.dataclass
@@ -20,7 +19,7 @@ class DiffractionGrating(Standard):
             diffraction_order: u.Quantity = 0 * u.dimensionless_unscaled,
             groove_frequency: u.Quantity = 0 * (1 / u.mm),
             **kwargs,
-    ):
+    ) -> 'DiffractionGrating':
 
         s = super().from_surface_params(**kwargs)
 
@@ -28,7 +27,6 @@ class DiffractionGrating(Standard):
             name=s.name,
             is_stop=s.is_stop,
             is_detector=s.is_detector,
-            thickness=s.thickness,
             radius=s.radius,
             conic=s.conic,
             material=s.material,
