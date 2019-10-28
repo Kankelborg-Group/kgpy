@@ -10,13 +10,14 @@ __all__ = ['Fields']
 
 @dataclasses.dataclass
 class Fields:
-    x: u.Quantity = [0.0] * u.rad,
-    y: u.Quantity = [0.0] * u.rad,
-    weight: u.Quantity = [1.0] * u.dimensionless_unscaled,
-    vdx: u.Quantity = [0.0] * u.dimensionless_unscaled,
-    vdy: u.Quantity = [0.0] * u.dimensionless_unscaled,
-    vcx: u.Quantity = [0.0] * u.dimensionless_unscaled,
-    vcy: u.Quantity = [0.0] * u.dimensionless_unscaled,
+
+    x: u.Quantity = [0.0] * u.rad
+    y: u.Quantity = [0.0] * u.rad
+    weight: u.Quantity = [1.0] * u.dimensionless_unscaled
+    vdx: u.Quantity = [0.0] * u.dimensionless_unscaled
+    vdy: u.Quantity = [0.0] * u.dimensionless_unscaled
+    vcx: u.Quantity = [0.0] * u.dimensionless_unscaled
+    vcy: u.Quantity = [0.0] * u.dimensionless_unscaled
     van: u.Quantity = [0.0] * u.rad
 
     @classmethod

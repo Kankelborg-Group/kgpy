@@ -25,4 +25,21 @@ class Standard(Surface):
     tilt_before: u.Quantity = [0, 0, 0] * u.deg
     tilt_after: u.Quantity = [0, 0, 0] * u.deg
     
-    tilt_first: bool = False
+    tilt_first: tp.Union[bool, npt.Array[bool]] = False
+
+    @property
+    def attributes(self):
+
+        return super().attributes + [
+            self.radius,
+            self.conic,
+            np.array(self.material),
+            np.array(self.aperture),
+            self.decenter_before[..., 0],
+            self.decenter_after[..., 0],
+            self.tilt_before[..., 0],
+            self.tilt_after[..., 0],
+            np.array(self.tilt_first)
+        ]
+
+

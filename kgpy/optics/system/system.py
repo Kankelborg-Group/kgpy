@@ -10,14 +10,6 @@ __all__ = ['System']
 class System:
 
     name: str
-    surfaces: npt.Array(Surface)
+    surfaces: npt.Array[Surface]
     fields: Fields
     wavelengths: Wavelengths
-
-   
-
-
-
-
-
-

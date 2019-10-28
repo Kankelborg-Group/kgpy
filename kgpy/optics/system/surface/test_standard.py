@@ -1,3 +1,5 @@
+import pytest
+import typing as tp
 import nptyping as npt
 import astropy.units as u
 
@@ -13,3 +15,13 @@ class TestStandard:
         assert isinstance(s.radius, u.Quantity)
         assert isinstance(s.conic, u.Quantity)
         assert s.material is None or isinstance(s.material, Material) or isinstance(s.material, npt.Array[Material])
+
+    @pytest.mark.parametrize('test_surface, expected_shape', [
+        (Standard(), ()),
+        (Standard(thickness=[0, 1, 2] * u.m), (3,)),
+        (Standard(radius=[1, 2, 3] * u.m), (3,)),
+        (Standard(decenter_before=[[0, 0, 0], [1, 0, 0]] * u.m), (2,))
+    ])
+    def test_shape(self, test_surface, expected_shape):
+
+        assert test_surface.shape == expected_shape

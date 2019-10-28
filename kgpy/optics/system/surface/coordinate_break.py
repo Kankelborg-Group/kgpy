@@ -1,7 +1,7 @@
 import dataclasses
+import typing as tp
+import nptyping as npt
 import astropy.units as u
-
-from kgpy import math
 
 from . import Surface
 
@@ -14,4 +14,4 @@ class CoordinateBreak(Surface):
     decenter: u.Quantity = [0, 0, 0] * u.m
     tilt: u.Quantity = [0, 0, 0] * u.deg
 
-    translation_first: bool = True
+    tilt_first: tp.Union[bool, npt.Array[bool]] = False
