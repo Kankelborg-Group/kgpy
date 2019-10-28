@@ -1,51 +1,23 @@
+import dataclasses
 import typing as tp
-import enum
 import numpy as np
 import astropy.units as u
 
-from kgpy import optics
+from . import pupil
 
-__all__ = ['Field']
+__all__ = ['Fields']
 
 
-class Field:
-
-    def __init__(self,
-                 x: u.Quantity = None,
-                 y: u.Quantity = None,
-                 weight: u.Quantity = None,
-                 vdx: u.Quantity = None,
-                 vdy: u.Quantity = None,
-                 vcx: u.Quantity = None,
-                 vcy: u.Quantity = None,
-                 van: u.Quantity = None
-                 ):
-
-        if x is None:
-            x = 0.0 * u.rad
-        if y is None:
-            y = 0.0 * u.rad
-        if weight is None:
-            weight = 1.0 * u.dimensionless_unscaled
-        if vdx is None:
-            vdx = 0.0 * u.dimensionless_unscaled
-        if vdy is None:
-            vdy = 0.0 * u.dimensionless_unscaled
-        if vcx is None:
-            vcx = 0.0 * u.dimensionless_unscaled
-        if vcy is None:
-            vcy = 0.0 * u.dimensionless_unscaled
-        if van is None:
-            van = 0.0 * u.rad
-
-        self._x = x
-        self._y = y
-        self._weight = weight
-        self._vdx = vdx
-        self._vdy = vdy
-        self._vcx = vcx
-        self._vcy = vcy
-        self._van = van
+@dataclasses.dataclass
+class Fields:
+    x: u.Quantity = [0.0] * u.rad,
+    y: u.Quantity = [0.0] * u.rad,
+    weight: u.Quantity = [1.0] * u.dimensionless_unscaled,
+    vdx: u.Quantity = [0.0] * u.dimensionless_unscaled,
+    vdy: u.Quantity = [0.0] * u.dimensionless_unscaled,
+    vcx: u.Quantity = [0.0] * u.dimensionless_unscaled,
+    vcy: u.Quantity = [0.0] * u.dimensionless_unscaled,
+    van: u.Quantity = [0.0] * u.rad
 
     @classmethod
     def from_physical_pupil_size(cls,
@@ -56,11 +28,10 @@ class Field:
                                  pupil_semi_axis_x: u.Quantity,
                                  pupil_semi_axis_y: u.Quantity,
                                  entrance_pupil_radius: u.Quantity,
-                                 ) -> 'Field':
-
-        vdx, vdy = optics.system.configuration.pupil.normalize_coordinates(pupil_decenter_x,
-                                                                           pupil_decenter_y,
-                                                                           entrance_pupil_radius)
+                                 ) -> 'Fields':
+        vdx, vdy = pupil.normalize_coordinates(pupil_decenter_x,
+                                               pupil_decenter_y,
+                                               entrance_pupil_radius)
 
         vcx = 1 - (pupil_semi_axis_x / entrance_pupil_radius)
         vcy = 1 - (pupil_semi_axis_y / entrance_pupil_radius)
@@ -71,38 +42,6 @@ class Field:
         return cls(field_x, field_y, weight, vdx, vdy, vcx, vcy, van)
 
     @property
-    def x(self) -> u.Quantity:
-        return self._x
-
-    @property
-    def y(self) -> u.Quantity:
-        return self._y
-
-    @property
-    def weight(self) -> u.Quantity:
-        return self._weight
-
-    @property
-    def vdx(self) -> u.Quantity:
-        return self._vdx
-
-    @property
-    def vdy(self) -> u.Quantity:
-        return self._vdy
-
-    @property
-    def vcx(self) -> u.Quantity:
-        return self._vcx
-
-    @property
-    def vcy(self) -> u.Quantity:
-        return self._vcy
-
-    @property
-    def van(self) -> u.Quantity:
-        return self._van
-
-    @property
     def radial_magnitude(self):
         return np.sqrt(self.x * self.x + self.y * self.y)
 
@@ -110,7 +49,6 @@ class Field:
                            pupil_norm_x: u.Quantity,
                            pupil_norm_y: u.Quantity,
                            ) -> tp.Tuple[u.Quantity, u.Quantity]:
-
         P_x = pupil_norm_x
         P_y = pupil_norm_y
 
@@ -123,11 +61,11 @@ class Field:
         return P_x__, P_y__
 
 
-def max_field_magnitude_radial(fields: tp.List[Field]) -> u.Quantity:
+def max_field_magnitude_radial(fields: tp.List[Fields]) -> u.Quantity:
     return max(field.radial_magnitude for field in fields)
 
 
-def max_field_magnitude_rectangular(fields: tp.List[Field]) -> tp.Tuple[u.Quantity, u.Quantity]:
+def max_field_magnitude_rectangular(fields: tp.List[Fields]) -> tp.Tuple[u.Quantity, u.Quantity]:
     max_x = max(field.x for field in fields)
     max_y = max(field.y for field in fields)
 

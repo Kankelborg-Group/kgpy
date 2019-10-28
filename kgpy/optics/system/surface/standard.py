@@ -24,3 +24,5 @@ class Standard(Surface):
 
     tilt_before: u.Quantity = [0, 0, 0] * u.deg
     tilt_after: u.Quantity = [0, 0, 0] * u.deg
+    
+    tilt_first: bool = False

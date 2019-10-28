@@ -1,5 +1,5 @@
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.system.configuration.wavelength import WavelengthList as ArrayBase, Wavelength as ItemBase
+from kgpy.optics.system.wavelengths import WavelengthList as ArrayBase, Wavelengths as ItemBase
 
 from .item import Wavelength
 

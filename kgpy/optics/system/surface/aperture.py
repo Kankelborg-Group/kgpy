@@ -7,7 +7,7 @@ import astropy.units as u
 
 from kgpy import math, optics
 
-__all__ = ['Aperture', 'Circular', 'Rectangular', 'RegularPolygon', 'Spider']
+__all__ = ['Aperture', 'Circular', 'Rectangular', 'Octagon', 'Spider']
 
 
 @dataclasses.dataclass
@@ -27,7 +27,8 @@ class Aperture(abc.ABC):
 @dataclasses.dataclass
 class Circular(Aperture):
 
-    radius: u.Quantity = 0 * u.mm
+    inner_radius: u.Quantity = 0 * u.mm
+    outer_radius: u.Quantity = 0 * u.mm
 
 
 @dataclasses.dataclass
@@ -47,10 +48,10 @@ class Rectangular(Aperture):
 
 
 @dataclasses.dataclass
-class RegularPolygon(Aperture):
+class Octagon(Aperture):
 
     radius: u.Quantity = 0 * u.mm
-    num_sides: int = 8
+    num_sides = 8
 
     @property
     def points(self) -> u.Quantity:
@@ -65,6 +66,12 @@ class RegularPolygon(Aperture):
         pts = pts.transpose()   # type: u.Quantity
 
         return pts
+    
+
+@dataclasses.dataclass
+class Polygon(Aperture):
+    
+    points: u.Quantity = [[-1, -1], [-1, 1], [1, 1], [1, -1]] * u.mm
 
 
 @dataclasses.dataclass

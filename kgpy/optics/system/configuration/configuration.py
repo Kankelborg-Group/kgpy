@@ -3,7 +3,7 @@ import typing as tp
 import astropy.units as u
 from beautifultable import BeautifulTable
 
-from . import Wavelength, Field, SurfaceArray
+from . import Wavelength, Fields, SurfaceArray
 
 __all__ = ['Configuration']
 
@@ -20,7 +20,7 @@ class Configuration:
                  entrance_pupil_radius: u.Quantity = None,
                  surfaces: tp.List[SurfaceArray] = None,
                  wavelengths: tp.List[Wavelength] = None,
-                 fields: tp.List[Field] = None
+                 fields: tp.List[Fields] = None
                  ):
 
         if entrance_pupil_radius is None:
@@ -63,7 +63,7 @@ class Configuration:
         return self._wavelengths
 
     @property
-    def fields(self) -> tp.List[Field]:
+    def fields(self) -> tp.List[Fields]:
         return self._fields
 
     @property

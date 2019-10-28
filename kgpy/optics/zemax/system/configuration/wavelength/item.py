@@ -2,7 +2,7 @@
 import astropy.units as u
 
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.system.configuration.wavelength import Wavelength as ItemBase
+from kgpy.optics.system.wavelengths import Wavelengths as ItemBase
 
 __all__ = ['Wavelength']
 

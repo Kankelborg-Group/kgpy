@@ -1,13 +1,12 @@
+import dataclasses
+
 __all__ = ['Material']
 
 
+@dataclasses.dataclass
 class Material:
+    
+    name: str = ''
 
-    def __str__(self):
-        return ''
 
-
-class Mirror(Material):
-
-    def __str__(self):
-        return 'MIRROR'
+mirror = Material(name='mirror')
