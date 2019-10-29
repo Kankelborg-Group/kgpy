@@ -1,5 +1,6 @@
 import dataclasses
 import typing as tp
+import numpy as np
 import astropy.units as u
 
 from . import DiffractionGrating
@@ -17,11 +18,12 @@ class EllipticalGrating1(DiffractionGrating):
     beta: u.Quantity = 0 * u.dimensionless_unscaled
 
     @property
-    def broadcastable_attrs(self):
-        return super().broadcastable_attrs + [
+    def broadcasted_attrs(self):
+        return np.broadcast(
+            super().broadcasted_attrs,
             self.a,
             self.b,
             self.c,
             self.alpha,
             self.beta,
-        ]
+        )

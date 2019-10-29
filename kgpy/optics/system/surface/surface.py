@@ -17,20 +17,13 @@ class Surface:
     name: tp.Union[str, npt.Array[str]] = ''
     is_stop: tp.Union[bool, npt.Array[bool]] = False
     thickness: u.Quantity = 0 * u.mm
+    is_active: tp.Union[bool, npt.Array[bool]] = True
 
     @property
-    def broadcastable_attrs(self):
-        return [
-            np.array(self.name),
-            np.array(self.is_stop),
-            self.thickness,
-        ]
-
-    @property
-    def shape(self) -> tp.Tuple[int]:
-
-        size_array = np.array([a.size for a in self.broadcastable_attrs])
-        shape_array = [a.shape for a in self.broadcastable_attrs]
-
-        return shape_array[np.argmax(size_array)]
+    def broadcasted_attrs(self):
+        return np.broadcast(
+            self.name,
+            self.is_stop,
+            self.thickness
+        )
 

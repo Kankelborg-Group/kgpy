@@ -1,4 +1,5 @@
 import dataclasses
+import numpy as np
 import astropy.units as u
 
 from . import Standard
@@ -12,7 +13,8 @@ class Toroidal(Standard):
     radius_of_rotation: u.Quantity = 0 * u.mm
 
     @property
-    def broadcastable_attrs(self):
-        return super().broadcastable_attrs + [
+    def broadcasted_attrs(self):
+        return np.broadcast(
+            super().broadcasted_attrs,
             self.radius_of_rotation,
-        ]
+        )

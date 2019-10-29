@@ -1,5 +1,6 @@
 import dataclasses
 import typing as tp
+import numpy as np
 import astropy.units as u
 
 from kgpy import math
@@ -14,13 +15,14 @@ class DiffractionGrating(Standard):
 
     diffraction_order: u.Quantity = 0 * u.dimensionless_unscaled
     groove_frequency: u.Quantity = 0 * (1 / u.mm)
-    
+
     @property
-    def broadcastable_attrs(self):
-        return super().broadcastable_attrs + [
+    def broadcasted_attrs(self):
+        return np.broadcast(
+            super().broadcasted_attrs,
             self.diffraction_order,
             self.groove_frequency,
-        ]
+        )
 
 
 def wavelength_from_vectors(input_vector: math.geometry.Vector,
