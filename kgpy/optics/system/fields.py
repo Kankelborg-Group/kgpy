@@ -20,6 +20,19 @@ class Fields:
     vcy: u.Quantity = [0.0] * u.dimensionless_unscaled
     van: u.Quantity = [0.0] * u.rad
 
+    @property
+    def broadcastable_attrs(self):
+        return np.broadcast(
+            self.x[..., 0],
+            self.y[..., 0],
+            self.weight[..., 0],
+            self.vdx[..., 0],
+            self.vdy[..., 0],
+            self.vcx[..., 0],
+            self.vcy[..., 0],
+            self.van[..., 0],
+        )
+
     @classmethod
     def from_physical_pupil_size(cls,
                                  field_x: u.Quantity,
