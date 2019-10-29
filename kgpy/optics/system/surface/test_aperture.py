@@ -16,6 +16,6 @@ class TestRegularPolygon:
 
     def test_points(self):
 
-        p = aperture.Octagon()
+        p = aperture.RegularOctagon()
 
         assert isinstance(p.points, u.Quantity)

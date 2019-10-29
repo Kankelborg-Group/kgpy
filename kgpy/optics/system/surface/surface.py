@@ -19,7 +19,7 @@ class Surface:
     thickness: u.Quantity = 0 * u.mm
 
     @property
-    def attributes(self):
+    def broadcastable_attrs(self):
         return [
             np.array(self.name),
             np.array(self.is_stop),
@@ -29,8 +29,8 @@ class Surface:
     @property
     def shape(self) -> tp.Tuple[int]:
 
-        size_array = np.array([a.size for a in self.attributes])
-        shape_array = [a.shape for a in self.attributes]
+        size_array = np.array([a.size for a in self.broadcastable_attrs])
+        shape_array = [a.shape for a in self.broadcastable_attrs]
 
         return shape_array[np.argmax(size_array)]
 

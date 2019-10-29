@@ -14,6 +14,13 @@ class DiffractionGrating(Standard):
 
     diffraction_order: u.Quantity = 0 * u.dimensionless_unscaled
     groove_frequency: u.Quantity = 0 * (1 / u.mm)
+    
+    @property
+    def broadcastable_attrs(self):
+        return super().broadcastable_attrs + [
+            self.diffraction_order,
+            self.groove_frequency,
+        ]
 
 
 def wavelength_from_vectors(input_vector: math.geometry.Vector,

@@ -16,8 +16,8 @@ class Standard(Surface):
 
     radius: u.Quantity = 0 * u.mm
     conic: u.Quantity = 0 * u.dimensionless_unscaled
-    material: tp.Union[tp.Optional[Material], npt.Array[tp.Optional[Material]]] = None
-    aperture: tp.Union[tp.Optional[Aperture], npt.Array[tp.Optional[Aperture]]] = None
+    material: tp.Optional[Material] = None
+    aperture: tp.Optional[Aperture] = None
 
     decenter_before: u.Quantity = [0, 0, 0] * u.m
     decenter_after: u.Quantity = [0, 0, 0] * u.m
@@ -28,13 +28,11 @@ class Standard(Surface):
     tilt_first: tp.Union[bool, npt.Array[bool]] = False
 
     @property
-    def attributes(self):
+    def broadcastable_attrs(self):
 
-        return super().attributes + [
+        return super().broadcastable_attrs + self.aperture.broadcastable_attrs + [
             self.radius,
             self.conic,
-            np.array(self.material),
-            np.array(self.aperture),
             self.decenter_before[..., 0],
             self.decenter_after[..., 0],
             self.tilt_before[..., 0],

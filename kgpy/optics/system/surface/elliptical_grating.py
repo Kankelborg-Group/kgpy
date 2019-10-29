@@ -15,3 +15,13 @@ class EllipticalGrating1(DiffractionGrating):
     c: u.Quantity = 0 * u.m
     alpha: u.Quantity = 0 * u.dimensionless_unscaled
     beta: u.Quantity = 0 * u.dimensionless_unscaled
+
+    @property
+    def broadcastable_attrs(self):
+        return super().broadcastable_attrs + [
+            self.a,
+            self.b,
+            self.c,
+            self.alpha,
+            self.beta,
+        ]
