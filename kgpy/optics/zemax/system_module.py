@@ -15,7 +15,7 @@ def calc_zemax_system(system: 'optics.System') -> ZOSAPI.IOpticalSystem:
 
     # Create COM connection to Zemax
     zemax_connection = win32com.client.gencache.EnsureDispatch(
-        "ZOSAPI.ZOSAPI_Connection")  # type: ZOSAPI.ZOSAPI_Connection
+        'ZOSAPI.ZOSAPI_Connection')  # type: ZOSAPI.ZOSAPI_Connection
 
     # Open Zemax system
     zemax_app = zemax_connection.CreateNewApplication()
