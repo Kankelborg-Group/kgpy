@@ -20,8 +20,9 @@ class TestStandard:
         (Standard(), ()),
         (Standard(thickness=[0, 1, 2] * u.m), (3,)),
         (Standard(radius=[1, 2, 3] * u.m), (3,)),
-        (Standard(decenter_before=[[0, 0, 0], [1, 0, 0]] * u.m), (2,))
+        (Standard(decenter_before=[[0, 0, 0], [1, 0, 0]] * u.m), (2,)),
+        (Standard(thickness=[0, 1, 2] * u.m, radius=[[0], [1], [2]] * u.m), (3, 3))
     ])
-    def test_shape(self, test_surface, expected_shape):
+    def test_broadcasted_attrs(self, test_surface, expected_shape):
 
-        assert test_surface.shape == expected_shape
+        assert test_surface.broadcasted_attrs.shape == expected_shape

@@ -1,5 +1,6 @@
 import dataclasses
 import numpy as np
+import typing as tp
 import nptyping as npt
 
 from . import Surface, Fields, Wavelengths
@@ -11,7 +12,7 @@ __all__ = ['System']
 class System:
 
     name: str
-    surfaces: npt.Array[Surface]
+    surfaces: tp.Iterable[Surface]
     fields: Fields
     wavelengths: Wavelengths
 

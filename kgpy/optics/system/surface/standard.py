@@ -29,15 +29,19 @@ class Standard(Surface):
 
     @property
     def broadcasted_attrs(self):
-        return np.broadcast(
+        a = np.broadcast(
             super().broadcasted_attrs,
             self.radius,
             self.conic,
-            self.aperture.broadcasted_attrs,
             self.decenter_before[..., 0],
             self.decenter_after[..., 0],
             self.tilt_before[..., 0],
             self.tilt_after[..., 0],
             self.tilt_first,
         )
+
+        if self.aperture is not None:
+            a = np.broadcast(a, self.aperture.broadcasted_attrs)
+
+        return a
 
