@@ -23,6 +23,6 @@ class TestStandard:
         (Standard(decenter_before=[[0, 0, 0], [1, 0, 0]] * u.m), (2,)),
         (Standard(thickness=[0, 1, 2] * u.m, radius=[[0], [1], [2]] * u.m), (3, 3))
     ])
-    def test_broadcasted_attrs(self, test_surface, expected_shape):
+    def test_config_broadcast(self, test_surface, expected_shape):
 
-        assert test_surface.broadcasted_attrs.shape == expected_shape
+        assert test_surface.config_broadcast.shape == expected_shape

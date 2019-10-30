@@ -18,9 +18,9 @@ class CoordinateBreak(Surface):
     tilt_first: tp.Union[bool, npt.Array[bool]] = False
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.decenter[..., 0],
             self.tilt[..., 0],
             self.tilt_first,

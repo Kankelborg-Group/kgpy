@@ -12,7 +12,7 @@ class Wavelengths:
     weights: u.Quantity = [1.0] * u.dimensionless_unscaled
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
             self.wavelengths[..., 0],
             self.weights[..., 0],

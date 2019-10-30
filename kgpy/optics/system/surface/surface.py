@@ -20,7 +20,7 @@ class Surface:
     is_active: tp.Union[bool, npt.Array[bool]] = True
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
             self.name,
             self.is_stop,

@@ -20,7 +20,7 @@ class TestSurface:
         (Surface(), ()),
         (Surface(thickness=[0, 1, 2] * u.m), (3,)),
     ])
-    def test_broadcasted_attrs(self, test_surface, shape):
+    def test_config_broadcast(self, test_surface, shape):
 
-        assert test_surface.broadcasted_attrs.shape == shape
+        assert test_surface.config_broadcast.shape == shape
 

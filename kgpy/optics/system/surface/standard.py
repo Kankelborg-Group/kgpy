@@ -28,9 +28,9 @@ class Standard(Surface):
     tilt_first: tp.Union[bool, npt.Array[bool]] = False
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         a = np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.radius,
             self.conic,
             self.decenter_before[..., 0],

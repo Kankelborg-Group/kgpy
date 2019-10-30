@@ -21,7 +21,7 @@ class Fields:
     van: u.Quantity = [0.0] * u.rad
 
     @property
-    def broadcastable_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
             self.x[..., 0],
             self.y[..., 0],

@@ -18,9 +18,9 @@ class EllipticalGrating1(DiffractionGrating):
     beta: u.Quantity = 0 * u.dimensionless_unscaled
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.a,
             self.b,
             self.c,

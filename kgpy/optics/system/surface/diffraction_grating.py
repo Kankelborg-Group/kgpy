@@ -17,9 +17,9 @@ class DiffractionGrating(Standard):
     groove_frequency: u.Quantity = 0 * (1 / u.mm)
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.diffraction_order,
             self.groove_frequency,
         )

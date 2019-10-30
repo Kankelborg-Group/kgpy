@@ -18,9 +18,9 @@ class TestSystem:
             surface.Standard(radius=[[0], [1], [2]] * u.mm),
         ], fields=Fields(), wavelengths=Wavelengths()), (3, 3)),
     ])
-    def test_broadcastable_attrs(self, test_system, expected_shape):
+    def test_config_broadcast(self, test_system, expected_shape):
 
-        assert test_system.broadcasted_attrs.shape == expected_shape
+        assert test_system.config_broadcast.shape == expected_shape
 
 
 

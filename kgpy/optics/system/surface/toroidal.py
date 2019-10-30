@@ -13,8 +13,8 @@ class Toroidal(Standard):
     radius_of_rotation: u.Quantity = 0 * u.mm
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.radius_of_rotation,
         )
