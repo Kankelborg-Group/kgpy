@@ -17,3 +17,7 @@ class Wavelengths:
             self.wavelengths[..., 0],
             self.weights[..., 0],
         )
+    
+    @property
+    def num_per_config(self):
+        return np.broadcast(self.wavelengths, self.weights).shape[~0]

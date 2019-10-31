@@ -32,6 +32,12 @@ class Fields:
             self.vcy[..., 0],
             self.van[..., 0],
         )
+    
+    @property
+    def num_per_config(self):
+        b = np.broadcast(self.x, self.y, self.weight, self.vdx, self.vdy, self.vcx, self.vcy, self.van)
+        return b.shape[~0]
+
 
     @classmethod
     def from_physical_pupil_size(cls,
