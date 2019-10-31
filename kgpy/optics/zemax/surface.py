@@ -3,7 +3,7 @@ import typing as tp
 import win32com.client
 import astropy.units as u
 
-from kgpy import optics, math
+from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 
 

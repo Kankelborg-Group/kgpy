@@ -1,0 +1,2 @@
+class ISolveData:
+    pass
