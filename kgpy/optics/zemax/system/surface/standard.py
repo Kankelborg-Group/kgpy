@@ -3,9 +3,10 @@ from astropy import units as u
 
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system.surface.aperture import add_aperture_to_zemax_surface
+from kgpy.optics.zemax.system.surface.aperture import add_to_zemax_surface
 
 from .. import util
+
 
 def add_to_zemax_system(
         zemax_system: ZOSAPI.IOpticalSystem,
@@ -137,5 +138,5 @@ def add_to_zemax_system(
     zemax_surface.TiltDecenterData.AfterSurfaceTiltY = rotation.y.to(u.deg).value
     zemax_surface.TiltDecenterData.AfterSurfaceTiltZ = rotation.z.to(u.deg).value
 
-    add_aperture_to_zemax_surface(zemax_system, zemax_surface, zemax_units, configuration_index, surface_index,
-                                  surface.aperture)
+    add_to_zemax_surface(zemax_system, zemax_surface, zemax_units, configuration_index, surface_index,
+                         surface.aperture)
