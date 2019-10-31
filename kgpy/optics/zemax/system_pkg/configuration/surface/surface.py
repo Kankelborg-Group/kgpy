@@ -1,15 +1,11 @@
-
-import typing as tp
-import win32com.client
 import numpy as np
 import astropy.units as u
 from collections import OrderedDict
-from enum import IntEnum, auto
 
-from kgpy import math, optics
+from kgpy import optics
 from kgpy.optics.zemax import ZOSAPI
 
-from . import Aperture, Material
+from . import Material
 
 __all__ = ['Surface']
 
@@ -20,12 +16,12 @@ class Surface(optics.system.configuration.SurfaceArray):
 
         def __init__(self):
 
-            self.decenter_x_op = optics.zemax.system_module.configuration.Operation()
-            self.decenter_y_op = optics.zemax.system_module.configuration.Operation()
-            self.tilt_x_op = optics.zemax.system_module.configuration.Operation()
-            self.tilt_y_op = optics.zemax.system_module.configuration.Operation()
-            self.tilt_z_op = optics.zemax.system_module.configuration.Operation()
-            self.order_op = optics.zemax.system_module.configuration.Operation()
+            self.decenter_x_op = kgpy.optics.zemax.system.system_module.configuration.Operation()
+            self.decenter_y_op = kgpy.optics.zemax.system.system_module.configuration.Operation()
+            self.tilt_x_op = kgpy.optics.zemax.system.system_module.configuration.Operation()
+            self.tilt_y_op = kgpy.optics.zemax.system.system_module.configuration.Operation()
+            self.tilt_z_op = kgpy.optics.zemax.system.system_module.configuration.Operation()
+            self.order_op = kgpy.optics.zemax.system.system_module.configuration.Operation()
 
     class CoordinateBreakOpsAfter(CoordinateBreakOps):
 

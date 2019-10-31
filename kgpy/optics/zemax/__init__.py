@@ -1,3 +1,3 @@
 from . import ZOSAPI
-from . import system_module
-from .rays import trace_to_image, ReturnIndices
+from kgpy.optics.zemax.system import system
+from kgpy.optics.zemax.system.rays import trace_to_image, ReturnIndices

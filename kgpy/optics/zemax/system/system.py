@@ -4,12 +4,12 @@ import win32com.client.gencache
 import astropy.units as u
 
 from kgpy import optics
-from . import util, fields, wavelengths
+from . import wavelengths, util, fields
 
-from . import ZOSAPI
-from .fields import add_to_zemax_system
-from .wavelengths import add_to_zemax_system
-from .surface import add_surfaces_to_zemax_system
+from kgpy.optics.zemax import ZOSAPI
+from kgpy.optics.zemax.system.fields import add_to_zemax_system
+from kgpy.optics.zemax.system.wavelengths import add_to_zemax_system
+from kgpy.optics.zemax.system.surface import add_surfaces_to_zemax_system
 
 
 def calc_zemax_system(system: 'optics.System') -> ZOSAPI.IOpticalSystem:

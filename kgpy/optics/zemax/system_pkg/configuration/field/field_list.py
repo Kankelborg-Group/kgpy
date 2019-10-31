@@ -2,7 +2,6 @@
 import typing as tp
 
 from kgpy import optics
-from kgpy.optics.zemax import ZOSAPI
 
 from . import Field
 
@@ -24,16 +23,16 @@ class FieldList(optics.system.configuration.FieldList):
 
         for field in field_list:
 
-            zmx_field = optics.zemax.system_module.configuration.Field.conscript(field)
+            zmx_field = kgpy.optics.zemax.system.system_module.configuration.Field.conscript(field)
 
             zmx_field_list.append(zmx_field)
 
     @property
-    def configuration(self) -> optics.zemax.system_module.Configuration:
+    def configuration(self) -> kgpy.optics.zemax.system.system_module.Configuration:
         return self._configuration
 
     @configuration.setter
-    def configuration(self, value: optics.zemax.system_module.Configuration):
+    def configuration(self, value: kgpy.optics.zemax.system.system_module.Configuration):
         self._configuration = value
         
         self.update()

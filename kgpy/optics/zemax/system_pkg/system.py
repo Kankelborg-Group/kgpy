@@ -1,19 +1,12 @@
-
-import typing as tp
-from copy import deepcopy
 from win32com.client.gencache import EnsureDispatch
 from win32com.client import constants
-from typing import List, Tuple, Dict, Iterator
+from typing import Tuple, Dict
 from collections import OrderedDict
-import numpy as np
 import astropy.units as u
 
 from kgpy import optics
 from kgpy.optics.zemax import ZOSAPI
 from . import configuration, Configuration
-
-
-from kgpy import Persist
 
 __all__ = ['System']
 
@@ -74,7 +67,7 @@ class System(optics.System):
 
         for config in sys:
 
-            zmx_config = optics.zemax.system_module.Configuration.conscript(config)
+            zmx_config = kgpy.optics.zemax.system.system_module.Configuration.conscript(config)
 
             zmx_sys.append(zmx_config)
 
