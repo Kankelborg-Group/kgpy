@@ -70,6 +70,7 @@ class Rectangular(Aperture):
             u.Quantity([-self.half_width_x, self.half_width_y]),
         ])
 
+
 @dataclasses.dataclass
 class RegularPolygon(Aperture):
 

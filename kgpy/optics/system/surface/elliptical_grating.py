@@ -11,8 +11,8 @@ __all__ = ['EllipticalGrating1']
 @dataclasses.dataclass
 class EllipticalGrating1(DiffractionGrating):
 
-    a: u.Quantity = 0 * u.dimensionless_unscaled
-    b: u.Quantity = 0 * u.dimensionless_unscaled
+    a: u.Quantity = 0 / u.m
+    b: u.Quantity = 0 / u.m
     c: u.Quantity = 0 * u.m
     alpha: u.Quantity = 0 * u.dimensionless_unscaled
     beta: u.Quantity = 0 * u.dimensionless_unscaled
