@@ -36,7 +36,9 @@ def add_surfaces_to_zemax_system(
         util.set_float(zemax_system, surface.thickness, configuration_shape, op_thickness, unit_thickness, 
                        surface_index)
         
-        # if surface
+        if isinstance(surface, system.surface.Standard):
+
+
         
     surface_op_types = [
         ZOSAPI.Editors.MCE.MultiConfigOperandType.MCOM,

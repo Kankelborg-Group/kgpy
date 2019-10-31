@@ -3,12 +3,14 @@ from astropy import units as u
 from kgpy.optics.zemax import ZOSAPI
 
 
-def add_aperture_to_zemax_surface(zemax_system: ZOSAPI.IOpticalSystem,
-                                  zemax_surface: ZOSAPI.Editors.LDE.ILDERow,
-                                  zemax_units: u.Unit,
-                                  configuration_index: int,
-                                  surface_index: int,
-                                  aperture: 'optics.system.configuration.surface.Aperture'):
+def add_aperture_to_zemax_surface(
+        zemax_system: ZOSAPI.IOpticalSystem,
+        zemax_surface: ZOSAPI.Editors.LDE.ILDERow,
+        zemax_units: u.Unit,
+        configuration_index: int,
+        surface_index: int,
+        aperture: 'optics.system.configuration.surface.Aperture'
+):
     aperture_op_types = [
         ZOSAPI.Editors.MCE.MultiConfigOperandType.APTP,
         ZOSAPI.Editors.MCE.MultiConfigOperandType.APDX,
