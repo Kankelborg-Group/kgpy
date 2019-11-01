@@ -16,7 +16,6 @@ def add_to_zemax_surface(
         surface_index: int,
         configuration_shape: tp.Tuple[int],
         zemax_units: u.Unit,
-
 ):
     if aperture is None:
         type_ind = ZOSAPI.Editors.LDE.SurfaceApertureTypes.none
