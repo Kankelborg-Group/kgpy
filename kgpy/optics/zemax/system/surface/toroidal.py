@@ -1,33 +1,31 @@
-import win32com.client
+import typing as tp
 from astropy import units as u
 
+from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
+from kgpy.optics.zemax.system import util
+
+__all__ = ['add_to_zemax_system']
 
 
-def add_toroidal_surface_to_zemax_system(zemax_system: ZOSAPI.IOpticalSystem,
-                                         zemax_surface: ZOSAPI.Editors.LDE.ILDERow,
-                                         zemax_units: u.Unit,
-                                         configuration_index: int,
-                                         surface_index: int,
-                                         surface: 'optics.system.configuration.surface.Toroidal'):
-    n_params = 14
+def add_to_zemax_system(
+        zemax_system: ZOSAPI.IOpticalSystem,
+        surface: 'system.surface.Toroidal',
+        surface_index: int,
+        configuration_shape: tp.Tuple[int],
+        zemax_units: u.Unit,
+):
 
-    if configuration_index == 0:
+    op_radius_of_rotation = ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM
 
-        for p in range(n_params):
-            op = zemax_system.MCE.AddOperand()
-            op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM)
-            op.Param1 = surface_index
-            op.Param2 = p + 1
+    ind_radius_of_rotation = 1
 
-    zemax_surface_settings = zemax_surface.GetSurfaceTypeSettings(
-        ZOSAPI.Editors.LDE.SurfaceType.Toroidal)
+    unit_radius_of_rotation = zemax_units
+    
+    zemax_surface = zemax_system.LDE.GetSurfaceAt(surface_index)
+    zemax_surface.ChangeType(zemax_surface.GetSurfaceTypeSettings(ZOSAPI.Editors.LDE.SurfaceType.Toroidal))
 
-    zemax_surface.ChangeType(zemax_surface_settings)
+    util.set_float(zemax_system, surface.groove_frequency, configuration_shape, op_radius_of_rotation,
+                   unit_radius_of_rotation, surface_index, ind_radius_of_rotation)
 
-    zemax_surface_data = win32com.client.CastTo(
-        zemax_surface.SurfaceData,
-        ZOSAPI.Editors.LDE.ISurfaceToroidal.__name__
-    )  # type: ZOSAPI.Editors.LDE.ISurfaceToroidal
 
-    zemax_surface_data.RadiusOfRotation = surface.radius_of_rotation.to(zemax_units).value
