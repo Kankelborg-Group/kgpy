@@ -9,4 +9,4 @@ class Material:
     name: str = ''
 
 
-mirror = Material(name='mirror')
+mirror = Material(name='MIRROR')
