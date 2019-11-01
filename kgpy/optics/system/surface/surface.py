@@ -15,7 +15,6 @@ class Surface:
     """
 
     name: tp.Union[str, npt.Array[str]] = ''
-    is_stop: tp.Union[bool, npt.Array[bool]] = False
     thickness: u.Quantity = 0 * u.mm
     is_active: tp.Union[bool, npt.Array[bool]] = True
 

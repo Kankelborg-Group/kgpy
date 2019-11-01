@@ -13,10 +13,11 @@ __all__ = ['System']
 class System:
 
     name: str
-    surfaces: tp.Iterable[Surface]
+    surfaces: tp.List[Surface]
     fields: Fields
     wavelengths: Wavelengths
-    entrance_pupil_diameter: u.Quantity = 0 * u.m
+    entrance_pupil_radius: u.Quantity = 0 * u.m
+    stop_surface_index: tp.Union[int, npt.Array[int]] = 1
 
     @property
     def config_broadcast(self):
@@ -27,4 +28,6 @@ class System:
             all_surface_battrs,
             self.fields.config_broadcast,
             self.wavelengths.config_broadcast,
+            self.entrance_pupil_radius,
+            self.stop_surface_index,
         )
