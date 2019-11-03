@@ -28,8 +28,6 @@ class EllipticalGrating1(DiffractionGrating):
 
         main_surf = surface.EllipticalGrating1(
             name=s.name,
-            is_stop=s.is_stop,
-            is_detector=s.is_detector,
             radius=s.radius,
             conic=s.conic,
             material=s.material,

@@ -25,8 +25,6 @@ class DiffractionGrating(Standard):
 
         main_surf = surface.DiffractionGrating(
             name=s.name,
-            is_stop=s.is_stop,
-            is_detector=s.is_detector,
             radius=s.radius,
             conic=s.conic,
             material=s.material,

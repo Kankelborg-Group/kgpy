@@ -49,8 +49,6 @@ class Standard:
 
         main_surf = surface.Standard(
             name=name,
-            is_stop=is_stop,
-            is_detector=is_detector,
             radius=radius,
             conic=conic,
             material=material,
@@ -79,18 +77,20 @@ class Standard:
         )
 
         return cls(cb_before, aper_surf, main_surf, cb_after_z, cb_after)
+    
+    @property
+    def surfaces(self) -> tp.List[surface.Surface]:
+        return [
+            self.coordinate_break_before,
+            self.aperture_surface,
+            self.main_surface,
+            self.coordinate_break_after_z,
+            self.coordinate_break_after,
+        ]
 
     @property
     def name(self):
         return self.main_surface.name
-
-    @property
-    def is_stop(self):
-        return self.main_surface.is_stop
-
-    @property
-    def is_detector(self):
-        return self.main_surface.is_detector
 
     @property
     def thickness(self):

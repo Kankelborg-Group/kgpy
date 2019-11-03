@@ -46,6 +46,10 @@ class Circular(Aperture):
             self.outer_radius,
         )
 
+    @property
+    def points(self) -> u.Quantity:
+        raise NotImplementedError
+
 
 @dataclasses.dataclass
 class Rectangular(Aperture):
