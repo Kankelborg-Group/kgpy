@@ -31,7 +31,7 @@ void dspk(DB * db, float tmin, float tmax, float bad_pix_val){
 
 
 	float datamem = ((float)dsz.xyz) * ((float) sizeof(float));
-	printf("datamem = %f\n", datamem);
+//	printf("datamem = %f\n", datamem);
 	if (datamem > 0.5 * 1e9) {
 		int pivot = dz / 2;
 
@@ -61,14 +61,14 @@ void dspk(DB * db, float tmin, float tmax, float bad_pix_val){
 #pragma acc enter data create(db->t1[0:db->tsz.xyz])
 #pragma acc enter data create(db->t9[0:db->tsz.xyz])
 
-	printf("Checkpoint 1\n");
+//	printf("Checkpoint 1\n");
 	calc_gmap(db, tmin, tmax, bad_pix_val);
 
-	printf("Checkpoint 100\n");
+//	printf("Checkpoint 100\n");
 
 	fix_badpix(db);
 
-	printf("\n");
+//	printf("\n");
 
 #pragma acc exit data copyout(db->data[0:db->dsz.xyz])
 #pragma acc exit data copyout(db->gmap[0:db->dsz.xyz])
@@ -142,10 +142,16 @@ py::tuple dspk_ndarr(np::ndarray & data, float thresh_min, float thresh_max, int
 	np::ndarray pycnts = np::from_data(db->cnts, dtype, tshape, tstride, town);
 //	np::ndarray pyihst = np::from_data(db->icmd, dtype, ishape, istride, iown);
 
-	return make_tuple(pydata, pyhist, pyt1, pyt9, pycnts);
+
+	py::tuple tup = make_tuple(pydata, pyhist, pyt1, pyt9, pycnts);
+
+
+//	delete db;
+
+	return tup;
 
 }
-//
+
 //void dspk_idl(float * data, float thresh_min, float thresh_max, int dz, int dy, int dx,int kz, int ky, int kx, float bad_pix_val){
 //
 //	dim3 dsz = dim3(dx, dy, dz);

@@ -1,0 +1,2 @@
+class SystemType:
+    pass

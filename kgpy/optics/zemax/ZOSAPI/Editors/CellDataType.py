@@ -1,0 +1,2 @@
+class CellDataType:
+    pass

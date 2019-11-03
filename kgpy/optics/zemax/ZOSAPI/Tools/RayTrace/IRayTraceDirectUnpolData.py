@@ -1,0 +1,3 @@
+class IRayTraceDirectUnpolData:
+
+    pass
