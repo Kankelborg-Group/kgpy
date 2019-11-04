@@ -35,6 +35,8 @@ class Standard:
             decenter_after: u.Quantity = [0, 0, 0] * u.m,
             tilt_before: u.Quantity = [0, 0, 0] * u.deg,
             tilt_after: u.Quantity = [0, 0, 0] * u.deg,
+            tilt_first_before: bool = False,
+            tilt_first_after: bool = True,
     ) -> 'Standard':
 
         cb_before = surface.CoordinateBreak(
@@ -42,6 +44,7 @@ class Standard:
             tilt=tilt_before,
             decenter=decenter_before,
             thickness=decenter_before[..., ~0],
+            tilt_first=tilt_first_before
         )
 
         aper_surf = surface.Standard(
@@ -76,6 +79,7 @@ class Standard:
             thickness=thickness,
             tilt=tilt_after,
             decenter=decenter_after,
+            tilt_first=tilt_first_after,
         )
 
         return cls(cb_before, aper_surf, main_surf, cb_after_z, cb_after)

@@ -19,17 +19,15 @@ def calc_zemax_system(system: 'optics.System') -> ZOSAPI.IOpticalSystem:
 
     print('configuration shape:', configuration_shape)
 
-    op = zemax_system.MCE.AddOperand()
-    op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.STPS)
-
     while zemax_system.MCE.NumberOfConfigurations < configuration_size:
         zemax_system.MCE.AddConfiguration(False)
 
+    set_entrance_pupil_radius(zemax_system, system.entrance_pupil_radius, configuration_shape, zemax_lens_units)
     fields.add_to_zemax_system(zemax_system, system.fields, configuration_shape)
     wavelengths.add_to_zemax_system(zemax_system, system.wavelengths, configuration_shape)
     surface.add_surfaces_to_zemax_system(zemax_system, system.surfaces, configuration_shape, zemax_lens_units)
 
-    set_entrance_pupil_radius(zemax_system, system.entrance_pupil_radius, configuration_shape, zemax_lens_units)
+    set_stop_surface(zemax_system, system.stop_surface_index, configuration_shape)
 
     return zemax_system
 

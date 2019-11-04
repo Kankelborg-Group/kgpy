@@ -1,12 +1,24 @@
+import abc
 import dataclasses
+import astropy.units as u
 
-__all__ = ['Material']
+__all__ = ['Material', 'Mirror']
 
 
 @dataclasses.dataclass
 class Material:
     
-    name: str = ''
+    @property
+    @abc.abstractmethod
+    def name(self):
+        return ''
 
 
-mirror = Material(name='MIRROR')
+@dataclasses.dataclass
+class Mirror(Material):
+    
+    thickness: u.Quantity
+    
+    @property
+    def name(self):
+        return 'MIRROR'

@@ -1,11 +1,12 @@
 import typing as tp
+import pathlib
 from astropy import units as u
 
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import util
 
-from . import rectangular, circular, spider
+from . import rectangular, circular, spider, polygon, regular_polygon
 
 __all__ = ['add_to_zemax_surface']
 
@@ -42,5 +43,12 @@ def add_to_zemax_surface(
 
     elif isinstance(aperture, system.surface.aperture.Spider):
         spider.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
+
+    elif isinstance(aperture, system.surface.aperture.Polygon):
+        polygon.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
+
+    elif isinstance(aperture, system.surface.aperture.RegularPolygon):
+        regular_polygon.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
+        
 
 

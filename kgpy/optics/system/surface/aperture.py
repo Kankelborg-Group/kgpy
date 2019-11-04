@@ -106,9 +106,9 @@ class RegularPolygon(Aperture):
 
 class RegularOctagon(RegularPolygon):
 
-    def __init__(self, radius: u.Quantity = 0 * u.mm):
+    def __init__(self, radius: u.Quantity = 0 * u.mm, **kwargs):
 
-        super().__init__(radius=radius, num_sides=8)
+        super().__init__(radius=radius, num_sides=8, **kwargs)
 
 
 @dataclasses.dataclass

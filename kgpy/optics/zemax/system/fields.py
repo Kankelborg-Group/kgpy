@@ -1,4 +1,5 @@
 import typing as tp
+import numpy as np
 import astropy.units as u
 
 from kgpy import optics
@@ -31,16 +32,24 @@ def add_to_zemax_system(
     unit_vcx = u.dimensionless_unscaled
     unit_vcy = u.dimensionless_unscaled
     unit_van = u.deg
+
+    sh = fields.num_per_config,
+
+    x = np.broadcast_to(fields.x, sh) * fields.x.unit
+    y = np.broadcast_to(fields.y, sh) * fields.y.unit
+    vdx = np.broadcast_to(fields.vdx, sh) * fields.vdx.unit
+    vdy = np.broadcast_to(fields.vdy, sh) * fields.vdy.unit
+    vcx = np.broadcast_to(fields.vcx, sh) * fields.vcx.unit
+    vcy = np.broadcast_to(fields.vcy, sh) * fields.vcy.unit
+    van = np.broadcast_to(fields.van, sh) * fields.van.unit
     
     for f in range(fields.num_per_config):
-        
-        field_index = f + 1
-        
-        util.set_float(zemax_system, fields.x[..., f], configuration_shape, op_x, unit_x, param_1=field_index)
-        util.set_float(zemax_system, fields.y[..., f], configuration_shape, op_y, unit_y, param_1=field_index)
-        util.set_float(zemax_system, fields.vdx[..., f], configuration_shape, op_vdx, unit_vdx, param_1=field_index)
-        util.set_float(zemax_system, fields.vdy[..., f], configuration_shape, op_vdy, unit_vdy, param_1=field_index)
-        util.set_float(zemax_system, fields.vcx[..., f], configuration_shape, op_vcx, unit_vcx, param_1=field_index)
-        util.set_float(zemax_system, fields.vcy[..., f], configuration_shape, op_vcy, unit_vcy, param_1=field_index)
-        util.set_float(zemax_system, fields.van[..., f], configuration_shape, op_van, unit_van, param_1=field_index)
+
+        util.set_float(zemax_system, x[..., f], configuration_shape, op_x, unit_x, param_1=f)
+        util.set_float(zemax_system, y[..., f], configuration_shape, op_y, unit_y, param_1=f)
+        util.set_float(zemax_system, vdx[..., f], configuration_shape, op_vdx, unit_vdx, param_1=f)
+        util.set_float(zemax_system, vdy[..., f], configuration_shape, op_vdy, unit_vdy, param_1=f)
+        util.set_float(zemax_system, vcx[..., f], configuration_shape, op_vcx, unit_vcx, param_1=f)
+        util.set_float(zemax_system, vcy[..., f], configuration_shape, op_vcy, unit_vcy, param_1=f)
+        util.set_float(zemax_system, van[..., f], configuration_shape, op_van, unit_van, param_1=f)
 

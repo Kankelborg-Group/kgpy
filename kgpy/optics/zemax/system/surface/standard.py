@@ -4,7 +4,7 @@ from astropy import units as u
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 
-from . import diffraction_grating, toroidal, aperture
+from . import diffraction_grating, toroidal, aperture, material
 from .. import util
 
 __all__ = ['add_to_zemax_system']
@@ -19,7 +19,6 @@ def add_to_zemax_system(
 ):
 
     op_radius = ZOSAPI.Editors.MCE.MultiConfigOperandType.CRVT
-    op_material = ZOSAPI.Editors.MCE.MultiConfigOperandType.GLSS
     op_conic = ZOSAPI.Editors.MCE.MultiConfigOperandType.CONN
     op_decenter_before_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDX
     op_decenter_before_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDY
@@ -50,9 +49,12 @@ def add_to_zemax_system(
     unit_order_after = None
 
     util.set_float(zemax_system, 1 / surface.radius, configuration_shape, op_radius, unit_radius, surface_index)
-    if surface.material is not None:
-        util.set_str(zemax_system, surface.material.name, configuration_shape, op_material, surface_index)
+
     util.set_float(zemax_system, surface.conic, configuration_shape, op_conic, unit_conic, surface_index)
+
+    material.add_to_zemax_surface(zemax_system, surface.material, surface_index, configuration_shape, zemax_units)
+
+    aperture.add_to_zemax_surface(zemax_system, surface.aperture, surface_index, configuration_shape, zemax_units)
 
     util.set_float(zemax_system, surface.decenter_before[..., 0], configuration_shape, op_decenter_before_x,
                    unit_decenter_before_x, surface_index)
@@ -77,7 +79,7 @@ def add_to_zemax_system(
                    unit_tilt_after_y, surface_index)
     util.set_float(zemax_system, surface.tilt_after[..., 2], configuration_shape, op_tilt_after_z,
                    unit_tilt_after_z, surface_index)
-    util.set_float(zemax_system, float(surface.tilt_first), configuration_shape, op_order_after, unit_order_after,
+    util.set_float(zemax_system, float(not surface.tilt_first), configuration_shape, op_order_after, unit_order_after,
                    surface_index)
 
     if isinstance(surface, system.surface.DiffractionGrating):
@@ -86,4 +88,8 @@ def add_to_zemax_system(
     elif isinstance(surface, system.surface.Toroidal):
         toroidal.add_to_zemax_system(zemax_system, surface, surface_index, configuration_shape, zemax_units)
 
-    aperture.add_to_zemax_surface(zemax_system, surface.aperture, surface_index, configuration_shape, zemax_units)
+
+
+
+
+

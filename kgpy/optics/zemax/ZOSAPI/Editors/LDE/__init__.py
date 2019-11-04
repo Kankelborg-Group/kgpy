@@ -13,3 +13,5 @@ from .ConversionOrder import *
 from .PupilApodizationType import *
 from .SurfaceApertureTypes import *
 from .ISurfaceApertureType import *
+from .ILDEDrawData import *
+from .SubstrateType import *

@@ -1,7 +1,7 @@
 
 from kgpy.optics.zemax import ZOSAPI
 
-__all__ = []
+__all__ = ['ILDEDrawData']
 
 
 class ILDEDrawData:

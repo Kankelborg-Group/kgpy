@@ -45,7 +45,5 @@ class Standard(Surface):
 
         return a
     
-    @property
-    def surfaces(self) -> tp.List['Surface']:
-        return [self]
+
 

@@ -1,4 +1,5 @@
 import typing as tp
+import numpy as np
 import astropy.units as u
 
 from kgpy import optics
@@ -26,10 +27,14 @@ def add_to_zemax_system(
     unit_wave = u.um
     unit_weight = u.dimensionless_unscaled
 
+    sh = (wavelengths.num_per_config,)
+
+    wavls = np.broadcast_to(wavelengths.wavelengths, sh) * wavelengths.wavelengths.unit
+    weights = np.broadcast_to(wavelengths.weights, sh) * wavelengths.weights.unit
+
     for w in range(wavelengths.num_per_config):
-        
-        wave_index = w + 1
-        
-        util.set_float(zemax_system, wavelengths.wavelengths[..., w], csh, op_wave, unit_wave, wave_index)
-        util.set_float(zemax_system, wavelengths.weights[..., w], csh, op_weight, unit_weight, wave_index)
+
+        util.set_float(zemax_system, wavls[..., w], csh, op_wave, unit_wave, w)
+
+        util.set_float(zemax_system, weights[..., w], csh, op_weight, unit_weight, w)
 

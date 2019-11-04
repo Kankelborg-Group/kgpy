@@ -26,3 +26,7 @@ class Surface:
             self.is_active,
         )
 
+    @property
+    def surfaces(self) -> tp.List['Surface']:
+        return [self]
+
