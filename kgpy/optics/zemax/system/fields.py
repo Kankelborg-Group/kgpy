@@ -33,7 +33,9 @@ def add_to_zemax_system(
     unit_vcy = u.dimensionless_unscaled
     unit_van = u.deg
 
-    sh = fields.num_per_config,
+    sh = configuration_shape + (fields.num_per_config,)
+
+    print(fields.vdx.shape)
 
     x = np.broadcast_to(fields.x, sh) * fields.x.unit
     y = np.broadcast_to(fields.y, sh) * fields.y.unit

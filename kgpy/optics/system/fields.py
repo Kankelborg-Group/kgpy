@@ -56,8 +56,8 @@ class Fields:
         vcx = 1 - (pupil_semi_axis_x / entrance_pupil_radius)
         vcy = 1 - (pupil_semi_axis_y / entrance_pupil_radius)
 
-        weight = 1.0 * u.dimensionless_unscaled
-        van = 0 * u.deg
+        weight = [1.0] * u.dimensionless_unscaled
+        van = [0] * u.deg
 
         return cls(field_x, field_y, weight, vdx, vdy, vcx, vcy, van)
 
