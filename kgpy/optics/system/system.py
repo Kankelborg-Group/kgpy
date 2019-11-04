@@ -23,7 +23,11 @@ class System:
     @property
     def config_broadcast(self):
 
-        all_surface_battrs = np.broadcast(*[s.config_broadcast for s in self.surfaces])
+        all_surface_battrs = 0
+        for s in self.surfaces:
+            all_surface_battrs = np.broadcast(all_surface_battrs, s.config_broadcast)
+            all_surface_battrs = np.empty(all_surface_battrs.shape)
+
 
         return np.broadcast(
             all_surface_battrs,

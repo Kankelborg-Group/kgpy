@@ -20,14 +20,14 @@ def add_to_zemax_surface(
     type_ind = ZOSAPI.Editors.LDE.SurfaceApertureTypes.Spider
 
     op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.APTP
-    op_half_width_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.APMN
-    op_half_width_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.APMX
+    op_arm_half_width = ZOSAPI.Editors.MCE.MultiConfigOperandType.APMN
+    op_num_arms = ZOSAPI.Editors.MCE.MultiConfigOperandType.APMX
 
-    unit_half_width_x = zemax_units
-    unit_half_width_y = zemax_units
+    unit_arm_half_width = zemax_units
+    unit_num_arms = None
 
     util.set_int(zemax_system, type_ind, configuration_shape, op_type, surface_index)
-    util.set_float(zemax_system, 2 * aperture.arm_half_width, configuration_shape, op_half_width_x, unit_half_width_x,
+    util.set_float(zemax_system, 2 * aperture.arm_half_width, configuration_shape, op_arm_half_width, unit_arm_half_width,
                    surface_index)
-    util.set_float(zemax_system, aperture.num_arms, configuration_shape, op_half_width_y, unit_half_width_y,
+    util.set_float(zemax_system, aperture.num_arms, configuration_shape, op_num_arms, unit_num_arms,
                    surface_index)

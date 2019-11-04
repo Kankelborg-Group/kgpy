@@ -26,15 +26,15 @@ def add_to_zemax_system(
     op_tilt_before_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTX
     op_tilt_before_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTY
     op_tilt_before_z = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTZ
-    op_order_before = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR,
-    op_decenter_after_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.CADX,
-    op_decenter_after_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.CADY,
-    op_tilt_after_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATX,
-    op_tilt_after_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATY,
-    op_tilt_after_z = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATZ,
-    op_order_after = ZOSAPI.Editors.MCE.MultiConfigOperandType.CAOR,
+    op_order_before = ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR
+    op_decenter_after_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.CADX
+    op_decenter_after_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.CADY
+    op_tilt_after_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATX
+    op_tilt_after_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATY
+    op_tilt_after_z = ZOSAPI.Editors.MCE.MultiConfigOperandType.CATZ
+    op_order_after = ZOSAPI.Editors.MCE.MultiConfigOperandType.CAOR
 
-    unit_radius = zemax_units
+    unit_radius = 1 / zemax_units
     unit_conic = u.dimensionless_unscaled
     unit_decenter_before_x = zemax_units
     unit_decenter_before_y = zemax_units
@@ -49,8 +49,9 @@ def add_to_zemax_system(
     unit_tilt_after_z = u.deg
     unit_order_after = None
 
-    util.set_float(zemax_system, surface.radius, configuration_shape, op_radius, unit_radius, surface_index)
-    util.set_str(zemax_system, surface.material.name, configuration_shape, op_material, surface_index)
+    util.set_float(zemax_system, 1 / surface.radius, configuration_shape, op_radius, unit_radius, surface_index)
+    if surface.material is not None:
+        util.set_str(zemax_system, surface.material.name, configuration_shape, op_material, surface_index)
     util.set_float(zemax_system, surface.conic, configuration_shape, op_conic, unit_conic, surface_index)
 
     util.set_float(zemax_system, surface.decenter_before[..., 0], configuration_shape, op_decenter_before_x,

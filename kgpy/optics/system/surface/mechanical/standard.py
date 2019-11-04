@@ -1,6 +1,7 @@
 import dataclasses
 import typing as tp
 import nptyping as npt
+import numpy as np
 import astropy.units as u
 
 from kgpy.optics.system import surface
@@ -24,7 +25,7 @@ class Standard:
             is_stop: tp.Union[bool, npt.Array[bool]] = False,
             is_detector: tp.Union[bool, npt.Array[bool]] = False,
             thickness: u.Quantity = 0 * u.mm,
-            radius: u.Quantity = 0 * u.mm,
+            radius: u.Quantity = np.inf * u.mm,
             conic: u.Quantity = 0 * u.dimensionless_unscaled,
             material: tp.Union[tp.Optional[surface.Material], npt.Array[tp.Optional[surface.Material]]] = None,
             aperture: tp.Union[tp.Optional[surface.Aperture], npt.Array[tp.Optional[surface.Aperture]]] = None,
@@ -40,6 +41,7 @@ class Standard:
             name=name + '.cb_before',
             tilt=tilt_before,
             decenter=decenter_before,
+            thickness=decenter_before[..., ~0],
         )
 
         aper_surf = surface.Standard(
@@ -60,13 +62,13 @@ class Standard:
         # surface.
         # As a workaround, we can add an extra surface to take care of the translation in z, before the rest of the
         # tilts/decenters are applied.
-        decenter_after_z = decenter_after.copy()
-        decenter_after_z[..., :~0] = 0
-        decenter_after[..., ~0] = 0
+        # decenter_after_z = decenter_after.copy()
+        # decenter_after_z[..., :~0] = 0
+        # decenter_after[..., ~0] = 0
 
         cb_after_z = surface.CoordinateBreak(
             name=name + '.cb_after_z',
-            decenter=decenter_after_z,
+            thickness=decenter_after[..., ~0],
         )
 
         cb_after = surface.CoordinateBreak(

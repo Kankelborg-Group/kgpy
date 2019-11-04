@@ -24,7 +24,7 @@ def add_surfaces_to_zemax_system(
     unit_thickness = zemax_units
 
     num_surfaces = len(surfaces)
-    while zemax_system.LDE.NumberOfSurfaces < num_surfaces:
+    while zemax_system.LDE.NumberOfSurfaces < num_surfaces + 1:
         zemax_system.LDE.AddSurface()
     
     for s in range(num_surfaces):
@@ -32,8 +32,8 @@ def add_surfaces_to_zemax_system(
         surface_index = s + 1
         surface = surfaces[s]
         
-        util.set_str(zemax_system, surface.name, configuration_shape, op_comment)
-        util.set_float(zemax_system, surface.thickness, configuration_shape, op_thickness, unit_thickness, 
+        util.set_str(zemax_system, surface.name, configuration_shape, op_comment, surface_index)
+        util.set_float(zemax_system, surface.thickness, configuration_shape, op_thickness, unit_thickness,
                        surface_index)
         
         if isinstance(surface, system.surface.Standard):

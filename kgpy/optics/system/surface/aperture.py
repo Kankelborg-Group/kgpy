@@ -137,3 +137,7 @@ class Spider(Aperture):
             self.arm_half_width,
             self.num_arms
         )
+
+    @property
+    def points(self) -> u.Quantity:
+        raise NotImplementedError

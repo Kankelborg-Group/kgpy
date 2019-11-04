@@ -8,10 +8,7 @@ from kgpy import optics
 from . import wavelengths, util, fields, surface
 
 
-
-
 def calc_zemax_system(system: 'optics.System') -> ZOSAPI.IOpticalSystem:
-
     zemax_system = open_zemax_system()
 
     # zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters
@@ -19,6 +16,8 @@ def calc_zemax_system(system: 'optics.System') -> ZOSAPI.IOpticalSystem:
 
     configuration_size = system.config_broadcast.size
     configuration_shape = system.config_broadcast.shape
+
+    print('configuration shape:', configuration_shape)
 
     op = zemax_system.MCE.AddOperand()
     op.ChangeType(ZOSAPI.Editors.MCE.MultiConfigOperandType.STPS)
@@ -36,7 +35,6 @@ def calc_zemax_system(system: 'optics.System') -> ZOSAPI.IOpticalSystem:
 
 
 def open_zemax_system() -> ZOSAPI.IOpticalSystem:
-
     # Create COM connection to Zemax
     zemax_connection = win32com.client.gencache.EnsureDispatch(
         'ZOSAPI.ZOSAPI_Connection')  # type: ZOSAPI.ZOSAPI_Connection
@@ -58,7 +56,7 @@ def open_zemax_system() -> ZOSAPI.IOpticalSystem:
 def set_entrance_pupil_radius(
         zemax_system: ZOSAPI.IOpticalSystem,
         entrance_pupil_radius: u.Quantity,
-        configuration_shape: tp.Tuple[int], 
+        configuration_shape: tp.Tuple[int],
         zemax_units: u.Unit
 ):
     zemax_system.SystemData.Aperture.ApertureType = ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter
@@ -74,6 +72,5 @@ def set_stop_surface(
         stop_surface_index: tp.Union[int, npt.Array[int]],
         configuration_shape: tp.Tuple[int],
 ):
-
     op_stop_surface_index = ZOSAPI.Editors.MCE.MultiConfigOperandType.STPS
     util.set_int(zemax_system, stop_surface_index, configuration_shape, op_stop_surface_index)

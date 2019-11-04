@@ -30,7 +30,7 @@ def add_to_zemax_system(
     unit_vdy = u.dimensionless_unscaled
     unit_vcx = u.dimensionless_unscaled
     unit_vcy = u.dimensionless_unscaled
-    unit_van = u.dimensionless_unscaled
+    unit_van = u.deg
     
     for f in range(fields.num_per_config):
         

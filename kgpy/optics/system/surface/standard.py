@@ -14,7 +14,7 @@ __all__ = ['Standard']
 @dataclasses.dataclass
 class Standard(Surface):
 
-    radius: u.Quantity = 0 * u.mm
+    radius: u.Quantity = np.inf * u.mm
     conic: u.Quantity = 0 * u.dimensionless_unscaled
     material: tp.Optional[Material] = None
     aperture: tp.Optional[Aperture] = None
@@ -44,4 +44,8 @@ class Standard(Surface):
             a = np.broadcast(a, self.aperture.broadcasted_attrs)
 
         return a
+    
+    @property
+    def surfaces(self) -> tp.List['Surface']:
+        return [self]
 

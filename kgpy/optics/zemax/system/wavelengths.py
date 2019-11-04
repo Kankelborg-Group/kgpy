@@ -20,8 +20,8 @@ def add_to_zemax_system(
     
     csh = configuration_shape
     
-    op_wave = ZOSAPI.Editors.MCE.MultiConfigOperandType.WAVE,
-    op_weight = ZOSAPI.Editors.MCE.MultiConfigOperandType.WLWT,
+    op_wave = ZOSAPI.Editors.MCE.MultiConfigOperandType.WAVE
+    op_weight = ZOSAPI.Editors.MCE.MultiConfigOperandType.WLWT
 
     unit_wave = u.um
     unit_weight = u.dimensionless_unscaled

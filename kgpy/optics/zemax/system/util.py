@@ -27,10 +27,10 @@ def set_float(
 
     set_params(op, param_1, param_2, param_3)
 
-    for i, value in value_broadcasted:
+    for i, value in enumerate(value_broadcasted):
         config_index = i + 1
         cell = op.GetOperandCell(config_index)
-        cell.DoubleValue = value
+        cell.DoubleValue = value.item()
 
 
 def set_str(
@@ -49,7 +49,7 @@ def set_str(
 
     set_params(op, param_1, param_2, param_3)
     
-    for i, value in value_broadcasted:
+    for i, value in enumerate(value_broadcasted):
         config_index = i + 1
         cell = op.GetOperandCell(config_index)
         cell.Value = value
@@ -71,10 +71,10 @@ def set_int(
 
     set_params(op, param_1, param_2, param_3)
 
-    for i, value in value_broadcasted:
+    for i, value in enumerate(value_broadcasted):
         config_index = i + 1
         cell = op.GetOperandCell(config_index)
-        cell.IntegerValue = value
+        cell.IntegerValue = value.item()
 
 
 def set_params(op, param_1, param_2, param_3):

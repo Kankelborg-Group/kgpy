@@ -27,11 +27,11 @@ def add_to_zemax_system(
     ind_alpha = 6
     ind_beta = 7
 
-    unit_a = 1 / zemax_units
-    unit_b = 1 / zemax_units
+    unit_a = u.dimensionless_unscaled
+    unit_b = u.dimensionless_unscaled
     unit_c = zemax_units
-    unit_alpha = 1 / (u.um ** 2)
-    unit_beta = 1 / (u.um ** 3)
+    unit_alpha = u.dimensionless_unscaled
+    unit_beta = u.dimensionless_unscaled
 
     zemax_surface = zemax_system.LDE.GetSurfaceAt(surface_index)
     zemax_surface.ChangeType(zemax_surface.GetSurfaceTypeSettings(ZOSAPI.Editors.LDE.SurfaceType.EllipticalGrating1))

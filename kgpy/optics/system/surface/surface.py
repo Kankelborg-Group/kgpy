@@ -22,7 +22,7 @@ class Surface:
     def config_broadcast(self):
         return np.broadcast(
             self.name,
-            self.is_stop,
-            self.thickness
+            self.thickness,
+            self.is_active,
         )
 
