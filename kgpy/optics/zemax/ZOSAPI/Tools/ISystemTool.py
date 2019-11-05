@@ -1,2 +1,3 @@
 class ISystemTool:
-    pass
+    def RunAndWaitForCompletion(self):
+        pass
