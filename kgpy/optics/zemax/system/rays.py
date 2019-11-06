@@ -5,16 +5,20 @@ import astropy.units as u
 
 from kgpy.optics.zemax import ZOSAPI
 
+__all__ = ['trace']
+
 
 def trace(
         zemax_system: ZOSAPI.IOpticalSystem,
+        zemax_units: u.Unit,
         num_pupil: tp.Union[int, tp.Tuple[int, int]] = 5,
         num_field: tp.Union[int, tp.Tuple[int, int]] = 5,
         mask: npt.Array[bool] = None,
         configuration_indices: tp.Optional[tp.List[int]] = None,
         surface_indices: tp.List[int] = (~0,),
         wavelength_indices=None,
-) -> tp.Tuple:
+) -> tp.Tuple[u.Quantity, u.Quantity, np.ndarray]:
+
     if isinstance(num_field, int):
         num_field = num_field, num_field
 
@@ -27,6 +31,9 @@ def trace(
     pupil_y = np.linspace(-1, 1, num_pupil[1])
 
     fg_x, fg_y, pg_x, pg_y = np.meshgrid(field_x, field_y, pupil_x, pupil_y, indexing='ij')
+
+    if mask is None:
+        mask = np.broadcast_to(1, fg_x.shape)
 
     if configuration_indices is None:
         configuration_indices = np.arange(zemax_system.MCE.NumberOfConfigurations)
@@ -88,5 +95,8 @@ def trace(
         tool.Close()
 
     zemax_system.MCE.SetCurrentConfiguration(starting_config)
+
+    out_x = out_x * zemax_units
+    out_y = out_y * zemax_units
 
     return out_x, out_y, out_mask

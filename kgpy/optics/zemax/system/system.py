@@ -7,8 +7,10 @@ from kgpy.optics.zemax import ZOSAPI
 from kgpy import optics
 from . import wavelengths, util, fields, surface
 
+__all__ = ['calc_zemax_system']
 
-def calc_zemax_system(system: 'optics.System') -> ZOSAPI.IOpticalSystem:
+
+def calc_zemax_system(system: 'optics.System') -> tp.Tuple[ZOSAPI.IOpticalSystem, u.Unit]:
     zemax_system = open_zemax_system()
 
     # zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters
@@ -29,7 +31,7 @@ def calc_zemax_system(system: 'optics.System') -> ZOSAPI.IOpticalSystem:
 
     set_stop_surface(zemax_system, system.stop_surface_index, configuration_shape)
 
-    return zemax_system
+    return zemax_system, zemax_lens_units
 
 
 def open_zemax_system() -> ZOSAPI.IOpticalSystem:
