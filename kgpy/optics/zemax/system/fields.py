@@ -35,8 +35,6 @@ def add_to_zemax_system(
 
     sh = configuration_shape + (fields.num_per_config,)
 
-    print(fields.vdx.shape)
-
     x = np.broadcast_to(fields.x, sh) * fields.x.unit
     y = np.broadcast_to(fields.y, sh) * fields.y.unit
     vdx = np.broadcast_to(fields.vdx, sh) * fields.vdx.unit

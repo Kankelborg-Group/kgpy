@@ -40,7 +40,6 @@ def trace(
         configuration_indices = np.arange(zemax_system.MCE.NumberOfConfigurations)
 
     surface_indices = np.array(surface_indices) % zemax_system.LDE.NumberOfSurfaces
-    print(surface_indices)
 
     if wavelength_indices is None:
         wavelength_indices = np.arange(zemax_system.SystemData.Wavelengths.NumberOfWavelengths)
@@ -59,7 +58,7 @@ def trace(
 
     out_x = np.empty(sh)
     out_y = np.empty(sh)
-    out_mask = np.empty(sh, dtype=int)
+    out_mask = np.empty(sh, dtype=np.bool)
 
     for c, config_index in enumerate(configuration_indices):
 
@@ -70,7 +69,7 @@ def trace(
 
         for s, surf_index in enumerate(surface_indices):
 
-            rt_dat = rt.CreateNormUnpol(total_num_rays, ZOSAPI.Tools.RayTrace.RaysType.Real, surf_index + 2)
+            rt_dat = rt.CreateNormUnpol(total_num_rays, ZOSAPI.Tools.RayTrace.RaysType.Real, surf_index + 1)
 
             for w, wavl_index in enumerate(wavelength_indices):
 
@@ -81,6 +80,8 @@ def trace(
                             for jy, py in enumerate(pupil_y):
                                 if mask[ix, iy, jx, jy] == 1:
 
+                                    # print(fx, fy, px, py)
+
                                     rt_dat.AddRay(wavl_index + 1, fx, fy, px, py, ZOSAPI.Tools.RayTrace.OPDMode.None_)
 
                             tool.RunAndWaitForCompletion()
@@ -90,7 +91,10 @@ def trace(
                                 if mask[ix, iy, jx, jy] == 1:
                                     zemax_ray = rt_dat.ReadNextResult()
                                     ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, intensity = zemax_ray
-                                    out_mask[c, s, w, ix, iy, jx, jy] = int(not(err == 0 and vig == 0))
+                                    # out_mask[c, s, w, ix, iy, jx, jy] = int((err == 0 and vig == 0))
+                                    out_mask[c, s, w, ix, iy, jx, jy] = vig == 0 and err == 0
+                                    # print(vig, err)
+
                                     out_x[c, s, w, ix, iy, jx, jy] = x
                                     out_y[c, s, w, ix, iy, jx, jy] = y
 
