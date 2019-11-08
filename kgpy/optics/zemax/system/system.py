@@ -46,7 +46,7 @@ def open_zemax_system() -> ZOSAPI.IOpticalSystem:
         raise ValueError('Unable to acquire ZOSAPI application')
     # Check if license is valid
     if not zemax_app.IsValidLicenseForAPI:
-        raise ValueError('License is not valid for ZOSAPI use')
+        raise ValueError('License is not valid for ZOSAPI use (Possibly too many instances of OpticStudio are open).')
     zemax_system = zemax_app.PrimarySystem
     if zemax_system is None:
         raise ValueError('Unable to acquire Primary system')
