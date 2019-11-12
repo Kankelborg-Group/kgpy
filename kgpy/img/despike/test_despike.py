@@ -12,8 +12,8 @@ testfile = pathlib.Path(kgpy.__file__).parent.parent / 'data/iris_l2_20150615_07
 
 def test_percentile_filter():
     
-    # data = astropy.io.fits.open(testfile)[4].data
-    data = np.empty((1024, 1024, 1024), dtype=np.float32)
+    data = astropy.io.fits.open(testfile)[4].data
+    # data = np.empty((1024, 1024, 1024), dtype=np.float32)
 
     # print(data.shape)
 
@@ -21,5 +21,13 @@ def test_percentile_filter():
 
     fdata = despike.percentile_filter(data, 50, ksz)
     
-    # c = CubeSlicer(fdata)
-    # plt.show()
+    c = CubeSlicer(fdata)
+    plt.show()
+
+
+def test_identify():
+
+    x = astropy.io.fits.open(testfile)[4].data
+    despike.identify(x)
+
+    plt.show()
