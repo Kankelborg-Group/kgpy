@@ -9,17 +9,18 @@ __all__ = ['identify']
 
 
 def identify(
-        x: np.ndarray,
+        data: np.ndarray,
         axis: tp.Union[int, tp.Tuple[int, ...]] = None,
         kernel_size: tp.Union[int, tp.Tuple[int, ...]] = 11,
         percentile_threshold: tp.Union[float, tp.Tuple[float, ...]] = 99,
+        num_hist_bins: int = 128,
         plot_histograms=False,
 ):
     pencil_size = 3
-    nbins = 128
-
+    spike_mask = np.zeros_like(data)
+    
     if axis is None:
-        axis = np.arange(x.ndim)
+        axis = np.arange(data.ndim)
     else:
         axis = np.array(axis)
 
@@ -34,20 +35,20 @@ def identify(
 
     for i, ax in enumerate(axis):
 
-        k_sh = np.ones(x.ndim, dtype=np.int)
+        k_sh = np.ones(data.ndim, dtype=np.int)
         k_sh[axis] = pencil_size
         k_sh[ax] = kernel_size[i]
 
-        fx = scipy.ndimage.filters.percentile_filter(x, 50, size=k_sh)
+        fdata = scipy.ndimage.filters.percentile_filter(data, 50, size=k_sh)
 
-        h_min = np.min(fx)
+        h_min = np.min(fdata)
         # h_min = 0
-        h_max = np.max(fx)
+        h_max = np.max(fdata)
         hrange = [
             [h_min, h_max],
             [h_min, 2*h_max],
         ]
-        hist, edges_x, edges_y = np.histogram2d(fx.reshape(-1), x.reshape(-1), bins=nbins, range=hrange)
+        hist, edges_x, edges_y = np.histogram2d(fdata.reshape(-1), data.reshape(-1), bins=num_hist_bins, range=hrange)
         h_extent = [edges_x[0], edges_x[-1], edges_y[0], edges_y[-1]]
         xgrid = edges_x[:-1] + ((edges_x[-1] - edges_x[0]) / len(edges_x)) / 2
 
@@ -70,24 +71,35 @@ def identify(
         u = np.linalg.lstsq(a, y_thresh_upper[j])[0]
         v = np.linalg.lstsq(a, y_thresh_lower[j])[0]
 
-        def cfunc(i_med: float, c: np.ndarray):
-            # return c[0] * i_med ** (1 / 2) + c[1] * i_med ** (2 / 2) + c[2] * i_med ** (3 / 2)
-            return c[0] * i_med ** 0 + c[1] * i_med ** 1 + c[2] * i_med ** 2 + c[3] * i_med ** 3 + c[4] * i_med ** 4
+        def t_upper(i_med: np.ndarray):
+            return thresh_fit(i_med, u)
 
-        def t_upper(i_med: float):
-            return cfunc(i_med, u)
+        def t_lower(i_med: np.ndarray):
+            return thresh_fit(i_med, v)
 
-        def t_lower(i_med: float):
-            return cfunc(i_med, v)
-
-        plt.figure()
-        plt.imshow(hist.T, norm=LogNorm(), origin='lower', extent=h_extent)
-        plt.plot(xgrid, y_thresh_upper, scaley=False)
-        plt.plot(xgrid, y_thresh_lower, scaley=False)
-        plt.plot(xgrid, t_upper(xgrid), scaley=False)
-        plt.plot(xgrid, t_lower(xgrid), scaley=False)
-    
-
+        if plot_histograms:
+            plt.figure()
+            plt.imshow(hist.T, norm=LogNorm(), origin='lower', extent=h_extent)
+            plt.plot(xgrid, y_thresh_upper, scaley=False)
+            plt.plot(xgrid, y_thresh_lower, scaley=False)
+            plt.plot(xgrid, t_upper(xgrid), scaley=False)
+            plt.plot(xgrid, t_lower(xgrid), scaley=False)
+            
+        data_thresh_upper = t_upper(fdata)
+        data_thresh_lower = t_lower(fdata)
+        
+        ind = np.logical_or(data_thresh_lower > data, data > data_thresh_upper)
+        spike_mask[ind] = 1
+        
+    return spike_mask
+        
+        
+            
+        
+            
+        
+def thresh_fit(i_med: np.ndarray, c: np.ndarray):
+    return c[0] * i_med ** 0 + c[1] * i_med ** 1 + c[2] * i_med ** 2 + c[3] * i_med ** 3 + c[4] * i_med ** 4
 
 
 

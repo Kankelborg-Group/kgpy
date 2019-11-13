@@ -13,6 +13,9 @@ testfile = pathlib.Path(kgpy.__file__).parent.parent / 'data/iris_l2_20150615_07
 def test_identify():
 
     x = astropy.io.fits.open(testfile)[4].data
-    despike.identify(x)
+    mask = despike.identify(x)
+
+    c1 = CubeSlicer(x)
+    c2 = CubeSlicer(mask)
 
     plt.show()
