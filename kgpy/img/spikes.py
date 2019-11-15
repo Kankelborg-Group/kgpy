@@ -3,6 +3,7 @@ import dataclasses
 import numpy as np
 import scipy.ndimage.filters
 import scipy.signal
+import scipy.interpolate
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
@@ -36,6 +37,8 @@ class Stats:
         return self._thresh_fit(self.thresh_lower)
     
     def _thresh_fit(self, thresh: np.ndarray) -> tp.Callable:
+        interp = scipy.interpolate.interp1d(self.x, thresh)
+
         return np.poly1d(np.polyfit(self.x, thresh, deg=self.poly_deg, w=self.fit_weights))
 
     def plot(self):
@@ -150,18 +153,6 @@ def identify(
         y_thresh_lower = ygrid[y_thresh_lower_ind]
 
         fit_weights = np.sqrt(hist_sum[..., 0])
-        #
-        # poly_coeff_upper = np.polyfit(xgrid, y_thresh_upper, deg=poly_deg, w=fit_weights)
-        # poly_coeff_lower = np.polyfit(xgrid, y_thresh_lower, deg=poly_deg, w=fit_weights)
-        #
-        # def t_upper(i_med: np.ndarray):
-        #     return np.polyval(poly_coeff_upper, i_med)
-        #
-        # def t_lower(i_med: np.ndarray):
-        #     return np.polyval(poly_coeff_lower, i_med)
-        #
-        # data_thresh_upper = t_upper(fdata)
-        # data_thresh_lower = t_lower(fdata)
 
         axis_stats = Stats(hist, hist_extent, xgrid, y_thresh_upper, y_thresh_lower, fit_weights=fit_weights,
                            poly_deg=poly_deg)

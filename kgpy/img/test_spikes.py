@@ -1,4 +1,5 @@
 import pathlib
+import numpy as np
 import astropy.io.fits
 import matplotlib.pyplot as plt
 
@@ -22,7 +23,7 @@ def test_identify_and_fix():
     stats.plot()
 
     c1 = CubeSlicer(data)
-    c2 = CubeSlicer(fixed_data)
+    c2 = CubeSlicer(fixed_data, vmin=np.percentile(fixed_data, 1), vmax=np.percentile(fixed_data, 99))
     c3 = CubeSlicer(mask)
 
     plt.show()
