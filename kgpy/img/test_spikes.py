@@ -18,13 +18,13 @@ def test_identify_and_fix():
     num_frames = 30
     data = data[:num_frames]
 
-    fixed_data, mask, stats = spikes.identify_and_fix(data, kernel_size=(11, 11, 21), percentile_threshold=99)
+    fixed_data, mask, stats = spikes.identify_and_fix(data, kernel_size=(11, 11, 31), percentile_threshold=(0.5, 99.5))
 
-    stats.plot()
+    spikes.stats_list_plot(stats, ['$t$', '$y$', '$\lambda$'])
 
-    c1 = CubeSlicer(data)
-    c2 = CubeSlicer(fixed_data, vmin=np.percentile(fixed_data, 1), vmax=np.percentile(fixed_data, 99))
-    c3 = CubeSlicer(mask)
+    c1 = CubeSlicer(data, vmax=np.percentile(data, 99.9))
+    c2 = CubeSlicer(fixed_data, vmax=np.percentile(fixed_data, 99.9))
+    c3 = CubeSlicer(mask != 0)
 
     plt.show()
 
