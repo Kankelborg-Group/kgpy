@@ -29,7 +29,7 @@ def add_to_zemax_system(
 
     sh = (wavelengths.num_per_config,)
 
-    wavls = np.broadcast_to(wavelengths.wavelengths, sh) * wavelengths.wavelengths.unit
+    wavls = np.broadcast_to(wavelengths.values, sh) * wavelengths.values.unit
     weights = np.broadcast_to(wavelengths.weights, sh) * wavelengths.weights.unit
 
     for w in range(wavelengths.num_per_config):
