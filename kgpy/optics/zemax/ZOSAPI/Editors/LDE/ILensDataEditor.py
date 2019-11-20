@@ -52,7 +52,7 @@ class ILensDataEditor:
     def GetGlass(self, surface: int) -> Tuple[bool, str, float, float, float]:
         pass
 
-    def GetGlobalMatrix(self, surface: int) -> Tuple[float, float, float, float, float, float, float, float, float,
+    def GetGlobalMatrix(self, surface: int) -> Tuple[bool, float, float, float, float, float, float, float, float, 
                                                      float, float, float, float]:
         pass
 
