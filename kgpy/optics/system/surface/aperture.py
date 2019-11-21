@@ -48,7 +48,12 @@ class Circular(Aperture):
 
     @property
     def points(self) -> u.Quantity:
-        raise NotImplementedError
+        a = np.linspace(0 * u.deg, 360 * u.deg, num=100)
+
+        x = np.stack([np.cos(a), np.sin(a)], axis=~0)
+
+        return u.Quantity(np.stack([self.outer_radius * x, self.inner_radius * x]))
+
 
 
 @dataclasses.dataclass
@@ -67,12 +72,12 @@ class Rectangular(Aperture):
 
     @property
     def points(self) -> u.Quantity:
-        return u.Quantity([
+        return u.Quantity([[
             u.Quantity([self.half_width_x, self.half_width_y]),
             u.Quantity([self.half_width_x, -self.half_width_y]),
             u.Quantity([-self.half_width_x, -self.half_width_y]),
             u.Quantity([-self.half_width_x, self.half_width_y]),
-        ])
+        ]])
 
 
 @dataclasses.dataclass
@@ -99,7 +104,8 @@ class RegularPolygon(Aperture):
         x = self.radius * np.cos(angles)  # type: u.Quantity
         y = self.radius * np.sin(angles)  # type: u.Quantity
         pts = u.Quantity([x, y])
-        pts = pts.transpose()   # type: u.Quantity
+        pts = u.Quantity(pts.transpose())
+        pts = u.Quantity([pts])
 
         return pts
 
@@ -114,7 +120,7 @@ class RegularOctagon(RegularPolygon):
 @dataclasses.dataclass
 class Polygon(Aperture):
     
-    points: u.Quantity = [[-1, -1], [-1, 1], [1, 1], [1, -1]] * u.mm
+    points: u.Quantity = [[[-1, -1], [-1, 1], [1, 1], [1, -1]]] * u.mm
 
     @property
     def broadcasted_attrs(self):
@@ -129,15 +135,27 @@ class Spider(Aperture):
 
     arm_half_width: u.Quantity = 0 * u.mm
     num_arms: int = 2
+    radius: u.Quantity = 0 * u.mm
 
     @property
     def broadcasted_attrs(self):
         return np.broadcast(
             super().broadcasted_attrs,
             self.arm_half_width,
-            self.num_arms
+            self.num_arms,
         )
 
     @property
     def points(self) -> u.Quantity:
-        raise NotImplementedError
+        
+        a = np.linspace(0 * u.deg, 360 * u.deg, self.num_arms, endpoint=False)
+        a = np.expand_dims(a, ~0)
+        
+        x = u.Quantity([0 * u.m, self.radius, self.radius, 0 * u.m])
+        y = u.Quantity([-self.arm_half_width, -self.arm_half_width, self.arm_half_width, self.arm_half_width])
+        
+        xp = x * np.cos(a) - y * np.sin(a)
+        yp = x * np.sin(a) + y * np.sin(a)
+        
+        pts = u.Quantity(np.stack([xp, yp], axis=~0))
+        return pts

@@ -4,7 +4,7 @@ import typing as tp
 from astropy import units as u
 
 
-def write_file(uda_file: pathlib.Path, polygons: tp.List[u.Quantity], zemax_units: u.Unit):
+def write_file(uda_file: pathlib.Path, polygons: u.Quantity, zemax_units: u.Unit):
     with open(str(uda_file), 'w') as uda:
 
         for poly in polygons:
