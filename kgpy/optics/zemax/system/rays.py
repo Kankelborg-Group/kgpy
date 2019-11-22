@@ -113,15 +113,20 @@ def trace(
                                     z_global = r31 * x + r32 * y + r33 * z + z0
 
                                     ind = c, s, w, ix, iy, jx, jy
-                                    rays.x[ind] = x_global * zemax_units
-                                    rays.y[ind] = y_global * zemax_units
-                                    rays.z[ind] = z_global * zemax_units
-                                    rays.cos_ax[ind] = l
-                                    rays.cos_ay[ind] = m
-                                    rays.cos_az[ind] = n
-                                    rays.cos_nx[ind] = l2
-                                    rays.cos_ny[ind] = m2
-                                    rays.cos_nz[ind] = n2
+                                    
+                                    x_ind = ind + (0,)
+                                    y_ind = ind + (1,)
+                                    z_ind = ind + (2,)
+                                    
+                                    rays.position[x_ind] = x_global * zemax_units
+                                    rays.position[y_ind] = y_global * zemax_units
+                                    rays.position[z_ind] = z_global * zemax_units
+                                    rays.direction[x_ind] = l
+                                    rays.direction[y_ind] = m
+                                    rays.direction[z_ind] = n
+                                    rays.surface_normal[x_ind] = l2
+                                    rays.surface_normal[y_ind] = m2
+                                    rays.surface_normal[z_ind] = n2
                                     rays.mask[ind] = vig == 0 and err == 0
 
                             rt_dat.ClearData()

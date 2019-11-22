@@ -12,12 +12,11 @@ __all__ = ['Aperture', 'Circular', 'Rectangular', 'RegularOctagon', 'Spider']
 
 @dataclasses.dataclass
 class Aperture(abc.ABC):
-
     decenter_x: u.Quantity = 0 * u.mm
     decenter_y: u.Quantity = 0 * u.mm
 
     is_obscuration: tp.Union[bool, npt.Array[bool]] = False
-    
+
     @property
     def broadcasted_attrs(self):
         return np.broadcast(
@@ -34,10 +33,9 @@ class Aperture(abc.ABC):
 
 @dataclasses.dataclass
 class Circular(Aperture):
-
     inner_radius: u.Quantity = 0 * u.mm
     outer_radius: u.Quantity = 0 * u.mm
-    
+
     @property
     def broadcasted_attrs(self):
         return np.broadcast(
@@ -50,18 +48,17 @@ class Circular(Aperture):
     def points(self) -> u.Quantity:
         a = np.linspace(0 * u.deg, 360 * u.deg, num=100)
 
-        x = np.stack([np.cos(a), np.sin(a)], axis=~0)
+        x = u.Quantity([np.cos(a), np.sin(a)])
+        x = np.moveaxis(x, 0, ~0)
 
-        return u.Quantity(np.stack([self.outer_radius * x, self.inner_radius * x]))
-
+        return u.Quantity([self.outer_radius * x, self.inner_radius * x])
 
 
 @dataclasses.dataclass
 class Rectangular(Aperture):
-
     half_width_x: u.Quantity = 0 * u.mm
     half_width_y: u.Quantity = 0 * u.mm
-    
+
     @property
     def broadcasted_attrs(self):
         return np.broadcast(
@@ -72,19 +69,18 @@ class Rectangular(Aperture):
 
     @property
     def points(self) -> u.Quantity:
-        return u.Quantity([[
+        return u.Quantity([u.Quantity([
             u.Quantity([self.half_width_x, self.half_width_y]),
             u.Quantity([self.half_width_x, -self.half_width_y]),
             u.Quantity([-self.half_width_x, -self.half_width_y]),
             u.Quantity([-self.half_width_x, self.half_width_y]),
-        ]])
+        ])])
 
 
 @dataclasses.dataclass
 class RegularPolygon(Aperture):
-
     radius: u.Quantity = 0 * u.mm
-    num_sides: u.Quantity = 8
+    num_sides: int = 8
 
     @property
     def broadcasted_attrs(self):
@@ -96,7 +92,6 @@ class RegularPolygon(Aperture):
 
     @property
     def points(self) -> u.Quantity:
-
         # Calculate angles
         angles = np.linspace(0, 2 * np.pi, self.num_sides, endpoint=False) * u.rad  # type: u.Quantity
 
@@ -113,26 +108,23 @@ class RegularPolygon(Aperture):
 class RegularOctagon(RegularPolygon):
 
     def __init__(self, radius: u.Quantity = 0 * u.mm, **kwargs):
-
         super().__init__(radius=radius, num_sides=8, **kwargs)
 
 
 @dataclasses.dataclass
 class Polygon(Aperture):
-    
     points: u.Quantity = [[[-1, -1], [-1, 1], [1, 1], [1, -1]]] * u.mm
 
     @property
     def broadcasted_attrs(self):
         return np.broadcast(
             super().broadcasted_attrs,
-            self.points[..., 0, 0],
+            self.points[..., 0, 0, 0],
         )
 
 
 @dataclasses.dataclass
 class Spider(Aperture):
-
     arm_half_width: u.Quantity = 0 * u.mm
     num_arms: int = 2
     radius: u.Quantity = 0 * u.mm
@@ -147,15 +139,15 @@ class Spider(Aperture):
 
     @property
     def points(self) -> u.Quantity:
-        
         a = np.linspace(0 * u.deg, 360 * u.deg, self.num_arms, endpoint=False)
         a = np.expand_dims(a, ~0)
-        
+
         x = u.Quantity([0 * u.m, self.radius, self.radius, 0 * u.m])
         y = u.Quantity([-self.arm_half_width, -self.arm_half_width, self.arm_half_width, self.arm_half_width])
-        
+
         xp = x * np.cos(a) - y * np.sin(a)
-        yp = x * np.sin(a) + y * np.sin(a)
-        
-        pts = u.Quantity(np.stack([xp, yp], axis=~0))
+        yp = x * np.sin(a) + y * np.cos(a)
+
+        pts = u.Quantity([xp, yp])
+        pts = np.moveaxis(pts, 0, ~0)
         return pts
