@@ -57,7 +57,7 @@ def trace(
         configuration_indices = np.arange(zemax_system.MCE.NumberOfConfigurations)
 
     if surface_indices is None:
-        surface_indices = np.arange(zemax_system.LDE.NumberOfSurfaces)
+        surface_indices = np.arange(zemax_system.LDE.NumberOfSurfaces - 1)
     surface_indices = np.array(surface_indices) % zemax_system.LDE.NumberOfSurfaces
 
     if wavelength_indices is None:

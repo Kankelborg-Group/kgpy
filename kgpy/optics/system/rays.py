@@ -2,6 +2,7 @@ import dataclasses
 import typing as tp
 import numpy as np
 import astropy.units as u
+import vg
 
 __all__ = ['Rays']
 
@@ -41,14 +42,60 @@ class Rays:
             mask=np.empty(ssh, dtype=np.bool),
         )
 
-    @property
-    def pupil_average(self) -> 'Rays':
-        ax = (self.axis.pupil_x, self.axis.pupil_y)
+    def unvignetted_mean(self, axis=None) -> 'Rays':
+
+        uvm = self.unvignetted_mask
+
+        norm = np.sum(uvm, axis=axis, keepdims=True)
 
         return type(self)(
-            position=np.mean(self.position.value, axis=ax, keepdims=True) * self.position.unit,
-            direction=np.mean(self.direction.value, axis=ax, keepdims=True) * self.direction.unit,
-            surface_normal=np.mean(self.surface_normal.value, axis=ax, keepdims=True) * self.surface_normal.unit,
-            opd=np.mean(self.opd.value, axis=ax, keepdims=True) * self.opd.unit,
-            mask=np.max(self.mask, axis=ax, keepdims=True)
+            position=np.nansum(self.position.value * uvm, axis=axis, keepdims=True) * self.position.unit / norm,
+            direction=np.nansum(self.direction * uvm, axis=axis, keepdims=True) / norm,
+            surface_normal=np.nansum(self.surface_normal * uvm, axis=axis, keepdims=True) / norm,
+            opd=np.nansum(self.opd.value * uvm, axis=axis, keepdims=True) * self.opd.unit / norm,
+            mask=np.max(self.mask, axis=axis, keepdims=True)
         )
+
+    @property
+    def unvignetted_mask(self):
+        sl = [slice(None)] * len(self.mask.shape)
+        sl[self.axis.surf] = slice(~0, None)
+        unvignetted_mask = self.mask[sl]
+        return unvignetted_mask
+
+    @property
+    def pupil_mean(self):
+        return self.unvignetted_mean(axis=(self.axis.pupil_x, self.axis.pupil_y))
+    
+    @property
+    def field_mean(self):
+        return self.unvignetted_mean(axis=(self.axis.field_x, self.axis.field_y))
+    
+    @property
+    def incidence_angle(self):
+        return self._angle_between_ray_and_surface(-1)
+    
+    @property
+    def reflected_angle(self):
+        return self._angle_between_ray_and_surface(0)
+    
+    def _angle_between_ray_and_surface(self, offset: int):
+        
+        sl = [slice(None)] * len(self.direction.shape)
+        sl[self.axis.surf] = slice(1, None)
+
+        normal = np.roll(self.surface_normal, offset, axis=self.axis.surf)
+        direction = self.direction
+
+        sh = normal.shape
+
+        normal = -np.reshape(normal, (-1, 3))
+        direction = np.reshape(direction, (-1, 3))
+
+        x = vg.angle(normal, direction) * u.deg
+
+        x = np.reshape(x, sh[:~0])
+        x = x.squeeze()
+
+        return x
+
