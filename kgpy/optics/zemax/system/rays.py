@@ -78,8 +78,8 @@ def trace(
     fnorm = zemax_system.SystemData.Fields.Normalization * u.deg
     pfield_x = field_x * fnorm
     pfield_y = field_y * fnorm
-    wavelengths = [zemax_system.SystemData.Wavelengths.GetWavelength(w + 1).Wavelength * u.um for w in
-                   wavelength_indices]
+    wavelengths = u.Quantity([zemax_system.SystemData.Wavelengths.GetWavelength(w + 1).Wavelength * u.um for w in
+                   wavelength_indices])
     rays.input_coordinates = pfield_x, pfield_y, wavelengths
 
     for c, config_index in enumerate(configuration_indices):
