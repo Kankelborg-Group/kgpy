@@ -4,6 +4,8 @@ import numpy as np
 import astropy.units as u
 import vg
 
+from . import Surface
+
 __all__ = ['Rays']
 
 
@@ -16,10 +18,14 @@ class Axis:
     pupil_x = ~2
     pupil_y = ~1
 
+    num_axes = 7
+
 
 @dataclasses.dataclass
 class Rays:
     axis = Axis()
+
+    input_coordinates: tp.Tuple[u.Quantity, u.Quantity, u.Quantity]
 
     position: u.Quantity
     direction: np.ndarray
@@ -35,12 +41,27 @@ class Rays:
         ssh = sh + (1,)
 
         return cls(
+            input_coordinates=(np.empty(sh[cls.axis.field_x]) * u.arcmin,
+                               np.empty(sh[cls.axis.field_y]) * u.arcmin,
+                               np.empty(sh[cls.axis.wavl]) * u.AA),
             position=np.empty(vsh) * u.mm,
             direction=np.empty(vsh),
             surface_normal=np.empty(vsh),
             opd=np.empty(ssh) * u.mm,
             mask=np.empty(ssh, dtype=np.bool),
         )
+
+    @property
+    def input_grid(self) -> tp.Tuple[u.Quantity, u.Quantity, u.Quantity]:
+        x, y, w = self.input_coordinates4
+        xx, yy, ww = np.meshgrid(x.value, y.value, w.value, indexing='ij')
+        xx, yy, zz = xx << x.unit, yy << y.unit, ww << w.unit
+        return xx, yy, zz
+
+    @property
+    def input_grid_raveled(self) -> tp.Tuple[u.Quantity, u.Quantity, u.Quantity]:
+        x, y, w = self.input_grid
+        return x.ravel(), y.ravel(), w.ravel()
 
     def unvignetted_mean(self, axis=None) -> 'Rays':
 
@@ -49,6 +70,7 @@ class Rays:
         norm = np.sum(uvm, axis=axis, keepdims=True)
 
         return type(self)(
+            input_coordinates=self.input_coordinates,
             position=np.nansum(self.position.value * uvm, axis=axis, keepdims=True) * self.position.unit / norm,
             direction=np.nansum(self.direction * uvm, axis=axis, keepdims=True) / norm,
             surface_normal=np.nansum(self.surface_normal * uvm, axis=axis, keepdims=True) / norm,
@@ -72,11 +94,11 @@ class Rays:
         return self.unvignetted_mean(axis=(self.axis.field_x, self.axis.field_y))
     
     @property
-    def incidence_angle(self):
+    def input_angle(self):
         return self._angle_between_ray_and_surface(-1)
     
     @property
-    def reflected_angle(self):
+    def output_angle(self):
         return self._angle_between_ray_and_surface(0)
     
     def _angle_between_ray_and_surface(self, offset: int):
@@ -98,4 +120,23 @@ class Rays:
         x = x.squeeze()
 
         return x
+
+    def distance(self, surface_1_index: int, surface_2_index: int):
+
+        d = 0
+
+        for i in range(surface_1_index, surface_2_index):
+
+            s0 = [slice(None)] * self.axis.num_axes
+            s1 = [slice(None)] * self.axis.num_axes
+
+            s0[self.axis.surf] = slice(i, i + 1)
+            s1[self.axis.surf] = slice(i + 1, i + 2)
+
+            x0 = self.position[s0]
+            x1 = self.position[s1]
+
+            d += np.sqrt(np.sum(np.square(x1 - x0), axis=~0, keepdims=True))
+
+        return d
 

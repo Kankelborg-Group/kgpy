@@ -65,15 +65,22 @@ def trace(
 
     starting_config = zemax_system.MCE.CurrentConfiguration
 
-    total_num_rays = 100 * 100
+    total_num_rays = 100 * 100 * 100
 
     sh = (
-        len(configuration_indices),
-        len(surface_indices),
-        len(wavelength_indices),
-    ) + fg_x.shape
-    
+             len(configuration_indices),
+             len(surface_indices),
+             len(wavelength_indices),
+         ) + fg_x.shape
+
     rays = Rays.empty(sh)
+
+    fnorm = zemax_system.SystemData.Fields.Normalization * u.deg
+    pfield_x = field_x * fnorm
+    pfield_y = field_y * fnorm
+    wavelengths = [zemax_system.SystemData.Wavelengths.GetWavelength(w + 1).Wavelength * u.um for w in
+                   wavelength_indices]
+    rays.input_coordinates = pfield_x, pfield_y, wavelengths
 
     for c, config_index in enumerate(configuration_indices):
 
@@ -93,17 +100,18 @@ def trace(
 
                 for ix, fx in enumerate(field_x):
                     for iy, fy in enumerate(field_y):
-
                         for jx, px in enumerate(pupil_x):
                             for jy, py in enumerate(pupil_y):
                                 if mask[ix, iy, jx, jy] == 1:
-
                                     rt_dat.AddRay(wavl_index + 1, fx, fy, px, py, ZOSAPI.Tools.RayTrace.OPDMode.None_)
 
-                            tool.RunAndWaitForCompletion()
-                            rt_dat.StartReadingResults()
+                tool.RunAndWaitForCompletion()
+                rt_dat.StartReadingResults()
 
-                            for jy, py in enumerate(pg_y):
+                for ix, fx in enumerate(field_x):
+                    for iy, fy in enumerate(field_y):
+                        for jx, px in enumerate(pupil_x):
+                            for jy, py in enumerate(pupil_y):
                                 if mask[ix, iy, jx, jy] == 1:
                                     zemax_ray = rt_dat.ReadNextResult()
                                     ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, intensity = zemax_ray
@@ -113,11 +121,11 @@ def trace(
                                     z_global = r31 * x + r32 * y + r33 * z + z0
 
                                     ind = c, s, w, ix, iy, jx, jy
-                                    
+
                                     x_ind = ind + (0,)
                                     y_ind = ind + (1,)
                                     z_ind = ind + (2,)
-                                    
+
                                     rays.position[x_ind] = x_global * zemax_units
                                     rays.position[y_ind] = y_global * zemax_units
                                     rays.position[z_ind] = z_global * zemax_units
@@ -129,7 +137,7 @@ def trace(
                                     rays.surface_normal[z_ind] = n2
                                     rays.mask[ind] = vig == 0 and err == 0
 
-                            rt_dat.ClearData()
+                rt_dat.ClearData()
 
         tool.Close()
 
