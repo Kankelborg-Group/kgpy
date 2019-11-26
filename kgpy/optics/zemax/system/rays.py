@@ -75,9 +75,17 @@ def trace(
 
     rays = Rays.empty(sh)
 
-    fnorm = zemax_system.SystemData.Fields.Normalization * u.deg
-    pfield_x = field_x * fnorm
-    pfield_y = field_y * fnorm
+    zf = zemax_system.SystemData.Fields
+    fx = [zf.GetField(f).X for f in range(1, zf.NumberOfFields + 1)] * u.deg
+    fy = [zf.GetField(f).Y for f in range(1, zf.NumberOfFields + 1)] * u.deg
+    max_field_x = np.max(fx)
+    max_field_y = np.max(fy)
+    if zf.Normalization == ZOSAPI.SystemData.FieldNormalizationType.Radial:
+        r = np.sqrt(max_field_x ** 2 + max_field_y ** 2)
+        max_field_x = max_field_y = r
+
+    pfield_x = field_x * max_field_x
+    pfield_y = field_y * max_field_y
     wavelengths = u.Quantity([zemax_system.SystemData.Wavelengths.GetWavelength(w + 1).Wavelength * u.um for w in
                    wavelength_indices])
     rays.input_coordinates = pfield_x, pfield_y, wavelengths

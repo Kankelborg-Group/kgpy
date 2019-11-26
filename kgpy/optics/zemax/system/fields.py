@@ -13,7 +13,8 @@ def add_to_zemax_system(
         fields: 'optics.system.Fields',
         configuration_shape: tp.Tuple[int],
 ):
-    
+    zemax_system.SystemData.Fields.Normalization = ZOSAPI.SystemData.FieldNormalizationType.Rectangular
+
     while zemax_system.SystemData.Fields.NumberOfFields < fields.num_per_config:
         zemax_system.SystemData.Fields.AddField(0, 0, 1)
         
