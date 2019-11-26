@@ -104,6 +104,12 @@ class System:
 
         x, mask = rays.position, rays.mask
 
+        xsl = [slice(None)] * len(x.shape)
+        for surf in self.surfaces:
+            s = self.surfaces.index(surf)
+            xsl[rays.axis.surf] = s
+            x[xsl] = self.local_to_global(surf, x[xsl])
+
         new_order = [
             rays.axis.config,
             rays.axis.wavl,

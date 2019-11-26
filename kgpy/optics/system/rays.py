@@ -54,8 +54,8 @@ class Rays:
     def input_grid(self) -> tp.Tuple[u.Quantity, u.Quantity, u.Quantity]:
         x, y, w = self.input_coordinates
         xx, yy, ww = np.meshgrid(x.value, y.value, w.value, indexing='ij')
-        xx, yy, zz = xx << x.unit, yy << y.unit, ww << w.unit
-        return xx, yy, zz
+        xx, yy, ww = xx << x.unit, yy << y.unit, ww << w.unit
+        return xx, yy, ww
 
     @property
     def input_grid_raveled(self) -> tp.Tuple[u.Quantity, u.Quantity, u.Quantity]:

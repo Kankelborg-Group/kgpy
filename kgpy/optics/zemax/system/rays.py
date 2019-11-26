@@ -99,8 +99,8 @@ def trace(
 
         for s, surf_index in enumerate(surface_indices):
 
-            gmatrix = zemax_system.LDE.GetGlobalMatrix(surf_index + 1)
-            _, r11, r12, r13, r21, r22, r23, r31, r32, r33, x0, y0, z0 = gmatrix
+            # gmatrix = zemax_system.LDE.GetGlobalMatrix(surf_index + 1)
+            # _, r11, r12, r13, r21, r22, r23, r31, r32, r33, x0, y0, z0 = gmatrix
 
             rt_dat = rt.CreateNormUnpol(total_num_rays, ZOSAPI.Tools.RayTrace.RaysType.Real, surf_index + 1)
 
@@ -124,9 +124,9 @@ def trace(
                                     zemax_ray = rt_dat.ReadNextResult()
                                     ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, intensity = zemax_ray
 
-                                    x_global = r11 * x + r12 * y + r13 * z + x0
-                                    y_global = r21 * x + r22 * y + r23 * z + y0
-                                    z_global = r31 * x + r32 * y + r33 * z + z0
+                                    # x_global = r11 * x + r12 * y + r13 * z + x0
+                                    # y_global = r21 * x + r22 * y + r23 * z + y0
+                                    # z_global = r31 * x + r32 * y + r33 * z + z0
 
                                     ind = c, s, w, ix, iy, jx, jy
 
@@ -134,9 +134,9 @@ def trace(
                                     y_ind = ind + (1,)
                                     z_ind = ind + (2,)
 
-                                    rays.position[x_ind] = x_global * zemax_units
-                                    rays.position[y_ind] = y_global * zemax_units
-                                    rays.position[z_ind] = z_global * zemax_units
+                                    rays.position[x_ind] = x * zemax_units
+                                    rays.position[y_ind] = y * zemax_units
+                                    rays.position[z_ind] = z * zemax_units
                                     rays.direction[x_ind] = l
                                     rays.direction[y_ind] = m
                                     rays.direction[z_ind] = n
