@@ -1,9 +1,13 @@
 import dataclasses
+import pathlib
+import pickle
 import numpy as np
 import typing as tp
 from scipy.spatial.transform import Rotation
 import astropy.units as u
+import astropy.visualization
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 from . import Surface, Fields, Wavelengths, surface, Rays
 
@@ -12,12 +16,16 @@ __all__ = ['System']
 
 @dataclasses.dataclass
 class System:
+
     name: str
     surfaces: tp.List[Surface]
     fields: Fields
     wavelengths: Wavelengths
     entrance_pupil_radius: u.Quantity = 0 * u.m
     stop_surface_index: tp.Union[int, np.ndarray] = 1
+    num_pupil_rays: tp.Tuple[int, int] = (7, 7)
+    num_field_rays: tp.Tuple[int, int] = (7, 7)
+    raytrace_path: pathlib.Path = pathlib.Path()
 
     @property
     def config_broadcast(self):
@@ -34,11 +42,51 @@ class System:
             self.stop_surface_index,
         )
 
-    def local_to_global(self, local_surface: Surface, x: u.Quantity) -> u.Quantity:
+    @property
+    def raytrace(self):
 
-        xsh = x.shape[:~0]
-        sh = xsh + (1,) * len(self.config_broadcast.shape) + (3,)
-        x = np.reshape(x, sh)
+        if self.raytrace_path.exists():
+            with open(str(self.raytrace_path), 'rb') as f:
+                return pickle.load(f)
+
+        else:
+            from kgpy.optics import zemax
+
+            zemax_system, zemax_units = zemax.system.calc_zemax_system(self)
+            filename = self.name + '.zmx'
+            zemax_system.SaveAs(pathlib.Path(__file__).parent / filename)
+
+            raytrace = zemax.system.rays.trace(zemax_system, zemax_units, self.num_pupil_rays, self.num_field_rays,
+                                               surface_indices=None)
+
+            with open(str(self.raytrace_path), 'wb') as f:
+                pickle.dump(raytrace, f)
+
+            return raytrace
+
+    @property
+    def chief_ray(self):
+        return self.raytrace.pupil_mean.field_mean
+
+    def local_to_global(self, local_surface: Surface, x: u.Quantity,
+                        configuration_axis: tp.Optional[tp.Union[int, tp.Tuple[int, ...]]] = None) -> u.Quantity:
+        """
+        Convert from the local coordinates of a particular surface to global coordinates.
+        :param local_surface: The local surface and the origin of the coordinate system
+        :param x: Array of coordinates, may be of any shape.
+        :param configuration_axis: The axis or axes of `x` corresponding to different configurations of the optical
+        system.
+        If None, the configuration axis is created at the zeroth axis of `x`.
+        :return: If configuration axis is not None, a new array is returned the same shape as `x`.
+        If None, the returned shape is `self.config_broadcast.shape + x.shape`
+        """
+
+        if configuration_axis is None:
+            x = np.broadcast_to(x.value, self.config_broadcast.shape + x.shape) << x.unit
+            configuration_axis = 0
+
+        if np.ndim(configuration_axis) == 0:
+            configuration_axis = [configuration_axis]
 
         surface_index = self.surfaces.index(local_surface)
 
@@ -64,14 +112,25 @@ class System:
             if s < surface_index:
                 translation = translation + rotation.apply([0, 0, surf.thickness.value]) * surf.thickness.unit
 
-        x_global = x + 0 * translation
-        for i in range(x.shape[0]):
-            for j in range(x.shape[1]):
-                x_global[i, j] = rotation.apply(x_global[i, j].value) * x_global.unit
+        x = x.copy()
 
-        x_global = x_global + translation
+        x_global = x
+
+        for axis in reversed(configuration_axis):
+            x = np.moveaxis(x, axis, 0)
+
+        xsh = x.shape
+
+        x = x.reshape(xsh[:len(configuration_axis)] + (-1, 3))
+
+        for i in range(x.shape[len(configuration_axis)]):
+
+            j = ..., i, slice(None)
+            x[j] = rotation.apply(x[j]) << x.unit
+            x[j] = x[j] + translation
 
         return x_global
+
 
     @staticmethod
     def _transform(
@@ -97,65 +156,87 @@ class System:
 
         return rotation, translation
 
-    def plot_3d(self, rays: Rays, delete_vignetted=True):
+    def distance_between_surfaces(self, surface_1: Surface, surface_2: Surface):
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d', proj_type='ortho')
+        surface_1_index = self.surfaces.index(surface_1)
+        surface_2_index = self.surfaces.index(surface_2)
 
-        x, mask = rays.position, rays.mask
+        s1 = [slice(None)] * self.chief_ray.axis.num_axes
+        s2 = [slice(None)] * self.chief_ray.axis.num_axes
 
-        xsl = [slice(None)] * len(x.shape)
-        for surf in self.surfaces:
-            s = self.surfaces.index(surf)
-            xsl[rays.axis.surf] = s
-            x[xsl] = self.local_to_global(surf, x[xsl])
+        s1[self.chief_ray.axis.surf] = slice(surface_1_index, surface_1_index + 1)
+        s2[self.chief_ray.axis.surf] = slice(surface_2_index, surface_2_index + 1)
 
-        new_order = [
-            rays.axis.config,
-            rays.axis.wavl,
-            rays.axis.field_x,
-            rays.axis.field_y,
-            rays.axis.pupil_x,
-            rays.axis.pupil_y,
-            rays.axis.surf,
-            ~0,
-        ]
+        x1 = self.chief_ray.position[s1]
+        x2 = self.chief_ray.position[s2]
 
-        new_surf_axis = ~list(reversed(new_order)).index(rays.axis.surf)
+        x1 = self.local_to_global(surface_1, x1, configuration_axis=self.chief_ray.axis.config)
+        x2 = self.local_to_global(surface_2, x2, configuration_axis=self.chief_ray.axis.config)
 
-        x = np.transpose(x, new_order)
-        mask = np.transpose(mask, new_order)
+        return np.sqrt(np.sum(np.square(x2 - x1), axis=~0, keepdims=True))
 
-        rebin_factor = 1
-        sl = (0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
-              slice(None, None, rebin_factor))
-        x = x[sl]
-        mask = mask[sl]
+    def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
 
-        sh = (-1, x.shape[new_surf_axis])
-        x = np.reshape(x, sh + (3,))
-        mask = np.reshape(mask, sh)
+        with astropy.visualization.quantity_support():
 
-        for r, m in zip(x, mask):
-            if delete_vignetted:
-                if m[~0]:
-                    ax.plot(*r.T)
-            else:
-                ax.plot(*r[m].T)
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d', proj_type='ortho')
 
-        for surf in self.surfaces:
-            if isinstance(surf, surface.Standard):
-                if surf.aperture is not None:
+            x, mask = rays.position, rays.mask
 
-                    psh = list(surf.aperture.points.shape)
-                    psh[~0] = 3
-                    polys = np.zeros(psh) * u.mm
-                    polys[..., 0:2] = surf.aperture.points
+            xsl = [slice(None)] * len(x.shape)
+            for surf in self.surfaces:
+                s = self.surfaces.index(surf)
+                xsl[rays.axis.surf] = s
+                a = self.local_to_global(surf, x[xsl], configuration_axis=0)
+                x[xsl] = a[config_index]
 
-                    polys = self.local_to_global(surf, polys)
+            new_order = [
+                rays.axis.config,
+                rays.axis.wavl,
+                rays.axis.field_x,
+                rays.axis.field_y,
+                rays.axis.pupil_x,
+                rays.axis.pupil_y,
+                rays.axis.surf,
+                ~0,
+            ]
 
-                    for poly in polys:
-                        x_, y_, z_ = poly[:, 0].T
-                        ax.plot(x_, y_, z_, 'k')
-                        ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
-                                u.Quantity([z_[-1], z_[0]]), 'k')
+            new_surf_axis = ~list(reversed(new_order)).index(rays.axis.surf)
+
+            x = np.transpose(x, new_order)
+            mask = np.transpose(mask, new_order)
+
+            rebin_factor = 1
+            sl = (0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
+                  slice(None, None, rebin_factor))
+            x = x[sl]
+            mask = mask[sl]
+
+            sh = (-1, x.shape[new_surf_axis])
+            x = np.reshape(x, sh + (3,))
+            mask = np.reshape(mask, sh)
+
+            for r, m in zip(x, mask):
+                if delete_vignetted:
+                    if m[~0]:
+                        ax.plot(*r.T)
+                else:
+                    ax.plot(*r[m].T)
+
+            for surf in self.surfaces:
+                if isinstance(surf, surface.Standard):
+                    if surf.aperture is not None:
+
+                        psh = list(surf.aperture.points.shape)
+                        psh[~0] = 3
+                        polys = np.zeros(psh) * u.mm
+                        polys[..., 0:2] = surf.aperture.points
+
+                        polys = self.local_to_global(surf, polys, configuration_axis=None)[0]
+
+                        for poly in polys:
+                            x_, y_, z_ = poly.T
+                            ax.plot(x_, y_, z_, 'k')
+                            ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
+                                    u.Quantity([z_[-1], z_[0]]), 'k')

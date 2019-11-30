@@ -69,10 +69,10 @@ class Rays:
 
         return type(self)(
             input_coordinates=self.input_coordinates,
-            position=np.sum(self.position.value * uvm, axis=axis, keepdims=True) * self.position.unit / norm,
-            direction=np.sum(self.direction * uvm, axis=axis, keepdims=True) / norm,
-            surface_normal=np.sum(self.surface_normal * uvm, axis=axis, keepdims=True) / norm,
-            opd=np.sum(self.opd.value * uvm, axis=axis, keepdims=True) * self.opd.unit / norm,
+            position=np.nansum(self.position.value * uvm, axis=axis, keepdims=True) * self.position.unit / norm,
+            direction=np.nansum(self.direction * uvm, axis=axis, keepdims=True) / norm,
+            surface_normal=np.nansum(self.surface_normal * uvm, axis=axis, keepdims=True) / norm,
+            opd=np.nansum(self.opd.value * uvm, axis=axis, keepdims=True) * self.opd.unit / norm,
             mask=np.max(self.mask, axis=axis, keepdims=True),
         )
 
@@ -80,7 +80,7 @@ class Rays:
     def unvignetted_mask(self):
         sl = [slice(None)] * len(self.mask.shape)
         sl[self.axis.surf] = slice(~0, None)
-        unvignetted_mask = self.mask[sl]
+        unvignetted_mask = self.mask[tuple(sl)]
         return unvignetted_mask
 
     @property
@@ -116,20 +116,3 @@ class Rays:
         x = np.reshape(x, sh[:~0] + (1,))
 
         return x
-
-    def distance(self, surface_1_index: int, surface_2_index: int):
-        d = 0
-
-        for i in range(surface_1_index, surface_2_index):
-            s0 = [slice(None)] * self.axis.num_axes
-            s1 = [slice(None)] * self.axis.num_axes
-
-            s0[self.axis.surf] = slice(i, i + 1)
-            s1[self.axis.surf] = slice(i + 1, i + 2)
-
-            x0 = self.position[s0]
-            x1 = self.position[s1]
-
-            d += np.sqrt(np.sum(np.square(x1 - x0), axis=~0, keepdims=True))
-
-        return d

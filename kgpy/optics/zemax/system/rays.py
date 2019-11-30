@@ -99,9 +99,6 @@ def trace(
 
         for s, surf_index in enumerate(surface_indices):
 
-            # gmatrix = zemax_system.LDE.GetGlobalMatrix(surf_index + 1)
-            # _, r11, r12, r13, r21, r22, r23, r31, r32, r33, x0, y0, z0 = gmatrix
-
             rt_dat = rt.CreateNormUnpol(total_num_rays, ZOSAPI.Tools.RayTrace.RaysType.Real, surf_index + 1)
 
             for w, wavl_index in enumerate(wavelength_indices):
@@ -123,10 +120,6 @@ def trace(
                                 if mask[ix, iy, jx, jy] == 1:
                                     zemax_ray = rt_dat.ReadNextResult()
                                     ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, intensity = zemax_ray
-
-                                    # x_global = r11 * x + r12 * y + r13 * z + x0
-                                    # y_global = r21 * x + r22 * y + r23 * z + y0
-                                    # z_global = r31 * x + r32 * y + r33 * z + z0
 
                                     ind = c, s, w, ix, iy, jx, jy
 

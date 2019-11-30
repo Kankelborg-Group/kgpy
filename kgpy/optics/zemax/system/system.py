@@ -19,8 +19,6 @@ def calc_zemax_system(system: 'optics.System') -> tp.Tuple[ZOSAPI.IOpticalSystem
     configuration_size = system.config_broadcast.size
     configuration_shape = system.config_broadcast.shape
 
-    print('configuration shape:', configuration_shape)
-
     while zemax_system.MCE.NumberOfConfigurations < configuration_size:
         zemax_system.MCE.AddConfiguration(False)
 
