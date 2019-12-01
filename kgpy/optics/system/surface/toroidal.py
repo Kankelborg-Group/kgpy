@@ -10,7 +10,7 @@ __all__ = ['Toroidal']
 @dataclasses.dataclass
 class Toroidal(Standard):
 
-    radius_of_rotation: u.Quantity = 0 * u.mm
+    radius_of_rotation: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
 
     @property
     def config_broadcast(self):

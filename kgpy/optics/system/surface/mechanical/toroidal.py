@@ -11,7 +11,7 @@ __all__ = ['Toroidal']
 @dataclasses.dataclass
 class Toroidal(Standard):
 
-    main_surface: tp.Union[surface.Toroidal, 'Toroidal'] = surface.Toroidal()
+    main_surface: tp.Union[surface.Toroidal, 'Toroidal'] = dataclasses.field(default_factory=lambda: surface.Toroidal())
 
     @classmethod
     def from_surface_params(

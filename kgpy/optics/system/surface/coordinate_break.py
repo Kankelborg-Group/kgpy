@@ -12,8 +12,8 @@ __all__ = ['CoordinateBreak']
 @dataclasses.dataclass
 class CoordinateBreak(Surface):
 
-    decenter: u.Quantity = [0, 0, 0] * u.m
-    tilt: u.Quantity = [0, 0, 0] * u.deg
+    decenter: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.m)
+    tilt: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
 
     tilt_first: tp.Union[bool, npt.Array[bool]] = False
 

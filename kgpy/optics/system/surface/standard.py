@@ -14,16 +14,16 @@ __all__ = ['Standard']
 @dataclasses.dataclass
 class Standard(Surface):
 
-    radius: u.Quantity = np.inf * u.mm
-    conic: u.Quantity = 0 * u.dimensionless_unscaled
+    radius: u.Quantity = dataclasses.field(default_factory=lambda: np.inf * u.mm)
+    conic: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.dimensionless_unscaled)
     material: tp.Optional[Material] = None
     aperture: tp.Optional[Aperture] = None
 
-    decenter_before: u.Quantity = [0, 0, 0] * u.m
-    decenter_after: u.Quantity = [0, 0, 0] * u.m
+    decenter_before: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.m)
+    decenter_after: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.m)
 
-    tilt_before: u.Quantity = [0, 0, 0] * u.deg
-    tilt_after: u.Quantity = [0, 0, 0] * u.deg
+    tilt_before: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
+    tilt_after: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
     
     tilt_first: tp.Union[bool, npt.Array[bool]] = False
 

@@ -21,11 +21,11 @@ class System:
     surfaces: tp.List[Surface]
     fields: Fields
     wavelengths: Wavelengths
-    entrance_pupil_radius: u.Quantity = 0 * u.m
+    entrance_pupil_radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.m)
     stop_surface_index: tp.Union[int, np.ndarray] = 1
     num_pupil_rays: tp.Tuple[int, int] = (7, 7)
     num_field_rays: tp.Tuple[int, int] = (7, 7)
-    raytrace_path: pathlib.Path = pathlib.Path()
+    raytrace_path: pathlib.Path = dataclasses.field(default_factory=lambda: pathlib.Path())
 
     @property
     def config_broadcast(self):
@@ -53,8 +53,7 @@ class System:
             from kgpy.optics import zemax
 
             zemax_system, zemax_units = zemax.system.calc_zemax_system(self)
-            filename = self.name + '.zmx'
-            zemax_system.SaveAs(pathlib.Path(__file__).parent / filename)
+            zemax_system.SaveAs(self.raytrace_path.parent / self.raytrace_path.stem / '.zmx')
 
             raytrace = zemax.system.rays.trace(zemax_system, zemax_units, self.num_pupil_rays, self.num_field_rays,
                                                surface_indices=None)

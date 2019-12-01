@@ -8,8 +8,8 @@ __all__ = ['Wavelengths']
 @dataclasses.dataclass
 class Wavelengths:
     
-    values: u.Quantity = [533] * u.nm
-    weights: u.Quantity = [1.0] * u.dimensionless_unscaled
+    values: u.Quantity = dataclasses.field(default_factory=lambda: [533] * u.nm)
+    weights: u.Quantity = dataclasses.field(default_factory=lambda: [1.0] * u.dimensionless_unscaled)
 
     @property
     def config_broadcast(self):

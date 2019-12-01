@@ -11,7 +11,8 @@ __all__ = ['EllipticalGrating1']
 @dataclasses.dataclass
 class EllipticalGrating1(DiffractionGrating):
 
-    main_surface: tp.Union[surface.EllipticalGrating1, 'EllipticalGrating1'] = surface.EllipticalGrating1()
+    main_surface: tp.Union[surface.EllipticalGrating1, 'EllipticalGrating1'] = dataclasses.field(
+        default_factory=lambda: surface.EllipticalGrating1())
 
     @classmethod
     def from_surface_params(

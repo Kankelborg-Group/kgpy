@@ -13,8 +13,8 @@ __all__ = ['DiffractionGrating']
 @dataclasses.dataclass
 class DiffractionGrating(Standard):
 
-    diffraction_order: u.Quantity = 0 * u.dimensionless_unscaled
-    groove_frequency: u.Quantity = 0 * (1 / u.mm)
+    diffraction_order: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.dimensionless_unscaled)
+    groove_frequency: u.Quantity = dataclasses.field(default_factory=lambda: 0 * (1 / u.mm))
 
     @property
     def config_broadcast(self):

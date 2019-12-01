@@ -12,11 +12,14 @@ __all__ = ['Standard']
 @dataclasses.dataclass
 class Standard:
 
-    coordinate_break_before: surface.CoordinateBreak = surface.CoordinateBreak()
-    aperture_surface: surface.Standard = surface.Standard()
-    main_surface: tp.Union[surface.Standard, 'Standard'] = surface.Standard()
-    coordinate_break_after_z: surface.CoordinateBreak = surface.CoordinateBreak()
-    coordinate_break_after: surface.CoordinateBreak = surface.CoordinateBreak()
+    coordinate_break_before: surface.CoordinateBreak = dataclasses.field(
+        default_factory=lambda: surface.CoordinateBreak())
+    aperture_surface: surface.Standard = dataclasses.field(default_factory=lambda: surface.Standard())
+    main_surface: tp.Union[surface.Standard, 'Standard'] = dataclasses.field(default_factory=lambda: surface.Standard())
+    coordinate_break_after_z: surface.CoordinateBreak = dataclasses.field(
+        default_factory=lambda: surface.CoordinateBreak())
+    coordinate_break_after: surface.CoordinateBreak = dataclasses.field(
+        default_factory=lambda: surface.CoordinateBreak())
 
     @classmethod
     def from_surface_params(

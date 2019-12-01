@@ -11,7 +11,8 @@ __all__ = ['DiffractionGrating']
 @dataclasses.dataclass
 class DiffractionGrating(Standard):
 
-    main_surface: tp.Union[surface.DiffractionGrating, 'DiffractionGrating'] = surface.DiffractionGrating()
+    main_surface: tp.Union[surface.DiffractionGrating, 'DiffractionGrating'] = dataclasses.field(
+        default_factory=lambda: surface.DiffractionGrating())
 
     @classmethod
     def from_surface_params(

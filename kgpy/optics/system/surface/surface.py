@@ -15,7 +15,7 @@ class Surface:
     """
 
     name: tp.Union[str, npt.Array[str]] = ''
-    thickness: u.Quantity = 0 * u.mm
+    thickness: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
     is_active: tp.Union[bool, npt.Array[bool]] = True
 
     @property

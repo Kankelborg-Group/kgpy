@@ -12,8 +12,8 @@ __all__ = ['Aperture', 'Circular', 'Rectangular', 'RegularOctagon', 'Spider']
 
 @dataclasses.dataclass
 class Aperture(abc.ABC):
-    decenter_x: u.Quantity = 0 * u.mm
-    decenter_y: u.Quantity = 0 * u.mm
+    decenter_x: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    decenter_y: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
 
     is_obscuration: tp.Union[bool, npt.Array[bool]] = False
 
@@ -33,8 +33,8 @@ class Aperture(abc.ABC):
 
 @dataclasses.dataclass
 class Circular(Aperture):
-    inner_radius: u.Quantity = 0 * u.mm
-    outer_radius: u.Quantity = 0 * u.mm
+    inner_radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    outer_radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
 
     @property
     def broadcasted_attrs(self):
@@ -56,8 +56,8 @@ class Circular(Aperture):
 
 @dataclasses.dataclass
 class Rectangular(Aperture):
-    half_width_x: u.Quantity = 0 * u.mm
-    half_width_y: u.Quantity = 0 * u.mm
+    half_width_x: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    half_width_y: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
 
     @property
     def broadcasted_attrs(self):
@@ -79,7 +79,7 @@ class Rectangular(Aperture):
 
 @dataclasses.dataclass
 class RegularPolygon(Aperture):
-    radius: u.Quantity = 0 * u.mm
+    radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
     num_sides: int = 8
 
     @property
@@ -113,7 +113,7 @@ class RegularOctagon(RegularPolygon):
 
 @dataclasses.dataclass
 class Polygon(Aperture):
-    points: u.Quantity = [[[-1, -1], [-1, 1], [1, 1], [1, -1]]] * u.mm
+    points: u.Quantity = dataclasses.field(default_factory=lambda: [[[-1, -1], [-1, 1], [1, 1], [1, -1]]] * u.mm)
 
     @property
     def broadcasted_attrs(self):
@@ -125,9 +125,9 @@ class Polygon(Aperture):
 
 @dataclasses.dataclass
 class Spider(Aperture):
-    arm_half_width: u.Quantity = 0 * u.mm
+    arm_half_width: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
     num_arms: int = 2
-    radius: u.Quantity = 0 * u.mm
+    radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
 
     @property
     def broadcasted_attrs(self):
