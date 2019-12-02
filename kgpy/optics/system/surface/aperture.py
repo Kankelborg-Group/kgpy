@@ -113,7 +113,7 @@ class RegularOctagon(RegularPolygon):
 
 @dataclasses.dataclass
 class Polygon(Aperture):
-    points: u.Quantity = dataclasses.field(default_factory=lambda: [[[-1, -1], [-1, 1], [1, 1], [1, -1]]] * u.mm)
+    pts: u.Quantity = dataclasses.field(default_factory=lambda: [[[-1, -1], [-1, 1], [1, 1], [1, -1]]] * u.mm)
 
     @property
     def broadcasted_attrs(self):
@@ -121,6 +121,10 @@ class Polygon(Aperture):
             super().broadcasted_attrs,
             self.points[..., 0, 0, 0],
         )
+
+    @property
+    def points(self):
+        return self.pts
 
 
 @dataclasses.dataclass
