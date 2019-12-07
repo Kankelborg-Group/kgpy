@@ -16,7 +16,6 @@ __all__ = ['System']
 
 @dataclasses.dataclass
 class System:
-
     name: str
     surfaces: tp.List[Surface]
     fields: Fields
@@ -62,6 +61,18 @@ class System:
                 pickle.dump(raytrace, f)
 
             return raytrace
+
+    def raytrace_to_image(
+            self,
+            num_pupil: tp.Union[int, tp.Tuple[int, int]] = 5,
+            num_field: tp.Union[int, tp.Tuple[int, int]] = 5,
+    ):
+        from kgpy.optics import zemax
+
+        zemax_system, zemax_units = zemax.system.calc_zemax_system(self)
+        zemax_system.SaveAs(self.raytrace_path.parent / self.raytrace_path.stem / '.zmx')
+
+        return zemax.system.rays.trace(zemax_system, zemax_units, num_pupil, num_field)
 
     @property
     def chief_ray(self):
@@ -123,13 +134,11 @@ class System:
         x = x.reshape(xsh[:len(configuration_axis)] + (-1, 3))
 
         for i in range(x.shape[len(configuration_axis)]):
-
             j = ..., i, slice(None)
             x[j] = rotation.apply(x[j]) << x.unit
             x[j] = x[j] + translation
 
         return x_global
-
 
     @staticmethod
     def _transform(
@@ -207,8 +216,9 @@ class System:
             mask = np.transpose(mask, new_order)
 
             rebin_factor = 1
-            sl = (0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
-                  slice(None, None, rebin_factor))
+            sl = (
+            0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
+            slice(None, None, rebin_factor))
             x = x[sl]
             mask = mask[sl]
 
