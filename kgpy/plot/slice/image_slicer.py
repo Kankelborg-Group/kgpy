@@ -34,9 +34,7 @@ class ImageSlicer:
 
         self.ax.set_ylabel('slice %s' % self.ind)
 
-        for line in self.plot:
-
-            line.set_xdata(self.x[self.ind])
-            line.set_ydata(self.y[self.ind])
+        self.plot[0].set_xdata(self.x[self.ind])
+        self.plot[0].set_ydata(self.y[self.ind])
 
         self.fig.canvas.draw()
