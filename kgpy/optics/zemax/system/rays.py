@@ -1,4 +1,5 @@
 import typing as tp
+import time
 import numpy as np
 import nptyping as npt
 import astropy.units as u
@@ -87,7 +88,7 @@ def trace(
     pfield_x = field_x * max_field_x
     pfield_y = field_y * max_field_y
     wavelengths = u.Quantity([zemax_system.SystemData.Wavelengths.GetWavelength(w + 1).Wavelength * u.um for w in
-                   wavelength_indices])
+                              wavelength_indices])
     rays.input_coordinates = pfield_x, pfield_y, wavelengths
 
     for c, config_index in enumerate(configuration_indices):
@@ -99,27 +100,33 @@ def trace(
 
         for s, surf_index in enumerate(surface_indices):
 
-            rt_dat = rt.CreateNormUnpol(total_num_rays, ZOSAPI.Tools.RayTrace.RaysType.Real, surf_index + 1)
+            # rt_dat = rt.CreateNormUnpol(total_num_rays, ZOSAPI.Tools.RayTrace.RaysType.Real, surf_index + 1)
 
             for w, wavl_index in enumerate(wavelength_indices):
 
+                # for ix, fx in enumerate(field_x):
+                #     for iy, fy in enumerate(field_y):
+                #         for jx, px in enumerate(pupil_x):
+                #             for jy, py in enumerate(pupil_y):
+                #                 if mask[ix, iy, jx, jy] == 1:
+                #                     rt_dat.AddRay(wavl_index + 1, fx, fy, px, py, ZOSAPI.Tools.RayTrace.OPDMode.None_)
+                #
+                # tool.RunAndWaitForCompletion()
+                # # time.sleep(0.1)
+                #
+                # rt_dat.StartReadingResults()
+
                 for ix, fx in enumerate(field_x):
                     for iy, fy in enumerate(field_y):
                         for jx, px in enumerate(pupil_x):
                             for jy, py in enumerate(pupil_y):
                                 if mask[ix, iy, jx, jy] == 1:
-                                    rt_dat.AddRay(wavl_index + 1, fx, fy, px, py, ZOSAPI.Tools.RayTrace.OPDMode.None_)
-
-                tool.RunAndWaitForCompletion()
-                rt_dat.StartReadingResults()
-
-                for ix, fx in enumerate(field_x):
-                    for iy, fy in enumerate(field_y):
-                        for jx, px in enumerate(pupil_x):
-                            for jy, py in enumerate(pupil_y):
-                                if mask[ix, iy, jx, jy] == 1:
-                                    zemax_ray = rt_dat.ReadNextResult()
-                                    ret, n, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, intensity = zemax_ray
+                                    # zemax_ray = rt_dat.ReadNextResult()
+                                    zemax_ray = rt.SingleRayNormUnpol(ZOSAPI.Tools.RayTrace.RaysType.Real,
+                                                                      surf_index + 1,
+                                                                      wavl_index + 1, fx, fy, px, py,
+                                                                      ZOSAPI.Tools.RayTrace.OPDMode.None_)
+                                    ret, err, vig, x, y, z, l, m, n, l2, m2, n2, opd, intensity = zemax_ray
 
                                     ind = c, s, w, ix, iy, jx, jy
 
@@ -138,7 +145,7 @@ def trace(
                                     rays.surface_normal[z_ind] = n2
                                     rays.mask[ind] = vig == 0 and err == 0
 
-                rt_dat.ClearData()
+                # rt_dat.ClearData()
 
         tool.Close()
 
