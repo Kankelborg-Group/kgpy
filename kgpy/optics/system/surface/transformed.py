@@ -7,13 +7,13 @@ import kgpy.typing.numpy as npt
 from .. import mixin
 from . import Surface, SurfacesRelative, Standard
 
-__all__ = ['MechanicalSurface']
+__all__ = ['Mechanical']
 
 SurfaceType = typ.TypeVar['SurfaceType']
 
 
 @dataclasses.dataclass
-class MechanicalSurface(mixin.Named, typ.Generic[SurfaceType]):
+class Mechanical(mixin.Named, typ.Generic[SurfaceType]):
     """
     A representation of an optical surface and a mechanical aperture with two main transformations and an error
     transformation.
