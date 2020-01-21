@@ -1,5 +1,5 @@
 import dataclasses
-import typing as tp
+import typing as typ
 import nptyping as npt
 import numpy as np
 import astropy.units as u
@@ -16,7 +16,7 @@ class Standard:
         default_factory=lambda: surface.CoordinateBreak())
     aperture_surface: surface.Standard = dataclasses.field(
         default_factory=lambda: surface.Standard())
-    main_surface: tp.Union[surface.Standard, 'Standard'] = dataclasses.field(
+    main_surface: typ.Union[surface.Standard, 'Standard'] = dataclasses.field(
         default_factory=lambda: surface.Standard())
     coordinate_break_after_z: surface.CoordinateBreak = dataclasses.field(
         default_factory=lambda: surface.CoordinateBreak())
@@ -26,16 +26,16 @@ class Standard:
     @classmethod
     def from_surface_params(
             cls,
-            name: tp.Union[str, npt.Array[str]] = '',
-            is_stop: tp.Union[bool, npt.Array[bool]] = False,
-            is_detector: tp.Union[bool, npt.Array[bool]] = False,
+            name: typ.Union[str, npt.Array[str]] = '',
+            is_stop: typ.Union[bool, npt.Array[bool]] = False,
+            is_detector: typ.Union[bool, npt.Array[bool]] = False,
             thickness: u.Quantity = 0 * u.mm,
             radius: u.Quantity = np.inf * u.mm,
             conic: u.Quantity = 0 * u.dimensionless_unscaled,
-            material: tp.Union[tp.Optional[surface.Material], npt.Array[tp.Optional[surface.Material]]] = None,
-            aperture: tp.Union[tp.Optional[surface.Aperture], npt.Array[tp.Optional[surface.Aperture]]] = None,
-            mechanical_aperture: tp.Union[tp.Optional[surface.Aperture],
-                                          npt.Array[tp.Optional[surface.Aperture]]] = None,
+            material: typ.Union[typ.Optional[surface.Material], npt.Array[typ.Optional[surface.Material]]] = None,
+            aperture: typ.Union[typ.Optional[surface.Aperture], npt.Array[typ.Optional[surface.Aperture]]] = None,
+            mechanical_aperture: typ.Union[typ.Optional[surface.Aperture],
+                                           npt.Array[typ.Optional[surface.Aperture]]] = None,
             decenter_before: u.Quantity = [0, 0, 0] * u.m,
             decenter_after: u.Quantity = [0, 0, 0] * u.m,
             tilt_before: u.Quantity = [0, 0, 0] * u.deg,
@@ -90,7 +90,7 @@ class Standard:
         return cls(cb_before, aper_surf, main_surf, cb_after_z, cb_after)
     
     @property
-    def surfaces(self) -> tp.List[surface.Surface]:
+    def surfaces(self) -> typ.List[surface.Surface]:
         return [
             self.coordinate_break_before,
             self.aperture_surface,

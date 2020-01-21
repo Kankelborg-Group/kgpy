@@ -24,7 +24,7 @@ class Named(ConfigBroadcast):
     This class is useful if you want name to be the first argument in the constructor method signature.
     """
 
-    name: npt.Array[str]
+    name: typ.Union[str, npt.Array[str]]
 
     @property
     def config_broadcast(self):

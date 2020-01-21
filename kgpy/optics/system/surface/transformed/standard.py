@@ -1,27 +1,27 @@
 import dataclasses
 import typing as typ
+import numpy as np
 import astropy.units as u
 
 import kgpy.typing.numpy as npt
 
-from .. import mixin
-from . import Surface, SurfacesRelative, Standard
+from kgpy.optics.system import mixin
+from kgpy.optics.system.surface import Surface, SurfacesRelative, standard, Material, Aperture
 
-__all__ = ['Mechanical']
+__all__ = ['Standard']
 
 SurfaceType = typ.TypeVar('SurfaceType')
 
 
 @dataclasses.dataclass
-class Mechanical(mixin.Named, typ.Generic[SurfaceType]):
+class Standard(standard.Standard):
     """
     A representation of an optical surface and a mechanical aperture with two main transformations and an error
     transformation.
 
     """
 
-    main_surface: SurfaceType
-    aperture_surface: SurfaceType
+    aperture_surface: SurfaceType = dataclasses.field(default_factory=super().__init__)
 
     tilt_1: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
     tilt_2: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
@@ -34,6 +34,10 @@ class Mechanical(mixin.Named, typ.Generic[SurfaceType]):
     tilt_first_1: typ.Union[bool, npt.Array[bool]] = False
     tilt_first_2: typ.Union[bool, npt.Array[bool]] = False
     tilt_first_err: typ.Union[bool, npt.Array[bool]] = False
+
+    @property
+    def main_surface(self):
+        return super().__init__()
 
     @property
     def surfaces(self):
