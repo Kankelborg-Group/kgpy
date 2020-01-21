@@ -9,7 +9,7 @@ from . import Surface, SurfacesRelative, Standard
 
 __all__ = ['Mechanical']
 
-SurfaceType = typ.TypeVar['SurfaceType']
+SurfaceType = typ.TypeVar('SurfaceType')
 
 
 @dataclasses.dataclass
@@ -21,7 +21,7 @@ class Mechanical(mixin.Named, typ.Generic[SurfaceType]):
     """
 
     main_surface: SurfaceType
-    aperture_surface: Standard
+    aperture_surface: SurfaceType
 
     tilt_1: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
     tilt_2: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
