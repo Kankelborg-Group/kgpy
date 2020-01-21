@@ -15,3 +15,11 @@ class TestCoordinateBreak:
         assert isinstance(c.tilt, u.Quantity)
         assert c.tilt.unit.is_equivalent(u.deg)
 
+    def test_config_broadcast(self):
+
+        tilt = [[0, 0, 0]] * u.deg
+
+        c = CoordinateBreak(tilt=tilt)
+
+        assert c.config_broadcast.shape == tilt.shape[:~0]
+
