@@ -10,7 +10,7 @@ from kgpy.optics.system.surface import Surface, SurfacesRelative, standard, Mate
 
 __all__ = ['Standard']
 
-SurfaceType = typ.TypeVar('SurfaceType')
+ApertureType = typ.TypeVar('ApertureType')
 
 
 @dataclasses.dataclass
@@ -21,7 +21,7 @@ class Standard(standard.Standard):
 
     """
 
-    aperture_surface: SurfaceType = dataclasses.field(default_factory=super().__init__)
+    mechanical_aperture: typ.Optional[Aperture] = None
 
     tilt_1: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
     tilt_2: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
@@ -36,12 +36,12 @@ class Standard(standard.Standard):
     tilt_first_err: typ.Union[bool, npt.Array[bool]] = False
 
     @property
-    def main_surface(self):
-        return super().__init__()
+    def aperture_surface(self) -> standard.Standard:
 
+        pass
     @property
-    def surfaces(self):
-        return [self.aperture_surface, self.main_surface]
+    def surfaces(self) -> typ.List[Surface]:
+        return [self.aperture_surface, self]
 
     @property
     def all_surfaces(self) -> typ.List[Surface]:

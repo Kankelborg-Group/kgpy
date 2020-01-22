@@ -1,5 +1,5 @@
 import dataclasses
-import typing as tp
+import typing as typ
 import numpy as np
 import nptyping as npt
 import astropy.units as u
@@ -16,7 +16,7 @@ class Surface(mixin.Named):
     have all the same properties and behaviors.
     """
     thickness: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
-    is_active: tp.Union[bool, npt.Array[bool]] = True
+    is_active: typ.Union[bool, npt.Array[bool]] = True
 
     @property
     def config_broadcast(self):
@@ -27,6 +27,6 @@ class Surface(mixin.Named):
         )
 
     @property
-    def surfaces(self) -> tp.List['Surface']:
+    def surfaces(self) -> typ.List['Surface']:
         return [self]
 
