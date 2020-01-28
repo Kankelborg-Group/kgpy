@@ -2,15 +2,23 @@ import abc
 import dataclasses
 import astropy.units as u
 
-__all__ = ['Material', 'Mirror']
+from .. import mixin
+
+__all__ = ['Material', 'NoMaterial', 'Mirror']
 
 
-@dataclasses.dataclass
-class Material:
-    
+class Material(abc.ABC, mixin.ConfigBroadcast):
+
     @property
     @abc.abstractmethod
-    def name(self):
+    def to_str(self):
+        ...
+
+
+class NoMaterial(Material):
+
+    @property
+    def to_str(self):
         return ''
 
 
@@ -20,5 +28,5 @@ class Mirror(Material):
     thickness: u.Quantity
     
     @property
-    def name(self):
+    def to_str(self):
         return 'MIRROR'

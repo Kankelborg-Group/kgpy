@@ -2,44 +2,68 @@ import dataclasses
 import abc
 import typing as tp
 import numpy as np
-import nptyping as npt
 import astropy.units as u
 
-from kgpy import math, optics
+from .. import mixin
 
 __all__ = ['Aperture', 'Circular', 'Rectangular', 'RegularOctagon', 'Spider']
 
 
 @dataclasses.dataclass
-class Aperture(abc.ABC):
-    decenter_x: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
-    decenter_y: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+class Aperture(mixin.ConfigBroadcast):
+    pass
 
-    is_obscuration: tp.Union[bool, npt.Array[bool]] = False
 
-    @property
-    def broadcasted_attrs(self):
-        return np.broadcast(
-            self.decenter_x,
-            self.decenter_y,
-            self.is_obscuration,
-        )
-
-    @property
-    @abc.abstractmethod
-    def points(self) -> u.Quantity:
-        pass
+class NoAperture(Aperture):
+    pass
 
 
 @dataclasses.dataclass
-class Circular(Aperture):
+class Decenterable(mixin.ConfigBroadcast):
+
+    decenter_x: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    decenter_y: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+
+    @property
+    def config_broadcast(self):
+        return np.broadcast(
+            super().config_broadcast,
+            self.decenter_x,
+            self.decenter_y,
+        )
+
+
+@dataclasses.dataclass
+class Obscurable(mixin.ConfigBroadcast):
+
+    is_obscuration: np.ndarray[bool] = dataclasses.field(default_factory=lambda: np.array(False))
+
+    @property
+    def config_broadcast(self):
+        return np.broadcast(
+            super().config_broadcast,
+            self.is_obscuration,
+        )
+
+
+class Polygon(abc.ABC, Aperture):
+
+    @property
+    @abc.abstractmethod
+    def points(self):
+        ...
+
+
+@dataclasses.dataclass
+class Circular(Obscurable, Decenterable, Polygon):
+
     inner_radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
     outer_radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.inner_radius,
             self.outer_radius,
         )
@@ -55,14 +79,15 @@ class Circular(Aperture):
 
 
 @dataclasses.dataclass
-class Rectangular(Aperture):
+class Rectangular(Obscurable, Decenterable, Polygon):
+
     half_width_x: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
     half_width_y: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.half_width_x,
             self.half_width_y,
         )
@@ -79,13 +104,14 @@ class Rectangular(Aperture):
 
 @dataclasses.dataclass
 class RegularPolygon(Aperture):
+
     radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
     num_sides: int = 8
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.radius,
             self.num_sides,
         )
@@ -112,31 +138,33 @@ class RegularOctagon(RegularPolygon):
 
 
 @dataclasses.dataclass
-class Polygon(Aperture):
-    pts: u.Quantity = dataclasses.field(default_factory=lambda: [[[-1, -1], [-1, 1], [1, 1], [1, -1]]] * u.mm)
+class UserPolygonMixin(mixin.ConfigBroadcast):
+
+    points: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity)
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.points[..., 0, 0, 0],
         )
 
-    @property
-    def points(self):
-        return self.pts
+
+class UserPolygon(Obscurable, Decenterable, UserPolygonMixin):
+    pass
 
 
 @dataclasses.dataclass
-class Spider(Aperture):
+class Spider(Decenterable, Polygon):
+
     arm_half_width: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
     num_arms: int = 2
     radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
 
     @property
-    def broadcasted_attrs(self):
+    def config_broadcast(self):
         return np.broadcast(
-            super().broadcasted_attrs,
+            super().config_broadcast,
             self.arm_half_width,
             self.num_arms,
         )

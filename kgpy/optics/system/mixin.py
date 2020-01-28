@@ -3,7 +3,7 @@ import typing as typ
 import numpy as np
 import kgpy.typing.numpy as npt 
 
-__all__ = ['ConfigBroadcast']
+__all__ = ['ConfigBroadcast', 'Named']
 
 
 class ConfigBroadcast:
@@ -23,8 +23,7 @@ class Named(ConfigBroadcast):
     """
     This class is useful if you want name to be the first argument in the constructor method signature.
     """
-
-    name: typ.Union[str, npt.Array[str]]
+    name: np.ndarray[str]
 
     @property
     def config_broadcast(self):
@@ -32,3 +31,12 @@ class Named(ConfigBroadcast):
             super().config_broadcast,
             self.name,
         )
+
+
+ParentT = typ.TypeVar('ParentT')
+
+
+@dataclasses.dataclass
+class Adopted(typ.Generic[ParentT]):
+
+    _parent: ParentT
