@@ -25,7 +25,7 @@ class NoMaterial(Material):
 @dataclasses.dataclass
 class Mirror(Material):
     
-    thickness: u.Quantity
+    thickness: u.Quantity = 0 * u.mm
     
     @property
     def to_str(self):

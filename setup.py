@@ -13,7 +13,9 @@ setup(
         'numpy-quaternion',
         'numba',
         'pywin32 ; platform_system=="Windows"',
-        'nptyping', 'pytest', 'vg'
+        'pytest',
+        'vg',
+        'numpy-stubs @ git+https://github.com/numpy/numpy-stubs.gitt#egg=numpy-stubs',
     ],
     url='https://titan.ssel.montana.edu/gitlab/Kankelborg-Group/kgpy',
     license='',

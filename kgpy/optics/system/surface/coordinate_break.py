@@ -49,13 +49,12 @@ class ArbitraryDecenterZ(mixin.Named):
             self._cb_main = CoordinateBreak(name=self.name)
 
         if self._cb_z is None:
-            n = np.core.defchararray.add(self.name, np.array('_z'))
-            self._cb_z = CoordinateBreak(name=n)
+            self._cb_z = CoordinateBreak(name=self.name + '_z')
 
     @classmethod
     def from_cbreak_args(
             cls,
-            name: np.ndarray[str],
+            name: str,
             transform: coordinate.Transform,
     ):
 

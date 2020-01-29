@@ -19,18 +19,11 @@ class ConfigBroadcast:
 
 
 @dataclasses.dataclass
-class Named(ConfigBroadcast):
+class Named:
     """
     This class is useful if you want name to be the first argument in the constructor method signature.
     """
-    name: np.ndarray[str]
-
-    @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.name,
-        )
+    name: str
 
 
 ParentT = typ.TypeVar('ParentT')

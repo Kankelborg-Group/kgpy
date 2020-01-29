@@ -1,5 +1,5 @@
 import dataclasses
-import typing as tp
+import typing as typ
 import numpy as np
 import astropy.units as u
 
@@ -9,9 +9,12 @@ from . import Standard
 
 __all__ = ['DiffractionGrating']
 
+AperSurfT = typ.TypeVar('AperSurfT')
+MainSurfT = typ.TypeVar('MainSurfT')
+
 
 @dataclasses.dataclass
-class DiffractionGrating(Standard):
+class DiffractionGrating(Standard[AperSurfT, MainSurfT]):
 
     diffraction_order: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.dimensionless_unscaled)
     groove_frequency: u.Quantity = dataclasses.field(default_factory=lambda: 0 * (1 / u.mm))

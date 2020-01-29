@@ -42,7 +42,7 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
     @classmethod
     def from_properties(
             cls,
-            name: np.ndarray[str],
+            name: str,
             aper_surface: ApertureSurfaceT,
             main_surface: MainSurfaceT,
             transform_1: typ.Optional[system.coordinate.Transform] = None,
@@ -67,7 +67,7 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
     @classmethod
     def from_clear_aper(
             cls,
-            name: np.ndarray[str],
+            name: str,
             clear_aperture: ClearAperT,
             main_surface: MainSurfaceT,
             transform_1: typ.Optional[system.coordinate.Transform] = None,

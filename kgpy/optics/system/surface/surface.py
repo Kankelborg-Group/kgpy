@@ -9,13 +9,13 @@ __all__ = ['Surface']
 
 
 @dataclasses.dataclass
-class Surface(mixin.Named):
+class Surface(mixin.Named, mixin.ConfigBroadcast):
     """
     This class represents a single optical surface. This class should be a drop-in replacement for a Zemax surface, and
     have all the same properties and behaviors.
     """
 
-    thickness: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    thickness: u.Quantity = 0 * u.mm
     is_active: np.ndarray[bool] = dataclasses.field(default_factory=lambda: np.array(True))
 
     @property

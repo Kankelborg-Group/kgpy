@@ -6,7 +6,7 @@ import astropy.units as u
 
 from .. import mixin
 
-__all__ = ['Aperture', 'Circular', 'Rectangular', 'RegularOctagon', 'Spider']
+__all__ = ['Aperture', 'Circular', 'Rectangular', 'RegularOctagon', 'Spider', 'UserPolygon']
 
 
 @dataclasses.dataclass
@@ -21,8 +21,8 @@ class NoAperture(Aperture):
 @dataclasses.dataclass
 class Decenterable(mixin.ConfigBroadcast):
 
-    decenter_x: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
-    decenter_y: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    decenter_x: u.Quantity = 0 * u.mm
+    decenter_y: u.Quantity = 0 * u.mm
 
     @property
     def config_broadcast(self):
@@ -57,8 +57,8 @@ class Polygon(abc.ABC, Aperture):
 @dataclasses.dataclass
 class Circular(Obscurable, Decenterable, Polygon):
 
-    inner_radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
-    outer_radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    inner_radius: u.Quantity = 0 * u.mm
+    outer_radius: u.Quantity = 0 * u.mm
 
     @property
     def config_broadcast(self):
@@ -81,8 +81,8 @@ class Circular(Obscurable, Decenterable, Polygon):
 @dataclasses.dataclass
 class Rectangular(Obscurable, Decenterable, Polygon):
 
-    half_width_x: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
-    half_width_y: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    half_width_x: u.Quantity = 0 * u.mm
+    half_width_y: u.Quantity = 0 * u.mm
 
     @property
     def config_broadcast(self):
@@ -105,7 +105,7 @@ class Rectangular(Obscurable, Decenterable, Polygon):
 @dataclasses.dataclass
 class RegularPolygon(Aperture):
 
-    radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    radius: u.Quantity = 0 * u.mm
     num_sides: int = 8
 
     @property
@@ -138,9 +138,9 @@ class RegularOctagon(RegularPolygon):
 
 
 @dataclasses.dataclass
-class UserPolygonMixin(mixin.ConfigBroadcast):
+class UserPolygonMixin(mixin.ConfigBroadcast, Aperture):
 
-    points: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity)
+    points: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity([]))
 
     @property
     def config_broadcast(self):
@@ -150,6 +150,7 @@ class UserPolygonMixin(mixin.ConfigBroadcast):
         )
 
 
+@dataclasses.dataclass
 class UserPolygon(Obscurable, Decenterable, UserPolygonMixin):
     pass
 
@@ -157,9 +158,9 @@ class UserPolygon(Obscurable, Decenterable, UserPolygonMixin):
 @dataclasses.dataclass
 class Spider(Decenterable, Polygon):
 
-    arm_half_width: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    arm_half_width: u.Quantity = 0 * u.mm
     num_arms: int = 2
-    radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    radius: u.Quantity = 0 * u.mm
 
     @property
     def config_broadcast(self):

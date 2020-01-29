@@ -36,7 +36,7 @@ class GenericSurfaces(mixin.Named, typ.Generic[MainT]):
     @classmethod
     def from_cbreak_args(
             cls,
-            name: typ.Union[str, npt.Array[str]],
+            name: str,
             main: MainT,
             transform: typ.Optional[coordinate.Transform] = None
     ):
