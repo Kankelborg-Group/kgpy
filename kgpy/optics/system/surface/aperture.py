@@ -1,6 +1,6 @@
 import dataclasses
 import abc
-import typing as tp
+import typing as typ
 import numpy as np
 import astropy.units as u
 
@@ -140,7 +140,7 @@ class RegularOctagon(RegularPolygon):
 @dataclasses.dataclass
 class UserPolygonMixin(mixin.ConfigBroadcast, Aperture):
 
-    points: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity([]))
+    points: u.Quantity = dataclasses.field(default_factory=lambda: [])
 
     @property
     def config_broadcast(self):
