@@ -94,12 +94,16 @@ class Rectangular(Obscurable, Decenterable, Polygon):
 
     @property
     def points(self) -> u.Quantity:
-        return u.Quantity([u.Quantity([
-            u.Quantity([self.half_width_x, self.half_width_y]),
-            u.Quantity([self.half_width_x, -self.half_width_y]),
-            u.Quantity([-self.half_width_x, -self.half_width_y]),
-            u.Quantity([-self.half_width_x, self.half_width_y]),
-        ])])
+
+        sh = self.config_broadcast.shape    # type: typ.Tuple[int, ...]
+
+        wx = np.broadcast_to(self.half_width_x, sh, subok=True)     # type: u.Quantity
+        wy = np.broadcast_to(self.half_width_y, sh, subok=True)     # type: u.Quantity
+
+        x = np.stack([wx, wx, -wx, -wx], axis=~0)
+        y = np.stack([wy, -wy, wy, -wy], axis=~0)
+
+        return np.stack([x, y], axis=~0)
 
 
 @dataclasses.dataclass
@@ -138,20 +142,46 @@ class RegularOctagon(RegularPolygon):
 
 
 @dataclasses.dataclass
-class UserPolygonMixin(mixin.ConfigBroadcast, Aperture):
+class UserPolygonMixin(Aperture):
 
-    points: u.Quantity = dataclasses.field(default_factory=lambda: [])
+    points: typ.Optional[u.Quantity] = None
 
     @property
     def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.points[..., 0, 0, 0],
-        )
+        a = super().config_broadcast
+
+        if self.points is not None:
+            a = np.broadcast(a, self.points[..., 0, 0])
+
+        return a
 
 
 @dataclasses.dataclass
 class UserPolygon(Obscurable, Decenterable, UserPolygonMixin):
+    pass
+
+
+@dataclasses.dataclass
+class UserDoublePolygonMixin(Aperture):
+
+    points_1: typ.Optional[u.Quantity] = None
+    points_2: typ.Optional[u.Quantity] = None
+
+    @property
+    def config_broadcast(self):
+        a = super().config_broadcast
+
+        if self.points_1 is not None:
+            a = np.broadcast(a, self.points_1[..., 0, 0])
+
+        if self.points_2 is not None:
+            a = np.broadcast(a, self.points_2[..., 0, 0])
+
+        return a
+
+
+@dataclasses.dataclass
+class UserDoublePolygon(Obscurable, Decenterable, UserDoublePolygonMixin):
     pass
 
 

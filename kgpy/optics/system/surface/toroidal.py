@@ -1,4 +1,5 @@
 import dataclasses
+import typing as typ
 import numpy as np
 import astropy.units as u
 
@@ -6,11 +7,14 @@ from . import Standard
 
 __all__ = ['Toroidal']
 
+AperSurfT = typ.TypeVar('AperSurfT')
+MainSurfT = typ.TypeVar('MainSurfT')
+
 
 @dataclasses.dataclass
-class Toroidal(Standard):
+class Toroidal(Standard[AperSurfT, MainSurfT]):
 
-    radius_of_rotation: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.mm)
+    radius_of_rotation: u.Quantity = 0 * u.mm
 
     @property
     def config_broadcast(self):

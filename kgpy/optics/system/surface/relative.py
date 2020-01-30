@@ -24,6 +24,7 @@ class GenericSurfaces(mixin.Named, typ.Generic[MainT]):
     main: MainT
     cbreak_before: coordinate_break.ArbitraryDecenterZ = None
     cbreak_after: coordinate_break.ArbitraryDecenterZ = None
+    is_last_surface: bool = False
 
     def __post_init__(self):
 
@@ -34,7 +35,7 @@ class GenericSurfaces(mixin.Named, typ.Generic[MainT]):
             self.cbreak_after = coordinate_break.ArbitraryDecenterZ(name=self.name + '.cb_after')
 
     @classmethod
-    def from_cbreak_args(
+    def from_properties(
             cls,
             name: str,
             main: MainT,
@@ -65,5 +66,6 @@ class GenericSurfaces(mixin.Named, typ.Generic[MainT]):
         for s in self.main:
             yield s
 
-        for s in self.cbreak_after:
-            yield s
+        if not self.is_last_surface:
+            for s in self.cbreak_after:
+                yield s

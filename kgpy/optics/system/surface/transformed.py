@@ -4,7 +4,7 @@ import numpy as np
 
 from kgpy.optics import system
 
-from .relative import GenericSurfaces as RSurfs
+from . import relative
 
 __all__ = ['Surface']
 
@@ -37,7 +37,8 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
     A `Mechanical`
     """
 
-    _surfaces: RSurfs[RSurfs[RSurfs[Mechanical[ApertureSurfaceT, MainSurfaceT]]]]
+    _surfaces: relative.GenericSurfaces[relative.GenericSurfaces[relative.GenericSurfaces[Mechanical[ApertureSurfaceT,
+                                                                                                     MainSurfaceT]]]]
 
     @classmethod
     def from_properties(
@@ -48,6 +49,7 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
             transform_1: typ.Optional[system.coordinate.Transform] = None,
             transform_2: typ.Optional[system.coordinate.Transform] = None,
             transform_err: typ.Optional[system.coordinate.Transform] = None,
+            is_last_surface: bool = False,
     ) -> 'Surface[ApertureSurfaceT, MainSurfaceT]':
 
         if transform_1 is None:
@@ -58,45 +60,26 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
             transform_err = system.coordinate.Transform()
 
         a = Mechanical(aperture_surface=aper_surface, main_surface=main_surface)
-        b = RSurfs.from_cbreak_args(name=name + '.relative_err', main=a, transform=transform_err,)
-        c = RSurfs.from_cbreak_args(name=name + '.relative_2', main=b, transform=transform_2,)
-        d = RSurfs.from_cbreak_args(name=name + '.relative_1', main=c, transform=transform_1,)
+        b = relative.GenericSurfaces(name=name + '.relative_err', main=a)
+        c = relative.GenericSurfaces(name=name + '.relative_2', main=b)
+        d = relative.GenericSurfaces(name=name + '.relative_1', main=c)
 
-        return cls(name=name, _surfaces=d)
+        self = cls(name=name, _surfaces=d)
 
-    @classmethod
-    def from_clear_aper(
-            cls,
-            name: str,
-            clear_aperture: ClearAperT,
-            main_surface: MainSurfaceT,
-            transform_1: typ.Optional[system.coordinate.Transform] = None,
-            transform_2: typ.Optional[system.coordinate.Transform] = None,
-            transform_err: typ.Optional[system.coordinate.Transform] = None,
-    ):
-        aper_surface = dataclasses.replace(
-            main_surface,
-            name=name+'.aperture',
-            aperture=clear_aperture,
-            material=system.surface.material.NoMaterial(),
-        )
-        return cls.from_properties(name, aper_surface, main_surface, transform_1, transform_2, transform_err)
+        self.transform_1 = transform_1
+        self.transform_2 = transform_2
+        self.transform_err = transform_err
+        self.is_last_surface = is_last_surface
+
+        return self
 
     @property
     def main_surface(self) -> MainSurfaceT:
         return self._surfaces.main.main.main.main_surface
 
-    @main_surface.setter
-    def main_surface(self, value: MainSurfaceT):
-        self._surfaces.main.main.main.main_surface = value
-
     @property
     def aperture_surface(self) -> ApertureSurfaceT:
         return self._surfaces.main.main.main.aperture_surface
-
-    @aperture_surface.setter
-    def aperture_surface(self, value: ApertureSurfaceT):
-        self._surfaces.main.main.main.aperture_surface = value
 
     @property
     def transform_1(self) -> system.coordinate.Transform:
@@ -121,6 +104,16 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
     @transform_err.setter
     def transform_err(self, value: system.coordinate.Transform):
         self._surfaces.main.main.transform = value
+
+    @property
+    def is_last_surface(self) -> bool:
+        return self._surfaces.is_last_surface
+
+    @is_last_surface.setter
+    def is_last_surface(self, value: bool):
+        self._surfaces.is_last_surface = value
+        self._surfaces.main.is_last_surface = value
+        self._surfaces.main.main.is_last_surface = value
 
     def __iter__(self):
         return self._surfaces.__iter__()

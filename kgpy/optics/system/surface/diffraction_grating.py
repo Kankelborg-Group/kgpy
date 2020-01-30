@@ -16,8 +16,8 @@ MainSurfT = typ.TypeVar('MainSurfT')
 @dataclasses.dataclass
 class DiffractionGrating(Standard[AperSurfT, MainSurfT]):
 
-    diffraction_order: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.dimensionless_unscaled)
-    groove_frequency: u.Quantity = dataclasses.field(default_factory=lambda: 0 * (1 / u.mm))
+    diffraction_order: np.ndarray[int] = np.array(1)
+    groove_frequency: u.Quantity = 0 * (1 / u.mm)
 
     @property
     def config_broadcast(self):
