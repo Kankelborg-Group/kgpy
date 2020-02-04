@@ -2,33 +2,36 @@ import dataclasses
 import pathlib
 import pickle
 import numpy as np
-import typing as tp
+import typing as typ
 from scipy.spatial.transform import Rotation
 import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+from . import mixin
 from . import Surface, Fields, Wavelengths, surface, Rays
 
 __all__ = ['System']
 
+SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Iterable[Surface])
+
 
 @dataclasses.dataclass
-class System:
-    name: str
-    surfaces: tp.List[Surface]
+class System(mixin.Named, typ.Generic[SurfacesT]):
+
+    surfaces: SurfacesT
     fields: Fields
     wavelengths: Wavelengths
-    entrance_pupil_radius: u.Quantity = dataclasses.field(default_factory=lambda: 0 * u.m)
-    stop_surface_index: tp.Union[int, np.ndarray] = 1
-    num_pupil_rays: tp.Tuple[int, int] = (7, 7)
-    num_field_rays: tp.Tuple[int, int] = (7, 7)
+    entrance_pupil_radius: u.Quantity = 0 * u.m
+    stop_surface_index: typ.Union[int, np.ndarray] = 1
+    num_pupil_rays: typ.Tuple[int, int] = (7, 7)
+    num_field_rays: typ.Tuple[int, int] = (7, 7)
     raytrace_path: pathlib.Path = dataclasses.field(default_factory=lambda: pathlib.Path())
 
     @property
     def config_broadcast(self):
-        all_surface_battrs = 0
+        all_surface_battrs = None
         for s in self.surfaces:
             all_surface_battrs = np.broadcast(all_surface_battrs, s.config_broadcast)
             all_surface_battrs = np.empty(all_surface_battrs.shape)
@@ -64,8 +67,8 @@ class System:
 
     def raytrace_to_image(
             self,
-            num_pupil: tp.Union[int, tp.Tuple[int, int]] = 5,
-            num_field: tp.Union[int, tp.Tuple[int, int]] = 5,
+            num_pupil: typ.Union[int, typ.Tuple[int, int]] = 5,
+            num_field: typ.Union[int, typ.Tuple[int, int]] = 5,
     ):
         from kgpy.optics import zemax
 
@@ -79,7 +82,7 @@ class System:
         return self.raytrace.pupil_mean.field_mean
 
     def local_to_global(self, local_surface: Surface, x: u.Quantity,
-                        configuration_axis: tp.Optional[tp.Union[int, tp.Tuple[int, ...]]] = None) -> u.Quantity:
+                        configuration_axis: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None) -> u.Quantity:
         """
         Convert from the local coordinates of a particular surface to global coordinates.
         :param local_surface: The local surface and the origin of the coordinate system
