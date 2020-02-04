@@ -16,7 +16,7 @@ class Surface(mixin.Named, mixin.ConfigBroadcast):
     """
 
     thickness: u.Quantity = 0 * u.mm
-    is_active: np.ndarray[bool] = dataclasses.field(default_factory=lambda: np.array(True))
+    is_active: 'np.ndarray[bool]' = dataclasses.field(default_factory=lambda: np.array(True))
 
     @property
     def config_broadcast(self):

@@ -3,7 +3,7 @@ import typing as typ
 import numpy as np
 import numpy.core
 
-from .. import mixin, coordinate
+from .. import mixin, coordinate, Name
 from . import surface
 
 
@@ -54,7 +54,7 @@ class ArbitraryDecenterZ(mixin.Named):
     @classmethod
     def from_cbreak_args(
             cls,
-            name: str,
+            name: Name,
             transform: coordinate.Transform,
     ):
 
@@ -63,7 +63,7 @@ class ArbitraryDecenterZ(mixin.Named):
 
     @property
     def transform(self) -> coordinate.Transform:
-        return Transform.from_super(self._cb_main.transform + self._cb_z.transform, self)
+        return self._cb_main.transform + self._cb_z.transform
 
     @transform.setter
     def transform(self, value: coordinate.Transform):
@@ -81,7 +81,7 @@ class ArbitraryDecenterZ(mixin.Named):
             t_z = dataclasses.replace(value, tilt=0*value.tilt, decenter=b)
 
         self._cb_main.transform = t_main
-        self._cb_z = t_z
+        self._cb_z.transform = t_z
 
     def __iter__(self):
         yield self._cb_z
@@ -100,11 +100,11 @@ class Transform(coordinate.Transform, mixin.Adopted[ArbitraryDecenterZ]):
         return cls(parent, transform.tilt, transform.decenter, transform.tilt_first)
 
     @property
-    def tilt_first(self) -> np.ndarray[bool]:
+    def tilt_first(self) -> 'np.ndarray[bool]':
         return self._tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: np.ndarray[bool]):
+    def tilt_first(self, value: 'np.ndarray[bool]'):
         self._tilt_first = value
         self._parent.transform = self
 

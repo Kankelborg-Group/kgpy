@@ -13,7 +13,7 @@ class Transform(mixin.ConfigBroadcast):
 
     tilt: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
     decenter: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.mm)
-    tilt_first: np.ndarray[bool] = dataclasses.field(default_factory=lambda: np.array(False))
+    tilt_first: 'np.ndarray[bool]' = dataclasses.field(default_factory=lambda: np.array(False))
 
     @property
     def config_broadcast(self):

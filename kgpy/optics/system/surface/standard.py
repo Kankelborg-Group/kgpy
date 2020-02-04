@@ -19,8 +19,8 @@ class Standard(Surface, typ.Generic[MaterialType, ApertureType]):
     conic: u.Quantity = 0 * u.dimensionless_unscaled
     material: MaterialType = dataclasses.field(default_factory=lambda: material_module.NoMaterial())
     aperture: ApertureType = dataclasses.field(default_factory=lambda: aperture_module.NoAperture())
-    transform_before: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
-    transform_after: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
+    transform_before: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.Transform())
+    transform_after: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.Transform())
 
     @property
     def config_broadcast(self):

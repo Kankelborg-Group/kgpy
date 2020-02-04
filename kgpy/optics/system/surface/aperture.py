@@ -36,7 +36,7 @@ class Decenterable(mixin.ConfigBroadcast):
 @dataclasses.dataclass
 class Obscurable(mixin.ConfigBroadcast):
 
-    is_obscuration: np.ndarray[bool] = dataclasses.field(default_factory=lambda: np.array(False))
+    is_obscuration: 'np.ndarray[bool]' = dataclasses.field(default_factory=lambda: np.array(False))
 
     @property
     def config_broadcast(self):
