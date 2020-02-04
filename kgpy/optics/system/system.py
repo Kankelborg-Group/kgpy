@@ -20,9 +20,9 @@ SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Iterable[Surface])
 @dataclasses.dataclass
 class System(mixin.Named, typ.Generic[SurfacesT]):
 
-    surfaces: SurfacesT
-    fields: Fields
-    wavelengths: Wavelengths
+    surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
+    fields: Fields = dataclasses.field(default_factory=lambda: Fields())
+    wavelengths: Wavelengths = dataclasses.field(default_factory=lambda: Wavelengths())
     entrance_pupil_radius: u.Quantity = 0 * u.m
     stop_surface_index: typ.Union[int, np.ndarray] = 1
     num_pupil_rays: typ.Tuple[int, int] = (7, 7)

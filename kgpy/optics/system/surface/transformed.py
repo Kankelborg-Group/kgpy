@@ -1,8 +1,7 @@
 import dataclasses
 import typing as typ
-import numpy as np
 
-from kgpy.name import Name
+from kgpy.optics.system.name import Name
 from kgpy.optics import system
 
 from . import relative

@@ -1,7 +1,7 @@
 import dataclasses
 import typing as typ
 
-from kgpy.name import Name
+from kgpy.optics.system.name import Name
 
 from . import Surface, Standard, coordinate_break
 from .. import coordinate, mixin

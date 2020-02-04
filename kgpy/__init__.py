@@ -1,1 +1,1 @@
-from .name import Name
+from kgpy.optics.system.name import Name

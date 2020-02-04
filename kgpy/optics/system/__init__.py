@@ -1,3 +1,4 @@
+from .name import Name
 from .surface import Surface
 from .fields import Fields
 from .wavelengths import Wavelengths
