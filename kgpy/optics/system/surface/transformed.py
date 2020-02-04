@@ -2,6 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 
+from kgpy.name import Name
 from kgpy.optics import system
 
 from . import relative
@@ -23,12 +24,12 @@ class Mechanical(typ.Generic[ApertureSurfaceT, MainSurfaceT]):
     The second `system.Surface` object, `self.substrate_surface` represents the mechanical aperture and the substrate.
     """
 
-    aperture_surface: ApertureSurfaceT
-    main_surface: MainSurfaceT
+    aperture_surface: ApertureSurfaceT = dataclasses.field(default_factory=lambda: system.surface.Standard())
+    main_surface: MainSurfaceT = dataclasses.field(default_factory=lambda: system.surface.Standard())
 
     def __iter__(self) -> typ.Generator[system.Surface]:
-        yield self.aperture_surface
-        yield self.main_surface
+        yield from self.aperture_surface
+        yield from self.main_surface
 
 
 @dataclasses.dataclass
@@ -37,13 +38,24 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
     A `Mechanical`
     """
 
-    _surfaces: relative.GenericSurfaces[relative.GenericSurfaces[relative.GenericSurfaces[Mechanical[ApertureSurfaceT,
-                                                                                                     MainSurfaceT]]]]
+    _surfaces: relative.GenericSurfaces[
+        relative.GenericSurfaces[
+            relative.GenericSurfaces[
+                Mechanical[ApertureSurfaceT, MainSurfaceT]
+            ]
+        ]
+    ] = relative.GenericSurfaces(
+        main=relative.GenericSurfaces(
+            main=relative.GenericSurfaces(
+                main=Mechanical()
+            )
+        )
+    )
 
     @classmethod
     def from_properties(
             cls,
-            name: str,
+            name: Name,
             aper_surface: ApertureSurfaceT,
             main_surface: MainSurfaceT,
             transform_1: typ.Optional[system.coordinate.Transform] = None,
@@ -60,9 +72,9 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
             transform_err = system.coordinate.Transform()
 
         a = Mechanical(aperture_surface=aper_surface, main_surface=main_surface)
-        b = relative.GenericSurfaces(name=name + '.relative_err', main=a)
-        c = relative.GenericSurfaces(name=name + '.relative_2', main=b)
-        d = relative.GenericSurfaces(name=name + '.relative_1', main=c)
+        b = relative.GenericSurfaces(name=Name(name, '.relative_err'), main=a)
+        c = relative.GenericSurfaces(name=Name(name, '.relative_2'), main=b)
+        d = relative.GenericSurfaces(name=Name(name, '.relative_1'), main=c)
 
         self = cls(name=name, _surfaces=d)
 
@@ -117,5 +129,3 @@ class Surface(system.mixin.Named, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
 
     def __iter__(self):
         return self._surfaces.__iter__()
-
-

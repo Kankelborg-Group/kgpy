@@ -1,7 +1,8 @@
 import dataclasses
 import typing as typ
 import numpy as np
-import kgpy.typing.numpy as npt 
+
+from kgpy.name import Name
 
 __all__ = ['ConfigBroadcast', 'Named']
 
@@ -20,10 +21,10 @@ class ConfigBroadcast:
 
 @dataclasses.dataclass
 class Named:
-    """
+    """ 
     This class is useful if you want name to be the first argument in the constructor method signature.
     """
-    name: str
+    name: Name = dataclasses.field(default_factory=lambda: Name())
 
 
 ParentT = typ.TypeVar('ParentT')

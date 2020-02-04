@@ -1,2 +1,1 @@
-
-# from . import observatories, plot
+from .name import Name
