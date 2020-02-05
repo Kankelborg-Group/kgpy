@@ -3,37 +3,74 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 
-__all__ = ['Transform']
+__all__ = ['Tilt', 'Decenter', 'Transform']
 
-from . import mixin
+from kgpy.optics.system import mixin
 
 
 @dataclasses.dataclass
-class Transform(mixin.ConfigBroadcast):
-
-    tilt: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.deg)
-    decenter: u.Quantity = dataclasses.field(default_factory=lambda: [0, 0, 0] * u.mm)
-    tilt_first: 'np.ndarray[bool]' = dataclasses.field(default_factory=lambda: np.array(False))
+class Tilt(mixin.ConfigBroadcast):
+    x: u.Quantity = 0 * u.deg
+    y: u.Quantity = 0 * u.deg
+    z: u.Quantity = 0 * u.deg
 
     @property
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
-            self.decenter[..., 0],
-            self.tilt[..., 0],
-            self.tilt_first,
+            self.x,
+            self.y,
+            self.z,
+        )
+
+    def __invert__(self):
+        return type(self)(
+            -self.x,
+            -self.y,
+            -self.z,
+        )
+
+
+@dataclasses.dataclass
+class Decenter(mixin.ConfigBroadcast):
+    x: u.Quantity = 0 * u.mm
+    y: u.Quantity = 0 * u.mm
+    z: u.Quantity = 0 * u.mm
+
+    @property
+    def config_broadcast(self):
+        return np.broadcast(
+            super().config_broadcast,
+            self.x,
+            self.y,
+            self.z,
+        )
+
+    def __invert__(self):
+        return type(self)(
+            -self.x,
+            -self.y,
+            -self.z,
+        )
+
+
+@dataclasses.dataclass
+class Transform(mixin.ConfigBroadcast):
+    tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
+    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
+    tilt_first: bool = False
+
+    @property
+    def config_broadcast(self):
+        return np.broadcast(
+            super().config_broadcast,
+            self.tilt.config_broadcast,
+            self.decenter.config_broadcast,
         )
 
     def __invert__(self) -> 'Transform':
-        return type(self)(-self.tilt, -self.decenter, np.logical_not(self.tilt_first))
-
-    def __add__(self, other: 'Transform'):
-
-        if self.tilt_first != other.tilt_first:
-            raise ValueError('Adding Transforms with opposite `tilt_first` attributes not supported')
-
-        return Transform(
-            tilt=self.tilt + other.tilt,
-            decenter=self.decenter + other.decenter,
-            tilt_first=self.tilt_first,
+        return type(self)(
+            self.tilt.__invert__(),
+            self.decenter.__invert__(),
+            not self.tilt_first,
         )

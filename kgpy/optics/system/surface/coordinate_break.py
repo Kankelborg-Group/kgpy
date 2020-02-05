@@ -40,16 +40,17 @@ class ArbitraryDecenterZ(mixin.Named):
     It respects the `order` parameter for 3D translations.
     """
 
-    _cb_main: CoordinateBreak = None
-    _cb_z: CoordinateBreak = None
+    _cb1: CoordinateBreak = None
+    _cb2: CoordinateBreak = None
+    _tilt_first: bool = False
 
     def __post_init__(self):
 
-        if self._cb_main is None:
-            self._cb_main = CoordinateBreak(name=self.name)
+        if self._cb1 is None:
+            self._cb1 = CoordinateBreak(name=self.name + 'cb1')
 
-        if self._cb_z is None:
-            self._cb_z = CoordinateBreak(name=self.name + '_z')
+        if self._cb2 is None:
+            self._cb2 = CoordinateBreak(name=self.name + 'cb2')
 
     @classmethod
     def from_cbreak_args(
@@ -63,29 +64,26 @@ class ArbitraryDecenterZ(mixin.Named):
 
     @property
     def transform(self) -> coordinate.Transform:
-        return self._cb_main.transform + self._cb_z.transform
+        return self._cb1.transform + self._cb2.transform
 
     @transform.setter
     def transform(self, value: coordinate.Transform):
 
-        if value.tilt_first:
-            t_main = dataclasses.replace(value)
-            t_z = dataclasses.replace(value, tilt=0*value.tilt, decenter=0*value.decenter)
+        self._tilt_first = value.tilt_first
+        
+        if self._tilt_first:
+
+            self._cb1.transform = coordinate.Transform(tilt=value.tilt)
+            self._cb2.transform = coordinate.Transform(decenter=value.decenter)
 
         else:
-            a = value.decenter
-            b = a.copy()
-            a[..., ~0] = 0
-            b[..., :~0] = 0
-            t_main = dataclasses.replace(value, decenter=a)
-            t_z = dataclasses.replace(value, tilt=0*value.tilt, decenter=b)
-
-        self._cb_main.transform = t_main
-        self._cb_z.transform = t_z
+            
+            self._cb1.transform = coordinate.Transform(decenter=value.decenter)
+            self._cb2.transform = coordinate.Transform(tilt=value.tilt)
 
     def __iter__(self):
-        yield self._cb_z
-        yield self._cb_main
+        yield self._cb1
+        yield self._cb2
 
 
 @dataclasses.dataclass
