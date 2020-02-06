@@ -42,7 +42,6 @@ class ArbitraryDecenterZ(mixin.Named):
 
     _cb1: CoordinateBreak = None
     _cb2: CoordinateBreak = None
-    _tilt_first: bool = False
 
     def __post_init__(self):
 
@@ -68,18 +67,16 @@ class ArbitraryDecenterZ(mixin.Named):
 
     @transform.setter
     def transform(self, value: coordinate.Transform):
-
-        self._tilt_first = value.tilt_first
         
-        if self._tilt_first:
+        if value.tilt_first:
 
-            self._cb1.transform = coordinate.Transform(tilt=value.tilt)
-            self._cb2.transform = coordinate.Transform(decenter=value.decenter)
+            self._cb1.transform = coordinate.Transform(tilt=value.tilt, tilt_first=value.tilt_first)
+            self._cb2.transform = coordinate.Transform(decenter=value.decenter, tilt_first=value.tilt_first)
 
         else:
             
-            self._cb1.transform = coordinate.Transform(decenter=value.decenter)
-            self._cb2.transform = coordinate.Transform(tilt=value.tilt)
+            self._cb1.transform = coordinate.Transform(decenter=value.decenter, tilt_first=value.tilt_first)
+            self._cb2.transform = coordinate.Transform(tilt=value.tilt, tilt_first=value.tilt_first)
 
     def __iter__(self):
         yield self._cb1
