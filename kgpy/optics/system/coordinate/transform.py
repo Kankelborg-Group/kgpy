@@ -1,16 +1,14 @@
 import dataclasses
-
 import numpy as np
 
 from kgpy.optics.system import mixin
-from kgpy.optics.system.coordinate.decenter import Decenter
-from kgpy.optics.system.coordinate.tilt import Tilt
+from . import Tilt, Translate
 
 
 @dataclasses.dataclass
 class Transform(mixin.ConfigBroadcast):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
-    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
+    translate: Translate = dataclasses.field(default_factory=lambda: Translate())
     tilt_first: bool = False
 
     @property
@@ -18,12 +16,12 @@ class Transform(mixin.ConfigBroadcast):
         return np.broadcast(
             super().config_broadcast,
             self.tilt.config_broadcast,
-            self.decenter.config_broadcast,
+            self.translate.config_broadcast,
         )
 
     def __invert__(self) -> 'Transform':
         return type(self)(
             self.tilt.__invert__(),
-            self.decenter.__invert__(),
+            self.translate.__invert__(),
             not self.tilt_first,
         )

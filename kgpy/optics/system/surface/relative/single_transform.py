@@ -1,19 +1,14 @@
 import dataclasses
 import typing as typ
 
-from kgpy.optics.system.name import Name
+from ... import Name, mixin, coordinate
+from .. import Surface, Standard, CoordinateTransform
 
-from . import Surface, Standard, coordinate_break
-from .. import coordinate, mixin
-
-__all__ = ['GenericSurfaces']
-
-
-MainT = typ.TypeVar('MainT', bound=typ.Iterable[Surface])
+SurfacesT = typ.TypeVar('SurfacesT')
 
 
 @dataclasses.dataclass
-class GenericSurfaces(mixin.Named, typ.Generic[MainT]):
+class SingleTransform(mixin.Named, typ.Generic[SurfacesT]):
     """
     This object lets you place a list of surfaces relative to the position of the current surface, and then return to
     the position of the current surface after the list of surfaces.
@@ -21,24 +16,24 @@ class GenericSurfaces(mixin.Named, typ.Generic[MainT]):
     tandem.
     """
 
-    main: MainT = dataclasses.field(default_factory=lambda: Standard())
-    cbreak_before: coordinate_break.ArbitraryDecenterZ = None
-    cbreak_after: coordinate_break.ArbitraryDecenterZ = None
+    surfaces: SurfacesT = dataclasses.field(default_factory=lambda: Standard())
+    cbreak_before: CoordinateTransform = None
+    cbreak_after: CoordinateTransform = None
     is_last_surface: bool = False
 
     def __post_init__(self):
 
         if self.cbreak_before is None:
-            self.cbreak_before = coordinate_break.ArbitraryDecenterZ(name=Name(self.name, 'cb_before'))
+            self.cbreak_before = CoordinateTransform(name=Name(self.name, 'cb_before'))
 
         if self.cbreak_after is None:
-            self.cbreak_after = coordinate_break.ArbitraryDecenterZ(name=Name(self.name, 'cb_after'))
+            self.cbreak_after = CoordinateTransform(name=Name(self.name, 'cb_after'))
 
     @classmethod
     def from_properties(
             cls,
             name: Name,
-            main: MainT,
+            main: SurfacesT,
             transform: typ.Optional[coordinate.Transform] = None
     ):
 
@@ -60,10 +55,9 @@ class GenericSurfaces(mixin.Named, typ.Generic[MainT]):
         self.cbreak_after.transform = ~value
 
     def __iter__(self):
-        
+
         yield from self.cbreak_before
-        
-        if self.main is not None:
-            yield from self.main
-            
+
+        yield from self.surfaces
+
         yield from self.cbreak_after

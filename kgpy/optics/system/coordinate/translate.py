@@ -11,6 +11,7 @@ class Translate(mixin.ConfigBroadcast):
     x: u.Quantity = 0 * u.mm
     y: u.Quantity = 0 * u.mm
     z: u.Quantity = 0 * u.mm
+    z_first: bool = False
 
     @property
     def config_broadcast(self):
@@ -21,9 +22,10 @@ class Translate(mixin.ConfigBroadcast):
             self.z,
         )
 
-    def __invert__(self):
+    def __invert__(self) -> 'Translate':
         return type(self)(
             -self.x,
             -self.y,
             -self.z,
+            not self.z_first,
         )

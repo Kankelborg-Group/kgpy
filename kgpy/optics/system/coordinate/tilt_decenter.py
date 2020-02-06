@@ -8,7 +8,7 @@ from kgpy.optics.system.coordinate.tilt import Tilt
 
 
 @dataclasses.dataclass
-class ZemaxTransform(mixin.ConfigBroadcast):
+class TiltDecenter(mixin.ConfigBroadcast):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
     tilt_first: bool = False
@@ -21,7 +21,7 @@ class ZemaxTransform(mixin.ConfigBroadcast):
             self.decenter.config_broadcast,
         )
 
-    def __invert__(self) -> 'Transform':
+    def __invert__(self) -> 'TiltDecenter':
         return type(self)(
             self.tilt.__invert__(),
             self.decenter.__invert__(),

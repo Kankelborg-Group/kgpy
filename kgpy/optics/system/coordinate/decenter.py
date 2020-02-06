@@ -10,7 +10,7 @@ from kgpy.optics.system import mixin
 class Decenter(mixin.ConfigBroadcast):
     x: u.Quantity = 0 * u.mm
     y: u.Quantity = 0 * u.mm
-    z: u.Quantity = 0 * u.mm
+    y_first: bool = False
 
     @property
     def config_broadcast(self):
@@ -18,12 +18,11 @@ class Decenter(mixin.ConfigBroadcast):
             super().config_broadcast,
             self.x,
             self.y,
-            self.z,
         )
 
     def __invert__(self):
         return type(self)(
             -self.x,
             -self.y,
-            -self.z,
+            not self.y_first,
         )

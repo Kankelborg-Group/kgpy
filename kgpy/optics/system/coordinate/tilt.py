@@ -11,6 +11,7 @@ class Tilt(mixin.ConfigBroadcast):
     x: u.Quantity = 0 * u.deg
     y: u.Quantity = 0 * u.deg
     z: u.Quantity = 0 * u.deg
+    z_first: bool = False
 
     @property
     def config_broadcast(self):
@@ -26,4 +27,5 @@ class Tilt(mixin.ConfigBroadcast):
             -self.x,
             -self.y,
             -self.z,
+            not self.z_first,
         )
