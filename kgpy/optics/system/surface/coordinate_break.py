@@ -83,28 +83,3 @@ class ArbitraryDecenterZ(mixin.Named):
         yield self._cb2
 
 
-@dataclasses.dataclass
-class Transform(coordinate.Transform, mixin.Adopted[ArbitraryDecenterZ]):
-
-    @classmethod
-    def from_super(
-            cls,
-            transform: coordinate.Transform,
-            parent: ArbitraryDecenterZ
-    ) -> 'Transform':
-        return cls(parent, transform.tilt, transform.decenter, transform.tilt_first)
-
-    @property
-    def tilt_first(self) -> 'np.ndarray[bool]':
-        return self._tilt_first
-
-    @tilt_first.setter
-    def tilt_first(self, value: 'np.ndarray[bool]'):
-        self._tilt_first = value
-        self._parent.transform = self
-
-        
-    
-
-            
-
