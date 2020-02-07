@@ -41,16 +41,57 @@ class CoordinateTransform(mixin.Named):
         s.transform = transform
 
     @property
+    def tilt(self) -> coordinate.Tilt:
+        if self.tilt_first:
+            return self._cb1.tilt
+        else:
+            return self._cb2.tilt
+
+    @tilt.setter
+    def tilt(self, value: coordinate.Tilt):
+        if self.tilt_first:
+            self._cb1.tilt = value
+        else:
+            self._cb2.tilt = value
+
+    @property
+    def translate(self):
+        if self.tilt_first:
+            return coordinate.Translate(self._cb2.decenter, )
+
+    @translate.setter
+    def translate(self, value):
+        pass
+
+    @property
+    def tilt_first(self):
+        return self._cb1.tilt_first
+
+    @tilt_first.setter
+    def tilt_first(self, value: bool):
+        tilt = self.tilt
+        translate = self.translate
+        self._cb1.tilt_first = value
+        self._cb2.tilt_first = value
+        self.tilt = tilt
+        self.translate = translate
+
+    @property
     def transform(self) -> coordinate.Transform:
         return self._cb1.transform + self._cb2.transform
 
     @transform.setter
     def transform(self, value: coordinate.Transform):
+
+        t = value.translate
+
+        decenter = coordinate.Decenter(t.x.copy(), t.y.copy())
+        thickness = t.z.copy()
         
         if value.tilt_first:
 
-            self._cb1.transform = coordinate.Transform(tilt=value.tilt, tilt_first=value.tilt_first)
-            self._cb2.transform = coordinate.Transform(decenter=value.decenter, tilt_first=value.tilt_first)
+            self._cb1.transform = coordinate.TiltDecenter(tilt=value.tilt, tilt_first=value.tilt_first)
+            self._cb2.transform = coordinate.TiltDecenter(decenter=value.decenter, tilt_first=value.tilt_first)
 
         else:
             

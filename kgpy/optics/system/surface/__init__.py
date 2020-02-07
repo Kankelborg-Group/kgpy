@@ -12,5 +12,4 @@ from .substrate import Substrate
 from . import aperture
 from . import material
 from . import mechanical
-from kgpy.optics.system.surface.relative import transformed
-from . import relative
+from . import transformed

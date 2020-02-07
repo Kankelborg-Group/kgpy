@@ -3,18 +3,17 @@ import typing as typ
 
 from ... import Name, mixin, coordinate
 from .. import Surface, Standard, Substrate
-from . import SingleTransform
+from . import Single
 
-__all__ = ['TripleTransform']
+__all__ = ['Triple']
 
 TransformedSurfacesT = typ.TypeVar('TransformedSurfacesT')
 
 
 @dataclasses.dataclass
-class TripleTransform(mixin.Named, typ.Generic[TransformedSurfacesT]):
+class Triple(mixin.Named, typ.Generic[TransformedSurfacesT]):
 
-    _transforms: SingleTransform[SingleTransform[SingleTransform[TransformedSurfacesT]]] = dataclasses.field(
-        default_factory=SingleTransform(surfaces=SingleTransform(surfaces=SingleTransform(surfaces=Standard()))))
+    _all_surfaces: Single[Single[Single[TransformedSurfacesT]]] = None
 
     @classmethod
     def from_properties(
@@ -25,7 +24,7 @@ class TripleTransform(mixin.Named, typ.Generic[TransformedSurfacesT]):
             transform_2: typ.Optional[coordinate.Transform] = None,
             transform_err: typ.Optional[coordinate.Transform] = None,
             is_last_surface: bool = False,
-    ) -> 'TripleTransform[TransformedSurfacesT]':
+    ) -> 'Triple[TransformedSurfacesT]':
 
         if transform_1 is None:
             transform_1 = coordinate.Transform()
@@ -34,12 +33,11 @@ class TripleTransform(mixin.Named, typ.Generic[TransformedSurfacesT]):
         if transform_err is None:
             transform_err = coordinate.Transform()
 
-        a = surfaces
-        b = SingleTransform(name=Name(name, '.transform_3'), surfaces=a)
-        c = SingleTransform(name=Name(name, '.transform_2'), surfaces=b)
-        d = SingleTransform(name=Name(name, '.transform_1'), surfaces=c)
+        all_surfaces = Single(name=Name(name, '.transform_3'), surfaces=surfaces)
+        all_surfaces = Single(name=Name(name, '.transform_2'), surfaces=all_surfaces)
+        all_surfaces = Single(name=Name(name, '.transform_1'), surfaces=all_surfaces)
 
-        self = cls(name=name)
+        self = cls(name=name, _all_surfaces=all_surfaces)
 
         self.transform_1 = transform_1
         self.transform_2 = transform_2
@@ -50,45 +48,45 @@ class TripleTransform(mixin.Named, typ.Generic[TransformedSurfacesT]):
 
     @property
     def surfaces(self):
-        return self._transforms.surfaces.surfaces.surfaces
+        return self._all_surfaces.surfaces.surfaces.surfaces
 
     @surfaces.setter
     def surfaces(self, value: TransformedSurfacesT):
-        self._transforms.surfaces.surfaces.surfaces = value
+        self._all_surfaces.surfaces.surfaces.surfaces = value
 
     @property
     def transform_1(self) -> coordinate.Transform:
-        return self._transforms.transform
+        return self._all_surfaces.transform
 
     @transform_1.setter
     def transform_1(self, value: coordinate.Transform):
-        self._transforms.transform = value
+        self._all_surfaces.transform = value
 
     @property
     def transform_2(self) -> coordinate.Transform:
-        return self._transforms.surfaces.transform
+        return self._all_surfaces.surfaces.transform
 
     @transform_2.setter
     def transform_2(self, value: coordinate.Transform):
-        self._transforms.surfaces.transform = value
+        self._all_surfaces.surfaces.transform = value
 
     @property
     def transform_3(self) -> coordinate.Transform:
-        return self._transforms.surfaces.surfaces.transform
+        return self._all_surfaces.surfaces.surfaces.transform
 
     @transform_3.setter
     def transform_3(self, value: coordinate.Transform):
-        self._transforms.surfaces.surfaces.transform = value
+        self._all_surfaces.surfaces.surfaces.transform = value
 
     @property
     def is_last_surface(self) -> bool:
-        return self._transforms.is_last_surface
+        return self._all_surfaces.is_last_surface
 
     @is_last_surface.setter
     def is_last_surface(self, value: bool):
-        self._transforms.is_last_surface = value
-        self._transforms.surfaces.is_last_surface = value
-        self._transforms.surfaces.surfaces.is_last_surface = value
+        self._all_surfaces.is_last_surface = value
+        self._all_surfaces.surfaces.is_last_surface = value
+        self._all_surfaces.surfaces.surfaces.is_last_surface = value
 
     def __iter__(self):
-        return self._transforms.__iter__()
+        return self._all_surfaces.__iter__()
