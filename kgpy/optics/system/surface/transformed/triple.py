@@ -11,9 +11,14 @@ TransformedSurfacesT = typ.TypeVar('TransformedSurfacesT')
 
 
 @dataclasses.dataclass
-class Triple(mixin.Named, typ.Generic[TransformedSurfacesT]):
-
+class Base(mixin.Named, typ.Generic[TransformedSurfacesT]):
+    
     _all_surfaces: Single[Single[Single[TransformedSurfacesT]]] = None
+
+
+class Triple:
+
+    
 
     @classmethod
     def from_properties(

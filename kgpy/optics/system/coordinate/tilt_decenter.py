@@ -2,13 +2,12 @@ import dataclasses
 
 import numpy as np
 
-from kgpy.optics.system import mixin
-from kgpy.optics.system.coordinate.decenter import Decenter
-from kgpy.optics.system.coordinate.tilt import Tilt
+from .. import mixin
+from . import Decenter, Tilt
 
 
 @dataclasses.dataclass
-class TiltDecenter(mixin.ConfigBroadcast):
+class Base(mixin.ConfigBroadcast):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
     tilt_first: bool = False
@@ -21,9 +20,21 @@ class TiltDecenter(mixin.ConfigBroadcast):
             self.decenter.config_broadcast,
         )
 
-    def __invert__(self) -> 'TiltDecenter':
+    def __invert__(self):
         return type(self)(
             self.tilt.__invert__(),
             self.decenter.__invert__(),
             not self.tilt_first,
         )
+
+
+class TiltDecenter(Base):
+    
+    @property
+    def tilt_first(self) -> bool:
+        return self._tilt_first
+
+    @tilt_first.setter
+    def tilt_first(self, value: bool):
+        self._tilt_first = value
+        self.tilt.z_first = value

@@ -1,11 +1,41 @@
 import dataclasses
 
-from kgpy.optics.system import mixin, Name, coordinate
-from kgpy.optics.system.surface import CoordinateBreak
+from .. import mixin, coordinate
+from . import CoordinateBreak
 
 
 @dataclasses.dataclass
-class CoordinateTransform(mixin.Named):
+class Base(mixin.Named):
+
+    _cb1: CoordinateBreak = dataclasses.field(init=False, repr=False, default_factory=lambda: CoordinateBreak())
+    _cb2: CoordinateBreak = dataclasses.field(init=False, repr=False, default_factory=lambda: CoordinateBreak())
+    
+    tilt: coordinate.Tilt = dataclasses.field(default_factory=lambda: coordinate.Tilt())
+    translate: coordinate.Translate = dataclasses.field(default_factory=lambda: coordinate.Translate())
+    tilt_first: bool = False
+    
+    def __post_init__(self):
+
+        self._cb1.name = self.name + 'cb1'
+        self._cb2.name = self.name + 'cb2'
+        
+    @property
+    def transform(self) -> coordinate.Transform:
+        return coordinate.Transform(tilt=self.tilt, translate=self.translate, tilt_first=self.tilt_first)
+    
+    @transform.setter
+    def transform(self, value: coordinate.Transform):
+        
+        self.tilt = value.tilt
+        self.translate = value.translate
+        self.tilt_first = value.tilt_first
+            
+    def __iter__(self):
+        yield self._cb1
+        yield self._cb2
+
+
+class CoordinateTransform(Base):
     """
     Zemax doesn't allow decenters in the z-direction, instead they intend this concept to be represented by the
     `thickness` parameter.
@@ -18,27 +48,6 @@ class CoordinateTransform(mixin.Named):
     This is a class that acts as a normal `CoordinateBreak`, but is a composition of two coordinate breaks.
     It respects the `order` parameter for 3D translations.
     """
-
-    _cb1: CoordinateBreak = None
-    _cb2: CoordinateBreak = None
-
-    def __post_init__(self):
-
-        if self._cb1 is None:
-            self._cb1 = CoordinateBreak(name=self.name + 'cb1')
-
-        if self._cb2 is None:
-            self._cb2 = CoordinateBreak(name=self.name + 'cb2')
-
-    @classmethod
-    def from_cbreak_args(
-            cls,
-            name: Name,
-            transform: coordinate.Transform,
-    ):
-
-        s = cls(name)
-        s.transform = transform
 
     @property
     def tilt(self) -> coordinate.Tilt:
@@ -55,13 +64,18 @@ class CoordinateTransform(mixin.Named):
             self._cb2.tilt = value
 
     @property
-    def translate(self):
+    def translate(self) -> coordinate.Translate:
         if self.tilt_first:
-            return coordinate.Translate(self._cb2.decenter, )
+            return self._cb2.transform.translate
+        else:
+            return self._cb1.transform.translate
 
     @translate.setter
-    def translate(self, value):
-        pass
+    def translate(self, value: coordinate.Translate):
+        if self.tilt_first:
+            self._cb2.transform.translate = value
+        else:
+            self._cb1.transform.translate = value
 
     @property
     def tilt_first(self):
@@ -76,28 +90,4 @@ class CoordinateTransform(mixin.Named):
         self.tilt = tilt
         self.translate = translate
 
-    @property
-    def transform(self) -> coordinate.Transform:
-        return self._cb1.transform + self._cb2.transform
 
-    @transform.setter
-    def transform(self, value: coordinate.Transform):
-
-        t = value.translate
-
-        decenter = coordinate.Decenter(t.x.copy(), t.y.copy())
-        thickness = t.z.copy()
-        
-        if value.tilt_first:
-
-            self._cb1.transform = coordinate.TiltDecenter(tilt=value.tilt, tilt_first=value.tilt_first)
-            self._cb2.transform = coordinate.TiltDecenter(decenter=value.decenter, tilt_first=value.tilt_first)
-
-        else:
-            
-            self._cb1.transform = coordinate.Transform(decenter=value.decenter, tilt_first=value.tilt_first)
-            self._cb2.transform = coordinate.Transform(tilt=value.tilt, tilt_first=value.tilt_first)
-
-    def __iter__(self):
-        yield self._cb1
-        yield self._cb2

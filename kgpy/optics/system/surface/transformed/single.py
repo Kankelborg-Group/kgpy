@@ -8,7 +8,21 @@ SurfacesT = typ.TypeVar('SurfacesT')
 
 
 @dataclasses.dataclass
-class Single(mixin.Named, typ.Generic[SurfacesT]):
+class Base(mixin.Named, typ.Generic[SurfacesT]):
+    _transform_before: coordinate.Transform = dataclasses.field(init=False, repr=False,
+                                                                default_factory=coordinate.Transform())
+    _transform_after: coordinate.Transform = dataclasses.field(init=False, repr=False,
+                                                               default_factory=coordinate.Transform())
+
+    surfaces: SurfacesT = None
+    transform: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
+    is_last_surface: bool = False
+    
+    def __post_init__(self):
+        pass
+
+
+class Single:
     """
     This object lets you place a list of surfaces relative to the position of the current surface, and then return to
     the position of the current surface after the list of surfaces.

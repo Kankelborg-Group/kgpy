@@ -9,11 +9,28 @@ __all__ = ['CoordinateBreak']
 
 
 @dataclasses.dataclass
-class CoordinateBreak(surface.Surface):
+class Base(surface.Surface):
+    
+    tilt: coordinate.Tilt = dataclasses.field(default_factory=lambda: coordinate.Tilt())
+    decenter: coordinate.Decenter = dataclasses.field(default_factory=lambda: coordinate.Decenter())
+    tilt_first: bool = False
+    
+    @property
+    def transform(self):
+        return self._transform
+    
+    @property
+    def config_broadcast(self):
+        return np.broadcast(
+            super().config_broadcast,
+            self._transform.config_broadcast
+        )
+    
+
+class CoordinateBreak(Base):
     """
     Representation of a Zemax Coordinate Break.
     """
-    _transform: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
 
     @property
     def tilt(self) -> coordinate.Tilt:
@@ -25,11 +42,11 @@ class CoordinateBreak(surface.Surface):
 
     @property
     def decenter(self) -> coordinate.Decenter:
-        return self._transform.decenter
+        return self._transform.translate.decenter
 
     @decenter.setter
     def decenter(self, value: coordinate.Decenter):
-        self._transform.decenter = value
+        self._transform.translate.decenter = value
 
     @property
     def tilt_first(self) -> bool:
@@ -38,12 +55,3 @@ class CoordinateBreak(surface.Surface):
     @tilt_first.setter
     def tilt_first(self, value: bool):
         self._transform.tilt_first = value
-
-    @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self._transform.config_broadcast
-        )
-
-
