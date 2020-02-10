@@ -1,23 +1,26 @@
 import dataclasses
 
-from .. import mixin, coordinate
+from .. import mixin, coordinate, Name
 from . import CoordinateBreak
 
 
 @dataclasses.dataclass
 class Base(mixin.Named):
 
-    _cb1: CoordinateBreak = dataclasses.field(init=False, repr=False, default_factory=lambda: CoordinateBreak())
-    _cb2: CoordinateBreak = dataclasses.field(init=False, repr=False, default_factory=lambda: CoordinateBreak())
+    _cb1: CoordinateBreak = dataclasses.field(
+        init=False, 
+        repr=False, 
+        default_factory=lambda: CoordinateBreak(name=Name(base='cb1'))
+    )
+    _cb2: CoordinateBreak = dataclasses.field(
+        init=False, 
+        repr=False, 
+        default_factory=lambda: CoordinateBreak(name=Name(base='cb2'))
+    )
     
     tilt: coordinate.Tilt = dataclasses.field(default_factory=lambda: coordinate.Tilt())
     translate: coordinate.Translate = dataclasses.field(default_factory=lambda: coordinate.Translate())
     tilt_first: coordinate.TiltFirst = dataclasses.field(default_factory=lambda: coordinate.TiltFirst())
-    
-    def __post_init__(self):
-
-        self._cb1.name = self.name + 'cb1'
-        self._cb2.name = self.name + 'cb2'
         
     @property
     def transform(self) -> coordinate.Transform:
@@ -48,6 +51,15 @@ class CoordinateTransform(Base):
     This is a class that acts as a normal `CoordinateBreak`, but is a composition of two coordinate breaks.
     It respects the `order` parameter for 3D translations.
     """
+    
+    @property
+    def name(self) -> Name:
+        return self._cb1.name.parent
+    
+    @name.setter
+    def name(self, value: Name):
+        self._cb1.name.parent = value
+        self._cb2.name.parent = value
 
     @property
     def tilt(self) -> coordinate.Tilt:
