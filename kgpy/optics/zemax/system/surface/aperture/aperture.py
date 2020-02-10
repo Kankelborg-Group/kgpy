@@ -44,7 +44,7 @@ def add_to_zemax_surface(
     elif isinstance(aperture, system.surface.aperture.Spider):
         spider.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
 
-    elif isinstance(aperture, system.surface.aperture.UserPolygon):
+    elif isinstance(aperture, system.surface.aperture.Polygon):
         polygon.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
 
     elif isinstance(aperture, system.surface.aperture.RegularPolygon):
