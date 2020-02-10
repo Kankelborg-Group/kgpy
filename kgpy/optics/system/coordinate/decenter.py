@@ -5,6 +5,8 @@ from astropy import units as u
 
 from kgpy.optics.system import mixin
 
+__all__ = ['Decenter', 'InverseDecenter']
+
 
 @dataclasses.dataclass
 class Decenter(mixin.ConfigBroadcast):
@@ -24,3 +26,17 @@ class Decenter(mixin.ConfigBroadcast):
             -self.x,
             -self.y,
         )
+
+
+@dataclasses.dataclass
+class InverseDecenter:
+    
+    _decenter: Decenter
+    
+    @property
+    def x(self) -> u.Quantity:
+        return -self._decenter.x
+    
+    @property
+    def y(self) -> u.Quantity:
+        return -self._decenter.y

@@ -5,13 +5,14 @@ from astropy import units as u
 
 from kgpy.optics.system import mixin
 
+__all__ = ['Tilt', 'InverseTilt']
+
 
 @dataclasses.dataclass
 class Tilt(mixin.ConfigBroadcast):
     x: u.Quantity = 0 * u.deg
     y: u.Quantity = 0 * u.deg
     z: u.Quantity = 0 * u.deg
-    z_first: bool = False
 
     @property
     def config_broadcast(self):
@@ -27,5 +28,22 @@ class Tilt(mixin.ConfigBroadcast):
             -self.x,
             -self.y,
             -self.z,
-            not self.z_first,
         )
+
+
+@dataclasses.dataclass
+class InverseTilt:
+
+    _tilt: Tilt
+
+    @property
+    def x(self) -> u.Quantity:
+        return -self.x
+
+    @property
+    def y(self) -> u.Quantity:
+        return -self.y
+
+    @property
+    def z(self) -> u.Quantity:
+        return -self.z

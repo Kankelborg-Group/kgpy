@@ -12,7 +12,7 @@ class Base(mixin.Named):
     
     tilt: coordinate.Tilt = dataclasses.field(default_factory=lambda: coordinate.Tilt())
     translate: coordinate.Translate = dataclasses.field(default_factory=lambda: coordinate.Translate())
-    tilt_first: bool = False
+    tilt_first: coordinate.TiltFirst = dataclasses.field(default_factory=lambda: coordinate.TiltFirst())
     
     def __post_init__(self):
 
@@ -51,38 +51,38 @@ class CoordinateTransform(Base):
 
     @property
     def tilt(self) -> coordinate.Tilt:
-        if self.tilt_first:
+        if self.tilt_first.value:
             return self._cb1.tilt
         else:
             return self._cb2.tilt
 
     @tilt.setter
     def tilt(self, value: coordinate.Tilt):
-        if self.tilt_first:
+        if self.tilt_first.value:
             self._cb1.tilt = value
         else:
             self._cb2.tilt = value
 
     @property
     def translate(self) -> coordinate.Translate:
-        if self.tilt_first:
+        if self.tilt_first.value:
             return self._cb2.transform.translate
         else:
             return self._cb1.transform.translate
 
     @translate.setter
     def translate(self, value: coordinate.Translate):
-        if self.tilt_first:
+        if self.tilt_first.value:
             self._cb2.transform.translate = value
         else:
             self._cb1.transform.translate = value
 
     @property
-    def tilt_first(self):
+    def tilt_first(self) -> coordinate.TiltFirst:
         return self._cb1.tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: bool):
+    def tilt_first(self, value: coordinate.TiltFirst):
         tilt = self.tilt
         translate = self.translate
         self._cb1.tilt_first = value

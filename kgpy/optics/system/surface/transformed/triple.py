@@ -13,43 +13,29 @@ TransformedSurfacesT = typ.TypeVar('TransformedSurfacesT')
 @dataclasses.dataclass
 class Base(mixin.Named, typ.Generic[TransformedSurfacesT]):
     
-    _all_surfaces: Single[Single[Single[TransformedSurfacesT]]] = None
-
-
-class Triple:
-
+    _all_surfaces: Single[Single[Single[TransformedSurfacesT]]] = dataclasses.field(
+        init=False, 
+        repr=False,
+        default_factory=Single(surfaces=Single(surfaces=Single()))
+    )
     
+    surfaces: TransformedSurfacesT = None
+    transform_1: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
+    transform_2: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
+    transform_3: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
+    is_last_surface: bool = False
+    
+    def __post_init__(self):
+        
+        self._all_surfaces.name = self.name + 'transform_1'
+        self._all_surfaces.surfaces.name = self.name + 'transform_2'
+        self._all_surfaces.surfaces.surfaces.name = self.name + 'transform_3'
+    
+    def __iter__(self):
+        return self._all_surfaces.__iter__()
 
-    @classmethod
-    def from_properties(
-            cls,
-            name: Name,
-            surfaces: TransformedSurfacesT,
-            transform_1: typ.Optional[coordinate.Transform] = None,
-            transform_2: typ.Optional[coordinate.Transform] = None,
-            transform_err: typ.Optional[coordinate.Transform] = None,
-            is_last_surface: bool = False,
-    ) -> 'Triple[TransformedSurfacesT]':
 
-        if transform_1 is None:
-            transform_1 = coordinate.Transform()
-        if transform_2 is None:
-            transform_2 = coordinate.Transform()
-        if transform_err is None:
-            transform_err = coordinate.Transform()
-
-        all_surfaces = Single(name=Name(name, '.transform_3'), surfaces=surfaces)
-        all_surfaces = Single(name=Name(name, '.transform_2'), surfaces=all_surfaces)
-        all_surfaces = Single(name=Name(name, '.transform_1'), surfaces=all_surfaces)
-
-        self = cls(name=name, _all_surfaces=all_surfaces)
-
-        self.transform_1 = transform_1
-        self.transform_2 = transform_2
-        self.transform_3 = transform_err
-        self.is_last_surface = is_last_surface
-
-        return self
+class Triple(Base[TransformedSurfacesT]):
 
     @property
     def surfaces(self):
@@ -93,5 +79,4 @@ class Triple:
         self._all_surfaces.surfaces.is_last_surface = value
         self._all_surfaces.surfaces.surfaces.is_last_surface = value
 
-    def __iter__(self):
-        return self._all_surfaces.__iter__()
+

@@ -13,7 +13,7 @@ class Base(surface.Surface):
     
     tilt: coordinate.Tilt = dataclasses.field(default_factory=lambda: coordinate.Tilt())
     decenter: coordinate.Decenter = dataclasses.field(default_factory=lambda: coordinate.Decenter())
-    tilt_first: bool = False
+    tilt_first: coordinate.TiltFirst = dataclasses.field(default_factory=lambda: coordinate.TiltFirst())
     
     @property
     def transform(self):
@@ -49,9 +49,9 @@ class CoordinateBreak(Base):
         self._transform.translate.decenter = value
 
     @property
-    def tilt_first(self) -> bool:
+    def tilt_first(self) -> coordinate.TiltFirst:
         return self._transform.tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: bool):
+    def tilt_first(self, value: coordinate.TiltFirst):
         self._transform.tilt_first = value

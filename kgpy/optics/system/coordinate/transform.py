@@ -2,14 +2,16 @@ import dataclasses
 import numpy as np
 
 from kgpy.optics.system import mixin
-from . import Tilt, Translate
+from . import Tilt, InverseTilt, Translate, InverseTranslate, TiltFirst, InverseTiltFirst
+
+__all__ = ['Transform', 'InverseTransform']
 
 
 @dataclasses.dataclass
 class Base(mixin.ConfigBroadcast):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     translate: Translate = dataclasses.field(default_factory=lambda: Translate())
-    tilt_first: bool = False
+    tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
     
     @property
     def config_broadcast(self):
@@ -30,11 +32,27 @@ class Base(mixin.ConfigBroadcast):
 class Transform(Base):
 
     @property
-    def tilt_first(self) -> bool:
+    def tilt_first(self) -> TiltFirst:
         return self._tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: bool):
+    def tilt_first(self, value: TiltFirst):
         self._tilt_first = value
-        self.tilt.z_first = value
 
+
+@dataclasses.dataclass
+class InverseTransform:
+
+    _transform: Transform
+
+    @property
+    def tilt(self) -> InverseTilt:
+        return InverseTilt(self._transform.tilt)
+    
+    @property
+    def translate(self) -> InverseTranslate:
+        return InverseTranslate(self._transform.translate)
+    
+    @property
+    def tilt_first(self) -> InverseTiltFirst:
+        return InverseTiltFirst(self._transform.tilt_first)

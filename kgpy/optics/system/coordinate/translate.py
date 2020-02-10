@@ -6,6 +6,8 @@ from kgpy.optics.system import mixin
 
 from . import Decenter
 
+__all__ = ['Translate', 'InverseTranslate']
+
 
 @dataclasses.dataclass
 class Base(mixin.ConfigBroadcast):
@@ -50,5 +52,21 @@ class Translate(Base):
     @y.setter
     def y(self, value: u.Quantity):
         self.decenter.y = value
+        
 
-
+@dataclasses.dataclass
+class InverseTranslate:
+    
+    _translate: Translate
+    
+    @property
+    def x(self) -> u.Quantity:
+        return -self._translate.x
+    
+    @property
+    def y(self) -> u.Quantity:
+        return -self._translate.y
+    
+    @property
+    def z(self) -> u.Quantity:
+        return -self._translate.z
