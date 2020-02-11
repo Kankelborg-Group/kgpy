@@ -8,7 +8,7 @@ SurfacesT = typ.TypeVar('SurfacesT')
 
 
 @dataclasses.dataclass
-class Base(mixin.Named, typ.Generic[SurfacesT]):
+class Base(typ.Generic[SurfacesT]):
     _transform_before: CoordinateTransform = dataclasses.field(
         init=False,
         repr=False,
@@ -20,6 +20,7 @@ class Base(mixin.Named, typ.Generic[SurfacesT]):
         default_factory=lambda: CoordinateTransform(name=Name(base='after'))
     )
 
+    name: Name = dataclasses.field(default_factory=lambda: Name())
     surfaces: SurfacesT = None
     transform: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.Transform())
     is_last_surface: bool = False

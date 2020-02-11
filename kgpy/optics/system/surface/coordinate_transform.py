@@ -5,7 +5,7 @@ from . import CoordinateBreak
 
 
 @dataclasses.dataclass
-class Base(mixin.Named):
+class Base:
 
     _cb1: CoordinateBreak = dataclasses.field(
         init=False, 
@@ -17,7 +17,8 @@ class Base(mixin.Named):
         repr=False, 
         default_factory=lambda: CoordinateBreak(name=Name(base='cb2'))
     )
-    
+
+    name: Name = dataclasses.field(default_factory=lambda: Name())
     tilt: coordinate.Tilt = dataclasses.field(default_factory=lambda: coordinate.Tilt())
     translate: coordinate.Translate = dataclasses.field(default_factory=lambda: coordinate.Translate())
     tilt_first: coordinate.TiltFirst = dataclasses.field(default_factory=lambda: coordinate.TiltFirst())

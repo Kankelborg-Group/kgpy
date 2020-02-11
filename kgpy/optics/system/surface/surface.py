@@ -3,16 +3,20 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 
-from .. import mixin, coordinate
+from .. import mixin, coordinate, Name
 
 __all__ = ['Surface']
 
 
 @dataclasses.dataclass
-class Base(mixin.Named, mixin.ConfigBroadcast):
+class Base(mixin.ConfigBroadcast):
+    _transform: coordinate.Transform = dataclasses.field(
+        default_factory=lambda: coordinate.Transform(),
+        init=False,
+        repr=False,
+    )
 
-    _transform: coordinate.Transform = dataclasses.field(init=False, repr=False, default_factory=coordinate.Transform())
-
+    name: Name = dataclasses.field(default_factory=lambda: Name())
     thickness: u.Quantity = 0 * u.mm
     is_active: 'np.ndarray[bool]' = dataclasses.field(default_factory=lambda: np.array(True))
 
@@ -39,7 +43,7 @@ class Surface(Base):
     This class represents a single optical surface. This class should be a drop-in replacement for a Zemax surface, and
     have all the same properties and behaviors.
     """
-    
+
     @property
     def thickness(self) -> u.Quantity:
         return self._transform.translate.z

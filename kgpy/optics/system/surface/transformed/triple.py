@@ -11,38 +11,38 @@ TransformedSurfacesT = typ.TypeVar('TransformedSurfacesT')
 
 
 @dataclasses.dataclass
-class Base(mixin.Named, typ.Generic[TransformedSurfacesT]):
-    
+class Base(typ.Generic[TransformedSurfacesT]):
     _all_surfaces: Single[Single[Single[TransformedSurfacesT]]] = dataclasses.field(
-        init=False, 
-        repr=False,
         default_factory=lambda: Single(
-            name=Name(base='transform_1'), 
+            name=Name(base='transform_1'),
             surfaces=Single(
                 name=Name(base='transform_2'),
                 surfaces=Single(
                     name=Name(base='transform_3')
                 )
             )
-        )
+        ),
+        init=False,
+        repr=False,
     )
-    
+
+    name: Name = dataclasses.field(default_factory=lambda: Name())
     surfaces: TransformedSurfacesT = None
-    transform_1: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
-    transform_2: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
-    transform_3: coordinate.Transform = dataclasses.field(default_factory=coordinate.Transform())
+    transform_1: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.Transform())
+    transform_2: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.Transform())
+    transform_3: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.Transform())
     is_last_surface: bool = False
-    
+
     def __iter__(self):
         return self._all_surfaces.__iter__()
 
 
 class Triple(Base[TransformedSurfacesT]):
-    
+
     @property
     def name(self) -> Name:
         return self._all_surfaces.name
-    
+
     @name.setter
     def name(self, value: Name):
         self._all_surfaces.name.parent = value
@@ -90,5 +90,3 @@ class Triple(Base[TransformedSurfacesT]):
         self._all_surfaces.is_last_surface = value
         self._all_surfaces.surfaces.is_last_surface = value
         self._all_surfaces.surfaces.surfaces.is_last_surface = value
-
-
