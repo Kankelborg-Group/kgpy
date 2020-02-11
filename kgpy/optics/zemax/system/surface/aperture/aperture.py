@@ -30,10 +30,11 @@ def add_to_zemax_surface(
     unit_decenter_x = zemax_units
     unit_decenter_y = zemax_units
 
-    util.set_float(zemax_system, aperture.decenter_x, configuration_shape, op_decenter_x, unit_decenter_x,
-                   surface_index)
-    util.set_float(zemax_system, aperture.decenter_y, configuration_shape, op_decenter_y, unit_decenter_y,
-                   surface_index)
+    if isinstance(aperture, system.surface.aperture.Decenterable):
+        util.set_float(zemax_system, aperture.decenter.x, configuration_shape, op_decenter_x, unit_decenter_x,
+                       surface_index)
+        util.set_float(zemax_system, aperture.decenter.y, configuration_shape, op_decenter_y, unit_decenter_y,
+                       surface_index)
 
     if isinstance(aperture, system.surface.aperture.Rectangular):
         rectangular.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
