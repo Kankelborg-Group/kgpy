@@ -28,8 +28,8 @@ class Standard(Surface, typ.Generic[MaterialType, ApertureType]):
             super().config_broadcast,
             self.radius,
             self.conic,
-            self.material.config_broadcast(),
-            self.aperture.config_broadcast(),
-            self.transform_before.config_broadcast(),
-            self.transform_after.config_broadcast(),
+            self.material.config_broadcast,
+            self.aperture.config_broadcast,
+            self.transform_before.config_broadcast,
+            self.transform_after.config_broadcast,
         )

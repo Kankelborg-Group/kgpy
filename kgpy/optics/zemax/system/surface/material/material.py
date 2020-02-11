@@ -24,7 +24,7 @@ def add_to_zemax_surface(
         util.set_str(zemax_system, '', configuration_shape, op_material, surface_index)
         return
 
-    util.set_str(zemax_system, material.name, configuration_shape, op_material, surface_index)
+    util.set_str(zemax_system, material.__str__(), configuration_shape, op_material, surface_index)
     
     if isinstance(material, system.surface.material.Mirror):
         mirror.add_to_zemax_surface(zemax_system, material, surface_index, zemax_units)

@@ -27,7 +27,7 @@ def add_to_zemax_system(
     unit_wave = u.um
     unit_weight = u.dimensionless_unscaled
 
-    sh = (wavelengths.num_per_config,)
+    sh = csh + (wavelengths.num_per_config,)
 
     wavls = np.broadcast_to(wavelengths.values, sh) * wavelengths.values.unit
     weights = np.broadcast_to(wavelengths.weights, sh) * wavelengths.weights.unit

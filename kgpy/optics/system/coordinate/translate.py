@@ -58,6 +58,10 @@ class Translate(Base):
 class InverseTranslate:
     
     _translate: Translate
+
+    @property
+    def config_broadcast(self):
+        return self._translate.config_broadcast
     
     @property
     def x(self) -> u.Quantity:

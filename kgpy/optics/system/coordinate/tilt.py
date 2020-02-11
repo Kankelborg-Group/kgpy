@@ -37,6 +37,10 @@ class InverseTilt:
     _tilt: Tilt
 
     @property
+    def config_broadcast(self):
+        return self._tilt.config_broadcast
+
+    @property
     def x(self) -> u.Quantity:
         return -self.x
 

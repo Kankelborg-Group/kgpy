@@ -47,6 +47,10 @@ class InverseTiltDecenter:
     _tilt_decenter: TiltDecenter
     
     @property
+    def config_broadcast(self):
+        return self._tilt_decenter.config_broadcast
+    
+    @property
     def tilt(self) -> InverseTilt:
         return InverseTilt(self._tilt_decenter.tilt)
     

@@ -32,6 +32,10 @@ class Decenter(mixin.ConfigBroadcast):
 class InverseDecenter:
     
     _decenter: Decenter
+
+    @property
+    def config_broadcast(self):
+        return self._decenter.config_broadcast
     
     @property
     def x(self) -> u.Quantity:

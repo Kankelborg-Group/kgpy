@@ -46,6 +46,10 @@ class InverseTransform:
     _transform: Transform
 
     @property
+    def config_broadcast(self):
+        return self._transform.config_broadcast
+
+    @property
     def tilt(self) -> InverseTilt:
         return InverseTilt(self._transform.tilt)
     

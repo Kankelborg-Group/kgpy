@@ -9,16 +9,14 @@ __all__ = ['Material', 'NoMaterial', 'Mirror']
 
 class Material(abc.ABC, mixin.ConfigBroadcast):
 
-    @property
     @abc.abstractmethod
-    def to_str(self):
+    def __str__(self):
         ...
 
 
 class NoMaterial(Material):
 
-    @property
-    def to_str(self):
+    def __str__(self):
         return ''
 
 
@@ -27,6 +25,5 @@ class Mirror(Material):
     
     thickness: u.Quantity = 0 * u.mm
     
-    @property
-    def to_str(self):
+    def __str__(self):
         return 'MIRROR'

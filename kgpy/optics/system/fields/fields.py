@@ -11,7 +11,6 @@ __all__ = ['Fields']
 
 @dataclasses.dataclass
 class Fields:
-
     x: u.Quantity = dataclasses.field(default_factory=lambda: [0.0] * u.rad)
     y: u.Quantity = dataclasses.field(default_factory=lambda: [0.0] * u.rad)
     weight: u.Quantity = dataclasses.field(default_factory=lambda: [1.0] * u.dimensionless_unscaled)
@@ -23,18 +22,17 @@ class Fields:
     normalization: norm.Normalization = dataclasses.field(default_factory=lambda: norm.Rectangular())
 
     @classmethod
-    def from_physical_pupil_size(cls,
-                                 field_x: u.Quantity,
-                                 field_y: u.Quantity,
-                                 pupil_decenter_x: u.Quantity,
-                                 pupil_decenter_y: u.Quantity,
-                                 pupil_semi_axis_x: u.Quantity,
-                                 pupil_semi_axis_y: u.Quantity,
-                                 entrance_pupil_radius: u.Quantity,
-                                 ) -> 'Fields':
-        vdx, vdy = pupil.normalize_coordinates(pupil_decenter_x,
-                                               pupil_decenter_y,
-                                               entrance_pupil_radius)
+    def from_physical_pupil_size(
+            cls,
+            field_x: u.Quantity,
+            field_y: u.Quantity,
+            pupil_decenter_x: u.Quantity,
+            pupil_decenter_y: u.Quantity,
+            pupil_semi_axis_x: u.Quantity,
+            pupil_semi_axis_y: u.Quantity,
+            entrance_pupil_radius: u.Quantity,
+    ) -> 'Fields':
+        vdx, vdy = pupil.normalize_coordinates(pupil_decenter_x, pupil_decenter_y, entrance_pupil_radius)
 
         vcx = 1 - (pupil_semi_axis_x / entrance_pupil_radius)
         vcy = 1 - (pupil_semi_axis_y / entrance_pupil_radius)
@@ -57,4 +55,15 @@ class Fields:
             self.van[..., 0],
         )
 
-
+    @property
+    def num_per_config(self):
+        return np.broadcast(
+            self.x,
+            self.y,
+            self.weight,
+            self.vdx,
+            self.vdy,
+            self.vcx,
+            self.vcy,
+            self.van,
+        ).shape[~0]

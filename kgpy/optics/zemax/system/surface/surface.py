@@ -12,7 +12,7 @@ __all__ = ['add_surfaces_to_zemax_system']
 
 def add_surfaces_to_zemax_system(
         zemax_system: ZOSAPI.IOpticalSystem,
-        surfaces: 'tp.List[system.Surface]',
+        surfaces: 'tp.Iterable[system.Surface]',
         configuration_shape: tp.Tuple[int],
         zemax_units: u.Unit,
 
@@ -23,6 +23,7 @@ def add_surfaces_to_zemax_system(
 
     unit_thickness = zemax_units
 
+    surfaces = list(surfaces)
     num_surfaces = len(surfaces)
     while zemax_system.LDE.NumberOfSurfaces < num_surfaces + 1:
         zemax_system.LDE.AddSurface()
@@ -32,7 +33,7 @@ def add_surfaces_to_zemax_system(
         surface_index = s + 1
         surface = surfaces[s]
         
-        util.set_str(zemax_system, surface.name, configuration_shape, op_comment, surface_index)
+        util.set_str(zemax_system, surface.name.__str__(), configuration_shape, op_comment, surface_index)
         util.set_float(zemax_system, surface.thickness, configuration_shape, op_thickness, unit_thickness,
                        surface_index)
         
