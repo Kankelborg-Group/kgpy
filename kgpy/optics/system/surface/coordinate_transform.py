@@ -73,7 +73,9 @@ class CoordinateTransform(Base):
     def tilt(self, value: coordinate.Tilt):
         if self.tilt_first.value:
             self._cb1.tilt = value
+            self._cb2.tilt = coordinate.Tilt()
         else:
+            self._cb1.tilt = coordinate.Tilt()
             self._cb2.tilt = value
 
     @property
@@ -86,9 +88,11 @@ class CoordinateTransform(Base):
     @translate.setter
     def translate(self, value: coordinate.Translate):
         if self.tilt_first.value:
+            self._cb1.transform.translate = coordinate.Translate()
             self._cb2.transform.translate = value
         else:
             self._cb1.transform.translate = value
+            self._cb2.transform.translate = coordinate.Translate()
 
     @property
     def tilt_first(self) -> coordinate.TiltFirst:

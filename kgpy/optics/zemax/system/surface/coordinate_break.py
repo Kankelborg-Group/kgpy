@@ -39,15 +39,15 @@ def add_to_zemax_system(
     zemax_surface = zemax_system.LDE.GetSurfaceAt(surface_index)
     zemax_surface.ChangeType(zemax_surface.GetSurfaceTypeSettings(ZOSAPI.Editors.LDE.SurfaceType.CoordinateBreak))
 
-    util.set_float(zemax_system, surface.decenter[..., 0], configuration_shape, op_decenter_x, unit_decenter_x, 
+    util.set_float(zemax_system, surface.decenter.x, configuration_shape, op_decenter_x, unit_decenter_x,
                    surface_index, ind_decenter_x)
-    util.set_float(zemax_system, surface.decenter[..., 1], configuration_shape, op_decenter_y, unit_decenter_y, 
+    util.set_float(zemax_system, surface.decenter.y, configuration_shape, op_decenter_y, unit_decenter_y,
                    surface_index, ind_decenter_y)
-    util.set_float(zemax_system, surface.tilt[..., 0], configuration_shape, op_tilt_x, unit_tilt_x, surface_index, 
+    util.set_float(zemax_system, surface.tilt.x, configuration_shape, op_tilt_x, unit_tilt_x, surface_index,
                    ind_tilt_x)
-    util.set_float(zemax_system, surface.tilt[..., 1], configuration_shape, op_tilt_y, unit_tilt_y, surface_index, 
+    util.set_float(zemax_system, surface.tilt.y, configuration_shape, op_tilt_y, unit_tilt_y, surface_index,
                    ind_tilt_y)
-    util.set_float(zemax_system, surface.tilt[..., 2], configuration_shape, op_tilt_z, unit_tilt_z, surface_index, 
+    util.set_float(zemax_system, surface.tilt.z, configuration_shape, op_tilt_z, unit_tilt_z, surface_index,
                    ind_tilt_z)
-    util.set_float(zemax_system, float(surface.tilt_first), configuration_shape, op_order, unit_order, surface_index,
-                   ind_order)
+    util.set_float(zemax_system, float(surface.tilt_first.value), configuration_shape, op_order, unit_order,
+                   surface_index, ind_order)

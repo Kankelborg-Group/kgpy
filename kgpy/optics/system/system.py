@@ -24,7 +24,7 @@ class System(mixin.Named, typ.Generic[SurfacesT]):
     fields: Fields = dataclasses.field(default_factory=lambda: Fields())
     wavelengths: Wavelengths = dataclasses.field(default_factory=lambda: Wavelengths())
     entrance_pupil_radius: u.Quantity = 0 * u.m
-    stop_surface_index: typ.Union[int, np.ndarray] = 1
+    # stop_surface_index: typ.Union[int, np.ndarray] = 1
     num_pupil_rays: typ.Tuple[int, int] = (7, 7)
     num_field_rays: typ.Tuple[int, int] = (7, 7)
     raytrace_path: pathlib.Path = dataclasses.field(default_factory=lambda: pathlib.Path())
@@ -43,6 +43,12 @@ class System(mixin.Named, typ.Generic[SurfacesT]):
             self.entrance_pupil_radius,
             self.stop_surface_index,
         )
+
+    @property
+    def stop_surface_index(self):
+        for i, s in enumerate(self.surfaces):
+            if s.is_stop:
+                return i + 1
 
     @property
     def raytrace(self):

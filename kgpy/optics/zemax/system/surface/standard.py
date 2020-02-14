@@ -56,31 +56,31 @@ def add_to_zemax_system(
 
     aperture.add_to_zemax_surface(zemax_system, surface.aperture, surface_index, configuration_shape, zemax_units)
 
-    util.set_float(zemax_system, surface.decenter_before[..., 0], configuration_shape, op_decenter_before_x,
+    util.set_float(zemax_system, surface.transform_before.decenter.x, configuration_shape, op_decenter_before_x,
                    unit_decenter_before_x, surface_index)
-    util.set_float(zemax_system, surface.decenter_before[..., 1], configuration_shape, op_decenter_before_y,
+    util.set_float(zemax_system, surface.transform_before.decenter.y, configuration_shape, op_decenter_before_y,
                    unit_decenter_before_y, surface_index)
-    util.set_float(zemax_system, surface.tilt_before[..., 0], configuration_shape, op_tilt_before_x,
+    util.set_float(zemax_system, surface.transform_before.tilt.x, configuration_shape, op_tilt_before_x,
                    unit_tilt_before_x, surface_index)
-    util.set_float(zemax_system, surface.tilt_before[..., 1], configuration_shape, op_tilt_before_y,
+    util.set_float(zemax_system, surface.transform_before.tilt.y, configuration_shape, op_tilt_before_y,
                    unit_tilt_before_y, surface_index)
-    util.set_float(zemax_system, surface.tilt_before[..., 2], configuration_shape, op_tilt_before_z,
+    util.set_float(zemax_system, surface.transform_before.tilt.z, configuration_shape, op_tilt_before_z,
                    unit_tilt_before_z, surface_index)
-    util.set_float(zemax_system, float(surface.tilt_first), configuration_shape, op_order_before, unit_order_before,
-                   surface_index)
+    util.set_float(zemax_system, float(surface.transform_before.tilt_first.value), configuration_shape, op_order_before,
+                   unit_order_before, surface_index)
 
-    util.set_float(zemax_system, surface.decenter_after[..., 0], configuration_shape, op_decenter_after_x,
+    util.set_float(zemax_system, surface.transform_after.decenter.x, configuration_shape, op_decenter_after_x,
                    unit_decenter_after_x, surface_index)
-    util.set_float(zemax_system, surface.decenter_after[..., 1], configuration_shape, op_decenter_after_y,
+    util.set_float(zemax_system, surface.transform_after.decenter.y, configuration_shape, op_decenter_after_y,
                    unit_decenter_after_y, surface_index)
-    util.set_float(zemax_system, surface.tilt_after[..., 0], configuration_shape, op_tilt_after_x,
+    util.set_float(zemax_system, surface.transform_after.tilt.x, configuration_shape, op_tilt_after_x,
                    unit_tilt_after_x, surface_index)
-    util.set_float(zemax_system, surface.tilt_after[..., 1], configuration_shape, op_tilt_after_y,
+    util.set_float(zemax_system, surface.transform_after.tilt.y, configuration_shape, op_tilt_after_y,
                    unit_tilt_after_y, surface_index)
-    util.set_float(zemax_system, surface.tilt_after[..., 2], configuration_shape, op_tilt_after_z,
+    util.set_float(zemax_system, surface.transform_after.tilt.z, configuration_shape, op_tilt_after_z,
                    unit_tilt_after_z, surface_index)
-    util.set_float(zemax_system, float(not surface.tilt_first), configuration_shape, op_order_after, unit_order_after,
-                   surface_index)
+    util.set_float(zemax_system, float(not surface.transform_after.tilt_first.value), configuration_shape,
+                   op_order_after, unit_order_after, surface_index)
 
     if isinstance(surface, system.surface.DiffractionGrating):
         diffraction_grating.add_to_zemax_system(zemax_system, surface, surface_index, configuration_shape, zemax_units)

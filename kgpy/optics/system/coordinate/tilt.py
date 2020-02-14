@@ -42,12 +42,12 @@ class InverseTilt:
 
     @property
     def x(self) -> u.Quantity:
-        return -self.x
+        return -self._tilt.x
 
     @property
     def y(self) -> u.Quantity:
-        return -self.y
+        return -self._tilt.y
 
     @property
     def z(self) -> u.Quantity:
-        return -self.z
+        return -self._tilt.z

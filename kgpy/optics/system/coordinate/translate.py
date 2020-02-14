@@ -4,7 +4,7 @@ from astropy import units as u
 
 from kgpy.optics.system import mixin
 
-from . import Decenter
+from . import Decenter, InverseDecenter
 
 __all__ = ['Translate', 'InverseTranslate']
 
@@ -32,6 +32,21 @@ class Base(mixin.ConfigBroadcast):
             -self.x,
             -self.y,
             -self.z,
+        )
+    
+    def __add__(self, other: 'Translate'):
+        
+        return type(self)(
+            x=self.x + other.x,
+            y=self.y + other.y,
+            z=self.z + other.z,
+        )
+    
+    def copy(self):
+        return type(self)(
+            self.x.copy(),
+            self.y.copy(),
+            self.z.copy()
         )
 
 
@@ -62,6 +77,10 @@ class InverseTranslate:
     @property
     def config_broadcast(self):
         return self._translate.config_broadcast
+
+    @property
+    def decenter(self):
+        return InverseDecenter(self._translate.decenter)
     
     @property
     def x(self) -> u.Quantity:

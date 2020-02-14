@@ -36,13 +36,13 @@ def add_to_zemax_system(
 
     sh = configuration_shape + (fields.num_per_config,)
 
-    x = np.broadcast_to(fields.x, sh) * fields.x.unit
-    y = np.broadcast_to(fields.y, sh) * fields.y.unit
-    vdx = np.broadcast_to(fields.vdx, sh) * fields.vdx.unit
-    vdy = np.broadcast_to(fields.vdy, sh) * fields.vdy.unit
-    vcx = np.broadcast_to(fields.vcx, sh) * fields.vcx.unit
-    vcy = np.broadcast_to(fields.vcy, sh) * fields.vcy.unit
-    van = np.broadcast_to(fields.van, sh) * fields.van.unit
+    x = np.broadcast_to(fields.x, sh, subok=True)
+    y = np.broadcast_to(fields.y, sh, subok=True)
+    vdx = np.broadcast_to(fields.vdx, sh, subok=True)
+    vdy = np.broadcast_to(fields.vdy, sh, subok=True)
+    vcx = np.broadcast_to(fields.vcx, sh, subok=True)
+    vcy = np.broadcast_to(fields.vcy, sh, subok=True)
+    van = np.broadcast_to(fields.van, sh, subok=True)
     
     for f in range(fields.num_per_config):
 

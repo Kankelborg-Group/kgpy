@@ -17,7 +17,6 @@ def add_to_zemax_system(
         configuration_shape: tp.Tuple[int],
         zemax_units: u.Unit,
 ):
-
     op_groove_frequency = ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM
     op_diffraction_order = ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM
 
@@ -32,9 +31,8 @@ def add_to_zemax_system(
 
     util.set_float(zemax_system, surface.groove_frequency, configuration_shape, op_groove_frequency,
                    unit_groove_frequency, surface_index, ind_groove_frequency)
-    util.set_float(zemax_system, surface.diffraction_order, configuration_shape, op_diffraction_order,
-                   unit_diffraction_order, surface_index, ind_diffraction_order)
+    util.set_float(zemax_system, surface.diffraction_order, configuration_shape, op_diffraction_order, None,
+                   surface_index, ind_diffraction_order)
 
     if isinstance(surface, system.surface.EllipticalGrating1):
         elliptical_grating.add_to_zemax_system(zemax_system, surface, surface_index, configuration_shape, zemax_units)
-

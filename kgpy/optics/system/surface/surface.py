@@ -18,7 +18,9 @@ class Base(mixin.ConfigBroadcast):
 
     name: Name = dataclasses.field(default_factory=lambda: Name())
     thickness: u.Quantity = 0 * u.mm
+    is_stop: bool = False
     is_active: 'np.ndarray[bool]' = dataclasses.field(default_factory=lambda: np.array(True))
+    is_visible: bool = True
 
     @property
     def config_broadcast(self):
