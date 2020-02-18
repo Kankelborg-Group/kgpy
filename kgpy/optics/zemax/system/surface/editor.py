@@ -14,5 +14,16 @@ class Base:
     _surfaces: typ.List
     system: System
 
+
 class Editor(Base):
-    pass
+
+    def _update(self) -> None:
+        pass
+
+    @property
+    def _surfaces(self) -> typ.Iterable:
+        return self.__surfaces
+
+    @_surfaces.setter
+    def _surfaces(self, value):
+        pass

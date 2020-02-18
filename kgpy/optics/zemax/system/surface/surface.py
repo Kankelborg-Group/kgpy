@@ -7,7 +7,7 @@ from kgpy.optics.system import surface
 
 from ... import ZOSAPI
 from .. import util, configuration
-from . import Name as SurfaceName, standard, coordinate_break
+from . import Name as SurfaceName, coordinate, standard, coordinate_break
 from .editor import Editor
 
 __all__ = ['Surface', 'add_surfaces_to_zemax_system']
@@ -18,7 +18,7 @@ ZmxSurfT = typ.TypeVar('ZmxSurfT', bound=ZOSAPI.Editors.LDE.ILDERow)
 @dataclasses.dataclass
 class InstanceVarBase:
 
-    _is_active_op: typ.Optional[configuration.SurfaceOperand] = dataclasses.field(
+    _is_active_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
             op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.IGNR
         ),
@@ -26,7 +26,7 @@ class InstanceVarBase:
         repr=None
     )
 
-    _is_visible_op: typ.Optional[configuration.SurfaceOperand] = dataclasses.field(
+    _is_visible_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
             op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.SDRW
         ),
@@ -49,6 +49,15 @@ class Surface(Base):
         self.is_stop = self._is_stop
         self.is_active = self.is_active
         self.is_visible = self.is_visible
+        
+    @property
+    def _transform(self) -> coordinate.Transform:
+        return self.__transform
+    
+    @_transform.setter
+    def _transform(self, value: coordinate.Transform):
+        self.__transform = value
+        value.surface = self
 
     @property
     def name(self) -> SurfaceName:
@@ -119,6 +128,10 @@ class Surface(Base):
     @property
     def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow:
         return self.lde.system.zemax_system.LDE.GetSurfaceAt(self.lde_index)
+    
+    @property
+    def lens_units(self) -> u.Unit:
+        return self.lde.system.lens_units
 
 
 def add_surfaces_to_zemax_system(
