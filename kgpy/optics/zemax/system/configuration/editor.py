@@ -17,7 +17,7 @@ class Base:
 
 class Editor(Base):
 
-    def update(self) -> None:
+    def _update(self) -> None:
         self._operands = self._operands
 
     @property
@@ -27,6 +27,12 @@ class Editor(Base):
     @_operands.setter
     def _operands(self, value: typ.List[Operand]):
         self.__operands = value
+
+        while self._zemax_mce.NumberOfOperands != len(self._operands):
+            if self._zemax_mce.NumberOfOperands < len(self._operands):
+                self._zemax_mce.AddOperand()
+            else:
+                self._zemax_mce.RemoveOperandAt(self._zemax_mce.NumberOfOperands)
         for v in value:
             v.mce = self
 
@@ -37,7 +43,7 @@ class Editor(Base):
     @system.setter
     def system(self, value: System):
         self._system = value
-        self.update()
+        self._update()
 
     @property
     def _zemax_mce(self) -> ZOSAPI.Editors.MCE.IMultiConfigEditor:
@@ -55,6 +61,12 @@ class Editor(Base):
         self._operands.append(value)
         self._zemax_mce.AddOperand()
         value.mce = self
+
+    def pop(self, index: int) -> Operand:
+        value = self._operands.pop(index)
+        self._zemax_mce.RemoveOperandAt(index)
+        value.mce = None
+        return value
 
     def __getitem__(self, item: typ.Union[int, slice]) -> typ.Union[Operand, typ.Iterable[Operand]]:
         return self._operands.__getitem__(item)

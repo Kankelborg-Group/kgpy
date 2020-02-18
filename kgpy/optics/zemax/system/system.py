@@ -1,16 +1,112 @@
-import typing as tp
-import nptyping as npt
-import win32com
+import dataclasses
+import typing as typ
 import win32com.client.gencache
+import numpy as np
 import astropy.units as u
-from kgpy.optics.zemax import ZOSAPI
+
 from kgpy import optics
-from . import wavelengths, util, fields, surface
 
-__all__ = ['calc_zemax_system']
+from .. import ZOSAPI
+from . import configuration, wavelengths, util, fields, surface
+
+__all__ = ['System', 'calc_zemax_system']
 
 
-def calc_zemax_system(system: 'optics.System') -> tp.Tuple[ZOSAPI.IOpticalSystem, u.Unit]:
+def load_zemax_app() -> ZOSAPI.IZOSAPI_Application:
+    zemax_connection = win32com.client.gencache.EnsureDispatch('ZOSAPI.ZOSAPI_Connection')
+    if zemax_connection is None:
+        raise ValueError('Unable to initialize COM connection to ZOSAPI')
+
+    zemax_app = zemax_connection.CreateNewApplication()
+    if zemax_app is None:
+        raise ValueError('Unable to acquire ZOSAPI application')
+    if not zemax_app.IsValidLicenseForAPI:
+        raise ValueError('Invalid licence (Possibly too many instances of OpticStudio are open).')
+
+    return zemax_app
+
+
+@dataclasses.dataclass
+class InstanceVarBase:
+
+    zemax_app: ZOSAPI.IZOSAPI_Application = dataclasses.field(
+        default_factory=load_zemax_app,
+        init=False,
+        repr=False,
+    )
+
+    mce: configuration.Editor = dataclasses.field(
+        default_factory=lambda: configuration.Editor(),
+        init=False,
+        repr=False,
+    )
+
+
+@dataclasses.dataclass
+class Base(optics.System, InstanceVarBase):
+
+    lens_units: u.Unit = u.mm
+
+
+class System(Base):
+
+    @property
+    def zemax_system(self) -> ZOSAPI.IOpticalSystem:
+        return self.zemax_app.PrimarySystem
+
+    @property
+    def mce(self) -> configuration.Editor:
+        return self._config_operands
+
+    @mce.setter
+    def mce(self, value: configuration.Editor):
+        self._config_operands = value
+        value.system = self
+
+    @property
+    def lens_units(self) -> u.Unit:
+        return self.lens_units
+
+    @lens_units.setter
+    def lens_units(self, value: u.Unit):
+        self.lens_units = value
+
+        if value == u.mm:
+            self.zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters
+        elif value == u.cm:
+            self.zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Centimeters
+        elif value == u.m:
+            self.zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Meters
+        elif value == u.imperial.inch:
+            self.zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Inches
+        else:
+            raise ValueError('Unsupported unit')
+
+    def set(
+            self,
+            value: typ.Any,
+            setter: typ.Callable[[typ.Any], None],
+            operand: configuration.Operand,
+            unit: u.Unit = None,
+    ):
+        if unit is not None:
+            value = value.to(unit).value
+
+        if np.isscalar(value):
+            if operand.mce is not None:
+                self.mce.pop(operand.mce_index)
+            setter(value)
+
+        else:
+            if operand.mce is None:
+                self.mce.append(operand)
+            operand.data = value
+
+
+
+
+
+def calc_zemax_system(system: 'optics.System') -> typ.Tuple[ZOSAPI.IOpticalSystem, u.Unit]:
     zemax_system = open_zemax_system()
 
     # zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters
@@ -54,7 +150,7 @@ def open_zemax_system() -> ZOSAPI.IOpticalSystem:
 def set_entrance_pupil_radius(
         zemax_system: ZOSAPI.IOpticalSystem,
         entrance_pupil_radius: u.Quantity,
-        configuration_shape: tp.Tuple[int],
+        configuration_shape: typ.Tuple[int],
         zemax_units: u.Unit
 ):
     zemax_system.SystemData.Aperture.ApertureType = ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter
@@ -67,8 +163,8 @@ def set_entrance_pupil_radius(
 
 def set_stop_surface(
         zemax_system: ZOSAPI.IOpticalSystem,
-        stop_surface_index: tp.Union[int, npt.Array[int]],
-        configuration_shape: tp.Tuple[int],
+        stop_surface_index: int,
+        configuration_shape: typ.Tuple[int],
 ):
     op_stop_surface_index = ZOSAPI.Editors.MCE.MultiConfigOperandType.STPS
     util.set_int(zemax_system, stop_surface_index, configuration_shape, op_stop_surface_index)

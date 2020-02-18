@@ -1,20 +1,22 @@
-import typing as tp
+import typing as typ
 import nptyping as npt
 import numpy as np
 from astropy import units as u
 
 from kgpy.optics.zemax import ZOSAPI
+from .system import System
+from .configuration import Operand
 
 
 def set_float(
         zemax_system: ZOSAPI.IOpticalSystem,
-        value: tp.Union[float, npt.Array[np.float], u.Quantity],
-        configuration_shape: tp.Tuple[int],
+        value: typ.Union[float, npt.Array[np.float], u.Quantity],
+        configuration_shape: typ.Tuple[int],
         op_type: ZOSAPI.Editors.MCE.MultiConfigOperandType,
-        zemax_unit: tp.Optional[u.Unit] = None,
-        param_1: tp.Optional[int] = None,
-        param_2: tp.Optional[int] = None,
-        param_3: tp.Optional[int] = None,
+        zemax_unit: typ.Optional[u.Unit] = None,
+        param_1: typ.Optional[int] = None,
+        param_2: typ.Optional[int] = None,
+        param_3: typ.Optional[int] = None,
 ):
     
     if zemax_unit is not None:
@@ -35,12 +37,12 @@ def set_float(
 
 def set_str(
         zemax_system: ZOSAPI.IOpticalSystem,
-        value: tp.Union[str, npt.Array[str]],
-        configuration_shape: tp.Tuple[int],
+        value: typ.Union[str, npt.Array[str]],
+        configuration_shape: typ.Tuple[int],
         op_type: ZOSAPI.Editors.MCE.MultiConfigOperandType,
-        param_1: tp.Optional[int] = None,
-        param_2: tp.Optional[int] = None,
-        param_3: tp.Optional[int] = None,
+        param_1: typ.Optional[int] = None,
+        param_2: typ.Optional[int] = None,
+        param_3: typ.Optional[int] = None,
 ):
     value_broadcasted = np.broadcast_to(value, configuration_shape).flat
 
@@ -57,12 +59,12 @@ def set_str(
 
 def set_int(
         zemax_system: ZOSAPI.IOpticalSystem,
-        value: tp.Union[int, npt.Array[int]],
-        configuration_shape: tp.Tuple[int],
+        value: typ.Union[int, npt.Array[int]],
+        configuration_shape: typ.Tuple[int],
         op_type: ZOSAPI.Editors.MCE.MultiConfigOperandType,
-        param_1: tp.Optional[int] = None,
-        param_2: tp.Optional[int] = None,
-        param_3: tp.Optional[int] = None,
+        param_1: typ.Optional[int] = None,
+        param_2: typ.Optional[int] = None,
+        param_3: typ.Optional[int] = None,
 ):
     value_broadcasted = np.broadcast_to(value, configuration_shape).flat
 
