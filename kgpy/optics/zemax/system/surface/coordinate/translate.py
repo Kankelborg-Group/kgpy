@@ -11,7 +11,23 @@ __all__ = ['Translate']
 
 @dataclasses.dataclass
 class InstanceVarBase:
-    
+
+    _x_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM,
+            param_2=1,
+        ),
+        init=None,
+        repr=None,
+    )
+    _y_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC,
+            param_2=2,
+        ),
+        init=None,
+        repr=None,
+    )
     _z_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
             op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC
@@ -31,6 +47,9 @@ class Translate(Base):
     
     def _update(self) -> None:
         self.z = self.z
+
+    def _x_setter(self, value: float):
+        self.transform.surface.lde_row.TiltDecenterData.BeforeSurfaceDecenterX = value
     
     def _z_setter(self, value: float):
         self.transform.surface.lde_row.Thickness = value
