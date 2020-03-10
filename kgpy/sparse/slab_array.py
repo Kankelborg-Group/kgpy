@@ -2,12 +2,19 @@ import numpy as np
 import typing as typ
 import dataclasses
 
-__all__  = ['SlabArray']
+__all__ = ['SlabArray']
 
 
 @dataclasses.dataclass
 class SlabArray:
     data: typ.List[np.ndarray]
+    start_indices: 'np.ndarray[int]'
+    slab_axis: int = ~0
+
+    @property
+    def ndim(self):
+        return self.data[0].ndim
+
 
     def __iter__(self):
         return self.data.__iter__()
@@ -19,7 +26,7 @@ class SlabArray:
         new_data = []
         for d in self:
             new_data.append(d.copy())
-        return type(self)(new_data)
+        return type(self)(new_data, self.start_indices)
 
     def __neg__(self) -> 'SlabArray':
         new_data = []
@@ -30,12 +37,14 @@ class SlabArray:
 
     def __add__(self, other: typ.Union[float, 'SlabArray']) -> 'SlabArray':
         new_data = []
+
         if np.isscalar(other):
             for d in self:
                 new_d = d.copy().__add__(other)
                 new_data.append(new_d)
 
         elif len(self) == len(other):
+            self._check_compatibility(other)
             for d, f in zip(self, other):
                 new_d = d.copy().__add__(f.copy())
                 new_data.append(new_d)
@@ -50,12 +59,14 @@ class SlabArray:
 
     def __mul__(self, other: typ.Union[float, 'SlabArray']) -> 'SlabArray':
         new_data = []
+
         if np.isscalar(other):
             for d in self:
                 new_d = d.copy().__mul__(other)
                 new_data.append(new_d)
 
         elif len(self) == len(other):
+            self._check_compatibility(other)
             for d, f in zip(self, other):
                 new_d = d.copy().__mul__(f.copy())
                 new_data.append(new_d)
@@ -74,6 +85,7 @@ class SlabArray:
                 new_data.append(new_d)
 
         elif len(self) == len(other):
+            self._check_compatibility(other)
             for d, f in zip(self, other):
                 new_d = d.copy().__truediv__(f.copy())
                 new_data.append(new_d)
@@ -82,4 +94,42 @@ class SlabArray:
             raise ValueError('Slab Array lengths don\'t match')
 
         return type(self)(new_data)
+
+    def _check_compatibility(self, other):
+        if not np.all(self.start_indices == other.start_indices):
+            raise ValueError('Incompatible reference indices.')
+        if self.slab_axis != other.slab_axis:
+            raise ValueError('Both SlabArrays must have the same slab axis')
+
+    def sum(self, axis:typ.Union[int, typ.Tuple[int,...]]=None):
+        if axis is None:
+            axis = tuple(np.arange(self.ndim))
+
+        if np.isscalar(axis):
+            axis = (axis, )
+
+        new_data = []
+        for d in self:
+            new_d = d.sum(axis, keepdims=True)
+            new_data.append(new_d)
+
+        if self.slab_axis in axis:
+            fin_d = np.zeros_like(new_data[0])
+            for d in new_data:
+                fin_d += d
+            final_data = [fin_d]
+
+            final_start_indices = np.array([0])
+
+        else:
+            final_data = new_data
+            final_start_indices = self.start_indices.copy()
+
+        return type(self)(final_data, final_start_indices, self.slab_axis)
+
+        # new_data = self.data
+        # for ax in axis:
+        #     if ax != self.slab_axis:
+        #         for d in new_data:
+
 
