@@ -4,10 +4,15 @@ from astropy import units as u
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 
-from . import diffraction_grating, toroidal, aperture, material
-from .. import util
+from ... import util
+from .. import diffraction_grating, toroidal, aperture, material
+from .. import Surface
 
-__all__ = ['add_to_zemax_system']
+__all__ = ['Standard', 'add_to_zemax_system']
+
+
+class Standard(Surface):
+    pass
 
 
 def add_to_zemax_system(
