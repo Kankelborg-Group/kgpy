@@ -8,8 +8,3 @@ from .toroidal import Toroidal
 from .elliptical_grating import EllipticalGrating1
 from .coordinate_transform import CoordinateTransform
 from .substrate import Substrate
-
-from . import aperture
-from . import material
-from . import mechanical
-from . import transformed
