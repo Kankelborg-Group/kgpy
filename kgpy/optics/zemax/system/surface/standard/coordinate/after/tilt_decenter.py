@@ -9,12 +9,11 @@ __all__ = ['TiltDecenter']
 
 @dataclasses.dataclass
 class Base(coordinate.TiltDecenter):
-    
     surface: typ.Optional[Standard] = None
-    
-    
+
+
 class TiltDecenter(Base):
-    
+
     def _update(self) -> None:
         self.tilt = self.tilt
         self.decenter = self.decenter

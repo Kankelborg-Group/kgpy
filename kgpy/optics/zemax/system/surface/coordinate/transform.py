@@ -24,10 +24,10 @@ class Transform(Base):
         return self._translate
     
     @translate.setter
-    def translate(self, value: Translate):
-        self._translate = value
+    def translate(self, value: coordinate.Translate):
         value.transform = self
-        
+        self._translate = value
+
     @property
     def surface(self) -> Surface:
         return self._surface

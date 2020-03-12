@@ -14,14 +14,14 @@ __all__ = ['Decenter']
 class InstanceVarBase:
     _x_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDX,
+            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CADX,
         ),
         init=None,
         repr=None,
     )
     _y_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDY,
+            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CADY,
         ),
         init=None,
         repr=None,
@@ -40,10 +40,10 @@ class Decenter(Base):
         self.y = self.y
 
     def _x_setter(self, value: float):
-        self.tilt_decenter.surface.lde_row.TiltDecenterData.BeforeSurfaceDecenterX = value
+        self.tilt_decenter.surface.lde_row.TiltDecenterData.AfterSurfaceDecenterX = value
 
     def _y_setter(self, value: float):
-        self.tilt_decenter.surface.lde_row.TiltDecenterData.BeforeSurfaceDecenterY = value
+        self.tilt_decenter.surface.lde_row.TiltDecenterData.AfterSurfaceDecenterX = value
 
     @property
     def x(self) -> u.Quantity:
