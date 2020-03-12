@@ -33,7 +33,7 @@ class InstanceVarBase(before.tilt.InstanceVarBase):
     )
 
 
-class Tilt(before.tilt.Tilt, InstanceVarBase):
+class Tilt(before.Tilt, InstanceVarBase):
 
     def _x_setter(self, value: float):
         self.tilt_decenter.surface.lde_row.TiltDecenterData.AfterSurfaceTiltX = value

@@ -1,10 +1,10 @@
-from . import Tilt, Decenter
+from . import Tilt, Decenter, TiltFirst
 from .. import before
 
 __all__ = ['TiltDecenter']
 
 
-class TiltDecenter(before.tilt.TiltDecenter):
+class TiltDecenter(before.TiltDecenter):
 
     @property
     def tilt(self) -> Tilt:
@@ -21,3 +21,11 @@ class TiltDecenter(before.tilt.TiltDecenter):
     @decenter.setter
     def decenter(self, value: Decenter):
         super().decenter = value
+
+    @property
+    def tilt_first(self) -> TiltFirst:
+        return super().tilt_first
+
+    @tilt_first.setter
+    def tilt_first(self, value: TiltFirst):
+        super().tilt_first = value

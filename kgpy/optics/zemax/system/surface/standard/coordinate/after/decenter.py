@@ -25,7 +25,7 @@ class InstanceVarBase(before.decenter.InstanceVarBase):
     )
 
 
-class Decenter(before.decenter.Decenter, InstanceVarBase):
+class Decenter(before.Decenter, InstanceVarBase):
 
     def _x_setter(self, value: float):
         self.tilt_decenter.surface.lde_row.TiltDecenterData.AfterSurfaceDecenterX = value

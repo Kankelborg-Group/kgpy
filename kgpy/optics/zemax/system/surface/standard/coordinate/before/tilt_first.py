@@ -6,7 +6,7 @@ from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import configuration
 from .tilt_decenter import TiltDecenter
 
-__all__ = []
+__all__ = ['TiltFirst']
 
 
 @dataclasses.dataclass

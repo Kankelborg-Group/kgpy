@@ -1,14 +1,35 @@
-import typing as tp
+import dataclasses
+import typing as typ
 from astropy import units as u
 
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 
-from ... import util
+from ... import util, configuration
 from .. import diffraction_grating, toroidal, aperture, material
 from .. import Surface
+from . import coordinate
 
 __all__ = ['Standard', 'add_to_zemax_system']
+
+
+class InstanceVarBase:
+
+    _radius_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CRVT
+        ),
+        init=None,
+        repr=None,
+    )
+    _conic_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CONN
+        ),
+        init=None,
+        repr=None,
+    )
+
 
 
 class Standard(system.surface.Standard, Surface):
@@ -19,7 +40,7 @@ def add_to_zemax_system(
         zemax_system: ZOSAPI.IOpticalSystem,
         surface: 'system.surface.Standard',
         surface_index: int,
-        configuration_shape: tp.Tuple[int],
+        configuration_shape: typ.Tuple[int],
         zemax_units: u.Unit,
 ):
 
