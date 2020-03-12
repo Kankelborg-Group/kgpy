@@ -11,7 +11,7 @@ from .. import Surface
 __all__ = ['Standard', 'add_to_zemax_system']
 
 
-class Standard(Surface):
+class Standard(system.surface.Standard, Surface):
     pass
 
 

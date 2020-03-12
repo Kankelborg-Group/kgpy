@@ -14,6 +14,9 @@ class Base(mixin.ConfigBroadcast):
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
     tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
 
+
+class TiltDecenter(Base):
+
     @property
     def config_broadcast(self):
         return np.broadcast(
@@ -28,17 +31,6 @@ class Base(mixin.ConfigBroadcast):
             self.decenter.__invert__(),
             self.tilt_first.__invert__(),
         )
-
-
-class TiltDecenter(Base):
-    
-    @property
-    def tilt_first(self) -> TiltFirst:
-        return self._tilt_first
-
-    @tilt_first.setter
-    def tilt_first(self, value: TiltFirst):
-        self._tilt_first = value
         
         
 @dataclasses.dataclass

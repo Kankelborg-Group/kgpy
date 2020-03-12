@@ -12,7 +12,10 @@ class Base(mixin.ConfigBroadcast):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     translate: Translate = dataclasses.field(default_factory=lambda: Translate())
     tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
-    
+
+
+class Transform(Base):
+
     @property
     def config_broadcast(self):
         return np.broadcast(
@@ -27,17 +30,6 @@ class Base(mixin.ConfigBroadcast):
             self.translate.__invert__(),
             not self.tilt_first,
         )
-
-
-class Transform(Base):
-
-    @property
-    def tilt_first(self) -> TiltFirst:
-        return self._tilt_first
-
-    @tilt_first.setter
-    def tilt_first(self, value: TiltFirst):
-        self._tilt_first = value
 
 
 @dataclasses.dataclass
