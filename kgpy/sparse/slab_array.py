@@ -15,7 +15,6 @@ class SlabArray:
     def ndim(self):
         return self.data[0].ndim
 
-
     def __iter__(self):
         return self.data.__iter__()
 
@@ -101,12 +100,12 @@ class SlabArray:
         if self.slab_axis != other.slab_axis:
             raise ValueError('Both SlabArrays must have the same slab axis')
 
-    def sum(self, axis:typ.Union[int, typ.Tuple[int,...]]=None):
+    def sum(self, axis: typ.Union[int, typ.Tuple[int, ...]] = None):
         if axis is None:
             axis = tuple(np.arange(self.ndim))
 
         if np.isscalar(axis):
-            axis = (axis, )
+            axis = (axis,)
 
         new_data = []
         for d in self:
@@ -127,9 +126,20 @@ class SlabArray:
 
         return type(self)(final_data, final_start_indices, self.slab_axis)
 
-        # new_data = self.data
-        # for ax in axis:
-        #     if ax != self.slab_axis:
-        #         for d in new_data:
+    def __pow__(self, power, modulo=None):
+        new_data = []
+        for sl in self.data:
+            new_slab = np.float_power(sl, power)
+            new_data.append(new_slab)
+
+        return type(self)(new_data, self.start_indices, self.slab_axis)
+
+
+
+class SlabArray2(np.ndarray):
+
+    def __array_finalize__(self, obj):
+        # super(SlabArray2, self).__array_finalize__(self, obj)
+        pass
 
 

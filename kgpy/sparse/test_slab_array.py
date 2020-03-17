@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from .slab_array import SlabArray
+from .slab_array import SlabArray, SlabArray2
 
 
 class TestSlabArray:
@@ -49,3 +49,13 @@ class TestSlabArray:
     def test_sum(self, slab_array):
         c = slab_array.copy()
         assert c.sum() == self.n_slabs * self.nx * self.ny * self.nz
+
+class TestSlabArray2:
+
+    nx = 10
+    ny = 10
+    nz = 5
+
+    def test__init__(self):
+        z = SlabArray2(shape=(self.nx, self.ny, self.nz))
+        print(type(z))
