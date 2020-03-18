@@ -2,8 +2,8 @@ import dataclasses
 import typing as typ
 
 from ... import ZOSAPI
-from ..system import System
-from . import Operand
+from .. import system
+from . import operand
 
 __all__ = ['Editor']
 
@@ -11,8 +11,8 @@ __all__ = ['Editor']
 @dataclasses.dataclass
 class Base:
 
-    _operands: typ.List[Operand] = dataclasses.field(default_factory=lambda: [])
-    system: typ.Optional[System] = None
+    _operands: typ.List['operand.Operand'] = dataclasses.field(default_factory=lambda: [])
+    system: typ.Optional['system.System'] = None
 
 
 class Editor(Base):
@@ -21,11 +21,11 @@ class Editor(Base):
         self._operands = self._operands
 
     @property
-    def _operands(self) -> typ.List[Operand]:
+    def _operands(self) -> typ.List['operand.Operand']:
         return self.__operands
 
     @_operands.setter
-    def _operands(self, value: typ.List[Operand]):
+    def _operands(self, value: typ.List['operand.Operand']):
         self.__operands = value
 
         while self._zemax_mce.NumberOfOperands != len(self._operands):
@@ -37,11 +37,11 @@ class Editor(Base):
             v.mce = self
 
     @property
-    def system(self) -> System:
+    def system(self) -> 'system.System':
         return self._system
 
     @system.setter
-    def system(self, value: System):
+    def system(self, value: 'system.System'):
         self._system = value
         self._update()
 
@@ -49,31 +49,31 @@ class Editor(Base):
     def _zemax_mce(self) -> ZOSAPI.Editors.MCE.IMultiConfigEditor:
         return self.system.zemax_system.MCE
 
-    def index(self, operand: Operand) -> int:
-        return self._operands.index(operand)
+    def index(self, op: 'operand.Operand') -> int:
+        return self._operands.index(op)
 
-    def insert(self, index: int, value: Operand) -> None:
+    def insert(self, index: int, value: 'operand.Operand') -> None:
         self._operands.insert(index, value)
         self._zemax_mce.InsertNewOperandAt(index)
         value.mce = self
 
-    def append(self, value: Operand) -> None:
+    def append(self, value: 'operand.Operand') -> None:
         self._operands.append(value)
         self._zemax_mce.AddOperand()
         value.mce = self
 
-    def pop(self, index: int) -> Operand:
+    def pop(self, index: int) -> 'operand.Operand':
         value = self._operands.pop(index)
         self._zemax_mce.RemoveOperandAt(index)
         value.mce = None
         return value
 
-    def __getitem__(self, item: typ.Union[int, slice]) -> typ.Union[Operand, typ.Iterable[Operand]]:
+    def __getitem__(self, item: typ.Union[int, slice]) -> typ.Union['operand.Operand', typ.Iterable['operand.Operand']]:
         return self._operands.__getitem__(item)
 
-    def __setitem__(self, key: typ.Union[int, slice], value: typ.Union[Operand, typ.Iterable[Operand]]) -> None:
+    def __setitem__(self, key: typ.Union[int, slice], value: typ.Union['operand.Operand', typ.Iterable['operand.Operand']]) -> None:
         self._operands.__setitem__(key, value)
-        if isinstance(value, Operand):
+        if isinstance(value, operand.Operand):
             value.mce = self
         else:
             for v in value:

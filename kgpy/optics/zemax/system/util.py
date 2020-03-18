@@ -4,8 +4,8 @@ import numpy as np
 from astropy import units as u
 
 from kgpy.optics.zemax import ZOSAPI
-from .system import System
-from .configuration import Operand
+# from .system import System
+# from .configuration import Operand
 
 
 def set_float(

@@ -3,9 +3,16 @@ from astropy import units as u
 
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import util
+from kgpy.optics.zemax.system import util, surface
 
 __all__ = ['add_to_zemax_system']
+
+
+class CoordinateBreak(system.surface.CoordinateBreak, surface.Surface):
+
+    @property
+    def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak]:
+        return super().lde_row
 
 
 def add_to_zemax_system(

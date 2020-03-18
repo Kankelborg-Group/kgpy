@@ -3,7 +3,7 @@ import typing as typ
 
 from kgpy.optics.system import name
 
-from .surface import Surface
+from . import surface
 
 __all__ = ['Name']
 
@@ -11,7 +11,7 @@ __all__ = ['Name']
 @dataclasses.dataclass
 class Base(name.Name):
 
-    surface: Surface = None
+    surface: 'surface.Surface' = None
 
 
 class Name(Base):
@@ -47,10 +47,10 @@ class Name(Base):
         self._update()
 
     @property
-    def surface(self) -> Surface:
+    def surface(self) -> 'surface.Surface':
         return self._surface
 
     @surface.setter
-    def surface(self, value: Surface):
+    def surface(self, value: 'surface.Surface'):
         self._surface = value
         self._update()

@@ -4,7 +4,7 @@ from astropy import units as u
 from kgpy.optics.system import coordinate
 from .... import ZOSAPI
 from ... import configuration
-from .transform import Transform
+from . import transform
 
 __all__ = ['Translate']
 
@@ -24,7 +24,7 @@ class InstanceVarBase:
 @dataclasses.dataclass
 class Base(coordinate.Translate, InstanceVarBase):
     
-    transform: Transform = None
+    transform: 'transform.Transform' = None
 
 
 class Translate(Base):
@@ -49,10 +49,10 @@ class Translate(Base):
             pass
         
     @property
-    def transform(self) -> Transform:
+    def transform(self) -> 'transform.Transform':
         return self._transform
     
     @transform.setter
-    def transform(self, value: Transform):
+    def transform(self, value: 'transform.Transform'):
         self._transform = value
         self._update()

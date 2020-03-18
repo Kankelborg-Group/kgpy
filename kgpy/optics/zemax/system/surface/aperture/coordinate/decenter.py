@@ -6,25 +6,19 @@ __all__ = ['Decenter']
 
 
 @dataclasses.dataclass
-class Decenter(surface.coordinate.Decenter[surface.Surface]):
+class Decenter(surface.coordinate.Decenter):
 
     _x_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CADX,
+            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.APDX,
         ),
         init=False,
         repr=False,
     )
     _y_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CADY,
+            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.APDY,
         ),
         init=False,
         repr=False,
     )
-
-    def _x_setter(self, value: float):
-        self.parent.parent.lde_row.TiltDecenterData.AfterSurfaceDecenterX = value
-
-    def _y_setter(self, value: float):
-        self.parent.parent.lde_row.TiltDecenterData.AfterSurfaceDecenterY = value

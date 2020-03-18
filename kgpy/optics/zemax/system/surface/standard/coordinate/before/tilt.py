@@ -5,7 +5,7 @@ import astropy.units as u
 from kgpy.optics.system import coordinate
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import configuration
-from .tilt_decenter import TiltDecenter
+from . import tilt_decenter
 
 __all__ = ['Tilt']
 
@@ -17,22 +17,22 @@ class InstanceVarBase:
         default_factory=lambda: configuration.SurfaceOperand(
             op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTX,
         ),
-        init=None,
-        repr=None,
+        init=False,
+        repr=False,
     )
     _y_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
             op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTY,
         ),
-        init=None,
-        repr=None,
+        init=False,
+        repr=False,
     )
     _z_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
             op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CBTZ,
         ),
-        init=None,
-        repr=None,
+        init=False,
+        repr=False,
     )
 
     _x_unit: typ.ClassVar[u.Unit] = u.deg
@@ -43,7 +43,7 @@ class InstanceVarBase:
 @dataclasses.dataclass
 class Base(coordinate.Tilt, InstanceVarBase):
 
-    tilt_decenter: typ.Optional[TiltDecenter] = None
+    tilt_decenter: typ.Optional['tilt_decenter.TiltDecenter'] = None
 
 
 class Tilt(Base):
@@ -102,10 +102,10 @@ class Tilt(Base):
             pass
 
     @property
-    def tilt_decenter(self) -> TiltDecenter:
+    def tilt_decenter(self) -> 'tilt_decenter.TiltDecenter':
         return self._tilt_decenter
 
     @tilt_decenter.setter
-    def tilt_decenter(self, value: TiltDecenter):
+    def tilt_decenter(self, value: 'try:'):
         self._tilt_decenter = value
         self._update()

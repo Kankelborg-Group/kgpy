@@ -7,7 +7,7 @@ from kgpy.optics.zemax import ZOSAPI
 
 from ... import util, configuration
 from .. import diffraction_grating, toroidal, aperture, material
-from .. import Surface
+from .. import surface
 from . import coordinate
 
 __all__ = ['Standard', 'add_to_zemax_system']
@@ -32,7 +32,7 @@ class InstanceVarBase:
 
 
 
-class Standard(system.surface.Standard, Surface):
+class Standard(system.surface.Standard, surface.Surface):
     pass
 
 

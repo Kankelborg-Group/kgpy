@@ -2,8 +2,8 @@ import dataclasses
 import typing as typ
 
 from kgpy.optics.system import coordinate
-from ..surface import Surface
-from . import Translate
+from .. import surface
+from . import translate
 
 __all__ = ['Transform']
 
@@ -11,7 +11,7 @@ __all__ = ['Transform']
 @dataclasses.dataclass
 class Base(coordinate.Transform):
 
-    surface: typ.Optional[Surface] = None
+    surface: 'typ.Optional[surface.Surface]' = None
 
 
 class Transform(Base):
@@ -20,7 +20,7 @@ class Transform(Base):
         self.translate = self.translate
     
     @property
-    def translate(self) -> Translate:
+    def translate(self) -> 'translate.Translate':
         return self._translate
     
     @translate.setter
@@ -29,10 +29,10 @@ class Transform(Base):
         self._translate = value
 
     @property
-    def surface(self) -> Surface:
+    def surface(self) -> 'surface.Surface':
         return self._surface
     
     @surface.setter
-    def surface(self, value: Surface):
+    def surface(self, value: 'surface.Surface'):
         self._surface = value
         self._update()

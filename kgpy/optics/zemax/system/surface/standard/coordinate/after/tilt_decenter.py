@@ -1,18 +1,32 @@
+import dataclasses
+import typing as typ
+from kgpy.optics.system import coordinate
+from ... import Standard
 from . import Tilt, Decenter, TiltFirst
-from .. import before
 
 __all__ = ['TiltDecenter']
 
 
-class TiltDecenter(before.TiltDecenter):
+@dataclasses.dataclass
+class Base(coordinate.TiltDecenter):
+    surface: typ.Optional[Standard] = None
+
+
+class TiltDecenter(Base):
+
+    def _update(self) -> None:
+        self.tilt = self.tilt
+        self.decenter = self.decenter
+        self.tilt_first = self.tilt_first
 
     @property
     def tilt(self) -> Tilt:
-        return super().tilt
+        return self._tilt
 
     @tilt.setter
     def tilt(self, value: Tilt):
-        super().tilt = value
+        value.tilt_decenter = self
+        self._tilt = value
 
     @property
     def decenter(self) -> Decenter:
@@ -20,12 +34,23 @@ class TiltDecenter(before.TiltDecenter):
 
     @decenter.setter
     def decenter(self, value: Decenter):
-        super().decenter = value
+        value.tilt_decenter = self
+        self._decenter = value
 
     @property
     def tilt_first(self) -> TiltFirst:
-        return super().tilt_first
+        return self._tilt_first
 
     @tilt_first.setter
     def tilt_first(self, value: TiltFirst):
-        super().tilt_first = value
+        value.tilt_decenter = self
+        self._tilt_first = value
+
+    @property
+    def surface(self) -> Standard:
+        return self._surface
+
+    @surface.setter
+    def surface(self, value: Standard):
+        self._surface = value
+        self._update()

@@ -16,8 +16,8 @@ class InstanceVarBase:
         default_factory=lambda: configuration.SurfaceOperand(
             op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CBOR,
         ),
-        init=None,
-        repr=None,
+        init=False,
+        repr=False,
     )
 
 

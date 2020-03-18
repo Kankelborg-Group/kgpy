@@ -1,11 +1,12 @@
-
-from typing import List
+import typing as typ
 from kgpy.optics.zemax import ZOSAPI
 
 __all__ = ['ILDERow']
 
+ISurfaceT = typ.TypeVar('ISurfaceT')
 
-class ILDERow:
+
+class ILDERow(typ.Generic[ISurfaceT]):
 
     ApertureData = None                     # type: ZOSAPI.Editors.LDE.ILDEApertureData
     ChipZone = None                         # type: float
@@ -38,7 +39,7 @@ class ILDERow:
     ScatteringData = None                   # type: ZOSAPI.Editors.LDE.ILDEScatteringData
     SemiDiameter = None                     # type: float
     SemiDiameterCell = None                 # type: ZOSAPI.Editors.IEditorCell
-    SurfaceData = None                      # type: ZOSAPI.Editors.LDE.ISurface
+    SurfaceData = None                      # type: ISurfaceT
     SurfaceNumber = None                    # type: int
     TCE = None                              # type: float
     TCECell = None                          # type: ZOSAPI.Editors.IEditorCell
@@ -49,7 +50,7 @@ class ILDERow:
     TypeData = None                         # type: ZOSAPI.Editors.LDE.ILDETypeData
     TypeName = None                         # type: str
 
-    def AvailableSurfaceTypes(self) -> List['ZOSAPI.Editors.LDE.SurfaceType']:
+    def AvailableSurfaceTypes(self) -> typ.List['ZOSAPI.Editors.LDE.SurfaceType']:
         pass
 
     def ChangeType(self, settings: 'ZOSAPI.Editors.LDE.ISurfaceTypeSettings') -> bool:
@@ -61,6 +62,7 @@ class ILDERow:
     def GetSurfaceCell(self, col: 'ZOSAPI.Editors.LDE.SurfaceColumn') -> 'ZOSAPI.Editors.IEditorCell':
         pass
 
-    def GetSurfaceTypeSettings(self, type: 'ZOSAPI.Editors.LDE.SurfaceType'
-                               ) -> 'ZOSAPI.Editors.LDE.ISurfaceTypeSettings':
+    def GetSurfaceTypeSettings(
+            self, type_: 'ZOSAPI.Editors.LDE.SurfaceType'
+    ) -> 'ZOSAPI.Editors.LDE.ISurfaceTypeSettings':
         pass

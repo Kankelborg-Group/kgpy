@@ -6,14 +6,16 @@ from . import Tilt, Decenter, TiltFirst
 
 __all__ = ['TiltDecenter']
 
+ParentSurfaceT = typ.TypeVar('ParentSurfaceT')
+
 
 @dataclasses.dataclass
-class Base(coordinate.TiltDecenter):
+class Base:
     
     surface: typ.Optional[Standard] = None
     
     
-class TiltDecenter(Base):
+class TiltDecenter(typ.Generic[ParentSurfaceT], Base, coordinate.TiltDecenter):
     
     def _update(self) -> None:
         self.tilt = self.tilt

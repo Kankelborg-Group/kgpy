@@ -2,8 +2,8 @@ import dataclasses
 import typing as typ
 
 from ... import ZOSAPI
-from ..system import System
-from . import Surface
+from .. import system
+from . import surface
 
 __all__ = ['Editor']
 
@@ -11,8 +11,8 @@ __all__ = ['Editor']
 @dataclasses.dataclass
 class Base:
 
-    _surfaces: typ.List
-    system: System
+    _surfaces: 'typ.Iterable[surface.Surface]' = dataclasses.field(default_factory=lambda: [])
+    system: 'system.System' = None
 
 
 class Editor(Base):
@@ -22,8 +22,10 @@ class Editor(Base):
 
     @property
     def _surfaces(self) -> typ.Iterable:
-        return self.__surfaces
+        return self._surfaces
 
     @_surfaces.setter
     def _surfaces(self, value):
         pass
+
+

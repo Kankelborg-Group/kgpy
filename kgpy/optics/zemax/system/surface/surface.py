@@ -7,7 +7,7 @@ from kgpy.optics.system import surface
 
 from ... import ZOSAPI
 from .. import util, configuration
-from . import Name as SurfaceName, coordinate, standard, coordinate_break
+from . import name, coordinate
 from .editor import Editor
 
 __all__ = ['Surface', 'add_surfaces_to_zemax_system']
@@ -60,11 +60,11 @@ class Surface(Base):
         value.surface = self
 
     @property
-    def name(self) -> SurfaceName:
+    def name(self) -> 'name.Name':
         return self._name
 
     @name.setter
-    def name(self, value: SurfaceName):
+    def name(self, value: 'name.Name'):
         self._name = value
         value.surface = self
 
@@ -126,7 +126,7 @@ class Surface(Base):
         return self.lde.index(self) + 1
 
     @property
-    def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow:
+    def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:
         return self.lde.system.zemax_system.LDE.GetSurfaceAt(self.lde_index)
     
     @property

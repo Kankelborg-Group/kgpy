@@ -1,21 +1,43 @@
-import typing as tp
-import pathlib
+import dataclasses
+import typing as typ
 from astropy import units as u
 
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import util
+from .. import standard
 
 from . import rectangular, circular, spider, polygon, regular_polygon
 
-__all__ = ['add_to_zemax_surface']
+__all__ = ['Aperture', 'add_to_zemax_surface']
+
+
+@dataclasses.dataclass
+class Base(system.surface.Aperture):
+
+    surface: 'typ.Optional[standard.Standard] '= None
+
+
+class Aperture(Base):
+
+    def _update(self):
+        pass
+
+    @property
+    def surface(self) -> 'standard.Standard':
+        return self._surface
+
+    @surface.setter
+    def surface(self, value: 'standard.Standard'):
+        self._surface = value
+        self._update()
 
 
 def add_to_zemax_surface(
         zemax_system: ZOSAPI.IOpticalSystem,
         aperture: 'system.surface.Aperture',
         surface_index: int,
-        configuration_shape: tp.Tuple[int],
+        configuration_shape: typ.Tuple[int],
         zemax_units: u.Unit,
 ):
     if aperture is None:
