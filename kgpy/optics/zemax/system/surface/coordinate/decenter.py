@@ -4,26 +4,9 @@ import typing as typ
 import astropy.units as u
 from kgpy.optics.system import coordinate
 from ... import configuration
-from .. import surface
-from . import ChildMixin
+from .parent import ParentT, ParentBase
 
 __all__ = ['Decenter']
-
-SurfaceT = typ.TypeVar('SurfaceT', bound='surface.Surface')
-
-
-class SurfaceGrandchild(typ.Generic[SurfaceT]):
-
-    @property
-    def parent(self) -> SurfaceT:
-        ...
-
-    @parent.setter
-    def parent(self, value: SurfaceT):
-        ...
-
-
-ParentT = typ.TypeVar('ParentT', bound='SurfaceGrandchild[surface.Surface]')
 
 
 @dataclasses.dataclass
