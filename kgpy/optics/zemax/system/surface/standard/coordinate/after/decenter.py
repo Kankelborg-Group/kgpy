@@ -1,6 +1,7 @@
 import dataclasses
+
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import configuration, surface
+from ..... import configuration, surface
 
 __all__ = ['Decenter']
 

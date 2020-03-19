@@ -1,38 +1,58 @@
 import dataclasses
 import typing as typ
-
 from kgpy.optics.system import coordinate
-from .. import surface
-from . import translate
+from ... import surface
+from . import Tilt, Translate, TiltFirst
 
 __all__ = ['Transform']
 
+SurfaceT = typ.TypeVar('SurfaceT', bound=surface.Surface)
+
 
 @dataclasses.dataclass
-class Base(coordinate.Transform):
+class Base(typ.Generic[SurfaceT]):
+    parent: typ.Optional[SurfaceT] = None
 
-    surface: 'typ.Optional[surface.Surface]' = None
 
+class Transform(typ.Generic[SurfaceT], Base, coordinate.Transform):
 
-class Transform(Base):
-    
     def _update(self) -> None:
+        self.tilt = self.tilt
         self.translate = self.translate
-    
+        self.tilt_first = self.tilt_first
+
     @property
-    def translate(self) -> 'translate.Translate':
+    def tilt(self) -> Tilt:
+        return self._tilt
+
+    @tilt.setter
+    def tilt(self, value: Tilt):
+        value.tilt_decenter = self
+        self._tilt = value
+
+    @property
+    def translate(self) -> Translate:
         return self._translate
-    
+
     @translate.setter
-    def translate(self, value: coordinate.Translate):
-        value.transform = self
+    def translate(self, value: Translate):
+        value.tilt_decenter = self
         self._translate = value
 
     @property
-    def surface(self) -> 'surface.Surface':
-        return self._surface
-    
-    @surface.setter
-    def surface(self, value: 'surface.Surface'):
-        self._surface = value
+    def tilt_first(self) -> TiltFirst:
+        return self._tilt_first
+
+    @tilt_first.setter
+    def tilt_first(self, value: TiltFirst):
+        value.tilt_decenter = self
+        self._tilt_first = value
+
+    @property
+    def parent(self) -> SurfaceT:
+        return self._parent
+
+    @parent.setter
+    def parent(self, value: SurfaceT):
+        self._parent = value
         self._update()

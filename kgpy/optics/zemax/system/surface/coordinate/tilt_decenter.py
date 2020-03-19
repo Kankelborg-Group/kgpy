@@ -11,10 +11,10 @@ SurfaceT = typ.TypeVar('SurfaceT', bound=surface.Surface)
 
 @dataclasses.dataclass
 class Base(typ.Generic[SurfaceT]):
-    surface: typ.Optional[SurfaceT] = None
+    parent: typ.Optional[SurfaceT] = None
 
 
-class TiltDecenter(typ.Generic[ParentSurfaceT], Base, coordinate.TiltDecenter):
+class TiltDecenter(typ.Generic[SurfaceT], Base, coordinate.TiltDecenter):
 
     def _update(self) -> None:
         self.tilt = self.tilt
@@ -50,9 +50,9 @@ class TiltDecenter(typ.Generic[ParentSurfaceT], Base, coordinate.TiltDecenter):
 
     @property
     def parent(self) -> SurfaceT:
-        return self._surface
+        return self._parent
 
     @parent.setter
     def parent(self, value: SurfaceT):
-        self._surface = value
+        self._parent = value
         self._update()
