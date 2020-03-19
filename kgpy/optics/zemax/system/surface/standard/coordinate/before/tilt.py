@@ -2,12 +2,13 @@ import dataclasses
 
 from kgpy.optics.zemax import ZOSAPI
 from ..... import configuration, surface
+from . import tilt_decenter
 
 __all__ = ['Tilt']
 
 
 @dataclasses.dataclass
-class Tilt(surface.coordinate.Tilt[surface.Standard]):
+class Tilt(surface.coordinate.Tilt[tilt_decenter.TiltDecenter[surface.Standard]]):
 
     _x_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
