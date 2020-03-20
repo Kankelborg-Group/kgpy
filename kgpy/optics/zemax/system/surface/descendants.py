@@ -14,7 +14,8 @@ class Base(typ.Generic[ParentT]):
     parent: typ.Optional[ParentT] = None
 
 
-class Descendant(abc.ABC, typ.Generic[ParentT], Base[ParentT]):
+@dataclasses.dataclass
+class Descendant(typ.Generic[ParentT], Base[ParentT]):
 
     @abc.abstractmethod
     def _update(self) -> typ.NoReturn:
@@ -33,6 +34,7 @@ class Descendant(abc.ABC, typ.Generic[ParentT], Base[ParentT]):
 SurfaceT = typ.TypeVar('SurfaceT', bound='surface.Surface')
 
 
+@dataclasses.dataclass
 class Child(typ.Generic[SurfaceT], Descendant[SurfaceT]):
 
     pass
@@ -40,7 +42,7 @@ class Child(typ.Generic[SurfaceT], Descendant[SurfaceT]):
 
 ChildT = typ.TypeVar('ChildT', bound=Child)
 
-
+@dataclasses.dataclass
 class Grandchild(typ.Generic[ChildT], Descendant[ChildT]):
 
     pass
