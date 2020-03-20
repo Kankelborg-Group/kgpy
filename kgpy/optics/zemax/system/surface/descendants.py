@@ -3,7 +3,7 @@ import dataclasses
 import typing as typ
 from . import surface   # need for bound on SurfaceT
 
-__all__ = []
+__all__ = ['SurfaceT', 'Child', 'ChildT', 'Grandchild', 'GrandchildT']
 
 ParentT = typ.TypeVar('ParentT')
 

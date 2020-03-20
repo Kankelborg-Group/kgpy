@@ -1,20 +1,13 @@
 import dataclasses
 import typing as typ
 from kgpy.optics.system import coordinate
-from ... import surface
+from ..descendants import Child, SurfaceT
 from . import Tilt, Decenter, TiltFirst
 
 __all__ = ['TiltDecenter']
 
-SurfaceT = typ.TypeVar('SurfaceT', bound=surface.Surface)
 
-
-@dataclasses.dataclass
-class Base(typ.Generic[SurfaceT]):
-    parent: typ.Optional[SurfaceT] = None
-
-
-class TiltDecenter(typ.Generic[SurfaceT], Base, coordinate.TiltDecenter):
+class TiltDecenter(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.TiltDecenter):
 
     def _update(self) -> None:
         self.tilt = self.tilt
@@ -47,12 +40,3 @@ class TiltDecenter(typ.Generic[SurfaceT], Base, coordinate.TiltDecenter):
     def tilt_first(self, value: TiltFirst):
         value.tilt_decenter = self
         self._tilt_first = value
-
-    @property
-    def parent(self) -> SurfaceT:
-        return self._parent
-
-    @parent.setter
-    def parent(self, value: SurfaceT):
-        self._parent = value
-        self._update()

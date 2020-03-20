@@ -3,8 +3,8 @@ import dataclasses
 import typing as typ
 import astropy.units as u
 from kgpy.optics.system import coordinate
-from .parent import ParentT, ParentBase
 from ... import configuration
+from ..descendants import Grandchild, ChildT
 
 __all__ = ['TiltFirst']
 
@@ -15,7 +15,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class TiltFirst(typ.Generic[ParentT], ParentBase[ParentT], coordinate.TiltFirst, OperandBase, ):
+class TiltFirst(typ.Generic[ChildT], Grandchild[ChildT], coordinate.TiltFirst, OperandBase, ):
 
     def _update(self) -> typ.NoReturn:
         self.value = self.value
@@ -36,12 +36,3 @@ class TiltFirst(typ.Generic[ParentT], ParentBase[ParentT], coordinate.TiltFirst,
             self.parent.parent.lde.system.set(val, self._value_setter, self._value_op)
         except AttributeError:
             pass
-
-    @property
-    def parent(self) -> ParentT:
-        return self._parent
-
-    @parent.setter
-    def parent(self, value: ParentT):
-        self._parent = value
-        self._update()

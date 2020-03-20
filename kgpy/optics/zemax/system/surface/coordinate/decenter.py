@@ -4,7 +4,7 @@ import typing as typ
 import astropy.units as u
 from kgpy.optics.system import coordinate
 from ... import configuration
-from .parent import ParentT, ParentBase
+from ..descendants import Grandchild, ChildT
 
 __all__ = ['Decenter']
 
@@ -16,7 +16,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class Decenter(typ.Generic[ParentT], ParentBase[ParentT], coordinate.Decenter, OperandBase, ):
+class Decenter(typ.Generic[ChildT], Grandchild[ChildT], coordinate.Decenter, OperandBase, ):
 
     def _update(self) -> typ.NoReturn:
         self.x = self.x
@@ -55,12 +55,3 @@ class Decenter(typ.Generic[ParentT], ParentBase[ParentT], coordinate.Decenter, O
             self.parent.parent.lde.system.set(value, self._y_setter, self._y_op, self.parent.parent.lens_units)
         except AttributeError:
             pass
-
-    @property
-    def parent(self) -> ParentT:
-        return self._parent
-
-    @parent.setter
-    def parent(self, value: ParentT):
-        self._parent = value
-        self._update()

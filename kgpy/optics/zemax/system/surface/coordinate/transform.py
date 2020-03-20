@@ -1,20 +1,13 @@
 import dataclasses
 import typing as typ
 from kgpy.optics.system import coordinate
-from ... import surface
+from ..descendants import Child, SurfaceT
 from . import Tilt, Translate, TiltFirst
 
 __all__ = ['Transform']
 
-SurfaceT = typ.TypeVar('SurfaceT', bound=surface.Surface)
 
-
-@dataclasses.dataclass
-class Base(typ.Generic[SurfaceT]):
-    parent: typ.Optional[SurfaceT] = None
-
-
-class Transform(typ.Generic[SurfaceT], Base, coordinate.Transform):
+class Transform(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.Transform):
 
     def _update(self) -> None:
         self.tilt = self.tilt
