@@ -7,7 +7,16 @@ from . import Tilt, Decenter, TiltFirst
 __all__ = ['TiltDecenter']
 
 
-class TiltDecenter(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.TiltDecenter):
+@dataclasses.dataclass
+class Base:
+
+    tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
+    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
+    tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
+
+
+@dataclasses.dataclass
+class TiltDecenter(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.TiltDecenter, Base):
 
     def _update(self) -> None:
         self.tilt = self.tilt
@@ -20,7 +29,7 @@ class TiltDecenter(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.TiltDecent
 
     @tilt.setter
     def tilt(self, value: Tilt):
-        value.tilt_decenter = self
+        value.parent = self
         self._tilt = value
 
     @property
@@ -29,7 +38,7 @@ class TiltDecenter(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.TiltDecent
 
     @decenter.setter
     def decenter(self, value: Decenter):
-        value.tilt_decenter = self
+        value.parent = self
         self._decenter = value
 
     @property
@@ -38,5 +47,5 @@ class TiltDecenter(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.TiltDecent
 
     @tilt_first.setter
     def tilt_first(self, value: TiltFirst):
-        value.tilt_decenter = self
+        value.parent = self
         self._tilt_first = value

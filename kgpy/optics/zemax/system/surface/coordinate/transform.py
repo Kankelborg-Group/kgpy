@@ -7,6 +7,15 @@ from . import Tilt, Translate, TiltFirst
 __all__ = ['Transform']
 
 
+@dataclasses.dataclass
+class Base:
+
+    tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
+    translate: Translate = dataclasses.field(default_factory=lambda: Translate())
+    tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
+
+
+@dataclasses.dataclass
 class Transform(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.Transform):
 
     def _update(self) -> None:
@@ -40,12 +49,3 @@ class Transform(typ.Generic[SurfaceT], Child[SurfaceT], coordinate.Transform):
     def tilt_first(self, value: TiltFirst):
         value.tilt_decenter = self
         self._tilt_first = value
-
-    @property
-    def parent(self) -> SurfaceT:
-        return self._parent
-
-    @parent.setter
-    def parent(self, value: SurfaceT):
-        self._parent = value
-        self._update()
