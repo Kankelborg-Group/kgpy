@@ -6,7 +6,7 @@ from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 
 from ... import util, configuration
-from .. import diffraction_grating, toroidal, aperture, material
+# from .. import diffraction_grating, toroidal, aperture, material
 from .. import surface
 from . import coordinate
 

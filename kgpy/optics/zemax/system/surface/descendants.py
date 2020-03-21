@@ -1,9 +1,9 @@
 import abc
 import dataclasses
 import typing as typ
-from . import surface   # need for bound on SurfaceT
+from . import surface
 
-__all__ = ['SurfaceT', 'Child', 'ChildT', 'Grandchild', 'GrandchildT']
+__all__ = ['Child', 'ParentT', 'SurfaceChildT']
 
 ParentT = typ.TypeVar('ParentT')
 
@@ -15,7 +15,7 @@ class Base(typ.Generic[ParentT]):
 
 
 @dataclasses.dataclass
-class Descendant(typ.Generic[ParentT], Base[ParentT]):
+class Child(Base[ParentT], typ.Generic[ParentT], abc.ABC):
 
     @abc.abstractmethod
     def _update(self) -> typ.NoReturn:
@@ -31,21 +31,4 @@ class Descendant(typ.Generic[ParentT], Base[ParentT]):
         self._update()
 
 
-SurfaceT = typ.TypeVar('SurfaceT', bound='surface.Surface')
-
-
-@dataclasses.dataclass
-class Child(typ.Generic[SurfaceT], Descendant[SurfaceT]):
-
-    pass
-
-
-ChildT = typ.TypeVar('ChildT', bound=Child)
-
-@dataclasses.dataclass
-class Grandchild(typ.Generic[ChildT], Descendant[ChildT]):
-
-    pass
-
-
-GrandchildT = typ.TypeVar('GrandchildT', bound=Grandchild)
+SurfaceChildT = typ.TypeVar('SurfaceChildT', bound='Child[surface.Surface]')

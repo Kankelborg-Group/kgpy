@@ -11,7 +11,7 @@ __all__ = ['Operand']
 @dataclasses.dataclass
 class Base:
 
-    op_type: ZOSAPI.Editors.MCE.MultiConfigOperandType = None
+    op_factory: typ.Optional[typ.Callable[[], 'ZOSAPI.Editors.MCE.MultiConfigOperandType']] = None
     data: np.ndarray = None
     param_1: int = 0
     param_2: int = 0
@@ -22,17 +22,17 @@ class Base:
 class Operand(Base):
 
     def _update(self) -> None:
-        self.op_type = self.op_type
+        self.op_factory = self.op_factory
         self.param_1 = self.param_1
         self.param_2 = self.param_2
         self.param_3 = self.param_3
 
     @property
-    def op_type(self) -> ZOSAPI.Editors.MCE.MultiConfigOperandType:
+    def op_factory(self) -> ZOSAPI.Editors.MCE.MultiConfigOperandType:
         return self._op_type
 
-    @op_type.setter
-    def op_type(self, value: ZOSAPI.Editors.MCE.MultiConfigOperandType):
+    @op_factory.setter
+    def op_factory(self, value: ZOSAPI.Editors.MCE.MultiConfigOperandType):
         self._op_type = value
         try:
             self.mce_row.ChangeType(value)

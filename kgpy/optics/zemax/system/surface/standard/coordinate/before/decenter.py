@@ -1,25 +1,25 @@
 import dataclasses
 
 from kgpy.optics.zemax import ZOSAPI
-from ..... import configuration, surface
-from . import tilt_decenter
+from ..... import configuration, coordinate
+from .. import before
 
 __all__ = ['Decenter']
 
 
 @dataclasses.dataclass
-class Decenter(surface.coordinate.Decenter[tilt_decenter.TiltDecenter[surface.Standard]]):
+class Decenter(coordinate.Decenter['before.tilt_decenter.TiltDecenter[surface.Standard]']):
 
     _x_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDX,
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDX,
         ),
         init=False,
         repr=False,
     )
     _y_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDY,
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.CBDY,
         ),
         init=False,
         repr=False,

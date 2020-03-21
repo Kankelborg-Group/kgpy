@@ -1,7 +1,7 @@
 import dataclasses
+from ..... import coordinate
 from ... import standard
-from .... import coordinate
-from . import Tilt, Decenter, TiltFirst
+from . import tilt as tilt_, decenter as decenter_, tilt_first as tilt_first_
 
 __all__ = ['TiltDecenter']
 
@@ -9,9 +9,9 @@ __all__ = ['TiltDecenter']
 @dataclasses.dataclass
 class Base:
 
-    tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
-    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
-    tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
+    tilt: tilt_.Tilt = dataclasses.field(default_factory=lambda: tilt_.Tilt())
+    decenter: decenter_.Decenter = dataclasses.field(default_factory=lambda: decenter_.Decenter())
+    tilt_first: tilt_first_.TiltFirst = dataclasses.field(default_factory=lambda: tilt_first_.TiltFirst())
 
 
 @dataclasses.dataclass

@@ -5,12 +5,14 @@ import astropy.units as u
 
 from kgpy.optics.system import surface
 
+SurfaceT = typ.TypeVar('SurfaceT', bound='Surface')
+
 from ... import ZOSAPI
-from .. import util, configuration
-from . import name, coordinate
+from .. import util, configuration, coordinate
+from . import name
 from .editor import Editor
 
-__all__ = ['Surface', 'add_surfaces_to_zemax_system']
+__all__ = ['SurfaceT', 'Surface', 'add_surfaces_to_zemax_system']
 
 ZmxSurfT = typ.TypeVar('ZmxSurfT', bound=ZOSAPI.Editors.LDE.ILDERow)
 
@@ -20,7 +22,7 @@ class InstanceVarBase:
 
     _is_active_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.IGNR
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.IGNR
         ),
         init=None,
         repr=None
@@ -28,7 +30,7 @@ class InstanceVarBase:
 
     _is_visible_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.SDRW
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.SDRW
         ),
         init=None,
         repr=None
@@ -49,11 +51,11 @@ class Surface(Base):
         self.is_stop = self._is_stop
         self.is_active = self.is_active
         self.is_visible = self.is_visible
-        
+
     @property
     def _transform(self) -> coordinate.Transform:
         return self.__transform
-    
+
     @_transform.setter
     def _transform(self, value: coordinate.Transform):
         self.__transform = value
@@ -128,10 +130,12 @@ class Surface(Base):
     @property
     def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:
         return self.lde.system.zemax_system.LDE.GetSurfaceAt(self.lde_index)
-    
+
     @property
     def lens_units(self) -> u.Unit:
         return self.lde.system.lens_units
+
+
 
 
 def add_surfaces_to_zemax_system(
