@@ -4,7 +4,7 @@ import typing as typ
 import astropy.units as u
 from kgpy.optics.system import coordinate
 from ... import configuration
-from ..descendants import Grandchild, ChildT
+from ..descendants import Child, SurfaceChildT
 
 __all__ = ['TiltFirst']
 
@@ -15,7 +15,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class TiltFirst(typ.Generic[ChildT], Grandchild[ChildT], coordinate.TiltFirst, OperandBase, ):
+class TiltFirst(Child[SurfaceChildT], coordinate.TiltFirst, OperandBase, typ.Generic[SurfaceChildT], ):
 
     def _update(self) -> typ.NoReturn:
         self.value = self.value

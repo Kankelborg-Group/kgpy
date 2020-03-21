@@ -4,7 +4,7 @@ from astropy import units as u
 from kgpy.optics.system import coordinate
 from .... import ZOSAPI
 from ... import configuration
-from ..descendants import Grandchild, ChildT
+from ..descendants import Child, SurfaceChildT
 from .decenter import Decenter
 
 __all__ = ['Translate']
@@ -22,21 +22,21 @@ class OperandBase:
     )
 
 
-class Translate(typ.Generic[ChildT], Grandchild[ChildT], coordinate.Translate, OperandBase):
+class Translate(Child[SurfaceChildT], coordinate.Translate, OperandBase, typ.Generic[SurfaceChildT], ):
     
     def _update(self) -> typ.NoReturn:
         self.decenter = self.decenter
         self.z = self.z
     
     def _z_setter(self, value: float):
-        self.transform.surface.lde_row.Thickness = value
+        self.parent.parent.lde_row.Thickness = value
 
     @property
-    def decenter(self) -> Decenter[ChildT]:
+    def decenter(self) -> Decenter[SurfaceChildT]:
         return self._decenter
 
     @decenter.setter
-    def decenter(self, value: Decenter[ChildT]):
+    def decenter(self, value: Decenter[SurfaceChildT]):
         value.parent = self.parent
         self._decenter = value
 
@@ -48,7 +48,7 @@ class Translate(typ.Generic[ChildT], Grandchild[ChildT], coordinate.Translate, O
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self._z_op.surface_index = self.transform.surface.lde_index
+            self._z_op.surface_index = self.parent.parent.lde_index
             self.parent.parent.lde.system.set(value, self._z_setter, self._z_op, self.transform.surface.lens_units)
         except AttributeError:
             pass
