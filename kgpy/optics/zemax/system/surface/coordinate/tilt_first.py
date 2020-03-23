@@ -2,9 +2,9 @@ import abc
 import dataclasses
 import typing as typ
 import astropy.units as u
-from kgpy.optics.system import coordinate
-from ... import configuration
-from ..descendants import Child, SurfaceChildT
+from kgpy.optics.system.surface import coordinate
+from ... import Child, configuration
+from ..surface import SurfaceChildT
 
 __all__ = ['TiltFirst']
 
@@ -26,7 +26,7 @@ class TiltFirst(Child[SurfaceChildT], coordinate.TiltFirst, OperandBase, typ.Gen
 
     @property
     def value(self) -> u.Quantity:
-        return self._x
+        return self._value
 
     @value.setter
     def value(self, val: u.Quantity):

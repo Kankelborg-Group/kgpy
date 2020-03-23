@@ -1,9 +1,8 @@
 import abc
 import dataclasses
 import typing as typ
-from . import surface
 
-__all__ = ['Child', 'ParentT', 'SurfaceChildT']
+__all__ = ['Child', 'ParentT']
 
 ParentT = typ.TypeVar('ParentT')
 
@@ -29,6 +28,3 @@ class Child(Base[ParentT], typ.Generic[ParentT], abc.ABC):
     def parent(self, value: ParentT):
         self._parent = value
         self._update()
-
-
-SurfaceChildT = typ.TypeVar('SurfaceChildT', bound='Child[surface.Surface]')

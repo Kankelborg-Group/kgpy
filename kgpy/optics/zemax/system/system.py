@@ -9,7 +9,9 @@ from kgpy import optics
 from .. import ZOSAPI
 from . import configuration, wavelengths, util, fields, surface
 
-__all__ = ['System', 'calc_zemax_system']
+__all__ = ['SystemT', 'System', 'calc_zemax_system']
+
+SystemT = typ.TypeVar('SystemT', bound='System')
 
 
 def load_zemax_app() -> ZOSAPI.IZOSAPI_Application:

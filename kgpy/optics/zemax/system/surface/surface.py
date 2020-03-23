@@ -3,22 +3,22 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 
-from kgpy.optics.system import surface
-
 SurfaceT = typ.TypeVar('SurfaceT', bound='Surface')
 
+import kgpy.optics.system.surface
 from ... import ZOSAPI
-from .. import util, configuration, coordinate
-from . import name
-from .editor import Editor
+from .. import Child, util, configuration
+from . import name, coordinate, editor
 
-__all__ = ['SurfaceT', 'Surface', 'add_surfaces_to_zemax_system']
+__all__ = ['SurfaceT', 'SurfaceChildT', 'Surface', 'add_surfaces_to_zemax_system']
+
 
 ZmxSurfT = typ.TypeVar('ZmxSurfT', bound=ZOSAPI.Editors.LDE.ILDERow)
+SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Child['Surface'])
 
 
 @dataclasses.dataclass
-class InstanceVarBase:
+class OperandBase:
 
     _is_active_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
@@ -37,13 +37,7 @@ class InstanceVarBase:
     )
 
 
-@dataclasses.dataclass
-class Base(surface.Surface, InstanceVarBase):
-
-    lde: Editor = None
-
-
-class Surface(Base):
+class Surface(Child[editor.Editor], kgpy.optics.system.system.Surface, OperandBase):
 
     def _update(self) -> None:
         self.name = self.name
@@ -115,13 +109,12 @@ class Surface(Base):
             pass
 
     @property
-    def lde(self) -> Editor:
-        return self._lde
+    def lde(self) -> editor.Editor:
+        return self.parent
 
     @lde.setter
-    def lde(self, value: Editor):
-        self._lde = value
-        self._update()
+    def lde(self, value: editor.Editor):
+        self.parent = value
 
     @property
     def lde_index(self) -> int:

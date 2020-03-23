@@ -1,27 +1,27 @@
 import dataclasses
 import typing as typ
-from kgpy.optics.system import coordinate
-from ..descendants import Child
-from .. import surface
-from . import Tilt, Translate, TiltFirst
+from kgpy.optics.system.surface import coordinate
+from ... import Child
+from ..surface import SurfaceT
+from . import Tilt, Decenter, TiltFirst
 
-__all__ = ['Transform']
+__all__ = ['TiltDecenter']
 
 
 @dataclasses.dataclass
 class Base:
 
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
-    translate: Translate = dataclasses.field(default_factory=lambda: Translate())
+    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
     tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
 
 
 @dataclasses.dataclass
-class Transform(Child[surface.SurfaceT], coordinate.Transform, typ.Generic[surface.SurfaceT], ):
+class TiltDecenter(Child[SurfaceT], coordinate.TiltDecenter, Base, typ.Generic[SurfaceT], ):
 
-    def _update(self) -> None:
+    def _update(self) -> typ.NoReturn:
         self.tilt = self.tilt
-        self.translate = self.translate
+        self.decenter = self.decenter
         self.tilt_first = self.tilt_first
 
     @property
@@ -30,17 +30,17 @@ class Transform(Child[surface.SurfaceT], coordinate.Transform, typ.Generic[surfa
 
     @tilt.setter
     def tilt(self, value: Tilt):
-        value.tilt_decenter = self
+        value.parent = self
         self._tilt = value
 
     @property
-    def translate(self) -> Translate:
-        return self._translate
+    def decenter(self) -> Decenter:
+        return self._decenter
 
-    @translate.setter
-    def translate(self, value: Translate):
-        value.tilt_decenter = self
-        self._translate = value
+    @decenter.setter
+    def decenter(self, value: Decenter):
+        value.parent = self
+        self._decenter = value
 
     @property
     def tilt_first(self) -> TiltFirst:

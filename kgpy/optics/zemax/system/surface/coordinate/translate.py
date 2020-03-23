@@ -1,10 +1,10 @@
 import dataclasses
 import typing as typ
 from astropy import units as u
-from kgpy.optics.system import coordinate
+from kgpy.optics.system.surface import coordinate
 from .... import ZOSAPI
-from ... import configuration
-from ..descendants import Child, SurfaceChildT
+from ... import Child, configuration
+from ..surface import SurfaceChildT
 from .decenter import Decenter
 
 __all__ = ['Translate']
@@ -15,7 +15,7 @@ class OperandBase:
 
     _z_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC
         ),
         init=None,
         repr=None,
@@ -49,6 +49,6 @@ class Translate(Child[SurfaceChildT], coordinate.Translate, OperandBase, typ.Gen
         self._z = value
         try:
             self._z_op.surface_index = self.parent.parent.lde_index
-            self.parent.parent.lde.system.set(value, self._z_setter, self._z_op, self.transform.surface.lens_units)
+            self.parent.parent.lde.system.set(value, self._z_setter, self._z_op, self.parent.parent.lens_units)
         except AttributeError:
             pass

@@ -1,7 +1,8 @@
 import dataclasses
 
 from kgpy.optics.zemax import ZOSAPI
-from ..... import configuration, coordinate
+from ..... import configuration
+from .... import coordinate
 from .. import before
 
 __all__ = ['Decenter']

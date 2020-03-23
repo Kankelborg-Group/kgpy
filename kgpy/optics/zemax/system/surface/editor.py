@@ -1,8 +1,7 @@
 import dataclasses
 import typing as typ
-
-from ... import ZOSAPI
-from .. import system
+EditorT = typ.TypeVar('EditorT', bound='Editor')
+from .. import Child, system as system_
 from . import surface
 
 __all__ = ['Editor']
@@ -12,10 +11,9 @@ __all__ = ['Editor']
 class Base:
 
     _surfaces: 'typ.Iterable[surface.Surface]' = dataclasses.field(default_factory=lambda: [])
-    system: 'system.System' = None
 
 
-class Editor(Base):
+class Editor(Child[system_.System], Base):
 
     def _update(self) -> None:
         pass
@@ -26,6 +24,16 @@ class Editor(Base):
 
     @_surfaces.setter
     def _surfaces(self, value):
-        pass
+        self._surfaces = value
+        # todo: Need to loop through and set every surface
+        raise NotImplementedError
+
+    @property
+    def system(self) -> system_.System:
+        return self.parent
+
+    @system.setter
+    def system(self, value: system_.System):
+        self.parent = value
 
 
