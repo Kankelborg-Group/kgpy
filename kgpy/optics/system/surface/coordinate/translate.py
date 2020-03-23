@@ -1,9 +1,7 @@
 import dataclasses
 import numpy as np
 from astropy import units as u
-
-from kgpy.optics.system import mixin
-
+from ... import mixin
 from . import Decenter, InverseDecenter
 
 __all__ = ['Translate', 'InverseTranslate']

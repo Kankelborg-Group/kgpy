@@ -1,7 +1,6 @@
 import dataclasses
 import numpy as np
-
-from kgpy.optics.system import mixin
+from ... import mixin
 from . import Tilt, InverseTilt, Translate, InverseTranslate, TiltFirst, InverseTiltFirst
 
 __all__ = ['Transform', 'InverseTransform']

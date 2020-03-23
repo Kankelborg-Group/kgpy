@@ -3,7 +3,8 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 
-from .. import mixin, coordinate, Name
+from .. import mixin, Name
+from . import coordinate
 
 __all__ = ['Surface']
 

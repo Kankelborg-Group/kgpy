@@ -2,8 +2,7 @@ import dataclasses
 
 import numpy as np
 from astropy import units as u
-
-from kgpy.optics.system import mixin
+from ... import mixin
 
 __all__ = ['Tilt', 'InverseTilt']
 

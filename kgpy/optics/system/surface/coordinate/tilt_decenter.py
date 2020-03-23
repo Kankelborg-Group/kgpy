@@ -1,8 +1,7 @@
 import dataclasses
 
 import numpy as np
-
-from .. import mixin
+from ... import mixin
 from . import Decenter, InverseDecenter, Tilt, InverseTilt, TiltFirst, InverseTiltFirst
 
 __all__ = ['TiltDecenter', 'InverseTiltDecenter']

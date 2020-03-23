@@ -1,7 +1,7 @@
 import dataclasses
 
-from .. import mixin, coordinate, Name
-from . import CoordinateBreak
+from .. import mixin, Name
+from . import coordinate, CoordinateBreak
 
 
 @dataclasses.dataclass

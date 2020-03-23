@@ -1,7 +1,7 @@
 import dataclasses
 import numpy as np
 
-from .. import coordinate
+from . import coordinate
 from . import surface
 
 
