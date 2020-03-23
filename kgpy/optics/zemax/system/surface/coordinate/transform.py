@@ -25,28 +25,28 @@ class Transform(Child[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT], ):
         self.tilt_first = self.tilt_first
 
     @property
-    def tilt(self) -> Tilt:
+    def tilt(self) -> Tilt['Transform[SurfaceT]']:
         return self._tilt
 
     @tilt.setter
-    def tilt(self, value: Tilt):
-        value.tilt_decenter = self
+    def tilt(self, value: Tilt['Transform[SurfaceT]']):
+        self._link(value)
         self._tilt = value
 
     @property
-    def translate(self) -> Translate:
+    def translate(self) -> Translate['Transform[SurfaceT]']:
         return self._translate
 
     @translate.setter
-    def translate(self, value: Translate):
-        value.tilt_decenter = self
+    def translate(self, value: Translate['Transform[SurfaceT]']):
+        self._link(value)
         self._translate = value
 
     @property
-    def tilt_first(self) -> TiltFirst:
+    def tilt_first(self) -> TiltFirst['Transform[SurfaceT]']:
         return self._tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: TiltFirst):
-        value.parent = self
+    def tilt_first(self, value: TiltFirst['Transform[SurfaceT]']):
+        self._link(value)
         self._tilt_first = value

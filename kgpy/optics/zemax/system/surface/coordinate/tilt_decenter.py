@@ -25,28 +25,28 @@ class TiltDecenter(Child[SurfaceT], coordinate.TiltDecenter, Base, typ.Generic[S
         self.tilt_first = self.tilt_first
 
     @property
-    def tilt(self) -> Tilt:
+    def tilt(self) -> Tilt['TiltDecenter[SurfaceT]']:
         return self._tilt
 
     @tilt.setter
-    def tilt(self, value: Tilt):
-        value.parent = self
+    def tilt(self, value: Tilt['TiltDecenter[SurfaceT]']):
+        self._link(value)
         self._tilt = value
 
     @property
-    def decenter(self) -> Decenter:
+    def decenter(self) -> Decenter['TiltDecenter[SurfaceT]']:
         return self._decenter
 
     @decenter.setter
-    def decenter(self, value: Decenter):
-        value.parent = self
+    def decenter(self, value: Decenter['TiltDecenter[SurfaceT]']):
+        self._link(value)
         self._decenter = value
 
     @property
-    def tilt_first(self) -> TiltFirst:
+    def tilt_first(self) -> TiltFirst['TiltDecenter[SurfaceT]']:
         return self._tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: TiltFirst):
-        value.parent = self
+    def tilt_first(self, value: TiltFirst['TiltDecenter[SurfaceT]']):
+        self._link(value)
         self._tilt_first = value
