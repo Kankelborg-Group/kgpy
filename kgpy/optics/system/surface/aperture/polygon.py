@@ -9,7 +9,7 @@ __all__ = ['Polygon']
 
 
 @dataclasses.dataclass
-class Polygon(obscurable.Obscurable, decenterable.Decenterable, Aperture):
+class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
     points: typ.Optional[u.Quantity] = None
 

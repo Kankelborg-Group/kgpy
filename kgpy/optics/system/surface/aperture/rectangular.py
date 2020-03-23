@@ -8,7 +8,7 @@ __all__ = ['Rectangular']
 
 
 @dataclasses.dataclass
-class Rectangular(obscurable.Obscurable, decenterable.Decenterable, Aperture):
+class Rectangular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
     half_width_x: u.Quantity = 0 * u.mm
     half_width_y: u.Quantity = 0 * u.mm

@@ -8,7 +8,7 @@ __all__ = ['Circular']
 
 
 @dataclasses.dataclass
-class Circular(obscurable.Obscurable, decenterable.Decenterable, Aperture):
+class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
     inner_radius: u.Quantity = 0 * u.mm
     outer_radius: u.Quantity = 0 * u.mm
