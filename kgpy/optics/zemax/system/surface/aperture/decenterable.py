@@ -1,18 +1,26 @@
 import dataclasses
-from kgpy.optics.system.surface import aperture
-from .aperture import Aperture
-from . import coordinate
+from kgpy.optics.zemax import ZOSAPI
+from ... import configuration
 
-__all__ = ['Decenterable']
+__all__ = ['Operands']
 
 
-class Decenterable(aperture.Decenterable, Aperture):
+@dataclasses.dataclass
+class Operands:
 
-    @property
-    def decenter(self) -> coordinate.Decenter:
-        return self._decenter
+    _x_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.APDX,
+        ),
+        init=False,
+        repr=False,
+    )
+    _y_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.APDY,
+        ),
+        init=False,
+        repr=False,
+    )
 
-    @decenter.setter
-    def decenter(self, value: coordinate.Decenter):
-        value.aperture = self
-        self._decenter = value
+

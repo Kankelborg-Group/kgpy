@@ -5,6 +5,7 @@ from astropy import units as u
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import util
+from ... import Child
 from .. import standard
 
 from . import rectangular, circular, spider, polygon, regular_polygon
@@ -13,24 +14,9 @@ __all__ = ['Aperture', 'add_to_zemax_surface']
 
 
 @dataclasses.dataclass
-class Base(system.surface.Aperture):
+class Aperture(Child[standard.Standard]):
 
-    surface: 'typ.Optional[standard.Standard] '= None
-
-
-class Aperture(Base):
-
-    def _update(self):
-        pass
-
-    @property
-    def surface(self) -> 'standard.Standard':
-        return self._surface
-
-    @surface.setter
-    def surface(self, value: 'standard.Standard'):
-        self._surface = value
-        self._update()
+    pass
 
 
 def add_to_zemax_surface(
@@ -72,6 +58,6 @@ def add_to_zemax_surface(
 
     elif isinstance(aperture, system.surface.aperture.RegularPolygon):
         regular_polygon.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
-        
 
 
+ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
