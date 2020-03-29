@@ -1,1 +1,0 @@
-from .spectrograph import Spectrograph, Array as SpectrographArray
