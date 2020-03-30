@@ -232,14 +232,14 @@ def fix(
     fixed_data = data.copy()
     fixed_data[mask] = 0
 
-    norm = np.ones_like(mask)
+    norm = np.ones_like(mask, dtype=np.float)
     norm[mask] = 0
     
     for i, ax in enumerate(axis):
 
         ksz = kernel_size[i]
 
-        a = 0.05
+        a = 0.5
         x = np.arange(ksz) - ksz // 2
         kernel = np.exp(-np.abs(x) / a)
 
