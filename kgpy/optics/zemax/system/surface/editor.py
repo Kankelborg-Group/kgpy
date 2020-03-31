@@ -27,13 +27,3 @@ class Editor(Child[system_.System], Base):
         self._surfaces = value
         # todo: Need to loop through and set every surface
         raise NotImplementedError
-
-    @property
-    def system(self) -> system_.System:
-        return self.parent
-
-    @system.setter
-    def system(self, value: system_.System):
-        self.parent = value
-
-
