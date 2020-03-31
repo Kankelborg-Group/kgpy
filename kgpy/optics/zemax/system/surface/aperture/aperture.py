@@ -16,7 +16,13 @@ __all__ = ['Aperture', 'add_to_zemax_surface']
 @dataclasses.dataclass
 class Aperture(Child[standard.Standard]):
 
-    pass
+    @property
+    def surface(self) -> standard.Standard:
+        return self.parent
+
+    @surface.setter
+    def surface(self, value: standard.Standard):
+        self.parent = value
 
 
 def add_to_zemax_surface(

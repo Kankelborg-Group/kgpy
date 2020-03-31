@@ -5,7 +5,7 @@ from astropy import units as u
 
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import util
+from kgpy.optics.zemax.system import util, configuration
 from .. import surface
 from . import decenterable, aperture
 
@@ -16,16 +16,30 @@ __all__ = ['add_to_zemax_surface']
 class Decenter(surface.coordinate.Decenter['Rectangular'], decenterable.Operands):
 
     def _x_setter(self, value: float):
-        if self.parent.is_obscuration:
-            self.parent.parent.lde_row.ApertureData.CurrentTypeSettings._S_RectangularObscuration.ApertureXDecenter = value
-        else:
-            self.parent.parent.lde_row.ApertureData.CurrentTypeSettings._S_RectangularAperture.ApertureXDecenter = value
+        self.parent.surface.lde_row.ApertureData.ApertureXDecenter = value
 
     def _y_setter(self, value: float):
-        if self.parent.is_obscuration:
-            self.parent.parent.lde_row.ApertureData.CurrentTypeSettings._S_RectangularObscuration.ApertureYDecenter = value
-        else:
-            self.parent.parent.lde_row.ApertureData.CurrentTypeSettings._S_RectangularAperture.ApertureYDecenter = value
+        self.parent.surface.lde_row.ApertureData.ApertureYDecenter = value
+
+
+@dataclasses.dataclass
+class Operands:
+
+    _half_width_x_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.APMN
+        ),
+        init=False,
+        repr=None,
+    )
+
+    _half_width_y_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.APMN
+        ),
+        init=False,
+        repr=None,
+    )
 
 
 @dataclasses.dataclass
@@ -35,7 +49,7 @@ class Base:
 
 
 @dataclasses.dataclass
-class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, ):
+class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, Operands):
 
     def _update(self) -> typ.NoReturn:
         self.is_obscuration = self.is_obscuration
@@ -50,7 +64,45 @@ class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, 
     @is_obscuration.setter
     def is_obscuration(self, value: 'np.ndarray[bool]'):
         self._is_obscuration = value
+        try:
+            if self._is_obscuration:
+                aper_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularObscuration
+            else:
+                aper_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularAperture
+            aper_type = self.surface.lde_row.ApertureData.CreateApertureTypeSettings(aper_type)
+            self.surface.lde_row.ApertureData.ChangeApertureTypeSettings(aper_type)
+        except AttributeError:
+            pass
 
+    def _half_width_x_setter(self, value: float):
+        self.surface.lde_row.ApertureData.HalfWidthX = value
+
+    def _half_width_y_setter(self, value: float):
+        self.surface.lde_row.ApertureData.HalfWidthY = value
+
+    @property
+    def half_width_x(self) -> u.Quantity:
+        return self._half_width_x
+
+    @half_width_x.setter
+    def half_width_x(self, value: u.Quantity):
+        self._half_width_x = value
+        try:
+            self.parent.set(value, self._half_width_x_setter, self._half_width_x_op, self.surface.lens_units)
+        except AttributeError:
+            pass
+
+    @property
+    def half_width_y(self) -> u.Quantity:
+        return self._half_width_y
+
+    @half_width_y.setter
+    def half_width_y(self, value: u.Quantity):
+        self._half_width_y = value
+        try:
+            self.parent.set(value, self._half_width_y_setter, self._half_width_y_op, self.surface.lens_units)
+        except AttributeError:
+            pass
 
 
 
