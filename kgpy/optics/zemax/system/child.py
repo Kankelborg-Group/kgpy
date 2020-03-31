@@ -20,9 +20,6 @@ class Child(Base[ParentT], typ.Generic[ParentT], abc.ABC):
     def _update(self) -> typ.NoReturn:
         pass
 
-    def _link(self, value: 'Child[Child[ParentT]]') -> typ.NoReturn:
-        value.parent = self
-
     @property
     def parent(self) -> ParentT:
         return self._parent
