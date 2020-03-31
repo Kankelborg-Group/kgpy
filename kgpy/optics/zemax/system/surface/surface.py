@@ -2,19 +2,12 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-
-SurfaceT = typ.TypeVar('SurfaceT', bound='Surface')
-
 import kgpy.optics.system.surface
 from ... import ZOSAPI
 from .. import Child, util, configuration
 from . import name, coordinate, editor
 
-__all__ = ['SurfaceT', 'SurfaceChildT', 'Surface', 'add_surfaces_to_zemax_system']
-
-
-ZmxSurfT = typ.TypeVar('ZmxSurfT', bound=ZOSAPI.Editors.LDE.ILDERow)
-SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Child['Surface'])
+__all__ = ['Surface', 'add_surfaces_to_zemax_system']
 
 
 @dataclasses.dataclass
@@ -88,7 +81,7 @@ class Surface(Child[editor.Editor], kgpy.optics.system.system.Surface, OperandBa
         self._is_active = value
         try:
             self._is_active_op.surface_index = self.lde_index
-            self.lde.system.set(np.logical_not(value), self._is_active_setter, self._is_active_op)
+            self.parent.parent.set(np.logical_not(value), self._is_active_setter, self._is_active_op)
         except AttributeError:
             pass
 
@@ -104,30 +97,31 @@ class Surface(Child[editor.Editor], kgpy.optics.system.system.Surface, OperandBa
         self._is_visible = value
         try:
             self._is_visible_op.surface_index = self.lde_index
-            self.lde.system.set(np.logical_not(value), self._is_visible_setter, self._is_visible_op)
+            self.parent.parent.set(np.logical_not(value), self._is_visible_setter, self._is_visible_op)
         except AttributeError:
             pass
 
     @property
-    def lde(self) -> editor.Editor:
-        return self.parent
-
-    @lde.setter
-    def lde(self, value: editor.Editor):
-        self.parent = value
-
-    @property
     def lde_index(self) -> int:
-        return self.lde.index(self) + 1
+        return self.parent.index(self) + 1
 
     @property
     def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:
-        return self.lde.system.zemax_system.LDE.GetSurfaceAt(self.lde_index)
+        return self.parent.parent.zemax_system.LDE.GetSurfaceAt(self.lde_index)
 
     @property
     def lens_units(self) -> u.Unit:
-        return self.lde.system.lens_units
+        return self.parent.parent.lens_units
 
+    def set(
+            self,
+            value: typ.Any,
+            setter: typ.Callable[[typ.Any], None],
+            operand: configuration.SurfaceOperand,
+            unit: u.Unit = None,
+    ) -> typ.NoReturn:
+        operand.surface = self
+        self.parent.parent.set(value, setter, operand, unit)
 
 
 
