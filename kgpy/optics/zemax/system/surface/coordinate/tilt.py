@@ -3,10 +3,11 @@ import dataclasses
 import typing as typ
 import astropy.units as u
 from kgpy.optics.system.surface import coordinate
-from ... import Child, configuration
-from ..surface import SurfaceChildT
+from ... import Child, configuration, surface
 
 __all__ = ['Tilt']
+
+SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Child[surface.Surface])
 
 
 @dataclasses.dataclass
@@ -45,8 +46,7 @@ class Tilt(Child[SurfaceChildT], coordinate.Tilt, OperandBase, typ.Generic[Surfa
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self._x_op.surface_index = self.parent.parent.lde_index
-            self.parent.parent.lde.system.set(value, self._x_setter, self._x_op, self._unit)
+            self.parent.parent.set(value, self._x_setter, self._x_op, self._unit)
         except AttributeError:
             pass
 
@@ -58,8 +58,7 @@ class Tilt(Child[SurfaceChildT], coordinate.Tilt, OperandBase, typ.Generic[Surfa
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self._y_op.surface_index = self.parent.parent.lde_index
-            self.parent.parent.lde.system.set(value, self._y_setter, self._y_op, self._unit)
+            self.parent.parent.set(value, self._y_setter, self._y_op, self._unit)
         except AttributeError:
             pass
 
@@ -71,7 +70,6 @@ class Tilt(Child[SurfaceChildT], coordinate.Tilt, OperandBase, typ.Generic[Surfa
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self._z_op.surface_index = self.parent.parent.lde_index
-            self.parent.parent.lde.system.set(value, self._z_setter, self._z_op, self._unit)
+            self.parent.parent.set(value, self._z_setter, self._z_op, self._unit)
         except AttributeError:
             pass

@@ -3,10 +3,11 @@ import dataclasses
 import typing as typ
 import astropy.units as u
 from kgpy.optics.system.surface import coordinate
-from ... import Child, configuration
-from ..surface import SurfaceChildT
+from ... import Child, configuration, surface
 
 __all__ = ['Decenter']
+
+SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Child[surface.Surface])
 
 
 @dataclasses.dataclass
@@ -38,8 +39,7 @@ class Decenter(Child[SurfaceChildT], coordinate.Decenter, OperandBase, typ.Gener
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self._x_op.surface_index = self.parent.parent.lde_index
-            self.parent.parent.lde.system.set(value, self._x_setter, self._x_op, self.parent.parent.lens_units)
+            self.parent.parent.set(value, self._x_setter, self._x_op, self.parent.parent.lens_units)
         except AttributeError:
             pass
 
@@ -51,7 +51,6 @@ class Decenter(Child[SurfaceChildT], coordinate.Decenter, OperandBase, typ.Gener
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self._y_op.surface_index = self.parent.parent.lde_index
-            self.parent.parent.lde.system.set(value, self._y_setter, self._y_op, self.parent.parent.lens_units)
+            self.parent.parent.set(value, self._y_setter, self._y_op, self.parent.parent.lens_units)
         except AttributeError:
             pass

@@ -2,11 +2,12 @@ import abc
 import dataclasses
 import typing as typ
 import astropy.units as u
-from kgpy.optics.system.surface import coordinate
+from kgpy.optics.system.surface import coordinate, surface
 from ... import Child, configuration
-from ..surface import SurfaceChildT
 
 __all__ = ['TiltFirst']
+
+SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Child[surface.Surface])
 
 
 @dataclasses.dataclass
@@ -32,7 +33,6 @@ class TiltFirst(Child[SurfaceChildT], coordinate.TiltFirst, OperandBase, typ.Gen
     def value(self, val: u.Quantity):
         self._value = val
         try:
-            self._value_op.surface_index = self.parent.parent.lde_index
-            self.parent.parent.lde.system.set(val, self._value_setter, self._value_op)
+            self.parent.parent.set(val, self._value_setter, self._value_op)
         except AttributeError:
             pass
