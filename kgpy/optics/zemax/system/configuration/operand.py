@@ -3,6 +3,7 @@ import typing as typ
 import numpy as np
 
 from ... import ZOSAPI
+from .. import Child
 from .editor import Editor
 
 __all__ = ['Operand']
@@ -16,26 +17,26 @@ class Base:
     param_1: int = 0
     param_2: int = 0
     param_3: int = 0
-    mce: Editor = None
 
 
-class Operand(Base):
+class Operand(Child[Editor], Base):
 
     def _update(self) -> None:
         self.op_factory = self.op_factory
+        self.data = self.data
         self.param_1 = self.param_1
         self.param_2 = self.param_2
         self.param_3 = self.param_3
 
     @property
-    def op_factory(self) -> ZOSAPI.Editors.MCE.MultiConfigOperandType:
-        return self._op_type
+    def op_factory(self) -> typ.Callable[[], ZOSAPI.Editors.MCE.MultiConfigOperandType]:
+        return self._op_factory
 
     @op_factory.setter
-    def op_factory(self, value: ZOSAPI.Editors.MCE.MultiConfigOperandType):
-        self._op_type = value
+    def op_factory(self, value: typ.Callable[[], ZOSAPI.Editors.MCE.MultiConfigOperandType]):
+        self._op_factory = value
         try:
-            self.mce_row.ChangeType(value)
+            self.mce_row.ChangeType(value())
         except AttributeError:
             pass
 
@@ -47,7 +48,7 @@ class Operand(Base):
     def data(self, value: np.ndarray):
         self._data = value
         try:
-            value = np.broadcast_to(value, self.mce.system.config_broadcast.shape).flat
+            value = np.broadcast_to(value, self.parent.parent.config_broadcast.shape).flat
             for i, v in enumerate(value):
                 cell = self.mce_row.GetOperandCell(i + 1)
                 v = v.item()
@@ -100,20 +101,11 @@ class Operand(Base):
             pass
 
     @property
-    def mce(self) -> Editor:
-        return self._mce
-
-    @mce.setter
-    def mce(self, value: Editor):
-        self._mce = value
-        self._update()
-
-    @property
     def mce_index(self) -> int:
-        return self.mce.index(self)
+        return self.parent.index(self)
 
     @property
     def mce_row(self) -> ZOSAPI.Editors.MCE.IMCERow:
-        return self.mce.system.zemax_system.MCE.GetOperandAt(self.mce_index)
+        return self.parent.parent.zemax_system.MCE.GetOperandAt(self.mce_index)
 
 
