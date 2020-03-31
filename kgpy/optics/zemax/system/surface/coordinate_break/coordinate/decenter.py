@@ -10,7 +10,7 @@ class Decenter(surface.coordinate.Decenter[surface.CoordinateBreak]):
 
     _x_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM,
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM,
             param_2=1,
         ),
         init=False,
@@ -18,7 +18,7 @@ class Decenter(surface.coordinate.Decenter[surface.CoordinateBreak]):
     )
     _y_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
-            op_type=ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM,
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM,
             param_2=2,
         ),
         init=False,
@@ -26,7 +26,7 @@ class Decenter(surface.coordinate.Decenter[surface.CoordinateBreak]):
     )
 
     def _x_setter(self, value: float):
-        p = self.parent.parent
+        self.parent.lde_row.SurfaceData.Decenter_X = value
 
     def _y_setter(self, value: float):
-        self.parent.parent.lde_row.TiltDecenterData.BeforeSurfaceDecenterY = value
+        self.parent.lde_row.SurfaceData.Decenter_Y = value
