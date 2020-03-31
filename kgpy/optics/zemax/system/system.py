@@ -90,17 +90,17 @@ class System(Base):
             setter: typ.Callable[[typ.Any], None],
             operand: configuration.Operand,
             unit: u.Unit = None,
-    ):
+    ) -> typ.NoReturn:
         if unit is not None:
             value = value.to(unit).value
 
         if np.isscalar(value):
-            if operand.mce is not None:
+            if operand.parent is not None:
                 self.mce.pop(operand.mce_index)
             setter(value)
 
         else:
-            if operand.mce is None:
+            if operand.parent is None:
                 self.mce.append(operand)
             operand.data = value
 
