@@ -8,7 +8,6 @@ from .. import before
 __all__ = ['TiltFirst']
 
 
-# noinspection PyDataclass
 @dataclasses.dataclass
 class TiltFirst(coordinate.TiltFirst['before.tilt_decenter.TiltDecenter[surface.Standard]']):
 

@@ -1,5 +1,4 @@
 import dataclasses
-
 from kgpy.optics.zemax import ZOSAPI
 from ..... import configuration
 from .... import coordinate
