@@ -21,6 +21,7 @@ class Base:
 class TiltDecenter(Child[SurfaceT], coordinate.TiltDecenter, Base, typ.Generic[SurfaceT], ):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.tilt = self.tilt
         self.decenter = self.decenter
         self.tilt_first = self.tilt_first

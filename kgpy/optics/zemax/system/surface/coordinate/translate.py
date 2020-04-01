@@ -23,23 +23,20 @@ class OperandBase:
     )
 
 
-class Translate(Child[SurfaceChildT], coordinate.Translate, OperandBase, typ.Generic[SurfaceChildT], ):
+class Translate(Decenter[SurfaceChildT], coordinate.Translate, OperandBase, typ.Generic[SurfaceChildT], ):
     
     def _update(self) -> typ.NoReturn:
-        self.decenter = self.decenter
+        super()._update()
         self.z = self.z
+
+    def _x_setter(self, value: float):
+        raise NotImplementedError
+
+    def _y_setter(self, value: float):
+        raise NotImplementedError
     
     def _z_setter(self, value: float):
         self.parent.parent.lde_row.Thickness = value
-
-    @property
-    def decenter(self) -> Decenter[SurfaceChildT]:
-        return self._decenter
-
-    @decenter.setter
-    def decenter(self, value: Decenter[SurfaceChildT]):
-        value.parent = self.parent
-        self._decenter = value
 
     @property
     def z(self) -> u.Quantity:

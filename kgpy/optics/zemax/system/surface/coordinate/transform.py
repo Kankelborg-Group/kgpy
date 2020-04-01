@@ -21,6 +21,7 @@ class Base:
 class Transform(Child[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT], ):
 
     def _update(self) -> None:
+        super()._update()
         self.tilt = self.tilt
         self.translate = self.translate
         self.tilt_first = self.tilt_first

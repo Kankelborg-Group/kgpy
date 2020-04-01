@@ -19,6 +19,7 @@ class OperandBase:
 class TiltFirst(Child[SurfaceChildT], coordinate.TiltFirst, OperandBase, typ.Generic[SurfaceChildT], ):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.value = self.value
 
     @abc.abstractmethod

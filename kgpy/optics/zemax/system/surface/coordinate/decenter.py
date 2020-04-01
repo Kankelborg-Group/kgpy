@@ -20,6 +20,7 @@ class OperandBase:
 class Decenter(Child[SurfaceChildT], coordinate.Decenter, OperandBase, typ.Generic[SurfaceChildT], abc.ABC):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.x = self.x
         self.y = self.y
 
