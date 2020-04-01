@@ -5,8 +5,8 @@ import typing as typ
 @dataclasses.dataclass
 class Name:
 
-    parent: 'typ.Optional[Name]' = None
     base: str = ''
+    parent: 'typ.Optional[Name]' = None
 
     def __add__(self, other: str) -> 'Name':
         return type(self)(self, other)
