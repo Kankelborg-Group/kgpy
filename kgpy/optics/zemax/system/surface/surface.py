@@ -32,7 +32,8 @@ class OperandBase:
 
 class Surface(Child[editor.Editor], kgpy.optics.system.system.Surface, OperandBase):
 
-    def _update(self) -> None:
+    def _update(self) -> typ.NoReturn:
+        super()._update()
         self.name = self.name
         self.thickness = self.thickness
         self.is_stop = self._is_stop
