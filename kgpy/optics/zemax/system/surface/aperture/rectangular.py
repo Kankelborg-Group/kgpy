@@ -52,6 +52,7 @@ class Base:
 class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, Operands):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.is_obscuration = self.is_obscuration
         self.decenter = self.decenter
         self.half_width_x = self.half_width_x
