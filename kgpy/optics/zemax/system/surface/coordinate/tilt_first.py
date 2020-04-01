@@ -2,8 +2,8 @@ import abc
 import dataclasses
 import typing as typ
 import astropy.units as u
-from kgpy.optics.system.surface import coordinate, surface
-from ... import Child, configuration
+from kgpy.optics.system.surface import coordinate
+from ... import Child, configuration, surface
 
 __all__ = ['TiltFirst']
 

@@ -1,9 +1,9 @@
 import dataclasses
 import typing as typ
 from astropy import units as u
-from kgpy.optics.system.surface import coordinate, surface
+from kgpy.optics.system.surface import coordinate
 from .... import ZOSAPI
-from ... import Child, configuration
+from ... import Child, configuration, surface
 from .decenter import Decenter
 
 __all__ = ['Translate']
