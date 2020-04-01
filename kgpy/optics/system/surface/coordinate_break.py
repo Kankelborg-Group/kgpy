@@ -1,36 +1,34 @@
 import dataclasses
 import numpy as np
-
-from . import coordinate
-from . import surface
-
+from . import coordinate, surface
 
 __all__ = ['CoordinateBreak']
 
 
 @dataclasses.dataclass
-class Base(surface.Surface):
-    
+class Base:
+
     tilt: coordinate.Tilt = dataclasses.field(default_factory=lambda: coordinate.Tilt())
     decenter: coordinate.Decenter = dataclasses.field(default_factory=lambda: coordinate.Decenter())
     tilt_first: coordinate.TiltFirst = dataclasses.field(default_factory=lambda: coordinate.TiltFirst())
-    
+
+
+@dataclasses.dataclass
+class CoordinateBreak(Base, surface.Surface):
+    """
+    Representation of a Zemax Coordinate Break.
+    """
+
     @property
     def transform(self):
         return self._transform
-    
+
     @property
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
             self._transform.config_broadcast
         )
-    
-
-class CoordinateBreak(Base):
-    """
-    Representation of a Zemax Coordinate Break.
-    """
 
     @property
     def tilt(self) -> coordinate.Tilt:
