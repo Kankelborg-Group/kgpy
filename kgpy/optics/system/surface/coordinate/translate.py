@@ -1,23 +1,20 @@
 import dataclasses
 import numpy as np
 from astropy import units as u
-from ... import mixin
-from . import Decenter, InverseDecenter
+from . import Decenter
 
 __all__ = ['Translate', 'InverseTranslate']
 
 
 @dataclasses.dataclass
-class Base(mixin.ConfigBroadcast):
-    
-    decenter: Decenter = dataclasses.field(init=False, repr=False, default_factory=lambda: Decenter())
-    
-    x: u.Quantity = 0 * u.mm
-    y: u.Quantity = 0 * u.mm
+class Base:
+
+    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter(), init=None, repr=None)
+
+
+class Translate(Decenter, Base):
+
     z: u.Quantity = 0 * u.mm
-
-
-class Translate(Base):
 
     @property
     def x(self) -> u.Quantity:
@@ -39,8 +36,6 @@ class Translate(Base):
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
-            self.x,
-            self.y,
             self.z,
         )
 
@@ -74,10 +69,6 @@ class InverseTranslate:
     @property
     def config_broadcast(self):
         return self._translate.config_broadcast
-
-    @property
-    def decenter(self):
-        return InverseDecenter(self._translate.decenter)
     
     @property
     def x(self) -> u.Quantity:
