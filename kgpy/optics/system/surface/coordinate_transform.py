@@ -8,38 +8,18 @@ from . import coordinate, CoordinateBreak
 class Base:
 
     _cb1: CoordinateBreak = dataclasses.field(
+        default_factory=lambda: CoordinateBreak(name=Name('cb1')),
         init=False, 
-        repr=False, 
-        default_factory=lambda: CoordinateBreak(name=Name(base='cb1'))
+        repr=False,
     )
     _cb2: CoordinateBreak = dataclasses.field(
+        default_factory=lambda: CoordinateBreak(name=Name('cb2')),
         init=False, 
-        repr=False, 
-        default_factory=lambda: CoordinateBreak(name=Name(base='cb2'))
+        repr=False,
     )
 
-    name: Name = dataclasses.field(default_factory=lambda: Name())
-    tilt: coordinate.Tilt = dataclasses.field(default_factory=lambda: coordinate.Tilt())
-    translate: coordinate.Translate = dataclasses.field(default_factory=lambda: coordinate.Translate())
-    tilt_first: coordinate.TiltFirst = dataclasses.field(default_factory=lambda: coordinate.TiltFirst())
-        
-    @property
-    def transform(self) -> coordinate.Transform:
-        return coordinate.Transform(tilt=self.tilt, translate=self.translate, tilt_first=self.tilt_first)
-    
-    @transform.setter
-    def transform(self, value: coordinate.Transform):
-        
-        self.tilt = value.tilt
-        self.translate = value.translate
-        self.tilt_first = value.tilt_first
-            
-    def __iter__(self):
-        yield self._cb1
-        yield self._cb2
 
-
-class CoordinateTransform(Base):
+class CoordinateTransform(coordinate.Transform, Base, mixin.Named):
     """
     Zemax doesn't allow decenters in the z-direction, instead they intend this concept to be represented by the
     `thickness` parameter.
@@ -52,6 +32,17 @@ class CoordinateTransform(Base):
     This is a class that acts as a normal `CoordinateBreak`, but is a composition of two coordinate breaks.
     It respects the `order` parameter for 3D translations.
     """
+
+    @property
+    def transform(self) -> coordinate.Transform:
+        return coordinate.Transform(tilt=self.tilt, translate=self.translate, tilt_first=self.tilt_first)
+
+    @transform.setter
+    def transform(self, value: coordinate.Transform):
+
+        self.tilt = value.tilt
+        self.translate = value.translate
+        self.tilt_first = value.tilt_first
     
     @property
     def name(self) -> Name:
@@ -106,5 +97,9 @@ class CoordinateTransform(Base):
         self._cb2.tilt_first = value
         self.tilt = tilt
         self.translate = translate
+
+    def __iter__(self):
+        yield self._cb1
+        yield self._cb2
 
 
