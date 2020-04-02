@@ -8,7 +8,7 @@ from ... import configuration, surface
 
 __all__ = ['TiltFirst']
 
-SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Component[surface.Surface])
+SurfaceComponentT = typ.TypeVar('SurfaceComponentT', bound=Component[surface.Surface])
 
 
 @dataclasses.dataclass
@@ -17,7 +17,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class TiltFirst(Component[SurfaceChildT], coordinate.TiltFirst, OperandBase, typ.Generic[SurfaceChildT], ):
+class TiltFirst(Component[SurfaceComponentT], coordinate.TiltFirst, OperandBase, typ.Generic[SurfaceComponentT], ):
 
     def _update(self) -> typ.NoReturn:
         super()._update()

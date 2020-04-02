@@ -9,7 +9,7 @@ from .decenter import Decenter
 
 __all__ = ['Translate']
 
-SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Component[surface.Surface])
+SurfaceComponentT = typ.TypeVar('SurfaceComponentT', bound=Component[surface.Surface])
 
 
 @dataclasses.dataclass
@@ -24,7 +24,7 @@ class OperandBase:
     )
 
 
-class Translate(Decenter[SurfaceChildT], coordinate.Translate, OperandBase, typ.Generic[SurfaceChildT], ):
+class Translate(Decenter[SurfaceComponentT], coordinate.Translate, OperandBase, typ.Generic[SurfaceComponentT], ):
     
     def _update(self) -> typ.NoReturn:
         super()._update()

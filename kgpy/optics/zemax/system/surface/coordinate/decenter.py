@@ -8,7 +8,7 @@ from ... import configuration, surface
 
 __all__ = ['Decenter']
 
-SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Component[surface.Surface])
+SurfaceComponentT = typ.TypeVar('SurfaceComponentT', bound=Component[surface.Surface])
 
 
 @dataclasses.dataclass
@@ -18,7 +18,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class Decenter(Component[SurfaceChildT], coordinate.Decenter, OperandBase, typ.Generic[SurfaceChildT], abc.ABC):
+class Decenter(Component[SurfaceComponentT], coordinate.Decenter, OperandBase, typ.Generic[SurfaceComponentT], abc.ABC):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
