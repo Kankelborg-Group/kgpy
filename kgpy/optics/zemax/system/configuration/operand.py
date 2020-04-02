@@ -1,9 +1,8 @@
 import dataclasses
 import typing as typ
 import numpy as np
-
+from kgpy.component import Component
 from ... import ZOSAPI
-from .. import Child
 from .editor import Editor
 
 __all__ = ['Operand']
@@ -19,7 +18,7 @@ class Base:
     param_3: int = 0
 
 
-class Operand(Child[Editor], Base):
+class Operand(Component[Editor], Base):
 
     def _update(self) -> None:
         self.op_factory = self.op_factory
@@ -48,7 +47,7 @@ class Operand(Child[Editor], Base):
     def data(self, value: np.ndarray):
         self._data = value
         try:
-            value = np.broadcast_to(value, self.parent.parent.config_broadcast.shape).flat
+            value = np.broadcast_to(value, self.composite.composite.config_broadcast.shape).flat
             for i, v in enumerate(value):
                 cell = self.mce_row.GetOperandCell(i + 1)
                 v = v.item()
@@ -102,10 +101,10 @@ class Operand(Child[Editor], Base):
 
     @property
     def mce_index(self) -> int:
-        return self.parent.index(self)
+        return self.composite.index(self)
 
     @property
     def mce_row(self) -> ZOSAPI.Editors.MCE.IMCERow:
-        return self.parent.parent.zemax_system.MCE.GetOperandAt(self.mce_index)
+        return self.composite.composite.zemax_system.MCE.GetOperandAt(self.mce_index)
 
 

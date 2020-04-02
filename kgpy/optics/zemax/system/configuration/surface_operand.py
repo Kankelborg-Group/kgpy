@@ -1,7 +1,7 @@
 import dataclasses
 import typing as typ
 from . import Operand
-from .. import Child, surface as surface_
+from .. import surface as surface_
 
 __all__ = ['SurfaceOperand']
 

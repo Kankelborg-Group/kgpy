@@ -95,12 +95,12 @@ class System(Base):
             value = value.to(unit).value
 
         if np.isscalar(value):
-            if operand.parent is not None:
+            if operand.composite is not None:
                 self.mce.pop(operand.mce_index)
             setter(value)
 
         else:
-            if operand.parent is None:
+            if operand.composite is None:
                 self.mce.append(operand)
             operand.data = value
 

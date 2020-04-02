@@ -1,7 +1,7 @@
 import dataclasses
 import typing as typ
-EditorT = typ.TypeVar('EditorT', bound='Editor')
-from .. import Child, system as system_
+from kgpy.component import Component
+from .. import system as system_
 from . import surface
 
 __all__ = ['Editor']
@@ -13,7 +13,7 @@ class Base:
     _surfaces: 'typ.Iterable[surface.Surface]' = dataclasses.field(default_factory=lambda: [])
 
 
-class Editor(Child[system_.System], Base):
+class Editor(Component[system_.System], Base):
 
     def _update(self) -> None:
         pass

@@ -26,7 +26,7 @@ class Decenter(surface.coordinate.Decenter[surface.CoordinateBreak]):
     )
 
     def _x_setter(self, value: float):
-        self.parent.lde_row.SurfaceData.Decenter_X = value
+        self.composite.lde_row.SurfaceData.Decenter_X = value
 
     def _y_setter(self, value: float):
-        self.parent.lde_row.SurfaceData.Decenter_Y = value
+        self.composite.lde_row.SurfaceData.Decenter_Y = value

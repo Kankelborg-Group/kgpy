@@ -27,7 +27,7 @@ class Decenter(coordinate.Decenter['after.tilt_decenter.TiltDecenter[surface.Sur
     )
 
     def _x_setter(self, value: float):
-        self.parent.parent.lde_row.TiltDecenterData.AfterSurfaceDecenterX = value
+        self.composite.composite.lde_row.TiltDecenterData.AfterSurfaceDecenterX = value
 
     def _y_setter(self, value: float):
-        self.parent.parent.lde_row.TiltDecenterData.AfterSurfaceDecenterY = value
+        self.composite.composite.lde_row.TiltDecenterData.AfterSurfaceDecenterY = value

@@ -1,7 +1,8 @@
 import dataclasses
 import typing as typ
+from kgpy.component import Component
 from kgpy.optics.system.surface import coordinate
-from ... import Child, surface
+from ... import surface
 from . import Tilt, Translate, TiltFirst
 
 __all__ = ['Transform']
@@ -18,7 +19,7 @@ class Base:
 
 
 @dataclasses.dataclass
-class Transform(Child[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT], ):
+class Transform(Component[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT], ):
 
     def _update(self) -> None:
         super()._update()
@@ -32,7 +33,7 @@ class Transform(Child[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT], ):
 
     @tilt.setter
     def tilt(self, value: Tilt['Transform[SurfaceT]']):
-        value.parent = self
+        value.composite = self
         self._tilt = value
 
     @property
@@ -41,7 +42,7 @@ class Transform(Child[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT], ):
 
     @translate.setter
     def translate(self, value: Translate['Transform[SurfaceT]']):
-        value.parent = self
+        value.composite = self
         self._translate = value
 
     @property
@@ -50,5 +51,5 @@ class Transform(Child[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT], ):
 
     @tilt_first.setter
     def tilt_first(self, value: TiltFirst['Transform[SurfaceT]']):
-        value.parent = self
+        value.composite = self
         self._tilt_first = value

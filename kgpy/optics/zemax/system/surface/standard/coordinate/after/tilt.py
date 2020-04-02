@@ -34,10 +34,10 @@ class Tilt(coordinate.Tilt['after.tilt_decenter.TiltDecenter[surface.Standard]']
     )
 
     def _x_setter(self, value: float):
-        self.parent.parent.lde_row.TiltDecenterData.AfterSurfaceTiltX = value
+        self.composite.composite.lde_row.TiltDecenterData.AfterSurfaceTiltX = value
 
     def _y_setter(self, value: float):
-        self.parent.parent.lde_row.TiltDecenterData.AfterSurfaceTiltY = value
+        self.composite.composite.lde_row.TiltDecenterData.AfterSurfaceTiltY = value
 
     def _z_setter(self, value: float):
-        self.parent.parent.lde_row.TiltDecenterData.AfterSurfaceTiltZ = value
+        self.composite.composite.lde_row.TiltDecenterData.AfterSurfaceTiltZ = value

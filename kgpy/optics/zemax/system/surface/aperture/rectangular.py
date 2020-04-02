@@ -16,10 +16,10 @@ __all__ = ['add_to_zemax_surface']
 class Decenter(surface.coordinate.Decenter['Rectangular'], decenterable.Operands):
 
     def _x_setter(self, value: float):
-        self.parent.surface.lde_row.ApertureData.ApertureXDecenter = value
+        self.composite.surface.lde_row.ApertureData.ApertureXDecenter = value
 
     def _y_setter(self, value: float):
-        self.parent.surface.lde_row.ApertureData.ApertureYDecenter = value
+        self.composite.surface.lde_row.ApertureData.ApertureYDecenter = value
 
 
 @dataclasses.dataclass

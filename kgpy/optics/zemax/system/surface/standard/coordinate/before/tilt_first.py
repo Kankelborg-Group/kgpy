@@ -20,4 +20,4 @@ class TiltFirst(coordinate.TiltFirst['before.tilt_decenter.TiltDecenter[surface.
     )
 
     def _value_setter(self, value: int):
-        self.parent.parent.lde_row.TiltDecenterData.BeforeSurfaceOrder = value
+        self.composite.composite.lde_row.TiltDecenterData.BeforeSurfaceOrder = value

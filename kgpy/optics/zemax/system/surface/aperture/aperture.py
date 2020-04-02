@@ -1,11 +1,10 @@
 import dataclasses
 import typing as typ
 from astropy import units as u
-
+from kgpy.component import Component
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import util
-from ... import Child
 from .. import standard
 
 from . import rectangular, circular, spider, polygon, regular_polygon
@@ -14,7 +13,7 @@ __all__ = ['Aperture', 'add_to_zemax_surface']
 
 
 @dataclasses.dataclass
-class Aperture(Child[standard.Standard]):
+class Aperture(Component[standard.Standard]):
 
     @property
     def surface(self) -> standard.Standard:

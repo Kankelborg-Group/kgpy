@@ -1,14 +1,15 @@
 import dataclasses
 import typing as typ
 from astropy import units as u
+from kgpy.component import Component
 from kgpy.optics.system.surface import coordinate
 from .... import ZOSAPI
-from ... import Child, configuration, surface
+from ... import configuration, surface
 from .decenter import Decenter
 
 __all__ = ['Translate']
 
-SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Child[surface.Surface])
+SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Component[surface.Surface])
 
 
 @dataclasses.dataclass
@@ -36,7 +37,7 @@ class Translate(Decenter[SurfaceChildT], coordinate.Translate, OperandBase, typ.
         raise NotImplementedError
     
     def _z_setter(self, value: float):
-        self.parent.parent.lde_row.Thickness = value
+        self.composite.composite.lde_row.Thickness = value
 
     @property
     def z(self) -> u.Quantity:
@@ -46,6 +47,6 @@ class Translate(Decenter[SurfaceChildT], coordinate.Translate, OperandBase, typ.
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self.parent.parent.set(value, self._z_setter, self._z_op, self.parent.parent.lens_units)
+            self.composite.composite.set(value, self._z_setter, self._z_op, self.composite.composite.lens_units)
         except AttributeError:
             pass

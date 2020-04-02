@@ -2,9 +2,10 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
+from kgpy.component import Component
 import kgpy.optics.system.surface
 from ... import ZOSAPI
-from .. import Child, util, configuration
+from .. import util, configuration
 from . import name, coordinate, editor
 
 __all__ = ['Surface', 'add_surfaces_to_zemax_system']
@@ -30,7 +31,7 @@ class OperandBase:
     )
 
 
-class Surface(Child[editor.Editor], kgpy.optics.system.system.Surface, OperandBase):
+class Surface(Component[editor.Editor], kgpy.optics.system.system.Surface, OperandBase):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -82,7 +83,7 @@ class Surface(Child[editor.Editor], kgpy.optics.system.system.Surface, OperandBa
         self._is_active = value
         try:
             self._is_active_op.surface_index = self.lde_index
-            self.parent.parent.set(np.logical_not(value), self._is_active_setter, self._is_active_op)
+            self.composite.composite.set(np.logical_not(value), self._is_active_setter, self._is_active_op)
         except AttributeError:
             pass
 
@@ -98,21 +99,21 @@ class Surface(Child[editor.Editor], kgpy.optics.system.system.Surface, OperandBa
         self._is_visible = value
         try:
             self._is_visible_op.surface_index = self.lde_index
-            self.parent.parent.set(np.logical_not(value), self._is_visible_setter, self._is_visible_op)
+            self.composite.composite.set(np.logical_not(value), self._is_visible_setter, self._is_visible_op)
         except AttributeError:
             pass
 
     @property
     def lde_index(self) -> int:
-        return self.parent.index(self) + 1
+        return self.composite.index(self) + 1
 
     @property
     def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:
-        return self.parent.parent.zemax_system.LDE.GetSurfaceAt(self.lde_index)
+        return self.composite.composite.zemax_system.LDE.GetSurfaceAt(self.lde_index)
 
     @property
     def lens_units(self) -> u.Unit:
-        return self.parent.parent.lens_units
+        return self.composite.composite.lens_units
 
     def set(
             self,
@@ -122,7 +123,7 @@ class Surface(Child[editor.Editor], kgpy.optics.system.system.Surface, OperandBa
             unit: u.Unit = None,
     ) -> typ.NoReturn:
         operand.surface = self
-        self.parent.parent.set(value, setter, operand, unit)
+        self.composite.composite.set(value, setter, operand, unit)
 
 
 

@@ -2,12 +2,13 @@ import abc
 import dataclasses
 import typing as typ
 import astropy.units as u
+from kgpy.component import Component
 from kgpy.optics.system.surface import coordinate
-from ... import Child, configuration, surface
+from ... import configuration, surface
 
 __all__ = ['Decenter']
 
-SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Child[surface.Surface])
+SurfaceChildT = typ.TypeVar('SurfaceChildT', bound=Component[surface.Surface])
 
 
 @dataclasses.dataclass
@@ -17,7 +18,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class Decenter(Child[SurfaceChildT], coordinate.Decenter, OperandBase, typ.Generic[SurfaceChildT], abc.ABC):
+class Decenter(Component[SurfaceChildT], coordinate.Decenter, OperandBase, typ.Generic[SurfaceChildT], abc.ABC):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -40,7 +41,7 @@ class Decenter(Child[SurfaceChildT], coordinate.Decenter, OperandBase, typ.Gener
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self.parent.parent.set(value, self._x_setter, self._x_op, self.parent.parent.lens_units)
+            self.composite.composite.set(value, self._x_setter, self._x_op, self.composite.composite.lens_units)
         except AttributeError:
             pass
 
@@ -52,6 +53,6 @@ class Decenter(Child[SurfaceChildT], coordinate.Decenter, OperandBase, typ.Gener
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self.parent.parent.set(value, self._y_setter, self._y_op, self.parent.parent.lens_units)
+            self.composite.composite.set(value, self._y_setter, self._y_op, self.composite.composite.lens_units)
         except AttributeError:
             pass
