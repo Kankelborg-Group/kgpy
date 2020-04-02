@@ -8,6 +8,6 @@ __all__ = ['Aperture']
 
 
 @dataclasses.dataclass
-class Aperture(mixin.ConfigBroadcast):
+class Aperture(mixin.Broadcastable):
 
     pass

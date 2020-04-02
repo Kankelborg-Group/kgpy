@@ -4,10 +4,10 @@ import numpy as np
 
 from kgpy.optics.system.name import Name
 
-__all__ = ['ConfigBroadcast', 'Named']
+__all__ = ['Broadcastable', 'Named']
 
 
-class ConfigBroadcast:
+class Broadcastable:
     """
     Class to help with determining the shape of the optical configuration.
     In particular this class allows for cooperative subclassing by providing a default signature for the

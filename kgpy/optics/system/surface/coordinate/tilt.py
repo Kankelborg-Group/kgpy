@@ -8,7 +8,7 @@ __all__ = ['Tilt', 'InverseTilt']
 
 
 @dataclasses.dataclass
-class Tilt(mixin.ConfigBroadcast):
+class Tilt(mixin.Broadcastable):
     x: u.Quantity = 0 * u.deg
     y: u.Quantity = 0 * u.deg
     z: u.Quantity = 0 * u.deg

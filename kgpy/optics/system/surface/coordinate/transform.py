@@ -7,7 +7,7 @@ __all__ = ['Transform', 'InverseTransform']
 
 
 @dataclasses.dataclass
-class Base(mixin.ConfigBroadcast):
+class Base(mixin.Broadcastable):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     translate: Translate = dataclasses.field(default_factory=lambda: Translate())
     tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())

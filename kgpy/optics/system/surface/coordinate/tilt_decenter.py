@@ -8,13 +8,14 @@ __all__ = ['TiltDecenter', 'InverseTiltDecenter']
 
 
 @dataclasses.dataclass
-class Base(mixin.ConfigBroadcast):
+class Base:
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
     tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
 
 
-class TiltDecenter(Base):
+@dataclasses.dataclass
+class TiltDecenter(Base, mixin.Broadcastable):
 
     @property
     def config_broadcast(self):

@@ -7,7 +7,7 @@ __all__ = ['Obscurable']
 
 
 @dataclasses.dataclass
-class Obscurable(mixin.ConfigBroadcast):
+class Obscurable(mixin.Broadcastable):
 
     is_obscuration: 'np.ndarray[bool]' = dataclasses.field(default_factory=lambda: np.array(False))
 

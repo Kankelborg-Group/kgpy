@@ -1,13 +1,14 @@
 import dataclasses
 import numpy as np
 
-from ... import mixin, coordinate
+from ... import mixin
+from .. import coordinate
 
 __all__ = ['Decenterable']
 
 
 @dataclasses.dataclass
-class Decenterable(mixin.ConfigBroadcast):
+class Decenterable(mixin.Broadcastable):
 
     decenter: coordinate.Decenter = dataclasses.field(default_factory=lambda: coordinate.Decenter())
 

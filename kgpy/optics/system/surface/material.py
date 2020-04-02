@@ -7,7 +7,7 @@ from .. import mixin
 __all__ = ['Material', 'NoMaterial', 'Mirror']
 
 
-class Material(abc.ABC, mixin.ConfigBroadcast):
+class Material(abc.ABC, mixin.Broadcastable):
 
     @abc.abstractmethod
     def __str__(self):

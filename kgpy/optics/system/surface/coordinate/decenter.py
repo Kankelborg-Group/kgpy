@@ -8,7 +8,7 @@ __all__ = ['Decenter', 'InverseDecenter']
 
 
 @dataclasses.dataclass
-class Decenter(mixin.ConfigBroadcast):
+class Decenter(mixin.Broadcastable):
     x: u.Quantity = 0 * u.mm
     y: u.Quantity = 0 * u.mm
 
