@@ -9,11 +9,11 @@ class TestCoordinateBreak:
 
         c = CoordinateBreak()
 
-        assert isinstance(c.decenter, u.Quantity)
-        assert c.decenter.unit.is_equivalent(u.m)
+        assert isinstance(c.decenter.x, u.Quantity)
+        assert c.decenter.x.unit.is_equivalent(u.m)
 
-        assert isinstance(c.tilt, u.Quantity)
-        assert c.tilt.unit.is_equivalent(u.deg)
+        assert isinstance(c.tilt.x, u.Quantity)
+        assert c.tilt.x.unit.is_equivalent(u.deg)
 
     def test_config_broadcast(self):
 
