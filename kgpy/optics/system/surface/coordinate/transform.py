@@ -10,7 +10,7 @@ __all__ = ['Transform', 'InverseTransform']
 class Base(mixin.Broadcastable):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     translate: Translate = dataclasses.field(default_factory=lambda: Translate())
-    tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
+    tilt_first: bool = False
 
 
 class Transform(Base):

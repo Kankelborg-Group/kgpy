@@ -11,7 +11,7 @@ __all__ = ['TiltDecenter', 'InverseTiltDecenter']
 class Base:
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
-    tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
+    tilt_first: bool = False
 
 
 @dataclasses.dataclass

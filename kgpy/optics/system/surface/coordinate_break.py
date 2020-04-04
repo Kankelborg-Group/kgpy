@@ -7,9 +7,8 @@ __all__ = ['CoordinateBreak']
 
 @dataclasses.dataclass
 class Base:
-
-    _tilt_decenter: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter(),
-                                                                init=False, repr=False)
+    tilt_decenter: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter(),
+                                                               init=False, repr=False)
 
 
 @dataclasses.dataclass
@@ -23,10 +22,6 @@ class CoordinateBreak(coordinate.TiltDecenter, Base, surface.Surface):
         return np.broadcast(
             super().config_broadcast,
         )
-
-    @property
-    def tilt_decenter(self):
-        return self._tilt_decenter
 
     @property
     def tilt(self) -> coordinate.Tilt:
@@ -45,9 +40,9 @@ class CoordinateBreak(coordinate.TiltDecenter, Base, surface.Surface):
         self.tilt_decenter.decenter = value
 
     @property
-    def tilt_first(self) -> coordinate.TiltFirst:
+    def tilt_first(self) -> bool:
         return self.tilt_decenter.tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: coordinate.TiltFirst):
+    def tilt_first(self, value: bool):
         self.tilt_decenter.tilt_first = value
