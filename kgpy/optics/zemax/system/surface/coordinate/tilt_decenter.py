@@ -51,7 +51,7 @@ class TiltDecenter(Component[SurfaceT], Base, coordinate.TiltDecenter, OperandBa
         self._decenter = value
 
     @abc.abstractmethod
-    def _tilt_first_setter(self, value: float):
+    def _tilt_first_setter(self, value: int):
         pass
 
     @property
