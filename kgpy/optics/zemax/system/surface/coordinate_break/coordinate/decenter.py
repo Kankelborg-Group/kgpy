@@ -1,12 +1,13 @@
 import dataclasses
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import configuration, surface
+from .. import coordinate
 
 __all__ = ['Decenter']
 
 
 @dataclasses.dataclass
-class Decenter(surface.coordinate.Decenter[surface.CoordinateBreak]):
+class Decenter(surface.coordinate.Decenter['coordinate.TiltDecenter']):
 
     _x_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
@@ -26,7 +27,7 @@ class Decenter(surface.coordinate.Decenter[surface.CoordinateBreak]):
     )
 
     def _x_setter(self, value: float):
-        self.composite.lde_row.SurfaceData.Decenter_X = value
+        self.composite.composite.lde_row.SurfaceData.Decenter_X = value
 
     def _y_setter(self, value: float):
-        self.composite.lde_row.SurfaceData.Decenter_Y = value
+        self.composite.composite.lde_row.SurfaceData.Decenter_Y = value

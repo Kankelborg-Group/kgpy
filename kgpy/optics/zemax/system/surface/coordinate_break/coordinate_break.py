@@ -1,14 +1,19 @@
+import dataclasses
 import typing as tp
 from astropy import units as u
-
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import util, surface
+from . import coordinate
 
 __all__ = ['add_to_zemax_system']
 
 
+@dataclasses.dataclass
 class CoordinateBreak(system.surface.CoordinateBreak, surface.Surface):
+
+    tilt_decenter: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter(),
+                                                               init=False, repr=False)
 
     @property
     def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurfaceCoordinateBreak]:
