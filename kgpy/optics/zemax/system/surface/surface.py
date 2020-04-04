@@ -31,7 +31,7 @@ class OperandBase:
     )
 
 
-class Surface(Component[editor.Editor], kgpy.optics.system.system.Surface, OperandBase):
+class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
