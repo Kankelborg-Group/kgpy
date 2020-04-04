@@ -3,7 +3,7 @@ import typing as typ
 from kgpy.component import Component
 from kgpy.optics.system.surface import coordinate
 from ... import surface
-from . import Tilt, Translate, TiltFirst
+from . import Tilt, Translate
 
 __all__ = ['Transform']
 
@@ -15,7 +15,6 @@ class Base:
 
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     translate: Translate = dataclasses.field(default_factory=lambda: Translate())
-    tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
 
 
 @dataclasses.dataclass

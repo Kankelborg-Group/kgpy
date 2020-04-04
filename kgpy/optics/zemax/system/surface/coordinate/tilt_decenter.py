@@ -1,9 +1,10 @@
 import dataclasses
+import abc
 import typing as typ
 from kgpy.component import Component
 from kgpy.optics.system.surface import coordinate
-from ... import surface
-from . import Tilt, Decenter, TiltFirst
+from ... import configuration, surface
+from . import Tilt, Decenter
 
 __all__ = ['TiltDecenter']
 
@@ -11,15 +12,19 @@ SurfaceT = typ.TypeVar('SurfaceT', bound=surface.Surface)
 
 
 @dataclasses.dataclass
+class OperandBase:
+    _tilt_first_op: configuration.SurfaceOperand = dataclasses.field(default=None, init=False, repr=False)
+
+
+@dataclasses.dataclass
 class Base:
 
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
-    tilt_first: TiltFirst = dataclasses.field(default_factory=lambda: TiltFirst())
 
 
 @dataclasses.dataclass
-class TiltDecenter(Component[SurfaceT], coordinate.TiltDecenter, Base, typ.Generic[SurfaceT], ):
+class TiltDecenter(Component[SurfaceT], Base, coordinate.TiltDecenter, OperandBase, typ.Generic[SurfaceT], abc.ABC, ):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -45,11 +50,18 @@ class TiltDecenter(Component[SurfaceT], coordinate.TiltDecenter, Base, typ.Gener
         value.composite = self
         self._decenter = value
 
+    @abc.abstractmethod
+    def _tilt_first_setter(self, value: float):
+        pass
+
     @property
-    def tilt_first(self) -> TiltFirst['TiltDecenter[SurfaceT]']:
+    def tilt_first(self) -> bool:
         return self._tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: TiltFirst['TiltDecenter[SurfaceT]']):
-        value.composite = self
+    def tilt_first(self, value: bool):
         self._tilt_first = value
+        try:
+            self.composite.set(value, self._tilt_first_setter, self._tilt_first_op)
+        except AttributeError:
+            pass
