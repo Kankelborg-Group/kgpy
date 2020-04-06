@@ -7,30 +7,9 @@ __all__ = ['Translate', 'InverseTranslate']
 
 
 @dataclasses.dataclass
-class Base:
-
-    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter(), init=None, repr=None)
-
-
-class Translate(Decenter, Base):
+class Translate(Decenter):
 
     z: u.Quantity = 0 * u.mm
-
-    @property
-    def x(self) -> u.Quantity:
-        return self.decenter.x
-
-    @x.setter
-    def x(self, value: u.Quantity):
-        self.decenter.x = value
-
-    @property
-    def y(self) -> u.Quantity:
-        return self.decenter.y
-
-    @y.setter
-    def y(self, value: u.Quantity):
-        self.decenter.y = value
 
     @property
     def config_broadcast(self):

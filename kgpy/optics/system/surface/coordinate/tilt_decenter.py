@@ -1,21 +1,16 @@
 import dataclasses
-
 import numpy as np
 from ... import mixin
-from . import Decenter, InverseDecenter, Tilt, InverseTilt, TiltFirst, InverseTiltFirst
+from . import Decenter, InverseDecenter, Tilt, InverseTilt
 
 __all__ = ['TiltDecenter', 'InverseTiltDecenter']
 
 
 @dataclasses.dataclass
-class Base:
+class TiltDecenter(mixin.Broadcastable):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
     tilt_first: bool = False
-
-
-@dataclasses.dataclass
-class TiltDecenter(Base, mixin.Broadcastable):
 
     @property
     def config_broadcast(self):

@@ -1,19 +1,16 @@
 import dataclasses
 import numpy as np
 from ... import mixin
-from . import Tilt, InverseTilt, Translate, InverseTranslate, TiltFirst, InverseTiltFirst
+from . import Tilt, InverseTilt, Translate, InverseTranslate
 
 __all__ = ['Transform', 'InverseTransform']
 
 
 @dataclasses.dataclass
-class Base(mixin.Broadcastable):
+class Transform(mixin.Broadcastable):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     translate: Translate = dataclasses.field(default_factory=lambda: Translate())
     tilt_first: bool = False
-
-
-class Transform(Base):
 
     @property
     def config_broadcast(self):
