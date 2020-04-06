@@ -6,22 +6,26 @@ __all__ = ['CoordinateBreak']
 
 
 @dataclasses.dataclass
-class Base:
+class InstanceVarBase:
     tilt_decenter: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter(),
                                                                init=False, repr=False)
 
 
 @dataclasses.dataclass
-class CoordinateBreak(coordinate.TiltDecenter, Base, surface.Surface):
-    """
-    Representation of a Zemax Coordinate Break.
-    """
+class Base(coordinate.TiltDecenter, InstanceVarBase, surface.Surface):
 
     @property
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
         )
+
+
+@dataclasses.dataclass
+class CoordinateBreak(Base):
+    """
+    Representation of a Zemax Coordinate Break.
+    """
 
     @property
     def tilt(self) -> coordinate.Tilt:

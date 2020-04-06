@@ -9,17 +9,17 @@ from kgpy.optics.zemax.system import util, configuration
 from .. import surface
 from . import decenterable, aperture
 
-__all__ = ['add_to_zemax_surface']
+__all__ = ['Rectangular']
 
 
 @dataclasses.dataclass
 class Decenter(surface.coordinate.Decenter['Rectangular'], decenterable.Operands):
 
     def _x_setter(self, value: float):
-        self.composite.surface.lde_row.ApertureData.ApertureXDecenter = value
+        self._composite._composite.lde_row.ApertureData.ApertureXDecenter = value
 
     def _y_setter(self, value: float):
-        self.composite.surface.lde_row.ApertureData.ApertureYDecenter = value
+        self._composite._composite.lde_row.ApertureData.ApertureYDecenter = value
 
 
 @dataclasses.dataclass
@@ -45,7 +45,7 @@ class Operands:
 @dataclasses.dataclass
 class Base:
 
-    decenter: surface.coordinate.Decenter = dataclasses.field(default_factory=lambda: Decenter())
+    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
 
 
 @dataclasses.dataclass
@@ -70,16 +70,13 @@ class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, 
                 aper_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularObscuration
             else:
                 aper_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularAperture
-            aper_type = self.surface.lde_row.ApertureData.CreateApertureTypeSettings(aper_type)
-            self.surface.lde_row.ApertureData.ChangeApertureTypeSettings(aper_type)
+            aper_type = self._composite.lde_row.ApertureData.CreateApertureTypeSettings(aper_type)
+            self._composite.lde_row.ApertureData.ChangeApertureTypeSettings(aper_type)
         except AttributeError:
             pass
 
     def _half_width_x_setter(self, value: float):
-        self.surface.lde_row.ApertureData.HalfWidthX = value
-
-    def _half_width_y_setter(self, value: float):
-        self.surface.lde_row.ApertureData.HalfWidthY = value
+        self._composite.lde_row.ApertureData.HalfWidthX = value
 
     @property
     def half_width_x(self) -> u.Quantity:
@@ -89,9 +86,12 @@ class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, 
     def half_width_x(self, value: u.Quantity):
         self._half_width_x = value
         try:
-            self.parent.set(value, self._half_width_x_setter, self._half_width_x_op, self.surface.lens_units)
+            self._composite.set(value, self._half_width_x_setter, self._half_width_x_op, self._composite.lens_units)
         except AttributeError:
             pass
+
+    def _half_width_y_setter(self, value: float):
+        self._composite.lde_row.ApertureData.HalfWidthY = value
 
     @property
     def half_width_y(self) -> u.Quantity:
@@ -101,37 +101,6 @@ class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, 
     def half_width_y(self, value: u.Quantity):
         self._half_width_y = value
         try:
-            self.parent.set(value, self._half_width_y_setter, self._half_width_y_op, self.surface.lens_units)
+            self._composite.set(value, self._half_width_y_setter, self._half_width_y_op, self._composite.lens_units)
         except AttributeError:
             pass
-
-
-
-
-
-
-def add_to_zemax_surface(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        aperture: 'system.surface.aperture.Rectangular',
-        surface_index: int,
-        configuration_shape: typ.Tuple[int],
-        zemax_units: u.Unit,
-):
-
-    if aperture.is_obscuration:
-        type_ind = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularObscuration
-    else:
-        type_ind = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularAperture
-
-    op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.APTP
-    op_half_width_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.APMN
-    op_half_width_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.APMX
-
-    unit_half_width_x = zemax_units
-    unit_half_width_y = zemax_units
-
-    util.set_int(zemax_system, type_ind, configuration_shape, op_type, surface_index)
-    util.set_float(zemax_system, aperture.half_width_x, configuration_shape, op_half_width_x, unit_half_width_x,
-                   surface_index)
-    util.set_float(zemax_system, aperture.half_width_y, configuration_shape, op_half_width_y, unit_half_width_y,
-                   surface_index)
