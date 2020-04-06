@@ -10,7 +10,7 @@ CompositeT = typ.TypeVar('CompositeT')
 @dataclasses.dataclass
 class Base(typ.Generic[CompositeT]):
 
-    composite: typ.Optional[CompositeT] = None
+    _composite: typ.Optional[CompositeT] = dataclasses.field(default=None, init=False, repr=False)
 
 
 @dataclasses.dataclass
@@ -21,10 +21,10 @@ class Component(Base[CompositeT], typ.Generic[CompositeT], abc.ABC):
         pass
 
     @property
-    def composite(self) -> CompositeT:
-        return self._composite
+    def _composite(self) -> CompositeT:
+        return self.__composite
 
-    @composite.setter
-    def composite(self, value: CompositeT):
-        self._composite = value
+    @_composite.setter
+    def _composite(self, value: CompositeT):
+        self.__composite = value
         self._update()
