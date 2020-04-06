@@ -68,7 +68,7 @@ class CoordinateTransform(surface.coordinate.Transform, Base, mixin.Named):
 
     @transform.setter
     def transform(self, value: coordinate.Transform):
-        value.composite = self
+        value._composite = self
         self._transform = value
 
     @property
