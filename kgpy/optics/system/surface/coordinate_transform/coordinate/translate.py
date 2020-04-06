@@ -24,8 +24,8 @@ class Translate(Component[coordinate.Transform], surface.coordinate.Translate):
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self.composite.composite._cb_translate.decenter.x = value
-            self.composite.composite._cb_tilt.decenter.x = 0
+            self._composite._composite._cb_translate.decenter.x = value
+            self._composite._composite._cb_tilt.decenter.x = 0
         except AttributeError:
             pass
 
@@ -37,8 +37,8 @@ class Translate(Component[coordinate.Transform], surface.coordinate.Translate):
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self.composite.composite._cb_translate.decenter.y = value
-            self.composite.composite._cb_tilt.decenter.y = value
+            self._composite._composite._cb_translate.decenter.y = value
+            self._composite._composite._cb_tilt.decenter.y = value
         except AttributeError:
             pass
 
@@ -50,7 +50,7 @@ class Translate(Component[coordinate.Transform], surface.coordinate.Translate):
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self.composite.composite._cb_translate.thickness = value
-            self.composite.composite._cb_tilt.thickness = 0
+            self._composite._composite._cb_translate.thickness = value
+            self._composite._composite._cb_tilt.thickness = 0
         except AttributeError:
             pass

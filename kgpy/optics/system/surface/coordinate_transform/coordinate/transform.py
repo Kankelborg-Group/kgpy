@@ -15,7 +15,7 @@ class Base:
 
 
 @dataclasses.dataclass
-class Transform(Component[coordinate_transform.CoordinateTransform], surface.coordinate.Transform):
+class Transform(Component[coordinate_transform.CoordinateTransform], Base, surface.coordinate.Transform):
 
     def _update(self) -> typ.NoReturn:
         self.tilt_first = self.tilt_first
@@ -26,7 +26,7 @@ class Transform(Component[coordinate_transform.CoordinateTransform], surface.coo
 
     @tilt.setter
     def tilt(self, value: coordinate.Tilt):
-        value.composite = self
+        value._composite = self
         self._tilt = value
 
     @property
@@ -35,7 +35,7 @@ class Transform(Component[coordinate_transform.CoordinateTransform], surface.coo
 
     @translate.setter
     def translate(self, value: coordinate.Translate):
-        value.composite = self
+        value._composite = self
         self._translate = value
 
     @property
@@ -46,8 +46,8 @@ class Transform(Component[coordinate_transform.CoordinateTransform], surface.coo
     def tilt_first(self, value: bool):
         self._tilt_first = value
         try:
-            self.composite._cb1.tilt_first = value
-            self.composite._cb2.tilt_first = value
+            self._composite._cb1.tilt_first = value
+            self._composite._cb2.tilt_first = value
         except AttributeError:
             pass
         self.tilt = self.tilt
