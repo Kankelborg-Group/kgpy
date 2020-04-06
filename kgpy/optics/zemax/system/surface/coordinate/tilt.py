@@ -48,7 +48,7 @@ class Tilt(Component[SurfaceComponentT], coordinate.Tilt, OperandBase, typ.Gener
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self.composite.composite.set(value, self._x_setter, self._x_op, self._unit)
+            self._composite._composite.set(value, self._x_setter, self._x_op, self._unit)
         except AttributeError:
             pass
 
@@ -60,7 +60,7 @@ class Tilt(Component[SurfaceComponentT], coordinate.Tilt, OperandBase, typ.Gener
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self.composite.composite.set(value, self._y_setter, self._y_op, self._unit)
+            self._composite._composite.set(value, self._y_setter, self._y_op, self._unit)
         except AttributeError:
             pass
 
@@ -72,6 +72,6 @@ class Tilt(Component[SurfaceComponentT], coordinate.Tilt, OperandBase, typ.Gener
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self.composite.composite.set(value, self._z_setter, self._z_op, self._unit)
+            self._composite._composite.set(value, self._z_setter, self._z_op, self._unit)
         except AttributeError:
             pass

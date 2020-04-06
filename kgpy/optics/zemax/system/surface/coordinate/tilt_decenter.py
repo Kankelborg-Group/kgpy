@@ -38,7 +38,7 @@ class TiltDecenter(Component[SurfaceT], Base, coordinate.TiltDecenter, OperandBa
 
     @tilt.setter
     def tilt(self, value: Tilt['TiltDecenter[SurfaceT]']):
-        value.composite = self
+        value._composite = self
         self._tilt = value
 
     @property
@@ -47,7 +47,7 @@ class TiltDecenter(Component[SurfaceT], Base, coordinate.TiltDecenter, OperandBa
 
     @decenter.setter
     def decenter(self, value: Decenter['TiltDecenter[SurfaceT]']):
-        value.composite = self
+        value._composite = self
         self._decenter = value
 
     @abc.abstractmethod
@@ -62,6 +62,6 @@ class TiltDecenter(Component[SurfaceT], Base, coordinate.TiltDecenter, OperandBa
     def tilt_first(self, value: bool):
         self._tilt_first = value
         try:
-            self.composite.set(value, self._tilt_first_setter, self._tilt_first_op)
+            self._composite.set(value, self._tilt_first_setter, self._tilt_first_op)
         except AttributeError:
             pass

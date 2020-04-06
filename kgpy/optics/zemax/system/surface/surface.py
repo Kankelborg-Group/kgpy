@@ -83,7 +83,7 @@ class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase)
         self._is_active = value
         try:
             self._is_active_op.surface_index = self.lde_index
-            self.composite.composite.set(np.logical_not(value), self._is_active_setter, self._is_active_op)
+            self._composite._composite.set(np.logical_not(value), self._is_active_setter, self._is_active_op)
         except AttributeError:
             pass
 
@@ -99,21 +99,21 @@ class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase)
         self._is_visible = value
         try:
             self._is_visible_op.surface_index = self.lde_index
-            self.composite.composite.set(np.logical_not(value), self._is_visible_setter, self._is_visible_op)
+            self._composite._composite.set(np.logical_not(value), self._is_visible_setter, self._is_visible_op)
         except AttributeError:
             pass
 
     @property
     def lde_index(self) -> int:
-        return self.composite.index(self) + 1
+        return self._composite.index(self) + 1
 
     @property
     def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:
-        return self.composite.composite.zemax_system.LDE.GetSurfaceAt(self.lde_index)
+        return self._composite._composite.zemax_system.LDE.GetSurfaceAt(self.lde_index)
 
     @property
     def lens_units(self) -> u.Unit:
-        return self.composite.composite.lens_units
+        return self._composite._composite.lens_units
 
     def set(
             self,
@@ -123,7 +123,7 @@ class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase)
             unit: u.Unit = None,
     ) -> typ.NoReturn:
         operand.surface = self
-        self.composite.composite.set(value, setter, operand, unit)
+        self._composite._composite.set(value, setter, operand, unit)
 
 
 

@@ -41,7 +41,7 @@ class Decenter(Component[SurfaceComponentT], coordinate.Decenter, OperandBase, t
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self.composite.composite.set(value, self._x_setter, self._x_op, self.composite.composite.lens_units)
+            self._composite._composite.set(value, self._x_setter, self._x_op, self._composite._composite.lens_units)
         except AttributeError:
             pass
 
@@ -53,6 +53,6 @@ class Decenter(Component[SurfaceComponentT], coordinate.Decenter, OperandBase, t
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self.composite.composite.set(value, self._y_setter, self._y_op, self.composite.composite.lens_units)
+            self._composite._composite.set(value, self._y_setter, self._y_op, self._composite._composite.lens_units)
         except AttributeError:
             pass

@@ -37,7 +37,7 @@ class Translate(Decenter[SurfaceComponentT], coordinate.Translate, OperandBase, 
         raise NotImplementedError
     
     def _z_setter(self, value: float):
-        self.composite.composite.lde_row.Thickness = value
+        self._composite._composite.lde_row.Thickness = value
 
     @property
     def z(self) -> u.Quantity:
@@ -47,6 +47,6 @@ class Translate(Decenter[SurfaceComponentT], coordinate.Translate, OperandBase, 
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self.composite.composite.set(value, self._z_setter, self._z_op, self.composite.composite.lens_units)
+            self._composite._composite.set(value, self._z_setter, self._z_op, self._composite._composite.lens_units)
         except AttributeError:
             pass

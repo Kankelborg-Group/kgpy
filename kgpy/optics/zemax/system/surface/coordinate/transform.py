@@ -32,7 +32,7 @@ class Transform(Component[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT]
 
     @tilt.setter
     def tilt(self, value: Tilt['Transform[SurfaceT]']):
-        value.composite = self
+        value._composite = self
         self._tilt = value
 
     @property
@@ -41,7 +41,7 @@ class Transform(Component[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT]
 
     @translate.setter
     def translate(self, value: Translate['Transform[SurfaceT]']):
-        value.composite = self
+        value._composite = self
         self._translate = value
 
     @property
@@ -50,5 +50,5 @@ class Transform(Component[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT]
 
     @tilt_first.setter
     def tilt_first(self, value: TiltFirst['Transform[SurfaceT]']):
-        value.composite = self
+        value._composite = self
         self._tilt_first = value

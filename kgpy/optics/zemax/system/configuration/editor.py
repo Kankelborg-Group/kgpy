@@ -33,11 +33,11 @@ class Editor(Component[system.System], Base):
             else:
                 self._zemax_mce.RemoveOperandAt(self._zemax_mce.NumberOfOperands)
         for v in value:
-            v.composite = self
+            v._composite = self
 
     @property
     def _zemax_mce(self) -> ZOSAPI.Editors.MCE.IMultiConfigEditor:
-        return self.composite.zemax_system.MCE
+        return self._composite.zemax_system.MCE
 
     def index(self, op: 'operand.Operand') -> int:
         return self._operands.index(op)
@@ -45,17 +45,17 @@ class Editor(Component[system.System], Base):
     def insert(self, index: int, value: 'operand.Operand') -> None:
         self._operands.insert(index, value)
         self._zemax_mce.InsertNewOperandAt(index)
-        value.composite = self
+        value._composite = self
 
     def append(self, value: 'operand.Operand') -> None:
         self._operands.append(value)
         self._zemax_mce.AddOperand()
-        value.composite = self
+        value._composite = self
 
     def pop(self, index: int) -> 'operand.Operand':
         value = self._operands.pop(index)
         self._zemax_mce.RemoveOperandAt(index)
-        value.composite = None
+        value._composite = None
         return value
 
     def __getitem__(self, item: typ.Union[int, slice]) -> typ.Union['operand.Operand', typ.Iterable['operand.Operand']]:
@@ -64,10 +64,10 @@ class Editor(Component[system.System], Base):
     def __setitem__(self, key: typ.Union[int, slice], value: typ.Union['operand.Operand', typ.Iterable['operand.Operand']]) -> None:
         self._operands.__setitem__(key, value)
         if isinstance(value, operand.Operand):
-            value.composite = self
+            value._composite = self
         else:
             for v in value:
-                v.composite = self
+                v._composite = self
 
     def __iter__(self):
         return self._operands.__iter__()

@@ -47,7 +47,7 @@ class Operand(Component[Editor], Base):
     def data(self, value: np.ndarray):
         self._data = value
         try:
-            value = np.broadcast_to(value, self.composite.composite.config_broadcast.shape).flat
+            value = np.broadcast_to(value, self._composite._composite.config_broadcast.shape).flat
             for i, v in enumerate(value):
                 cell = self.mce_row.GetOperandCell(i + 1)
                 v = v.item()
@@ -101,10 +101,10 @@ class Operand(Component[Editor], Base):
 
     @property
     def mce_index(self) -> int:
-        return self.composite.index(self)
+        return self._composite.index(self)
 
     @property
     def mce_row(self) -> ZOSAPI.Editors.MCE.IMCERow:
-        return self.composite.composite.zemax_system.MCE.GetOperandAt(self.mce_index)
+        return self._composite._composite.zemax_system.MCE.GetOperandAt(self.mce_index)
 
 

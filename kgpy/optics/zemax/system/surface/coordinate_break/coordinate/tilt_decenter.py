@@ -23,4 +23,4 @@ class TiltDecenter(coordinate.TiltDecenter['coordinate_break.CoordinateBreak']):
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
 
     def _tilt_first_setter(self, value: int):
-        self.composite.lde_row.SurfaceData.Order = value
+        self._composite.lde_row.SurfaceData.Order = value
