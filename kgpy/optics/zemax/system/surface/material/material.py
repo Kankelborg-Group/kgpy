@@ -1,30 +1,41 @@
-import typing as tp
-import pathlib
-from astropy import units as u
-
+import dataclasses
+import typing as typ
+from kgpy.component import Component
 from kgpy.optics import system
-from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import util
+from ... import surface
 
-from . import mirror
-
-__all__ = ['add_to_zemax_surface']
+__all__ = ['Material', 'NoMaterial']
 
 
-def add_to_zemax_surface(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        material: 'system.surface.Material',
-        surface_index: int,
-        configuration_shape: tp.Tuple[int],
-        zemax_units: u.Unit,
-):
-    op_material = ZOSAPI.Editors.MCE.MultiConfigOperandType.GLSS
-    
-    if material is None:
-        util.set_str(zemax_system, '', configuration_shape, op_material, surface_index)
-        return
+@dataclasses.dataclass
+class InstanceVarBase:
+    string: str = dataclasses.field(default='', init=False, repr=False)
 
-    util.set_str(zemax_system, material.__str__(), configuration_shape, op_material, surface_index)
-    
-    if isinstance(material, system.surface.material.Mirror):
-        mirror.add_to_zemax_surface(zemax_system, material, surface_index, zemax_units)
+
+@dataclasses.dataclass
+class Mixin(Component[surface.Standard], system.surface.Material):
+
+    def _update(self) -> typ.NoReturn:
+        self.string = self.string
+
+    @property
+    def string(self) -> str:
+        return self._string
+
+    @string.setter
+    def string(self, value: str):
+        self._string = value
+        try:
+            self._composite.lde_row.Material = value
+        except AttributeError:
+            pass
+
+
+@dataclasses.dataclass
+class Material(Mixin, InstanceVarBase):
+    pass
+
+
+@dataclasses.dataclass
+class NoMaterial(Material):
+    pass
