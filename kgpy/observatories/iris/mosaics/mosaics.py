@@ -13,7 +13,7 @@ def download(path: pathlib.Path = None) -> typ.List[pathlib.Path]:
 
     if path is None:
         path = default_path
-
+    path.mkdir(parents=True, exist_ok=True)
     files = []
 
     for mosaic_path in url.path_list:
