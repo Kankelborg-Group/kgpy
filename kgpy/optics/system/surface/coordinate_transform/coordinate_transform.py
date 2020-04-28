@@ -1,5 +1,5 @@
 import dataclasses
-
+import typing as typ
 from ... import mixin, Name, surface
 from .. import CoordinateBreak
 from . import coordinate
@@ -9,22 +9,11 @@ __all__ = ['CoordinateTransform']
 
 @dataclasses.dataclass
 class Base:
-    _cb1: CoordinateBreak = dataclasses.field(
-        default_factory=lambda: CoordinateBreak(name=Name('cb1')),
-        init=False,
-        repr=False,
-    )
-    _cb2: CoordinateBreak = dataclasses.field(
-        default_factory=lambda: CoordinateBreak(name=Name('cb2')),
-        init=False,
-        repr=False,
-    )
-
-    transform: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.Transform(), init=False,
-                                                        repr=False)
+    transform: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.Transform())
 
 
-class CoordinateTransform(surface.coordinate.Transform, Base, mixin.Named):
+@dataclasses.dataclass
+class CoordinateTransform(mixin.ZemaxCompatible, Base, mixin.Named):
     """
     Zemax doesn't allow decenters in the z-direction, instead they intend this concept to be represented by the
     `thickness` parameter.
@@ -38,19 +27,16 @@ class CoordinateTransform(surface.coordinate.Transform, Base, mixin.Named):
     It respects the `order` parameter for 3D translations.
     """
 
-    @property
-    def _cb_tilt(self) -> CoordinateBreak:
-        if self.tilt_first:
-            return self._cb1
-        else:
-            return self._cb2
+    def __post_init__(self):
+        self.name = self.name
 
-    @property
-    def _cb_translate(self) -> CoordinateBreak:
-        if self.tilt_first:
-            return self._cb2
-        else:
-            return self._cb1
+    def to_zemax(self) -> 'CoordinateTransform':
+        from kgpy.optics import zemax
+        return zemax.system.surface.CoordinateTransform(
+            name=self.name,
+            transform=self.transform,
+        )
+
 
     @property
     def name(self) -> Name:
@@ -59,8 +45,10 @@ class CoordinateTransform(surface.coordinate.Transform, Base, mixin.Named):
     @name.setter
     def name(self, value: Name):
         self._name = value
-        self._cb1.name.parent = value
-        self._cb2.name.parent = value
+        try:
+            self.transform.name = value
+        except AttributeError:
+            pass
 
     @property
     def transform(self) -> coordinate.Transform:
@@ -68,33 +56,10 @@ class CoordinateTransform(surface.coordinate.Transform, Base, mixin.Named):
 
     @transform.setter
     def transform(self, value: coordinate.Transform):
+        if not isinstance(value, coordinate.Transform):
+            value = coordinate.Transform.promote(value)
         value._composite = self
         self._transform = value
 
-    @property
-    def tilt(self) -> coordinate.Tilt:
-        return self.transform.tilt
-
-    @tilt.setter
-    def tilt(self, value: coordinate.Tilt):
-        self.transform.tilt = value
-
-    @property
-    def translate(self) -> coordinate.Translate:
-        return self.transform.translate
-
-    @translate.setter
-    def translate(self, value: coordinate.Translate):
-        self.transform.translate = value
-
-    @property
-    def tilt_first(self) -> bool:
-        return self.transform.tilt_first
-
-    @tilt_first.setter
-    def tilt_first(self, value: bool):
-        self.transform.tilt_first = value
-
-    def __iter__(self):
-        yield self._cb1
-        yield self._cb2
+    def __iter__(self) -> typ.Iterator[CoordinateBreak]:
+        return self.transform.__iter__()

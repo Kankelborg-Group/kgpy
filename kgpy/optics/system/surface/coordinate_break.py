@@ -1,52 +1,23 @@
 import dataclasses
-import numpy as np
+import typing as typ
 from . import coordinate, surface
 
 __all__ = ['CoordinateBreak']
 
 
 @dataclasses.dataclass
-class InstanceVarBase:
-    tilt_decenter: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter(),
-                                                               init=False, repr=False)
+class CoordinateBreak(surface.Surface):
 
-
-@dataclasses.dataclass
-class Base(coordinate.TiltDecenter, InstanceVarBase, surface.Surface):
+    transform: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-        )
+    def __init__args(self) -> typ.Dict[str, typ.Any]:
+        args = super().__init__args
+        args.update({
+            'transform': self.transform
+        })
+        return args
 
-
-@dataclasses.dataclass
-class CoordinateBreak(Base):
-    """
-    Representation of a Zemax Coordinate Break.
-    """
-
-    @property
-    def tilt(self) -> coordinate.Tilt:
-        return self.tilt_decenter.tilt
-
-    @tilt.setter
-    def tilt(self, value: coordinate.Tilt):
-        self.tilt_decenter.tilt = value
-
-    @property
-    def decenter(self) -> coordinate.Decenter:
-        return self.tilt_decenter.decenter
-
-    @decenter.setter
-    def decenter(self, value: coordinate.Decenter):
-        self.tilt_decenter.decenter = value
-
-    @property
-    def tilt_first(self) -> bool:
-        return self.tilt_decenter.tilt_first
-
-    @tilt_first.setter
-    def tilt_first(self, value: bool):
-        self.tilt_decenter.tilt_first = value
+    def to_zemax(self) -> 'CoordinateBreak':
+        from kgpy.optics import zemax
+        return zemax.system.surface.CoordinateBreak(**self.__init__args)

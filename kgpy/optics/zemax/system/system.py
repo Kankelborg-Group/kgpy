@@ -1,17 +1,14 @@
 import dataclasses
 import typing as typ
+import pathlib
 import win32com.client.gencache
 import numpy as np
 import astropy.units as u
-
 from kgpy import optics
-
 from .. import ZOSAPI
 from . import configuration, wavelengths, util, fields, surface
 
-__all__ = ['SystemT', 'System', 'calc_zemax_system']
-
-SystemT = typ.TypeVar('SystemT', bound='System')
+__all__ = ['System', 'calc_zemax_system']
 
 
 def load_zemax_app() -> ZOSAPI.IZOSAPI_Application:
@@ -31,60 +28,120 @@ def load_zemax_app() -> ZOSAPI.IZOSAPI_Application:
 @dataclasses.dataclass
 class InstanceVarBase:
 
-    zemax_app: ZOSAPI.IZOSAPI_Application = dataclasses.field(
-        default_factory=load_zemax_app,
+    _entrance_pupil_radius_op: configuration.Operand = dataclasses.field(
+        default_factory=lambda: configuration.Operand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.APER,
+        ),
         init=False,
         repr=False,
     )
 
-    mce: configuration.Editor = dataclasses.field(
-        default_factory=lambda: configuration.Editor(),
+    _stop_surface_index_op: configuration.Operand = dataclasses.field(
+        default_factory=lambda: configuration.Operand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.STPS
+        ),
         init=False,
         repr=False,
     )
+
+    _zemax_app: ZOSAPI.IZOSAPI_Application = dataclasses.field(default_factory=load_zemax_app, init=False, repr=False, )
+
+    _lens_units: u.Unit = dataclasses.field(default_factory=lambda: u.mm, init=False, repr=False)
+
+    _mce: configuration.Editor = dataclasses.field(
+        default_factory=lambda: configuration.Editor(), init=False, repr=False,
+    )
+
+
+SurfacesT = typ.TypeVar('SurfacesT', bound='typ.Iterable[surface.Surface]')
 
 
 @dataclasses.dataclass
-class Base(optics.System, InstanceVarBase):
+class System(optics.System[SurfacesT], InstanceVarBase):
 
-    lens_units: u.Unit = u.mm
-
-
-class System(Base):
+    def save(self, filename: pathlib.Path):
+        self._zemax_system.SaveAs(str(filename))
 
     @property
-    def zemax_system(self) -> ZOSAPI.IOpticalSystem:
-        return self.zemax_app.PrimarySystem
+    def surfaces(self) -> SurfacesT:
+        return self._surfaces
+
+    @surfaces.setter
+    def surfaces(self, value: SurfacesT):
+        num_surfaces = len(list(value))
+        while self._lde.NumberOfSurfaces != num_surfaces:
+            if self._lde.NumberOfSurfaces < num_surfaces:
+                self._lde.AddSurface()
+            else:
+                self._lde.RemoveSurfaceAt(self._lde.NumberOfSurfaces)
+
+        self._surfaces = value
+        for v in value:
+            v._composite = self
+
+    def _entrance_pupil_radius_setter(self, value: float):
+        self._zemax_system.SystemData.Aperture.ApertureType = ZOSAPI.SystemData.ZemaxApertureType.EntrancePuilDiameter
+        self._zemax_system.SystemData.Aperture.ApertureValue = value
 
     @property
-    def mce(self) -> configuration.Editor:
+    def entrance_pupil_radius(self) -> u.Quantity:
+        return self._entrance_pupil_radius
+
+    @entrance_pupil_radius.setter
+    def entrance_pupil_radius(self, value: u.Quantity):
+        self._entrance_pupil_radius = value
+        self._set(value, self._entrance_pupil_radius_setter, self._entrance_pupil_radius_op, self._lens_units)
+
+    def _stop_surface_index_setter(self, value: int):
+        surf = list(self.surfaces)[value]
+        surf._lde_row.IsStop = True
+
+    @property
+    def stop_surface_index(self) -> int:
+        return self._stop_surface_index
+
+    @stop_surface_index.setter
+    def stop_surface_index(self, value: int):
+        self._stop_surface_index = value
+        self._set(value, self._stop_surface_index_setter, self._stop_surface_index_op)
+
+    @property
+    def _zemax_system(self) -> ZOSAPI.IOpticalSystem:
+        return self._zemax_app.PrimarySystem
+
+    @property
+    def _lde(self) -> ZOSAPI.Editors.LDE.ILensDataEditor:
+        return self._zemax_system.LDE
+
+    @property
+    def _mce(self) -> configuration.Editor:
         return self._config_operands
 
-    @mce.setter
-    def mce(self, value: configuration.Editor):
+    @_mce.setter
+    def _mce(self, value: configuration.Editor):
         self._config_operands = value
         value.system = self
 
     @property
-    def lens_units(self) -> u.Unit:
-        return self.lens_units
+    def _lens_units(self) -> u.Unit:
+        return self.__lens_units
 
-    @lens_units.setter
-    def lens_units(self, value: u.Unit):
-        self.lens_units = value
+    @_lens_units.setter
+    def _lens_units(self, value: u.Unit):
+        self.__lens_units = value
 
         if value == u.mm:
-            self.zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters
+            self._zemax_system.SystemData.Units.LensUnits = ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters
         elif value == u.cm:
-            self.zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Centimeters
+            self._zemax_system.SystemData.Units.LensUnits = ZOSAPI.SystemData.ZemaxSystemUnits.Centimeters
         elif value == u.m:
-            self.zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Meters
+            self._zemax_system.SystemData.Units.LensUnits = ZOSAPI.SystemData.ZemaxSystemUnits.Meters
         elif value == u.imperial.inch:
-            self.zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Inches
+            self._zemax_system.SystemData.Units.LensUnits = ZOSAPI.SystemData.ZemaxSystemUnits.Inches
         else:
             raise ValueError('Unsupported unit')
 
-    def set(
+    def _set(
             self,
             value: typ.Any,
             setter: typ.Callable[[typ.Any], None],
@@ -96,16 +153,13 @@ class System(Base):
 
         if np.isscalar(value):
             if operand._composite is not None:
-                self.mce.pop(operand.mce_index)
+                self._mce.pop(operand.mce_index)
             setter(value)
 
         else:
             if operand._composite is None:
-                self.mce.append(operand)
+                self._mce.append(operand)
             operand.data = value
-
-
-
 
 
 def calc_zemax_system(system: 'optics.System') -> typ.Tuple[ZOSAPI.IOpticalSystem, u.Unit]:

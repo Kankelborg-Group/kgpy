@@ -1,54 +1,64 @@
 import dataclasses
+import abc
 import typing as typ
 import numpy as np
 import astropy.units as u
 from kgpy.component import Component
+from kgpy.optics.system import name
 import kgpy.optics.system.surface
 from ... import ZOSAPI
-from .. import util, configuration
-from . import name, coordinate, editor
+from .. import system, configuration
 
-__all__ = ['Surface', 'add_surfaces_to_zemax_system']
+__all__ = ['Surface']
 
 
 @dataclasses.dataclass
 class OperandBase:
 
+    _thickness_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC
+        ),
+        init=False,
+        repr=False,
+    )
     _is_active_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
             op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.IGNR
         ),
-        init=None,
-        repr=None
+        init=False,
+        repr=False,
     )
-
     _is_visible_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
             op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.SDRW
         ),
-        init=None,
-        repr=None
+        init=False,
+        repr=False,
     )
 
 
-class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase):
+@dataclasses.dataclass
+class Surface(Component[system.System], kgpy.optics.system.Surface, OperandBase, abc.ABC):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
+        self._set_type()
         self.name = self.name
         self.thickness = self.thickness
-        self.is_stop = self._is_stop
         self.is_active = self.is_active
         self.is_visible = self.is_visible
 
-    @property
-    def _transform(self) -> coordinate.Transform:
-        return self.__transform
+    @abc.abstractmethod
+    def _get_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+        pass
 
-    @_transform.setter
-    def _transform(self, value: coordinate.Transform):
-        self.__transform = value
-        value.surface = self
+    def _set_type(self) -> typ.NoReturn:
+        try:
+            settings = self._lde_row.GetSurfaceTypeSettings(self._get_type())
+            self._lde_row.ChangeType(settings)
+        except AttributeError:
+            pass
 
     @property
     def name(self) -> 'name.Name':
@@ -59,20 +69,32 @@ class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase)
         self._name = value
         value.surface = self
 
-    @property
-    def is_stop(self) -> bool:
-        return self._is_stop
+    def _thickness_setter(self, value: float):
+        self._lde_row.Thickness = value
 
-    @is_stop.setter
-    def is_stop(self, value: bool):
-        self._is_stop = value
-        try:
-            self.lde_row.IsStop = value
-        except AttributeError:
-            pass
+    @property
+    def thickness(self) -> u.Quantity:
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, value: u.Quantity):
+        self._thickness = value
+        self._set_with_lens_units(value, self._thickness_setter, self._thickness_op)
+
+    # @property
+    # def is_stop(self) -> bool:
+    #     return self._is_stop
+    #
+    # @is_stop.setter
+    # def is_stop(self, value: bool):
+    #     self._is_stop = value
+    #     try:
+    #         self._lde_row.IsStop = value
+    #     except AttributeError:
+    #         pass
 
     def _is_active_setter(self, value: bool):
-        self.lde_row.IsActive = not value
+        self._lde_row.IsActive = not value
 
     @property
     def is_active(self) -> 'np.ndarray[bool]':
@@ -81,14 +103,10 @@ class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase)
     @is_active.setter
     def is_active(self, value: 'np.ndarray[bool]'):
         self._is_active = value
-        try:
-            self._is_active_op.surface_index = self.lde_index
-            self._composite._composite.set(np.logical_not(value), self._is_active_setter, self._is_active_op)
-        except AttributeError:
-            pass
+        self._set(~value, self._is_active_setter, self._is_active_op)
 
     def _is_visible_setter(self, value: bool):
-        self.lde_row.DrawData.DoNotDrawThisSurface = value
+        self._lde_row.DrawData.DoNotDrawThisSurface = value
 
     @property
     def is_visible(self) -> 'np.ndarray[bool]':
@@ -97,25 +115,22 @@ class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase)
     @is_visible.setter
     def is_visible(self, value: 'np.ndarray[bool]'):
         self._is_visible = value
-        try:
-            self._is_visible_op.surface_index = self.lde_index
-            self._composite._composite.set(np.logical_not(value), self._is_visible_setter, self._is_visible_op)
-        except AttributeError:
-            pass
+        self._set(~value, self._is_visible_setter, self._is_visible_op)
 
     @property
-    def lde_index(self) -> int:
-        return self._composite.index(self) + 1
+    def _lde_index(self) -> int:
+        surfaces = list(self._composite.surfaces)
+        return surfaces.index(self)
 
     @property
-    def lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:
-        return self._composite._composite.zemax_system.LDE.GetSurfaceAt(self.lde_index)
+    def _lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:
+        return self._composite._lde.GetSurfaceAt(self._lde_index)
 
     @property
-    def lens_units(self) -> u.Unit:
-        return self._composite._composite.lens_units
+    def _lens_units(self) -> u.Unit:
+        return self._composite._lens_units
 
-    def set(
+    def _set(
             self,
             value: typ.Any,
             setter: typ.Callable[[typ.Any], None],
@@ -123,41 +138,18 @@ class Surface(Component[editor.Editor], kgpy.optics.system.Surface, OperandBase)
             unit: u.Unit = None,
     ) -> typ.NoReturn:
         operand.surface = self
-        self._composite._composite.set(value, setter, operand, unit)
+        try:
+            self._composite._set(value, setter, operand, unit)
+        except AttributeError:
+            pass
 
-
-
-def add_surfaces_to_zemax_system(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        surfaces: 'typ.Iterable[surface.Surface]',
-        configuration_shape: typ.Tuple[int],
-        zemax_units: u.Unit,
-
-):
-
-    op_comment = ZOSAPI.Editors.MCE.MultiConfigOperandType.MCOM
-    op_thickness = ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC
-    op_is_visible = ZOSAPI.Editors.MCE.MultiConfigOperandType.SDRW
-
-    unit_thickness = zemax_units
-
-    surfaces = list(surfaces)
-    num_surfaces = len(surfaces)
-    while zemax_system.LDE.NumberOfSurfaces < num_surfaces + 1:
-        zemax_system.LDE.AddSurface()
-    
-    for s in range(num_surfaces):
-        
-        surface_index = s + 1
-        surf = surfaces[s]
-        
-        util.set_str(zemax_system, surf.name.__str__(), configuration_shape, op_comment, surface_index)
-        util.set_float(zemax_system, surf.thickness, configuration_shape, op_thickness, unit_thickness,
-                       surface_index)
-        util.set_int(zemax_system, not surf.is_visible, configuration_shape, op_is_visible, surface_index)
-        
-        if isinstance(surf, surface.Standard):
-            standard.add_to_zemax_system(zemax_system, surf, surface_index, configuration_shape, zemax_units)
-
-        elif isinstance(surf, surface.CoordinateBreak):
-            coordinate_break.add_to_zemax_system(zemax_system, surf, surface_index, configuration_shape, zemax_units)
+    def _set_with_lens_units(
+            self,
+            value: typ.Any,
+            setter: typ.Callable[[typ.Any], None],
+            operand: configuration.SurfaceOperand,
+    ) -> typ.NoReturn:
+        try:
+            self._set(value, setter, operand, self._lens_units)
+        except AttributeError:
+            pass

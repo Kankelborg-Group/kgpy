@@ -8,7 +8,7 @@ from ... import configuration, surface
 
 __all__ = ['Tilt']
 
-SurfaceComponentT = typ.TypeVar('SurfaceComponentT', bound=Component[surface.Surface])
+SurfaceComponentT = typ.TypeVar('SurfaceComponentT', bound='Component[surface.Surface]')
 
 
 @dataclasses.dataclass
@@ -20,7 +20,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class Tilt(Component[SurfaceComponentT], coordinate.Tilt, OperandBase, typ.Generic[SurfaceComponentT], ):
+class Tilt(Component[SurfaceComponentT], coordinate.Tilt, OperandBase, ):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -48,7 +48,7 @@ class Tilt(Component[SurfaceComponentT], coordinate.Tilt, OperandBase, typ.Gener
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self._composite._composite.set(value, self._x_setter, self._x_op, self._unit)
+            self._composite._composite._set(value, self._x_setter, self._x_op, self._unit)
         except AttributeError:
             pass
 
@@ -60,7 +60,7 @@ class Tilt(Component[SurfaceComponentT], coordinate.Tilt, OperandBase, typ.Gener
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self._composite._composite.set(value, self._y_setter, self._y_op, self._unit)
+            self._composite._composite._set(value, self._y_setter, self._y_op, self._unit)
         except AttributeError:
             pass
 
@@ -72,6 +72,6 @@ class Tilt(Component[SurfaceComponentT], coordinate.Tilt, OperandBase, typ.Gener
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self._composite._composite.set(value, self._z_setter, self._z_op, self._unit)
+            self._composite._composite._set(value, self._z_setter, self._z_op, self._unit)
         except AttributeError:
             pass

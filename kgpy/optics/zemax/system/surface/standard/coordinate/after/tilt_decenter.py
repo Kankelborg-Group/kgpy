@@ -3,13 +3,13 @@ from kgpy.optics.zemax import ZOSAPI
 from ..... import configuration
 from .... import coordinate
 from ... import standard
-from . import tilt as tilt_, decenter as decenter_
+from . import Tilt, Decenter
 
 __all__ = ['TiltDecenter']
 
 
 @dataclasses.dataclass
-class TiltDecenter(coordinate.TiltDecenter[standard.Standard], ):
+class TiltDecenter(coordinate.TiltDecenter['standard.Standard'], ):
 
     _tilt_first_op: configuration.SurfaceOperand = dataclasses.field(
         default_factory=lambda: configuration.SurfaceOperand(
@@ -19,8 +19,25 @@ class TiltDecenter(coordinate.TiltDecenter[standard.Standard], ):
         repr=False,
     )
 
-    tilt: tilt_.Tilt = dataclasses.field(default_factory=lambda: tilt_.Tilt())
-    decenter: decenter_.Decenter = dataclasses.field(default_factory=lambda: decenter_.Decenter())
+    @property
+    def tilt(self) -> Tilt:
+        return super().tilt
+
+    @tilt.setter
+    def tilt(self, value: Tilt):
+        if not isinstance(value, Tilt):
+            value = Tilt.promote(value)
+        super(__class__, self.__class__).tilt.__set__(self, value)
+
+    @property
+    def decenter(self) -> Decenter:
+        return super().decenter
+
+    @decenter.setter
+    def decenter(self, value: Decenter):
+        if not isinstance(value, Decenter):
+            value = Decenter.promote(value)
+        super(__class__, self.__class__).decenter.__set__(self, value)
 
     def _tilt_first_setter(self, value: int):
-        self._composite.lde_row.TiltDecenterData.AfterSurfaceOrder = value
+        self._composite._lde_row.TiltDecenterData.AfterSurfaceOrder = value

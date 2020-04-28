@@ -9,7 +9,7 @@ __all__ = ['Tilt']
 
 
 @dataclasses.dataclass
-class Tilt(Component[coordinate.Transform], surface.coordinate.Translate):
+class Tilt(Component['coordinate.Transform'], surface.coordinate.Tilt):
 
     def _update(self) -> typ.NoReturn:
         self.x = self.x
@@ -24,8 +24,8 @@ class Tilt(Component[coordinate.Transform], surface.coordinate.Translate):
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self._composite._composite._cb_tilt.tilt.x = value
-            self._composite._composite._cb_translate.tilt.x = 0
+            self._composite._cb_tilt.transform.tilt.x = value
+            self._composite._cb_translate.transform.tilt.x = 0
         except AttributeError:
             pass
 
@@ -37,8 +37,8 @@ class Tilt(Component[coordinate.Transform], surface.coordinate.Translate):
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self._composite._composite._cb_tilt.tilt.y = value
-            self._composite._composite._cb_translate.tilt.y = 0
+            self._composite._cb_tilt.transform.tilt.y = value
+            self._composite._cb_translate.transform.tilt.y = 0
         except AttributeError:
             pass
 
@@ -50,7 +50,7 @@ class Tilt(Component[coordinate.Transform], surface.coordinate.Translate):
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self._composite._composite._cb_tilt.tilt.z = value
-            self._composite._composite._cb_translate.tilt.z = 0
+            self._composite._cb_tilt.transform.tilt.z = value
+            self._composite._cb_translate.transform.tilt.z = 0
         except AttributeError:
             pass

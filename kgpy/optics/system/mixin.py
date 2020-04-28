@@ -1,3 +1,4 @@
+import abc
 import dataclasses
 import typing as typ
 import numpy as np
@@ -27,10 +28,15 @@ class Named:
     name: Name = dataclasses.field(default_factory=lambda: Name())
 
 
-ParentT = typ.TypeVar('ParentT')
+class InitArgs:
+
+    @property
+    def __init__args(self) -> typ.Dict['str', typ.Any]:
+        return {}
 
 
-@dataclasses.dataclass
-class Adopted(typ.Generic[ParentT]):
+class ZemaxCompatible(abc.ABC):
 
-    _parent: ParentT
+    @abc.abstractmethod
+    def to_zemax(self):
+        pass

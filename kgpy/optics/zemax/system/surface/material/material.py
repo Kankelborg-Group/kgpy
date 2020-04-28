@@ -8,34 +8,17 @@ __all__ = ['Material', 'NoMaterial']
 
 
 @dataclasses.dataclass
-class InstanceVarBase:
-    string: str = dataclasses.field(default='', init=False, repr=False)
-
-
-@dataclasses.dataclass
-class Mixin(Component[surface.Standard], system.surface.Material):
+class Material(Component['surface.Standard'], system.surface.Material):
+    string: typ.ClassVar[str] = ''
 
     def _update(self) -> typ.NoReturn:
-        self.string = self.string
-
-    @property
-    def string(self) -> str:
-        return self._string
-
-    @string.setter
-    def string(self, value: str):
-        self._string = value
+        super()._update()
         try:
-            self._composite.lde_row.Material = value
+            self._composite._lde_row.Material = self.string
         except AttributeError:
             pass
 
 
 @dataclasses.dataclass
-class Material(Mixin, InstanceVarBase):
-    pass
-
-
-@dataclasses.dataclass
-class NoMaterial(Material):
+class NoMaterial(system.surface.material.NoMaterial, Material):
     pass

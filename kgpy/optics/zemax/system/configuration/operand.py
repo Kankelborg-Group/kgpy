@@ -18,9 +18,11 @@ class Base:
     param_3: int = 0
 
 
+@dataclasses.dataclass
 class Operand(Component[Editor], Base):
 
-    def _update(self) -> None:
+    def _update(self) -> typ.NoReturn:
+        super()._update()
         self.op_factory = self.op_factory
         self.data = self.data
         self.param_1 = self.param_1
@@ -28,11 +30,11 @@ class Operand(Component[Editor], Base):
         self.param_3 = self.param_3
 
     @property
-    def op_factory(self) -> typ.Callable[[], ZOSAPI.Editors.MCE.MultiConfigOperandType]:
+    def op_factory(self) -> typ.Callable[[], int]:
         return self._op_factory
 
     @op_factory.setter
-    def op_factory(self, value: typ.Callable[[], ZOSAPI.Editors.MCE.MultiConfigOperandType]):
+    def op_factory(self, value: typ.Callable[[], int]):
         self._op_factory = value
         try:
             self.mce_row.ChangeType(value())
@@ -105,6 +107,6 @@ class Operand(Component[Editor], Base):
 
     @property
     def mce_row(self) -> ZOSAPI.Editors.MCE.IMCERow:
-        return self._composite._composite.zemax_system.MCE.GetOperandAt(self.mce_index)
+        return self._composite._composite._zemax_system.MCE.GetOperandAt(self.mce_index)
 
 

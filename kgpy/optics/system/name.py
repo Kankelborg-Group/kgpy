@@ -8,6 +8,12 @@ class Name:
     base: str = ''
     parent: 'typ.Optional[Name]' = None
 
+    def copy(self):
+        return type(self)(
+            base=self.base,
+            parent=self.parent.copy(),
+        )
+
     def __add__(self, other: str) -> 'Name':
         return type(self)(self, other)
 

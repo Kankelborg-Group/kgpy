@@ -1,6 +1,13 @@
-from .name import Name
 from . import coordinate
-from .surface import add_surfaces_to_zemax_system, Surface
-from .coordinate_break import CoordinateBreak
-from .standard import Standard
+from . import aperture
+from . import material
+from .surface import Surface
 from .editor import Editor
+from .coordinate_break import CoordinateBreak
+from .coordinate_transform import CoordinateTransform
+from .standard import Standard
+from .toroidal import Toroidal
+from .diffraction_grating import DiffractionGrating
+from .elliptical_grating import EllipticalGrating1
+from .transformed import Transformed
+from .substrate import Substrate

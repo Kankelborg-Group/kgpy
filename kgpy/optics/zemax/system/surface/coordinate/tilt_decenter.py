@@ -8,7 +8,7 @@ from . import Tilt, Decenter
 
 __all__ = ['TiltDecenter']
 
-SurfaceT = typ.TypeVar('SurfaceT', bound=surface.Surface)
+SurfaceT = typ.TypeVar('SurfaceT', bound='surface.Surface')
 
 
 @dataclasses.dataclass
@@ -17,14 +17,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class Base:
-
-    tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
-    decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
-
-
-@dataclasses.dataclass
-class TiltDecenter(Component[SurfaceT], Base, coordinate.TiltDecenter, OperandBase, typ.Generic[SurfaceT], abc.ABC, ):
+class TiltDecenter(Component[SurfaceT], coordinate.TiltDecenter, OperandBase, abc.ABC, ):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -33,20 +26,20 @@ class TiltDecenter(Component[SurfaceT], Base, coordinate.TiltDecenter, OperandBa
         self.tilt_first = self.tilt_first
 
     @property
-    def tilt(self) -> Tilt['TiltDecenter[SurfaceT]']:
+    def tilt(self) -> Tilt:
         return self._tilt
 
     @tilt.setter
-    def tilt(self, value: Tilt['TiltDecenter[SurfaceT]']):
+    def tilt(self, value: Tilt):
         value._composite = self
         self._tilt = value
 
     @property
-    def decenter(self) -> Decenter['TiltDecenter[SurfaceT]']:
+    def decenter(self) -> Decenter:
         return self._decenter
 
     @decenter.setter
-    def decenter(self, value: Decenter['TiltDecenter[SurfaceT]']):
+    def decenter(self, value: Decenter):
         value._composite = self
         self._decenter = value
 
@@ -62,6 +55,6 @@ class TiltDecenter(Component[SurfaceT], Base, coordinate.TiltDecenter, OperandBa
     def tilt_first(self, value: bool):
         self._tilt_first = value
         try:
-            self._composite.set(value, self._tilt_first_setter, self._tilt_first_op)
+            self._composite._set(int(value), self._tilt_first_setter, self._tilt_first_op)
         except AttributeError:
             pass

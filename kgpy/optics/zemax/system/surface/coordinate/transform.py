@@ -7,7 +7,7 @@ from . import Tilt, Translate
 
 __all__ = ['Transform']
 
-SurfaceT = typ.TypeVar('SurfaceT', bound=surface.Surface)
+SurfaceT = typ.TypeVar('SurfaceT', bound='surface.Surface')
 
 
 @dataclasses.dataclass
@@ -45,10 +45,10 @@ class Transform(Component[SurfaceT], coordinate.Transform, typ.Generic[SurfaceT]
         self._translate = value
 
     @property
-    def tilt_first(self) -> TiltFirst['Transform[SurfaceT]']:
+    def tilt_first(self) -> bool:
         return self._tilt_first
 
     @tilt_first.setter
-    def tilt_first(self, value: TiltFirst['Transform[SurfaceT]']):
+    def tilt_first(self, value: bool):
         value._composite = self
         self._tilt_first = value

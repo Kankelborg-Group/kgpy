@@ -1,31 +1,48 @@
-import typing as tp
+import dataclasses
+import typing as typ
 from astropy import units as u
-
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import util
+from .. import configuration
+from . import Standard
 
-__all__ = ['add_to_zemax_system']
-
-
-def add_to_zemax_system(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        surface: 'system.surface.Toroidal',
-        surface_index: int,
-        configuration_shape: tp.Tuple[int],
-        zemax_units: u.Unit,
-):
-
-    op_radius_of_rotation = ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM
-
-    ind_radius_of_rotation = 1
-
-    unit_radius_of_rotation = zemax_units
-    
-    zemax_surface = zemax_system.LDE.GetSurfaceAt(surface_index)
-    zemax_surface.ChangeType(zemax_surface.GetSurfaceTypeSettings(ZOSAPI.Editors.LDE.SurfaceType.Toroidal))
-
-    util.set_float(zemax_system, surface.radius_of_rotation, configuration_shape, op_radius_of_rotation,
-                   unit_radius_of_rotation, surface_index, ind_radius_of_rotation)
+__all__ = ['Toroidal']
 
 
+@dataclasses.dataclass
+class InstanceVarBase:
+    _radius_of_rotation_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM,
+            param_2=1,
+        ),
+        init=None,
+        repr=None,
+    )
+
+
+@dataclasses.dataclass
+class Toroidal(system.surface.Toroidal, InstanceVarBase, Standard, ):
+
+    def _update(self) -> typ.NoReturn:
+        super()._update()
+        self.radius_of_rotation = self.radius_of_rotation
+
+    def _get_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+        return ZOSAPI.Editors.LDE.SurfaceType.Toroidal
+
+    @property
+    def _lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurfaceToroidal]:
+        return super()._lde_row
+
+    def _radius_of_rotation_setter(self, value: float):
+        self._lde_row.SurfaceData.RadiusOfRotation = value
+
+    @property
+    def radius_of_rotation(self) -> u.Quantity:
+        return self._radius_of_rotation
+
+    @radius_of_rotation.setter
+    def radius_of_rotation(self, value: u.Quantity):
+        self._radius_of_rotation = value
+        self._set_with_lens_units(value, self._radius_of_rotation_setter, self._radius_of_rotation_op)

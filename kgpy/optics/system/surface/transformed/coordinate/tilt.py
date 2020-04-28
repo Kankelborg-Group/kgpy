@@ -5,11 +5,11 @@ from kgpy.component import Component
 from .... import surface
 from .. import coordinate
 
-__all__ = ['Translate']
+__all__ = ['Tilt']
 
 
 @dataclasses.dataclass
-class Translate(Component['coordinate.Transform'], surface.coordinate.Translate):
+class Tilt(Component['coordinate.Transform'], surface.coordinate.Tilt):
 
     def _update(self) -> typ.NoReturn:
         self.x = self.x
@@ -24,8 +24,8 @@ class Translate(Component['coordinate.Transform'], surface.coordinate.Translate)
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self._composite._cb_translate.transform.decenter.x = value
-            self._composite._cb_tilt.transform.decenter.x = 0
+            self._composite._ct_before.tilt.x = value
+            self._composite._ct_after.tilt.x = -value
         except AttributeError:
             pass
 
@@ -37,8 +37,8 @@ class Translate(Component['coordinate.Transform'], surface.coordinate.Translate)
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self._composite._cb_translate.transform.decenter.y = value
-            self._composite._cb_tilt.transform.decenter.y = 0
+            self._composite._ct_before.tilt.y = value
+            self._composite._ct_after.tilt.y = -value
         except AttributeError:
             pass
 
@@ -50,7 +50,7 @@ class Translate(Component['coordinate.Transform'], surface.coordinate.Translate)
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self._composite._cb_translate.thickness = value
-            self._composite._cb_tilt.thickness = 0
+            self._composite._ct_before.tilt.z = value
+            self._composite._ct_after.tilt.z = -value
         except AttributeError:
             pass

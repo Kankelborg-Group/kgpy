@@ -1,9 +1,9 @@
 import dataclasses
 import numpy as np
 from ... import mixin
-from . import Tilt, InverseTilt, Translate, InverseTranslate
+from . import Tilt, Translate
 
-__all__ = ['Transform', 'InverseTransform']
+__all__ = ['Transform']
 
 
 @dataclasses.dataclass
@@ -11,6 +11,10 @@ class Transform(mixin.Broadcastable):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     translate: Translate = dataclasses.field(default_factory=lambda: Translate())
     tilt_first: bool = False
+
+    @classmethod
+    def promote(cls, value: 'Transform'):
+        return cls(value.tilt, value.translate, value.tilt_first)
 
     @property
     def config_broadcast(self):
@@ -28,23 +32,3 @@ class Transform(mixin.Broadcastable):
         )
 
 
-@dataclasses.dataclass
-class InverseTransform:
-
-    _transform: Transform
-
-    @property
-    def config_broadcast(self):
-        return self._transform.config_broadcast
-
-    @property
-    def tilt(self) -> InverseTilt:
-        return InverseTilt(self._transform.tilt)
-    
-    @property
-    def translate(self) -> InverseTranslate:
-        return InverseTranslate(self._transform.translate)
-    
-    @property
-    def tilt_first(self) -> InverseTiltFirst:
-        return InverseTiltFirst(self._transform.tilt_first)

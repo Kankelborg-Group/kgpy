@@ -9,8 +9,8 @@ from . import coordinate
 
 __all__ = ['Standard']
 
-MaterialT = typ.TypeVar('MaterialT', bound=material_.Material)
-ApertureT = typ.TypeVar('ApertureT', bound=aperture_.Aperture)
+MaterialT = typ.TypeVar('MaterialT', bound='material_.Material')
+ApertureT = typ.TypeVar('ApertureT', bound='aperture_.Aperture')
 
 
 @dataclasses.dataclass
@@ -33,18 +33,23 @@ class InstanceVarBase:
 
 @dataclasses.dataclass
 class Base(typ.Generic[MaterialT, ApertureT]):
-    material: MaterialT = dataclasses.field(default_factory=material_.NoMaterial(), init=False, repr=False)
-    aperture: ApertureT = dataclasses.field(default_factory=aperture_.NoAperture(), init=False, repr=False)
-    transform_before: coordinate.before.TiltDecenter = dataclasses.field(
-        default_factory=coordinate.before.TiltDecenter(), init=False, repr=False
-    )
-    transform_after: coordinate.after.TiltDecenter = dataclasses.field(
-        default_factory=coordinate.after.TiltDecenter(), init=False, repr=False
-    )
+    material: MaterialT = dataclasses.field(default_factory=lambda: material_.NoMaterial())
+    aperture: ApertureT = dataclasses.field(default_factory=lambda: aperture_.NoAperture())
+    # transform_before: coordinate.before.TiltDecenter = dataclasses.field(
+    #     default_factory=lambda: coordinate.before.TiltDecenter()
+    # )
+    # transform_after: coordinate.after.TiltDecenter = dataclasses.field(
+    #     default_factory=lambda: coordinate.after.TiltDecenter()
+    # )
 
 
-class Standard(Base[MaterialT, ApertureT], system.surface.Standard, InstanceVarBase, surface.Surface,
-               typ.Generic[MaterialT, ApertureT]):
+@dataclasses.dataclass
+class Standard(
+    Base[MaterialT, ApertureT],
+    system.surface.Standard,
+    InstanceVarBase,
+    surface.Surface,
+):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -55,8 +60,11 @@ class Standard(Base[MaterialT, ApertureT], system.surface.Standard, InstanceVarB
         self.transform_before = self.transform_before
         self.transform_after = self.transform_after
 
+    def _get_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+        return ZOSAPI.Editors.LDE.SurfaceType.Standard
+
     def _radius_setter(self, value: float):
-        self.lde_row.Radius = value
+        self._lde_row.Radius = value
 
     @property
     def radius(self) -> u.Quantity:
@@ -65,13 +73,10 @@ class Standard(Base[MaterialT, ApertureT], system.surface.Standard, InstanceVarB
     @radius.setter
     def radius(self, value: u.Quantity):
         self._radius = value
-        try:
-            self.set(value, self._radius_setter, self._radius_op, self.lens_units)
-        except AttributeError:
-            pass
+        self._set_with_lens_units(value, self._radius_setter, self._radius_op)
 
     def _conic_setter(self, value: float):
-        self.lde_row.Conic = value
+        self._lde_row.Conic = value
 
     @property
     def conic(self) -> u.Quantity:
@@ -80,10 +85,7 @@ class Standard(Base[MaterialT, ApertureT], system.surface.Standard, InstanceVarB
     @conic.setter
     def conic(self, value: u.Quantity):
         self._conic = value
-        try:
-            self.set(value, self._conic_setter, self._conic_op)
-        except AttributeError:
-            pass
+        self._set(value, self._conic_setter, self._conic_op)
 
     @property
     def material(self) -> MaterialT:
@@ -109,6 +111,8 @@ class Standard(Base[MaterialT, ApertureT], system.surface.Standard, InstanceVarB
 
     @transform_before.setter
     def transform_before(self, value: coordinate.before.TiltDecenter):
+        if not isinstance(value, coordinate.before.TiltDecenter):
+            value = coordinate.before.TiltDecenter.promote(value)
         value._composite = self
         self._transform_before = value
 
@@ -118,5 +122,7 @@ class Standard(Base[MaterialT, ApertureT], system.surface.Standard, InstanceVarB
 
     @transform_after.setter
     def transform_after(self, value: coordinate.after.TiltDecenter):
+        if not isinstance(value, coordinate.after.TiltDecenter):
+            value = coordinate.after.TiltDecenter.promote(value)
         value._composite = self
         self._transform_after = value

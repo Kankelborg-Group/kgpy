@@ -2,22 +2,33 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-
 from kgpy import math
-
-from . import Standard
+from . import Standard, material, aperture
 
 __all__ = ['DiffractionGrating']
 
-AperSurfT = typ.TypeVar('AperSurfT')
-MainSurfT = typ.TypeVar('MainSurfT')
+MaterialT = typ.TypeVar('MaterialT', bound=material.Material)
+ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
 
 
 @dataclasses.dataclass
-class DiffractionGrating(Standard[AperSurfT, MainSurfT]):
+class DiffractionGrating(Standard[MaterialT, ApertureT]):
 
     diffraction_order: int = 1
     groove_frequency: u.Quantity = 0 * (1 / u.mm)
+
+    @property
+    def __init__args(self) -> typ.Dict[str, typ.Any]:
+        args = super().__init__args
+        args.update({
+            'diffraction_order': self.diffraction_order,
+            'groove_frequency': self.groove_frequency,
+        })
+        return args
+
+    def to_zemax(self) -> 'Standard':
+        from kgpy.optics import zemax
+        return zemax.system.surface.Standard(**self.__init__args)
 
     @property
     def config_broadcast(self):

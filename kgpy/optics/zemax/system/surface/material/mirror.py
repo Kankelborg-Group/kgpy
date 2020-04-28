@@ -9,12 +9,8 @@ __all__ = ['Mirror']
 
 
 @dataclasses.dataclass
-class Base:
-    string: str = dataclasses.field(default='MIRROR', init=False, repr=False)
-
-
-@dataclasses.dataclass
-class Mirror(material.Mixin, system.surface.material.Mirror, Base):
+class Mirror(material.Material, system.surface.material.Mirror):
+    string: typ.ClassVar[str] = 'MIRROR'
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -28,7 +24,7 @@ class Mirror(material.Mixin, system.surface.material.Mirror, Base):
     def thickness(self, value: u.Quantity):
         self._thickness = value
         try:
-            self._composite.lde_row.DrawData.MirrorThickness = value.to(self._composite.lens_units).value
-            self._composite.lde_row.DrawData.MirrorSubstrate = ZOSAPI.Editors.LDE.SubstrateType.Flat
+            self._composite._lde_row.DrawData.MirrorThickness = value.to(self._composite._lens_units).value
+            self._composite._lde_row.DrawData.MirrorSubstrate = ZOSAPI.Editors.LDE.SubstrateType.Flat
         except AttributeError:
             pass

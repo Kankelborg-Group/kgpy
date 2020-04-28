@@ -1,7 +1,6 @@
 import dataclasses
 import numpy as np
 import astropy.units as u
-
 from . import Aperture, decenterable, obscurable
 
 __all__ = ['Rectangular']
@@ -12,6 +11,15 @@ class Rectangular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
     half_width_x: u.Quantity = 0 * u.mm
     half_width_y: u.Quantity = 0 * u.mm
+
+    def to_zemax(self) -> 'Rectangular':
+        from kgpy.optics import zemax
+        return zemax.system.surface.aperture.Rectangular(
+            is_obscuration=self.is_obscuration,
+            decenter=self.decenter,
+            half_width_x=self.half_width_x,
+            half_width_y=self.half_width_y,
+        )
 
     @property
     def config_broadcast(self):

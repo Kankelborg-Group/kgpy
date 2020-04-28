@@ -8,7 +8,7 @@ from ... import configuration, surface
 
 __all__ = ['Decenter']
 
-SurfaceComponentT = typ.TypeVar('SurfaceComponentT', bound=Component[surface.Surface])
+SurfaceComponentT = typ.TypeVar('SurfaceComponentT', bound='Component[surface.Surface]')
 
 
 @dataclasses.dataclass
@@ -18,7 +18,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class Decenter(Component[SurfaceComponentT], coordinate.Decenter, OperandBase, typ.Generic[SurfaceComponentT], abc.ABC):
+class Decenter(Component[SurfaceComponentT], coordinate.Decenter, OperandBase, abc.ABC):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -29,10 +29,6 @@ class Decenter(Component[SurfaceComponentT], coordinate.Decenter, OperandBase, t
     def _x_setter(self, value: float):
         pass
 
-    @abc.abstractmethod
-    def _y_setter(self, value: float):
-        pass
-
     @property
     def x(self) -> u.Quantity:
         return self._x
@@ -41,9 +37,13 @@ class Decenter(Component[SurfaceComponentT], coordinate.Decenter, OperandBase, t
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self._composite._composite.set(value, self._x_setter, self._x_op, self._composite._composite.lens_units)
+            self._composite._composite._set_with_lens_units(value, self._x_setter, self._x_op)
         except AttributeError:
             pass
+
+    @abc.abstractmethod
+    def _y_setter(self, value: float):
+        pass
 
     @property
     def y(self) -> u.Quantity:
@@ -53,6 +53,6 @@ class Decenter(Component[SurfaceComponentT], coordinate.Decenter, OperandBase, t
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self._composite._composite.set(value, self._y_setter, self._y_op, self._composite._composite.lens_units)
+            self._composite._composite._set_with_lens_units(value, self._y_setter, self._y_op)
         except AttributeError:
             pass

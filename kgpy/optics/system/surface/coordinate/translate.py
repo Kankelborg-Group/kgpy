@@ -3,13 +3,17 @@ import numpy as np
 from astropy import units as u
 from . import Decenter
 
-__all__ = ['Translate', 'InverseTranslate']
+__all__ = ['Translate']
 
 
 @dataclasses.dataclass
 class Translate(Decenter):
 
     z: u.Quantity = 0 * u.mm
+
+    @classmethod
+    def promote(cls, value: 'Translate'):
+        return cls(value.x, value.y, value.z)
 
     @property
     def config_broadcast(self):
@@ -40,23 +44,3 @@ class Translate(Decenter):
         )
 
 
-@dataclasses.dataclass
-class InverseTranslate:
-    
-    _translate: Translate
-
-    @property
-    def config_broadcast(self):
-        return self._translate.config_broadcast
-    
-    @property
-    def x(self) -> u.Quantity:
-        return -self._translate.x
-    
-    @property
-    def y(self) -> u.Quantity:
-        return -self._translate.y
-    
-    @property
-    def z(self) -> u.Quantity:
-        return -self._translate.z

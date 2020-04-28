@@ -1,6 +1,4 @@
 import dataclasses
-import typing as typ
-import numpy as np
 
 from ... import mixin
 
@@ -8,6 +6,8 @@ __all__ = ['Aperture']
 
 
 @dataclasses.dataclass
-class Aperture(mixin.Broadcastable):
+class Aperture(mixin.ZemaxCompatible, mixin.Broadcastable):
 
-    pass
+    def to_zemax(self) -> 'Aperture':
+        from kgpy.optics import zemax
+        return zemax.system.surface.aperture.Aperture()

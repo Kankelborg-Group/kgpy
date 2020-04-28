@@ -4,7 +4,7 @@ import numpy as np
 from astropy import units as u
 from ... import mixin
 
-__all__ = ['Tilt', 'InverseTilt']
+__all__ = ['Tilt']
 
 
 @dataclasses.dataclass
@@ -12,6 +12,10 @@ class Tilt(mixin.Broadcastable):
     x: u.Quantity = 0 * u.deg
     y: u.Quantity = 0 * u.deg
     z: u.Quantity = 0 * u.deg
+
+    @classmethod
+    def promote(cls, value: 'Tilt'):
+        return cls(value.x, value.y, value.z)
 
     @property
     def config_broadcast(self):
@@ -30,23 +34,3 @@ class Tilt(mixin.Broadcastable):
         )
 
 
-@dataclasses.dataclass
-class InverseTilt:
-
-    _tilt: Tilt
-
-    @property
-    def config_broadcast(self):
-        return self._tilt.config_broadcast
-
-    @property
-    def x(self) -> u.Quantity:
-        return -self._tilt.x
-
-    @property
-    def y(self) -> u.Quantity:
-        return -self._tilt.y
-
-    @property
-    def z(self) -> u.Quantity:
-        return -self._tilt.z
