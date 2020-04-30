@@ -5,6 +5,8 @@ import astropy.constants
 import astropy.wcs
 from kgpy.moment.percentile import arg_percentile, intensity
 
+__all__ = ['indices_to_velocity', 'velocity_arg_percentile', 'shift', 'width', 'skew', 'first_four_moments']
+
 
 def indices_to_velocity(
         indices: np.ndarray,
@@ -12,7 +14,7 @@ def indices_to_velocity(
         wcs: astropy.wcs.WCS,
         wscale: int
 ):
-    _, _, wavelengths = wcs.all_pix2world(0, 0, wscale * indices, 0)
+    wavelengths, _, _ = wcs.all_pix2world(wscale * indices, 0, 0, 0)
     wavelengths = wavelengths << u.AA
     velocities = astropy.constants.c * (wavelengths - base_wavelength) / base_wavelength
     velocities = velocities.to(u.km / u.s)
@@ -20,14 +22,13 @@ def indices_to_velocity(
     return velocities
 
 
-def wcs_arg_percentile(
+def velocity_arg_percentile(
         cube: np.ndarray,
         percentile: float,
         base_wavelength: u.Quantity,
         wcs: astropy.wcs.WCS,
         wscale: int = 1,
         axis: int = ~0,
-
 ) -> np.ndarray:
     return indices_to_velocity(
         indices=arg_percentile(cube, percentile, axis=axis),
@@ -43,7 +44,7 @@ def shift(
         wscale: int = 1,
         axis: int = ~0,
 ) -> np.ndarray:
-    return wcs_arg_percentile(cube, 0.5, base_wavelength, wcs, wscale, axis)
+    return velocity_arg_percentile(cube, 0.5, base_wavelength, wcs, wscale, axis)
 
 
 def width(
@@ -53,8 +54,8 @@ def width(
         wscale: int = 1,
         axis: int = ~0,
 ) -> np.ndarray:
-    p1 = wcs_arg_percentile(cube, 0.25, base_wavelength, wcs, wscale, axis)
-    p3 = wcs_arg_percentile(cube, 0.75, base_wavelength, wcs, wscale, axis)
+    p1 = velocity_arg_percentile(cube, 0.25, base_wavelength, wcs, wscale, axis)
+    p3 = velocity_arg_percentile(cube, 0.75, base_wavelength, wcs, wscale, axis)
     return p3 - p1
 
 
@@ -65,9 +66,9 @@ def skew(
         wscale: int = 1,
         axis: int = ~0,
 ) -> np.ndarray:
-    p1 = wcs_arg_percentile(cube, 0.25, base_wavelength, wcs, wscale, axis)
-    p2 = wcs_arg_percentile(cube, 0.50, base_wavelength, wcs, wscale, axis)
-    p3 = wcs_arg_percentile(cube, 0.75, base_wavelength, wcs, wscale, axis)
+    p1 = velocity_arg_percentile(cube, 0.25, base_wavelength, wcs, wscale, axis)
+    p2 = velocity_arg_percentile(cube, 0.50, base_wavelength, wcs, wscale, axis)
+    p3 = velocity_arg_percentile(cube, 0.75, base_wavelength, wcs, wscale, axis)
     return p3 - 2 * p2 + p1
 
 
