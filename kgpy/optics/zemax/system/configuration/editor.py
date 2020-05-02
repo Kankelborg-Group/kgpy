@@ -8,12 +8,8 @@ __all__ = ['Editor']
 
 
 @dataclasses.dataclass
-class Base:
-
-    _operands: typ.List['operand.Operand'] = dataclasses.field(default_factory=lambda: [])
-
-
-class Editor(Component['system.System'], Base):
+class Editor(Component['system.System']):
+    __operands: typ.List['operand.Operand'] = dataclasses.field(default_factory=lambda: [], init=False, repr=False)
 
     def _update(self) -> typ.NoReturn:
         self._operands = self._operands

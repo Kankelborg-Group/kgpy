@@ -12,6 +12,7 @@ __all__ = ['Tilt']
 class Tilt(Component['coordinate.Transform'], surface.coordinate.Tilt):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.x = self.x
         self.y = self.y
         self.z = self.z
@@ -24,8 +25,8 @@ class Tilt(Component['coordinate.Transform'], surface.coordinate.Tilt):
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self._composite._ct_before.tilt.x = value
-            self._composite._ct_after.tilt.x = -value
+            self._composite._ct_before.transform.tilt.x = value
+            self._composite._ct_after.transform.tilt.x = -value
         except AttributeError:
             pass
 
@@ -37,8 +38,8 @@ class Tilt(Component['coordinate.Transform'], surface.coordinate.Tilt):
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self._composite._ct_before.tilt.y = value
-            self._composite._ct_after.tilt.y = -value
+            self._composite._ct_before.transform.tilt.y = value
+            self._composite._ct_after.transform.tilt.y = -value
         except AttributeError:
             pass
 
@@ -50,7 +51,7 @@ class Tilt(Component['coordinate.Transform'], surface.coordinate.Tilt):
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self._composite._ct_before.tilt.z = value
-            self._composite._ct_after.tilt.z = -value
+            self._composite._ct_before.transform.tilt.z = value
+            self._composite._ct_after.transform.tilt.z = -value
         except AttributeError:
             pass

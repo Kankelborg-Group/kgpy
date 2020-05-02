@@ -1,5 +1,6 @@
 import dataclasses
 import typing as typ
+import win32com.client
 from astropy import units as u
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
@@ -60,8 +61,13 @@ class Standard(
         self.transform_before = self.transform_before
         self.transform_after = self.transform_after
 
-    def _get_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+    @property
+    def _lde_row_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
         return ZOSAPI.Editors.LDE.SurfaceType.Standard
+
+    @property
+    def _lde_row_data(self) -> ZOSAPI.Editors.LDE.ISurfaceStandard:
+        return win32com.client.CastTo(self._lde_row.SurfaceData, ZOSAPI.Editors.LDE.ISurfaceStandard.__name__)
 
     def _radius_setter(self, value: float):
         self._lde_row.Radius = value

@@ -1,6 +1,7 @@
 import dataclasses
 import typing as typ
 from astropy import units as u
+import win32com.client
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 from .. import configuration
@@ -28,15 +29,20 @@ class Toroidal(system.surface.Toroidal, InstanceVarBase, Standard, ):
         super()._update()
         self.radius_of_rotation = self.radius_of_rotation
 
-    def _get_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+    @property
+    def _lde_row_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
         return ZOSAPI.Editors.LDE.SurfaceType.Toroidal
+
+    @property
+    def _lde_row_data(self) -> ZOSAPI.Editors.LDE.ISurfaceToroidal:
+        return win32com.client.CastTo(self._lde_row.SurfaceData, ZOSAPI.Editors.LDE.ISurfaceToroidal.__name__)
 
     @property
     def _lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurfaceToroidal]:
         return super()._lde_row
 
     def _radius_of_rotation_setter(self, value: float):
-        self._lde_row.SurfaceData.RadiusOfRotation = value
+        self._lde_row_data.RadiusOfRotation = value
 
     @property
     def radius_of_rotation(self) -> u.Quantity:

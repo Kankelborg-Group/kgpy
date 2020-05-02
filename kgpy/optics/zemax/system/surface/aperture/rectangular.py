@@ -1,8 +1,8 @@
 import dataclasses
 import typing as typ
+import win32com.client
 import numpy as np
 from astropy import units as u
-
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
 from kgpy.optics.zemax.system import util, configuration
@@ -16,17 +16,17 @@ __all__ = ['Rectangular']
 class Decenter(surface.coordinate.Decenter['Rectangular'], decenterable.Operands):
 
     def _x_setter(self, value: float):
-        self._composite._composite._lde_row.ApertureData.ApertureXDecenter = value
+        self._composite._lde_row_aperture_data.ApertureXDecenter = value
 
     def _y_setter(self, value: float):
-        self._composite._composite._lde_row.ApertureData.ApertureYDecenter = value
+        self._composite._lde_row_aperture_data.ApertureYDecenter = value
 
 
 @dataclasses.dataclass
 class Operands:
 
     _half_width_x_op: configuration.SurfaceOperand = dataclasses.field(
-        default_factory=configuration.SurfaceOperand(
+        default_factory=lambda: configuration.SurfaceOperand(
             op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.APMN
         ),
         init=False,
@@ -34,7 +34,7 @@ class Operands:
     )
 
     _half_width_y_op: configuration.SurfaceOperand = dataclasses.field(
-        default_factory=configuration.SurfaceOperand(
+        default_factory=lambda: configuration.SurfaceOperand(
             op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.APMN
         ),
         init=False,
@@ -51,6 +51,22 @@ class Base:
 @dataclasses.dataclass
 class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, Operands):
 
+    @property
+    def _lde_row_aperture_data(self) -> ZOSAPI.Editors.LDE.ISurfaceApertureRectangular:
+        if self._is_obscuration:
+            aper_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularObscuration
+        else:
+            aper_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularAperture
+
+        return win32com.client.CastTo(
+            self._composite._lde_row.ApertureData.CreateApertureTypeSettings(aper_type),
+            ZOSAPI.Editors.LDE.ISurfaceApertureRectangular.__name__
+        )
+
+    @_lde_row_aperture_data.setter
+    def _lde_row_aperture_data(self, value: ZOSAPI.Editors.LDE.ISurfaceApertureRectangular):
+        self._composite._lde_row.ApertureData.ChangeApertureTypeSettings(value)
+
     def _update(self) -> typ.NoReturn:
         super()._update()
         self.is_obscuration = self.is_obscuration
@@ -66,12 +82,7 @@ class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, 
     def is_obscuration(self, value: 'np.ndarray[bool]'):
         self._is_obscuration = value
         try:
-            if self._is_obscuration:
-                aper_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularObscuration
-            else:
-                aper_type = ZOSAPI.Editors.LDE.SurfaceApertureTypes.RectangularAperture
-            aper_type = self._composite._lde_row.ApertureData.CreateApertureTypeSettings(aper_type)
-            self._composite._lde_row.ApertureData.ChangeApertureTypeSettings(aper_type)
+            self._lde_row_aperture_data = self._lde_row_aperture_data
         except AttributeError:
             pass
 
@@ -86,7 +97,9 @@ class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, 
         self._decenter = value
 
     def _half_width_x_setter(self, value: float):
-        self._composite._lde_row.ApertureData.HalfWidthX = value
+        s = self._lde_row_aperture_data
+        s.XHalfWidth = value
+        self._lde_row_aperture_data = s
 
     @property
     def half_width_x(self) -> u.Quantity:
@@ -101,7 +114,9 @@ class Rectangular(Base, system.surface.aperture.Rectangular, aperture.Aperture, 
             pass
 
     def _half_width_y_setter(self, value: float):
-        self._composite._lde_row.ApertureData.HalfWidthY = value
+        s = self._lde_row_aperture_data
+        s.YHalfWidth = value
+        self._lde_row_aperture_data = s
 
     @property
     def half_width_y(self) -> u.Quantity:

@@ -12,6 +12,7 @@ __all__ = ['Translate']
 class Translate(Component['coordinate.Transform'], surface.coordinate.Translate):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.x = self.x
         self.y = self.y
         self.z = self.z

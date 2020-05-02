@@ -1,5 +1,6 @@
 import dataclasses
 import typing as typ
+import win32com.client
 from astropy import units as u
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
@@ -40,15 +41,20 @@ class DiffractionGrating(system.surface.DiffractionGrating, InstanceVarBase, Sta
         self.groove_frequency = self.groove_frequency
         self.diffraction_order = self.diffraction_order
 
-    def _get_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+    @property
+    def _lde_row_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
         return ZOSAPI.Editors.LDE.SurfaceType.DiffractionGrating
+
+    @property
+    def _lde_row_data(self) -> ZOSAPI.Editors.LDE.ISurfaceDiffractionGrating:
+        return win32com.client.CastTo(self._lde_row.SurfaceData, ZOSAPI.Editors.LDE.ISurfaceDiffractionGrating.__name__)
 
     @property
     def _lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurfaceDiffractionGrating]:
         return super()._lde_row
 
     def _groove_frequency_setter(self, value: float):
-        self._lde_row.SurfaceData.LinesPerMicroMeter = value
+        self._lde_row_data.LinesPerMicroMeter = value
 
     @property
     def groove_frequency(self) -> u.Quantity:
@@ -60,7 +66,7 @@ class DiffractionGrating(system.surface.DiffractionGrating, InstanceVarBase, Sta
         self._set(value, self._groove_frequency_setter, self._groove_frequency_op, self._groove_frequency_unit)
 
     def _diffraction_order_setter(self, value: float):
-        self._lde_row.SurfaceData.DiffractionOrder = value
+        self._lde_row_data.DiffractionOrder = value
 
     @property
     def diffraction_order(self) -> u.Quantity:

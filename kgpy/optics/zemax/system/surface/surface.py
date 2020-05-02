@@ -1,6 +1,7 @@
 import dataclasses
 import abc
 import typing as typ
+import win32com.client
 import numpy as np
 import astropy.units as u
 from kgpy.component import Component
@@ -43,19 +44,25 @@ class Surface(Component[system.System], kgpy.optics.system.Surface, OperandBase,
 
     def _update(self) -> typ.NoReturn:
         super()._update()
-        self._set_type()
+        self._update_lde_row()
         self.name = self.name
         self.thickness = self.thickness
         self.is_active = self.is_active
         self.is_visible = self.is_visible
 
+    @property
     @abc.abstractmethod
-    def _get_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+    def _lde_row_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
         pass
 
-    def _set_type(self) -> typ.NoReturn:
+    @property
+    @abc.abstractmethod
+    def _lde_row_data(self) -> ZOSAPI.Editors.LDE.ISurface:
+        return win32com.client.CastTo(self._lde_row.SurfaceData, ZOSAPI.Editors.LDE.ISurface.__name__)
+
+    def _update_lde_row(self) -> typ.NoReturn:
         try:
-            settings = self._lde_row.GetSurfaceTypeSettings(self._get_type())
+            settings = self._lde_row.GetSurfaceTypeSettings(self._lde_row_type)
             self._lde_row.ChangeType(settings)
         except AttributeError:
             pass
@@ -67,7 +74,10 @@ class Surface(Component[system.System], kgpy.optics.system.Surface, OperandBase,
     @name.setter
     def name(self, value: 'name.Name'):
         self._name = value
-        value.surface = self
+        try:
+            self._lde_row.Comment = str(value)
+        except AttributeError:
+            pass
 
     def _thickness_setter(self, value: float):
         self._lde_row.Thickness = value
@@ -80,18 +90,6 @@ class Surface(Component[system.System], kgpy.optics.system.Surface, OperandBase,
     def thickness(self, value: u.Quantity):
         self._thickness = value
         self._set_with_lens_units(value, self._thickness_setter, self._thickness_op)
-
-    # @property
-    # def is_stop(self) -> bool:
-    #     return self._is_stop
-    #
-    # @is_stop.setter
-    # def is_stop(self, value: bool):
-    #     self._is_stop = value
-    #     try:
-    #         self._lde_row.IsStop = value
-    #     except AttributeError:
-    #         pass
 
     def _is_active_setter(self, value: bool):
         self._lde_row.IsActive = not value
@@ -120,7 +118,7 @@ class Surface(Component[system.System], kgpy.optics.system.Surface, OperandBase,
     @property
     def _lde_index(self) -> int:
         surfaces = list(self._composite.surfaces)
-        return surfaces.index(self)
+        return surfaces.index(self) + 1
 
     @property
     def _lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:

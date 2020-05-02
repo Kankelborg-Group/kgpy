@@ -2,7 +2,7 @@ import dataclasses
 import typing as typ
 from kgpy.component import Component
 from .... import Name, mixin, surface
-from ... import coordinate, CoordinateBreak
+from ... import coordinate, CoordinateBreak, coordinate_transform
 from . import Tilt, Translate
 
 __all__ = ['Transform']
@@ -16,9 +16,10 @@ class Base:
 
 
 @dataclasses.dataclass
-class Transform(coordinate.Transform, Base):
+class Transform(Component['coordinate_transform.CoordinateTransform'], coordinate.Transform, Base):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.tilt_first = self.tilt_first
 
     @property
@@ -78,7 +79,7 @@ class Transform(coordinate.Transform, Base):
             self._cb1.tilt_first = value
             self._cb2.tilt_first = value
             self._cb_tilt.name.base = 'tilt'
-            self._cb_translate.base = 'translate'
+            self._cb_translate.name.base = 'translate'
         except AttributeError:
             pass
         self.tilt = self.tilt

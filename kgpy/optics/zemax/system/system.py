@@ -46,9 +46,9 @@ class InstanceVarBase:
 
     _zemax_app: ZOSAPI.IZOSAPI_Application = dataclasses.field(default_factory=load_zemax_app, init=False, repr=False, )
 
-    _lens_units: u.Unit = dataclasses.field(default_factory=lambda: u.mm, init=False, repr=False)
+    _lens_units: u.Unit = dataclasses.field(default_factory=lambda: u.mm, repr=False)
 
-    _mce: configuration.Editor = dataclasses.field(
+    _mce_: configuration.Editor = dataclasses.field(
         default_factory=lambda: configuration.Editor(), init=False, repr=False,
     )
 
@@ -59,6 +59,9 @@ SurfacesT = typ.TypeVar('SurfacesT', bound='typ.Iterable[surface.Surface]')
 @dataclasses.dataclass
 class System(optics.System[SurfacesT], InstanceVarBase):
 
+    def __post_init__(self):
+        self._mce = self._mce
+
     def save(self, filename: pathlib.Path):
         self._zemax_system.SaveAs(str(filename))
 
@@ -68,7 +71,7 @@ class System(optics.System[SurfacesT], InstanceVarBase):
 
     @surfaces.setter
     def surfaces(self, value: SurfacesT):
-        num_surfaces = len(list(value))
+        num_surfaces = len(list(value)) + 1
         while self._lde.NumberOfSurfaces != num_surfaces:
             if self._lde.NumberOfSurfaces < num_surfaces:
                 self._lde.AddSurface()
@@ -115,12 +118,12 @@ class System(optics.System[SurfacesT], InstanceVarBase):
 
     @property
     def _mce(self) -> configuration.Editor:
-        return self._config_operands
+        return self._mce_
 
     @_mce.setter
     def _mce(self, value: configuration.Editor):
-        self._config_operands = value
-        value.system = self
+        self._mce_ = value
+        value._composite = self
 
     @property
     def _lens_units(self) -> u.Unit:
@@ -148,6 +151,7 @@ class System(optics.System[SurfacesT], InstanceVarBase):
             operand: configuration.Operand,
             unit: u.Unit = None,
     ) -> typ.NoReturn:
+        print('here')
         if unit is not None:
             value = value.to(unit).value
 

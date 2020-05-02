@@ -12,6 +12,7 @@ __all__ = ['Translate']
 class Translate(Component['coordinate.Transform'], surface.coordinate.Translate):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.x = self.x
         self.y = self.y
         self.z = self.z
@@ -24,8 +25,8 @@ class Translate(Component['coordinate.Transform'], surface.coordinate.Translate)
     def x(self, value: u.Quantity):
         self._x = value
         try:
-            self._composite._ct_before.translate.x = value
-            self._composite._ct_after.translate.x = -value
+            self._composite._ct_before.transform.translate.x = value
+            self._composite._ct_after.transform.translate.x = -value
         except AttributeError:
             pass
 
@@ -37,8 +38,8 @@ class Translate(Component['coordinate.Transform'], surface.coordinate.Translate)
     def y(self, value: u.Quantity):
         self._y = value
         try:
-            self._composite._ct_before.translate.y = value
-            self._composite._ct_after.translate.y = -value
+            self._composite._ct_before.transform.translate.y = value
+            self._composite._ct_after.transform.translate.y = -value
         except AttributeError:
             pass
 
@@ -50,7 +51,7 @@ class Translate(Component['coordinate.Transform'], surface.coordinate.Translate)
     def z(self, value: u.Quantity):
         self._z = value
         try:
-            self._composite._ct_before.translate.z = value
-            self._composite._ct_after.translate.z = -value
+            self._composite._ct_before.transform.translate.z = value
+            self._composite._ct_after.transform.translate.z = -value
         except AttributeError:
             pass

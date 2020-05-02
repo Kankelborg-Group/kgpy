@@ -10,8 +10,16 @@ SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[Surface]])
 
 @dataclasses.dataclass
 class Transform(kgpy.optics.system.surface.transformed.coordinate.Transform):
-    _ct1: CoordinateTransform = dataclasses.field(default_factory=lambda: CoordinateTransform(), init=False, repr=False)
-    _ct2: CoordinateTransform = dataclasses.field(default_factory=lambda: CoordinateTransform(), init=False, repr=False)
+    _ct_after: CoordinateTransform = dataclasses.field(
+        default_factory=lambda: CoordinateTransform(),
+        init=False,
+        repr=False
+    )
+    _ct_before: CoordinateTransform = dataclasses.field(
+        default_factory=lambda: CoordinateTransform(),
+        init=False,
+        repr=False
+    )
 
 
 @dataclasses.dataclass
@@ -21,12 +29,12 @@ class TransformList(kgpy.optics.system.surface.transformed.TransformList):
     def append(self, value: Transform):
         if not isinstance(value, Transform):
             value = Transform.promote(value)
-        super().append(value)
+        self._list.append(value)
 
     def __setitem__(self, key: int, value: Transform):
         if not isinstance(value, Transform):
             value = Transform.promote(value)
-        super().__setitem__(key, value)
+        self._list.__setitem__(key, value)
 
 
 @dataclasses.dataclass

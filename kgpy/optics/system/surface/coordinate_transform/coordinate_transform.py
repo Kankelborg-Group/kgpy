@@ -58,8 +58,8 @@ class CoordinateTransform(mixin.ZemaxCompatible, Base, mixin.Named):
     def transform(self, value: coordinate.Transform):
         if not isinstance(value, coordinate.Transform):
             value = coordinate.Transform.promote(value)
-        value._composite = self
         self._transform = value
+        value._composite = self
 
     def __iter__(self) -> typ.Iterator[CoordinateBreak]:
         return self.transform.__iter__()

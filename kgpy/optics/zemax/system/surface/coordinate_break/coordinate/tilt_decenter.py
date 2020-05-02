@@ -40,4 +40,4 @@ class TiltDecenter(coordinate.TiltDecenter['coordinate_break.CoordinateBreak']):
         super(__class__, self.__class__).decenter.__set__(self, value)
 
     def _tilt_first_setter(self, value: int):
-        self._composite._lde_row.SurfaceData.Order = value
+        self._composite._lde_row_data.Order = value

@@ -12,6 +12,7 @@ __all__ = ['Tilt']
 class Tilt(Component['coordinate.Transform'], surface.coordinate.Tilt):
 
     def _update(self) -> typ.NoReturn:
+        super()._update()
         self.x = self.x
         self.y = self.y
         self.z = self.z

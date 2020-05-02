@@ -12,7 +12,7 @@ SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[Surface], mixi
 @dataclasses.dataclass
 class TransformList:
 
-    _list: typ.List[coordinate.Transform] = dataclasses.field(default_factory=lambda: [], init=False, repr=False)
+    _list: typ.List[coordinate.Transform] = dataclasses.field(default_factory=lambda: [], init=False)
 
     @classmethod
     def promote(cls, transform_list: typ.List[coordinate.Transform]) -> 'TransformList':
