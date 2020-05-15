@@ -4,7 +4,7 @@ import numpy as np
 import astropy.units as u
 import shapely.geometry
 import kgpy.vector
-from kgpy.optics.system.surface.aperture import Aperture, decenterable, obscurable
+from . import Aperture, decenterable, obscurable
 
 __all__ = ['RegularOctagon']
 

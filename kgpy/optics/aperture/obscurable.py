@@ -1,13 +1,12 @@
 import dataclasses
 import numpy as np
-
-from ... import mixin
+import kgpy.mixin
 
 __all__ = ['Obscurable']
 
 
 @dataclasses.dataclass
-class Obscurable(mixin.Broadcastable):
+class Obscurable(kgpy.mixin.Broadcastable):
 
     is_obscuration: bool = False
 
@@ -17,6 +16,3 @@ class Obscurable(mixin.Broadcastable):
             super().config_broadcast,
             self.is_obscuration,
         )
-
-
-

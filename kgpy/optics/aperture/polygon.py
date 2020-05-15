@@ -3,7 +3,7 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 import shapely.geometry
-from kgpy.optics.system.surface.aperture import Aperture, obscurable, decenterable
+from . import Aperture, obscurable, decenterable
 
 __all__ = ['Polygon']
 

@@ -1,16 +1,15 @@
 import dataclasses
 import numpy as np
-
-from ... import mixin
-from .. import coordinate
+import kgpy.mixin
+import kgpy.coordinate
 
 __all__ = ['Decenterable']
 
 
 @dataclasses.dataclass
-class Decenterable(mixin.Broadcastable):
+class Decenterable(kgpy.mixin.Broadcastable):
 
-    decenter: coordinate.Decenter = dataclasses.field(default_factory=lambda: coordinate.Decenter())
+    decenter: kgpy.coordinate.Decenter = dataclasses.field(default_factory=lambda: kgpy.coordinate.Decenter())
 
     @property
     def config_broadcast(self):

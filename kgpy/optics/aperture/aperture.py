@@ -2,13 +2,14 @@ import abc
 import dataclasses
 import numpy as np
 import astropy.units as u
-from ... import mixin
+import kgpy.mixin
+from .. import ZemaxCompatible
 
 __all__ = ['Aperture']
 
 
 @dataclasses.dataclass
-class Aperture(mixin.ZemaxCompatible, mixin.Broadcastable, abc.ABC):
+class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
 
     def to_zemax(self) -> 'Aperture':
         from kgpy.optics import zemax
