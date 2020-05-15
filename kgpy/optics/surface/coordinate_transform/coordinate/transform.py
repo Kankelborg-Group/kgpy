@@ -1,8 +1,8 @@
 import dataclasses
 import typing as typ
 from kgpy.component import Component
-from .... import Name, mixin, surface
-from ... import coordinate, CoordinateBreak, coordinate_transform
+from .... import Name
+from ... import coordinate, CoordinateBreak
 from . import Tilt, Translate
 
 __all__ = ['Transform']
