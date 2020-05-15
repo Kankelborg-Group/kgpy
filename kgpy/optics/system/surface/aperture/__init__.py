@@ -6,5 +6,5 @@ from .circular import Circular
 from .rectangular import Rectangular
 from .spider import Spider
 from .polygon import Polygon
-from .regular_polygon import RegularPolygon
+from .regular_octagon import RegularOctagon
 

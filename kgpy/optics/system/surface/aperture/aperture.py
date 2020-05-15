@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import numpy as np
 import astropy.units as u
 from ... import mixin
 
@@ -14,6 +15,6 @@ class Aperture(mixin.ZemaxCompatible, mixin.Broadcastable, abc.ABC):
         return zemax.system.surface.aperture.Aperture()
 
     @abc.abstractmethod
-    def check_points(self, points: u.Quantity):
+    def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         pass
 

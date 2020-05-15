@@ -29,11 +29,13 @@ class Rectangular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
             self.half_width_y,
         )
 
-    def check_points(self, points: u.Quantity) -> np.ndarray:
-        m1 = points[0, ...] < self.half_width_x
-        m2 = points[0, ...] > -self.half_width_x
-        m3 = points[1, ...] < self.half_width_y
-        m4 = points[1, ...] > -self.half_width_y
+    def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
+        x = points[..., 0]
+        y = points[..., 1]
+        m1 = x < self.half_width_x
+        m2 = x > -self.half_width_x
+        m3 = y < self.half_width_y
+        m4 = y > -self.half_width_y
         return m1 & m2 & m3 & m4
 
     @property
