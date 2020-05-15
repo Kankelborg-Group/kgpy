@@ -1,5 +1,7 @@
 import dataclasses
 import typing as typ
+import astropy.units as u
+from .. import Rays
 from . import coordinate, surface
 
 __all__ = ['CoordinateBreak']
@@ -21,3 +23,16 @@ class CoordinateBreak(surface.Surface):
     def to_zemax(self) -> 'CoordinateBreak':
         from kgpy.optics import zemax
         return zemax.system.surface.CoordinateBreak(**self.__init__args)
+
+    def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+        return 0 * u.mm
+
+    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+        return u.Quantity([0, 0, 1])
+
+    def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
+        if not is_first_surface:
+            rays = rays.tilt_decenter(~self.transform)
+
+        if not is_final_surface:
+            rays.pz -= self.thickness

@@ -9,6 +9,7 @@ __all__ = ['Decenter']
 
 @dataclasses.dataclass
 class Decenter(mixin.Broadcastable):
+
     x: u.Quantity = 0 * u.mm
     y: u.Quantity = 0 * u.mm
 
@@ -30,4 +31,13 @@ class Decenter(mixin.Broadcastable):
             -self.y,
         )
 
+    def apply(self, value: u.Quantity, inverse: bool = False) -> u.Quantity:
+        value = value.copy()
+        if not inverse:
+            value[..., 0] += self.x
+            value[..., 1] += self.y
+        else:
+            value[..., 0] -= self.x
+            value[..., 1] -= self.y
+        return value
 

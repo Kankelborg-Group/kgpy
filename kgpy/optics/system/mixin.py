@@ -19,6 +19,10 @@ class Broadcastable:
     def config_broadcast(self):
         return np.broadcast()
 
+    @property
+    def shape(self):
+        return self.config_broadcast.shape
+
 
 @dataclasses.dataclass
 class Named:

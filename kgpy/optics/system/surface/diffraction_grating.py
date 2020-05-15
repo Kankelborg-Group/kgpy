@@ -3,6 +3,8 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 from kgpy import math
+import kgpy.vector
+from .. import Rays
 from . import Standard, material, aperture
 
 __all__ = ['DiffractionGrating']
@@ -37,6 +39,42 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             self.diffraction_order,
             self.groove_frequency,
         )
+
+    @property
+    def groove_normal(self):
+        return u.Quantity([0, self.groove_frequency, 0])
+
+    def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
+
+        if not is_first_surface:
+            rays = rays.tilt_decenter(~self.transform_before)
+
+            n1 = rays.index_of_refraction
+            n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
+
+            a = n1 * rays.direction / n2
+            a += self.diffraction_order * rays.wavelength * self.groove_normal
+            r = kgpy.vector.length(a)
+            a = kgpy.vector.normalize(a)
+
+            n = self.normal(rays.px, rays.py)
+            c = -kgpy.vector.dot(a, n)
+
+            p = self.material.propagation_signum
+
+            b = r * a + (r * c - p * np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
+
+            rays.position = self.calc_intercept(rays)
+            rays.direction = b
+            rays.surface_normal = n
+            rays.vignetted_mask = self.aperture.check_points(rays.position)
+            rays.index_of_refraction = n2
+
+        if not is_final_surface:
+            rays = rays.tilt_decenter(~self.transform_after)
+            rays.pz -= self.thickness
+
+        return rays
 
 
 def wavelength_from_vectors(input_vector: math.geometry.Vector,

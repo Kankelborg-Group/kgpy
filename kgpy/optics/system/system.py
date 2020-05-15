@@ -3,7 +3,7 @@ import pathlib
 import pickle
 import numpy as np
 import typing as typ
-from scipy.spatial.transform import Rotation
+import scipy.spatial.transform
 import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
@@ -14,13 +14,13 @@ from . import Surface, Fields, Wavelengths, surface, Rays
 
 __all__ = ['System']
 
-
 SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[Surface], mixin.ZemaxCompatible])
 
 
 @dataclasses.dataclass
-class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
+class System(mixin.ZemaxCompatible, mixin.Broadcastable, mixin.Named, typ.Generic[SurfacesT]):
 
+    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
     fields: Fields = dataclasses.field(default_factory=lambda: Fields())
     wavelengths: Wavelengths = dataclasses.field(default_factory=lambda: Wavelengths())
@@ -38,7 +38,6 @@ class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
             entrance_pupil_radius=self.entrance_pupil_radius,
         )
 
-
     @property
     def config_broadcast(self):
         all_surface_battrs = None
@@ -53,6 +52,28 @@ class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
             self.entrance_pupil_radius,
             self.stop_surface_index,
         )
+
+    def trace_rays(
+            self,
+            input_rays: Rays,
+            start_surface_index: int = 0,
+            final_surface_index: int = ~0,
+    ) -> Rays:
+
+        rays = input_rays.copy()
+
+        surfaces = list(self)
+
+        for s in range(start_surface_index, final_surface_index + 1):
+            surf = surfaces[s]
+            if s == start_surface_index:
+                surf.propagate_rays(rays, is_first_surface=True)
+            elif s == final_surface_index:
+                surf.propagate_rays(rays, is_final_surface=True)
+            else:
+                surf.propagate_rays(rays)
+
+        return rays
 
     @property
     def raytrace(self):
@@ -91,8 +112,12 @@ class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
     def chief_ray(self):
         return self.raytrace.pupil_mean.field_mean
 
-    def local_to_global(self, local_surface: Surface, x: u.Quantity,
-                        configuration_axis: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None) -> u.Quantity:
+    def local_to_global(
+            self,
+            local_surface: Surface,
+            x: u.Quantity,
+            configuration_axis: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
+    ) -> u.Quantity:
         """
         Convert from the local coordinates of a particular surface to global coordinates.
         :param local_surface: The local surface and the origin of the coordinate system
@@ -114,7 +139,7 @@ class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
         surface_index = self.surfaces.index(local_surface)
 
         translation = [0, 0, 0] * u.mm
-        rotation = Rotation.from_euler('XYZ', [0, 0, 0])  # type: Rotation
+        rotation = scipy.spatial.transform.Rotation.from_euler('XYZ', [0, 0, 0])  # type: Rotation
 
         for s, surf in enumerate(self.surfaces[:surface_index + 1]):
 
@@ -156,7 +181,7 @@ class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
     @staticmethod
     def _transform(
             current_translation: u.Quantity,
-            current_rotation: Rotation,
+            current_rotation: scipy.spatial.transform.Rotation,
             next_translation: u.Quantity,
             next_euler_angles: u.Quantity,
             tilt_first: bool,
@@ -168,11 +193,13 @@ class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
         if not tilt_first:
 
             translation = current_translation + current_rotation.apply(next_translation.value) * next_translation.unit
-            rotation = current_rotation * Rotation.from_euler('XYZ', next_euler_angles.to(u.rad))
+            rotation = current_rotation * scipy.spatial.transform.Rotation.from_euler('XYZ',
+                                                                                      next_euler_angles.to(u.rad))
 
         else:
 
-            rotation = current_rotation * Rotation.from_euler('ZYX', np.flip(next_euler_angles.to(u.rad), axis=~0))
+            rotation = current_rotation * scipy.spatial.transform.Rotation.from_euler('ZYX', np.flip(
+                next_euler_angles.to(u.rad), axis=~0))
             translation = current_translation + rotation.apply(next_translation.value) * next_translation.unit
 
         return rotation, translation
@@ -230,8 +257,8 @@ class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
 
             rebin_factor = 1
             sl = (
-            0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
-            slice(None, None, rebin_factor))
+                0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
+                slice(None, None, rebin_factor))
             x = x[sl]
             mask = mask[sl]
 
@@ -262,3 +289,7 @@ class System(mixin.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
                             ax.plot(x_, y_, z_, 'k')
                             ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
                                     u.Quantity([z_[-1], z_[0]]), 'k')
+
+    def __iter__(self) -> typ.Iterator[surface.Surface]:
+        yield from self.object_surface
+        yield from self.surfaces

@@ -1,6 +1,7 @@
 import dataclasses
 import typing as typ
 import numpy as np
+import astropy.units as u
 from ... import mixin
 from . import Decenter, Tilt
 
@@ -41,3 +42,23 @@ class TiltDecenter(mixin.InitArgs, mixin.Broadcastable):
             self.decenter.__invert__(),
             self.tilt_first.__invert__(),
         )
+
+    def apply(
+            self,
+            value: u.Quantity,
+            tilt: bool = True,
+            decenter: bool = True,
+            inverse: bool = False,
+    ) -> u.Quantity:
+        value = value.copy()
+        if not self.tilt_first:
+            if decenter:
+                value = self.decenter.apply(value, inverse)
+            if tilt:
+                value = self.tilt.apply(value, inverse)
+        else:
+            if tilt:
+                value = self.tilt.apply(value, inverse)
+            if decenter:
+                value = self.decenter.apply(value, inverse)
+        return value

@@ -2,6 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
+import kgpy.vector
 from . import Standard, material, aperture
 
 __all__ = ['Toroidal']
@@ -33,3 +34,25 @@ class Toroidal(Standard[MaterialT, ApertureT]):
             super().config_broadcast,
             self.radius_of_rotation,
         )
+
+    def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+        x2 = np.square(x)
+        y2 = np.square(y)
+        c = self.curvature
+        r = self.radius_of_rotation
+        zy = c * y2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * y2))
+        return r - np.sqrt(np.square(r - zy) - x2)
+
+    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+        x2 = np.square(x)
+        y2 = np.square(y)
+        c = self.curvature
+        c2 = np.square(c)
+        r = self.radius_of_rotation
+        g = np.sqrt(1 - (1 + self.conic) * c2 * y2)
+        zy = c * y2 / (1 + g)
+        f = np.sqrt(np.square(r - zy) - x2)
+        dzdx = x / f
+        dzydy = c * y / g
+        dzdy = (r - zy) * dzydy / f
+        return kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))

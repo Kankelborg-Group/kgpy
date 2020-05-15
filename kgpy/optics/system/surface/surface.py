@@ -3,7 +3,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-from .. import mixin
+from .. import mixin, Rays
 
 
 __all__ = ['Surface']
@@ -46,3 +46,57 @@ class Surface(mixin.ZemaxCompatible, mixin.InitArgs, mixin.Broadcastable, mixin.
 
     def __iter__(self):
         yield self
+
+    @abc.abstractmethod
+    def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+        pass
+
+    @abc.abstractmethod
+    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+        pass
+
+    @abc.abstractmethod
+    def propagate_rays(
+            self,
+            rays: Rays,
+            is_first_surface: bool = False,
+            is_final_surface: bool = False,
+    ) -> Rays:
+        pass
+
+    def calc_intercept(
+            self,
+            rays: Rays,
+            step_size: u.Quantity = 1 << u.mm,
+            max_error: u.Quantity = 1 << u.nm,
+            max_iterations: int = 100,
+    ) -> u.Quantity:
+
+        intercept = rays.position.copy()
+
+        t0 = -step_size
+        t1 = step_size
+
+        i = 0
+        while np.max(np.abs(t1 - t0)) < max_error:
+
+            if i > max_iterations:
+                raise ValueError('Number of iterations exceeded')
+
+            a0 = intercept + rays.direction * t0
+            a1 = intercept + rays.direction * t1
+
+            f0 = a0[rays.z] - self.sag(a0[rays.x], a0[rays.y])
+            f1 = a1[rays.z] - self.sag(a1[rays.x], a1[rays.y])
+
+            t2 = (t0 * f1 - t1 * f0) / (f1 - f0)
+
+            t0 = t1
+            t1 = t2
+
+            i += 1
+
+        t = t1
+        intercept += rays.direction * t
+
+        return intercept
