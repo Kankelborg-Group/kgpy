@@ -3,7 +3,8 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 import kgpy.vector
-from . import Standard, material, aperture
+from .. import material, aperture
+from . import Standard
 
 __all__ = ['Toroidal']
 

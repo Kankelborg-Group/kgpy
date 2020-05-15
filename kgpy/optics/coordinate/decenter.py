@@ -1,14 +1,13 @@
 import dataclasses
-
 import numpy as np
 from astropy import units as u
-from ... import mixin
+import kgpy.mixin
 
 __all__ = ['Decenter']
 
 
 @dataclasses.dataclass
-class Decenter(mixin.Broadcastable):
+class Decenter(kgpy.mixin.Broadcastable):
 
     x: u.Quantity = 0 * u.mm
     y: u.Quantity = 0 * u.mm

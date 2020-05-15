@@ -1,6 +1,3 @@
-from . import coordinate
-from .aperture import Aperture
-from .material import Material
 from .surface import Surface
 from .object_surface import ObjectSurface
 from .standard import Standard

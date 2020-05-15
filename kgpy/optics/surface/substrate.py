@@ -1,15 +1,16 @@
 import dataclasses
 import typing as typ
-
-import kgpy.optics.system.zemax_compatible
+from .. import ZemaxCompatible
 from . import Surface, Standard
+
+__all__ = ['Substrate']
 
 ApertureSurfaceT = typ.TypeVar('ApertureSurfaceT', bound=Standard)
 MainSurfaceT = typ.TypeVar('MainSurfaceT', bound=Standard)
 
 
 @dataclasses.dataclass
-class Substrate(kgpy.optics.system.zemax_compatible.ZemaxCompatible, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
+class Substrate(ZemaxCompatible, typ.Generic[ApertureSurfaceT, MainSurfaceT]):
     """
     Representation of a real optical surface.
     This class uses two `system.Surface` objects to model a more realistic optical surface.

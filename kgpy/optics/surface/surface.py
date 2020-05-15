@@ -3,16 +3,20 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-
-import kgpy.optics.system.zemax_compatible
-from .. import Rays
-from kgpy import mixin
+import kgpy.mixin
+from .. import Rays, zemax_compatible
 
 __all__ = ['Surface']
 
 
 @dataclasses.dataclass
-class Surface(kgpy.optics.system.zemax_compatible.ZemaxCompatible, mixin.InitArgs, mixin.Broadcastable, mixin.Named, abc.ABC):
+class Surface(
+    zemax_compatible.ZemaxCompatible,
+    zemax_compatible.InitArgs,
+    kgpy.mixin.Broadcastable,
+    kgpy.mixin.Named,
+    abc.ABC
+):
     """
     This class represents a single optical surface. This class should be a drop-in replacement for a Zemax surface, and
     have all the same properties and behaviors.

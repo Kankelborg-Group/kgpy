@@ -1,8 +1,8 @@
 import dataclasses
 import typing as typ
-from kgpy.component import Component
-from .... import Name
-from ... import coordinate, CoordinateBreak
+import kgpy
+from .... import coordinate
+from ... import CoordinateBreak
 from . import Tilt, Translate
 
 __all__ = ['Transform']
@@ -10,13 +10,13 @@ __all__ = ['Transform']
 
 @dataclasses.dataclass
 class Base:
-    _name: Name = dataclasses.field(default_factory=lambda: Name(), init=False, repr=None)
+    _name: kgpy.Name = dataclasses.field(default_factory=lambda: kgpy.Name(), init=False, repr=None)
     _cb1: CoordinateBreak = dataclasses.field(default_factory=lambda: CoordinateBreak(), init=False, repr=False, )
     _cb2: CoordinateBreak = dataclasses.field(default_factory=lambda: CoordinateBreak(), init=False, repr=False, )
 
 
 @dataclasses.dataclass
-class Transform(Component['coordinate_transform.CoordinateTransform'], coordinate.Transform, Base):
+class Transform(kgpy.Component['coordinate_transform.CoordinateTransform'], coordinate.Transform, Base):
 
     def _update(self) -> typ.NoReturn:
         super()._update()
@@ -37,11 +37,11 @@ class Transform(Component['coordinate_transform.CoordinateTransform'], coordinat
             return self._cb1
 
     @property
-    def name(self) -> Name:
+    def name(self) -> kgpy.Name:
         return self._name
 
     @name.setter
-    def name(self, value: Name):
+    def name(self, value: kgpy.Name):
         self._name = value
         self._cb1.name.parent = value
         self._cb2.name.parent = value

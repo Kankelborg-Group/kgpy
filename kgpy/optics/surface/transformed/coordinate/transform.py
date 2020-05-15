@@ -1,7 +1,8 @@
 import dataclasses
 import typing as typ
-from .... import Name
-from ... import coordinate, CoordinateBreak, CoordinateTransform
+import kgpy
+import kgpy.optics.coordinate
+from ... import CoordinateBreak, CoordinateTransform
 from . import Tilt, Translate
 
 __all__ = ['Transform']
@@ -9,28 +10,28 @@ __all__ = ['Transform']
 
 @dataclasses.dataclass
 class Base:
-    _name: Name = dataclasses.field(default_factory=lambda: Name(), init=False, repr=False)
+    _name: kgpy.Name = dataclasses.field(default_factory=lambda: kgpy.Name(), init=False, repr=False)
     _ct_before: CoordinateTransform = dataclasses.field(
-        default_factory=lambda: CoordinateTransform(Name('before')),
+        default_factory=lambda: CoordinateTransform(kgpy.Name('before')),
         init=False,
         repr=False,
     )
     _ct_after: CoordinateTransform = dataclasses.field(
-        default_factory=lambda: CoordinateTransform(Name('after')),
+        default_factory=lambda: CoordinateTransform(kgpy.Name('after')),
         init=False,
         repr=False,
     )
 
 
 @dataclasses.dataclass
-class Transform(coordinate.Transform, Base):
+class Transform(kgpy.optics.coordinate.Transform, Base):
 
     @property
-    def name(self) -> Name:
+    def name(self) -> kgpy.Name:
         return self._name
 
     @name.setter
-    def name(self, value: Name):
+    def name(self, value: kgpy.Name):
         self._name = value
         self._ct_before.name.parent = value
         self._ct_after.name.parent = value

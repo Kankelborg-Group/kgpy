@@ -1,9 +1,8 @@
 import dataclasses
 import typing as typ
-
-import kgpy.optics.system.zemax_compatible
-from ... import Name
-from kgpy import mixin
+import kgpy
+import kgpy.mixin
+from ... import ZemaxCompatible
 from .. import CoordinateBreak
 from . import coordinate
 
@@ -16,7 +15,7 @@ class Base:
 
 
 @dataclasses.dataclass
-class CoordinateTransform(kgpy.optics.system.zemax_compatible.ZemaxCompatible, Base, mixin.Named):
+class CoordinateTransform(ZemaxCompatible, Base, kgpy.mixin.Named):
     """
     Zemax doesn't allow decenters in the z-direction, instead they intend this concept to be represented by the
     `thickness` parameter.
@@ -40,13 +39,12 @@ class CoordinateTransform(kgpy.optics.system.zemax_compatible.ZemaxCompatible, B
             transform=self.transform,
         )
 
-
     @property
-    def name(self) -> Name:
+    def name(self) -> kgpy.Name:
         return self._name
 
     @name.setter
-    def name(self, value: Name):
+    def name(self, value: kgpy.Name):
         self._name = value
         try:
             self.transform.name = value

@@ -1,13 +1,13 @@
 import dataclasses
 import numpy as np
-from ... import mixin
+import kgpy.mixin
 from . import Tilt, Translate
 
 __all__ = ['Transform']
 
 
 @dataclasses.dataclass
-class Transform(mixin.Broadcastable):
+class Transform(kgpy.mixin.Broadcastable):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     translate: Translate = dataclasses.field(default_factory=lambda: Translate())
     tilt_first: bool = False

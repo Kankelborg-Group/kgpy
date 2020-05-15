@@ -7,18 +7,16 @@ import scipy.spatial.transform
 import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-from . import mixin
-from . import Surface, Fields, Wavelengths, surface, Rays
+import kgpy.mixin
+from .. import ZemaxCompatible, Rays, surface
 
 __all__ = ['System']
 
-SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[Surface], mixin.ZemaxCompatible])
+SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surface], ZemaxCompatible])
 
 
 @dataclasses.dataclass
-class System(mixin.ZemaxCompatible, mixin.Broadcastable, mixin.Named, typ.Generic[SurfacesT]):
+class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Generic[SurfacesT]):
 
     object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])

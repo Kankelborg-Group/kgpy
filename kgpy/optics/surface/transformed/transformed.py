@@ -1,14 +1,13 @@
 import dataclasses
 import typing as typ
-
-import kgpy.optics.system.zemax_compatible
-from kgpy import mixin
+import kgpy.mixin
+from ... import ZemaxCompatible
 from .. import Surface
 from . import coordinate
 
 __all__ = ['Transformed', 'TransformList']
 
-SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[Surface], kgpy.optics.system.zemax_compatible.ZemaxCompatible])
+SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[Surface], ZemaxCompatible])
 
 
 @dataclasses.dataclass
@@ -48,7 +47,7 @@ class Base:
 
 
 @dataclasses.dataclass
-class Transformed(Base, kgpy.optics.system.zemax_compatible.ZemaxCompatible, mixin.Named, typ.Generic[SurfacesT]):
+class Transformed(Base, ZemaxCompatible, kgpy.mixin.Named, typ.Generic[SurfacesT]):
 
     def to_zemax(self) -> 'Transformed':
         from kgpy.optics import zemax

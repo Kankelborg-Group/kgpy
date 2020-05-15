@@ -1,15 +1,15 @@
 import dataclasses
 import typing as typ
 import astropy.units as u
-from kgpy.component import Component
-from .... import surface
+import kgpy
+import kgpy.optics.coordinate
 from .. import coordinate
 
 __all__ = ['Translate']
 
 
 @dataclasses.dataclass
-class Translate(Component['coordinate.Transform'], surface.coordinate.Translate):
+class Translate(kgpy.Component['coordinate.Transform'], kgpy.optics.coordinate.Translate):
 
     def _update(self) -> typ.NoReturn:
         super()._update()

@@ -2,7 +2,8 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-from . import DiffractionGrating, material, aperture
+from .. import material, aperture
+from . import DiffractionGrating
 
 __all__ = ['EllipticalGrating1']
 

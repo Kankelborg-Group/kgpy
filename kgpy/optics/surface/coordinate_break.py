@@ -1,8 +1,8 @@
 import dataclasses
 import typing as typ
 import astropy.units as u
-from .. import Rays
-from . import coordinate, surface
+from .. import Rays, coordinate
+from . import surface
 
 __all__ = ['CoordinateBreak']
 

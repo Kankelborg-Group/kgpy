@@ -2,9 +2,11 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
+
+import kgpy.optics.material.no_material
 import kgpy.vector
-from .. import Rays
-from . import coordinate, Surface, material as material_, aperture as aperture_
+from .. import Rays, coordinate, material as material_, aperture as aperture_
+from . import Surface
 
 __all__ = ['Standard']
 
@@ -20,7 +22,7 @@ class Standard(
 
     radius: u.Quantity = np.inf * u.mm
     conic: u.Quantity = 0
-    material: MaterialT = dataclasses.field(default_factory=lambda: material_.NoMaterial())
+    material: MaterialT = dataclasses.field(default_factory=lambda: kgpy.optics.material.no_material.NoMaterial())
     aperture: ApertureT = dataclasses.field(default_factory=lambda: aperture_.NoAperture())
     transform_before: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
     transform_after: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())

@@ -1,6 +1,6 @@
 import dataclasses
 from astropy import units as u
-from .material import Material
+from . import Material
 
 
 @dataclasses.dataclass

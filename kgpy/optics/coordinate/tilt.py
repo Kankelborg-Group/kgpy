@@ -2,13 +2,13 @@ import dataclasses
 import typing as typ
 import numpy as np
 from astropy import units as u
-from ... import mixin
+import kgpy.mixin
 
 __all__ = ['Tilt']
 
 
 @dataclasses.dataclass
-class Tilt(mixin.Broadcastable):
+class Tilt(kgpy.mixin.Broadcastable):
 
     x: u.Quantity = 0 * u.deg
     y: u.Quantity = 0 * u.deg

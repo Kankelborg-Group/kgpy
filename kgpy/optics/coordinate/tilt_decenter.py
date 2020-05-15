@@ -2,14 +2,15 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-from ... import mixin
+import kgpy.mixin
+from .. import zemax_compatible
 from . import Decenter, Tilt
 
 __all__ = ['TiltDecenter']
 
 
 @dataclasses.dataclass
-class TiltDecenter(mixin.InitArgs, mixin.Broadcastable):
+class TiltDecenter(zemax_compatible.InitArgs, kgpy.mixin.Broadcastable):
     tilt: Tilt = dataclasses.field(default_factory=lambda: Tilt())
     decenter: Decenter = dataclasses.field(default_factory=lambda: Decenter())
     tilt_first: bool = False

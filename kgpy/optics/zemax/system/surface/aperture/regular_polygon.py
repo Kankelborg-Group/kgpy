@@ -10,7 +10,7 @@ __all__ = ['add_to_zemax_surface']
 
 def add_to_zemax_surface(
         zemax_system: ZOSAPI.IOpticalSystem,
-        aperture: 'system.surface.aperture.RegularPolygon',
+        aperture: 'system.surface.aperture.RegularOctagon',
         surface_index: int,
         configuration_shape: tp.Tuple[int],
         zemax_units: u.Unit,

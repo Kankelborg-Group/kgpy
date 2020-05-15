@@ -1,15 +1,15 @@
 import dataclasses
 import typing as typ
 import astropy.units as u
-from kgpy.component import Component
-from .... import surface
+import kgpy.optics.coordinate
+import kgpy.component
 from .. import coordinate
 
 __all__ = ['Tilt']
 
 
 @dataclasses.dataclass
-class Tilt(Component['coordinate.Transform'], surface.coordinate.Tilt):
+class Tilt(kgpy.component.Component['coordinate.Transform'], kgpy.optics.coordinate.Tilt):
 
     def _update(self) -> typ.NoReturn:
         super()._update()

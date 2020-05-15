@@ -1,5 +1,7 @@
 import dataclasses
 import typing as typ
+
+import kgpy.optics.material.no_material
 from kgpy.component import Component
 from kgpy.optics import system
 from ... import surface
@@ -20,5 +22,5 @@ class Material(Component['surface.Standard'], system.surface.Material):
 
 
 @dataclasses.dataclass
-class NoMaterial(system.surface.material.NoMaterial, Material):
+class NoMaterial(kgpy.optics.material.no_material.NoMaterial, Material):
     pass
