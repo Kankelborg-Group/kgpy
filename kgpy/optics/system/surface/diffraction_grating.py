@@ -40,8 +40,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             self.groove_frequency,
         )
 
-    @property
-    def groove_normal(self):
+    def groove_normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return u.Quantity([0, self.groove_frequency, 0])
 
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
@@ -67,7 +66,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             rays.position = self.calc_intercept(rays)
             rays.direction = b
             rays.surface_normal = n
-            rays.vignetted_mask = self.aperture.check_points(rays.position)
+            rays.vignetted_mask = self.aperture.is_unvignetted(rays.position)
             rays.index_of_refraction = n2
 
         if not is_final_surface:
