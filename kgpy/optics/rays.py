@@ -8,40 +8,53 @@ from . import surface
 __all__ = ['Rays']
 
 
-class Axis:
-    wavl = 2
-    field_x = ~4
-    field_y = ~3
-    pupil_x = ~2
-    pupil_y = ~1
-    config = ~0
-
-    num_axes = 7
-
-
 @dataclasses.dataclass
-class Rays:
+class Axis:
+
+    def __post_init__(self):
+        self.num_axes = 0
+
+        self.components = self.auto_axis_index()
+        self.config = self.auto_axis_index()
+        self.pupil = self.auto_axis_index()
+        self.field = self.auto_axis_index()
+        self.wavlen = self.auto_axis_index()
+
+    def auto_axis_index(self):
+        i = ~self.num_axes
+        self.num_axes += 1
+        return i
+
+
+class Components:
     x = ..., 0
     y = ..., 1
     z = ..., 2
 
+
+@dataclasses.dataclass
+class Rays:
+
+    axis = Axis()
+    components = Components()
+
     wavelength: u.Quantity
     position: u.Quantity
     direction: u.Quantity
+    polarization: u.Quantity
     surface_normal: u.Quantity
     vignetted_mask: np.ndarray
     error_mask: np.ndarray
-    polarization: typ.Optional[u.Quantity] = None
-    index_of_refraction: u.Quantity = 1 * u.dimensionless_unscaled
+    index_of_refraction: u.Quantity
 
     @classmethod
-    def from_pupil_and_field_coordinates(
+    def from_field_angles(
             cls,
             wavelength: u.Quantity,
+            field_x: u.Quantity,
+            field_y: u.Quantity,
             pupil_x: u.Quantity,
             pupil_y: u.Quantity,
-            field_x: u.Quantity,
-            field_y: u.Quantity
     ) -> 'Rays':
         sh = np.broadcast(wavelength, pupil_x, pupil_y, field_x, field_y, ).shape
 
@@ -68,6 +81,7 @@ class Rays:
             surface_normal=np.empty(vsh) << u.dimensionless_unscaled,
             vignetted_mask=np.empty(ssh, dtype=np.bool),
             error_mask=np.empty(ssh, dtype=np.bool),
+
         )
 
     def tilt_decenter(self, transform: surface.coordinate.TiltDecenter) -> 'Rays':
@@ -97,27 +111,27 @@ class Rays:
 
     @property
     def px(self) -> u.Quantity:
-        return self.position[self.x]
+        return self.position[self.components.x]
 
     @px.setter
     def px(self, value: u.Quantity):
-        self.position[self.x] = value
+        self.position[self.components.x] = value
 
     @property
     def py(self) -> u.Quantity:
-        return self.position[self.y]
+        return self.position[self.components.y]
 
     @py.setter
     def py(self, value: u.Quantity):
-        self.position[self.y] = value
+        self.position[self.components.y] = value
 
     @property
     def pz(self) -> u.Quantity:
-        return self.position[self.z]
+        return self.position[self.components.z]
 
     @pz.setter
     def pz(self, value: u.Quantity):
-        self.position[self.z] = value
+        self.position[self.components.z] = value
 
     def copy(self) -> 'Rays':
         return Rays(

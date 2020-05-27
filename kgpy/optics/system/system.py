@@ -19,14 +19,15 @@ SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surfac
 class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Generic[SurfacesT]):
 
     object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
-    surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
-    fields: Fields = dataclasses.field(default_factory=lambda: Fields())
-    wavelengths: Wavelengths = dataclasses.field(default_factory=lambda: Wavelengths())
-    entrance_pupil_radius: u.Quantity = 0 * u.m
-    stop_surface_index: typ.Union[int, np.ndarray] = 1
-    num_pupil_rays: typ.Tuple[int, int] = (7, 7)
-    num_field_rays: typ.Tuple[int, int] = (7, 7)
-    raytrace_path: pathlib.Path = dataclasses.field(default_factory=lambda: pathlib.Path())
+    surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [surface.Standard()])
+    stop_surface: surface.Surface = None
+    input_rays: Rays = dataclasses.field(default_factory=lambda: Rays(
+
+    ))
+
+    def __post_init__(self):
+        if self.stop_surface is None:
+            self.stop_surface = next(iter(self.surfaces))
 
     def to_zemax(self) -> 'System':
         from kgpy.optics import zemax
