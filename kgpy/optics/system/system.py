@@ -21,9 +21,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [surface.Standard()])
     stop_surface: surface.Surface = None
-    input_rays: Rays = dataclasses.field(default_factory=lambda: Rays(
-
-    ))
+    input_rays: Rays = dataclasses.field(default_factory=lambda: Rays.zeros())
 
     def __post_init__(self):
         if self.stop_surface is None:
@@ -34,7 +32,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         return zemax.System(
             name=self.name,
             surfaces=self.surfaces.to_zemax(),
-            entrance_pupil_radius=self.entrance_pupil_radius,
         )
 
     @property
@@ -52,16 +49,23 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             self.stop_surface_index,
         )
 
-    def trace_rays(
+    def raytrace_subsystem(
             self,
-            input_rays: Rays,
-            start_surface_index: int = 0,
-            final_surface_index: int = ~0,
+            rays: Rays,
+            start_surface: typ.Optional[surface.Surface] = None,
+            final_surface: typ.Optional[surface.Surface] = None,
     ) -> Rays:
 
-        rays = input_rays.copy()
-
         surfaces = list(self)
+
+        if start_surface is None:
+            start_surface = surfaces[0]
+
+        if final_surface is None:
+            final_surface = surfaces[~0]
+
+        start_surface_index = surfaces.index(start_surface)
+        final_surface_index = surfaces.index(final_surface)
 
         for s in range(start_surface_index, final_surface_index + 1):
             surf = surfaces[s]
@@ -75,152 +79,59 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         return rays
 
     @property
-    def raytrace(self):
-
-        if self.raytrace_path.exists():
-            with open(str(self.raytrace_path), 'rb') as f:
-                return pickle.load(f)
-
-        else:
-            from kgpy.optics import zemax
-
-            zemax_system, zemax_units = zemax.system.calc_zemax_system(self)
-            zemax_system.SaveAs(self.raytrace_path.parent / self.raytrace_path.stem / '.zmx')
-
-            raytrace = zemax.system.rays.trace(zemax_system, zemax_units, self.num_pupil_rays, self.num_field_rays,
-                                               surface_indices=None)
-
-            with open(str(self.raytrace_path), 'wb') as f:
-                pickle.dump(raytrace, f)
-
-            return raytrace
-
-    def raytrace_to_image(
-            self,
-            num_pupil: typ.Union[int, typ.Tuple[int, int]] = 5,
-            num_field: typ.Union[int, typ.Tuple[int, int]] = 5,
-    ):
-        from kgpy.optics import zemax
-
-        zemax_system, zemax_units = zemax.system.calc_zemax_system(self)
-        zemax_system.SaveAs(self.raytrace_path.parent / self.raytrace_path.stem / '.zmx')
-
-        return zemax.system.rays.trace(zemax_system, zemax_units, num_pupil, num_field)
+    def image_rays(self) -> Rays:
+        return self.raytrace_subsystem(self.input_rays)
 
     @property
-    def chief_ray(self):
-        return self.raytrace.pupil_mean.field_mean
+    def all_rays(self) -> typ.List[Rays]:
+
+        rays = [self.input_rays]
+
+        old_surf = self.object_surface
+
+        for surf in self.surfaces:
+            rays.append(self.raytrace_subsystem(rays[~0], old_surf, surf))
+            old_surf = surf
+
+        return rays
 
     def local_to_global(
             self,
-            local_surface: Surface,
+            local_surface: surface.Surface,
             x: u.Quantity,
-            configuration_axis: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
     ) -> u.Quantity:
-        """
-        Convert from the local coordinates of a particular surface to global coordinates.
-        :param local_surface: The local surface and the origin of the coordinate system
-        :param x: Array of coordinates, may be of any shape.
-        :param configuration_axis: The axis or axes of `x` corresponding to different configurations of the optical
-        system.
-        If None, the configuration axis is created at the zeroth axis of `x`.
-        :return: If configuration axis is not None, a new array is returned the same shape as `x`.
-        If None, the returned shape is `self.config_broadcast.shape + x.shape`
-        """
 
-        if configuration_axis is None:
-            x = np.broadcast_to(x.value, self.config_broadcast.shape + x.shape) << x.unit
-            configuration_axis = 0
+        surfaces = list(self.surfaces)
+        local_surface_index = surfaces.index(local_surface)
+        surfaces = surfaces[:local_surface_index + 1]
+        surfaces.reverse()
 
-        if np.ndim(configuration_axis) == 0:
-            configuration_axis = [configuration_axis]
+        for surf in surfaces:
 
-        surface_index = self.surfaces.index(local_surface)
+            if isinstance(surf, surface.CoordinateBreak):
+                x = surf.transform.apply(x, inverse=True)
 
-        translation = [0, 0, 0] * u.mm
-        rotation = scipy.spatial.transform.Rotation.from_euler('XYZ', [0, 0, 0])  # type: Rotation
+            elif isinstance(surf, surface.Standard):
+                if surf is not local_surface:
+                    x = surf.transform_after.apply(x, inverse=True)
+                x = surf.transform_before.apply(x, inverse=True)
 
-        for s, surf in enumerate(self.surfaces[:surface_index + 1]):
+        return x
+
+    def plot_xz(self):
+
+        fig, ax = plt.subplots(1, 1)
+
+        for surf in self.surfaces:
 
             if isinstance(surf, surface.Standard):
+                points = self.local_to_global(surf, surf.aperture.points)
 
-                rotation, translation = self._transform(translation, rotation, surf.decenter_before,
-                                                        surf.tilt_before, surf.tilt_first)
+                ax[0, 0].plot(points[..., 2], points[..., 0])
 
-                if s < surface_index:
-                    rotation, translation = self._transform(translation, rotation, surf.decenter_after, surf.tilt_after,
-                                                            ~surf.tilt_first)
 
-            elif isinstance(surf, surface.CoordinateBreak):
 
-                rotation, translation = self._transform(translation, rotation, surf.decenter, surf.tilt,
-                                                        surf.tilt_first)
 
-            if s < surface_index:
-                translation = translation + rotation.apply([0, 0, surf.thickness.value]) * surf.thickness.unit
-
-        x = x.copy()
-
-        x_global = x
-
-        for axis in reversed(configuration_axis):
-            x = np.moveaxis(x, axis, 0)
-
-        xsh = x.shape
-
-        x = x.reshape(xsh[:len(configuration_axis)] + (-1, 3))
-
-        for i in range(x.shape[len(configuration_axis)]):
-            j = ..., i, slice(None)
-            x[j] = rotation.apply(x[j]) << x.unit
-            x[j] = x[j] + translation
-
-        return x_global
-
-    @staticmethod
-    def _transform(
-            current_translation: u.Quantity,
-            current_rotation: scipy.spatial.transform.Rotation,
-            next_translation: u.Quantity,
-            next_euler_angles: u.Quantity,
-            tilt_first: bool,
-    ):
-
-        next_translation = next_translation.copy()
-        next_translation[~0] = 0 * u.mm
-
-        if not tilt_first:
-
-            translation = current_translation + current_rotation.apply(next_translation.value) * next_translation.unit
-            rotation = current_rotation * scipy.spatial.transform.Rotation.from_euler('XYZ',
-                                                                                      next_euler_angles.to(u.rad))
-
-        else:
-
-            rotation = current_rotation * scipy.spatial.transform.Rotation.from_euler('ZYX', np.flip(
-                next_euler_angles.to(u.rad), axis=~0))
-            translation = current_translation + rotation.apply(next_translation.value) * next_translation.unit
-
-        return rotation, translation
-
-    def distance_between_surfaces(self, surface_1: Surface, surface_2: Surface):
-
-        surface_1_index = self.surfaces.index(surface_1)
-        surface_2_index = self.surfaces.index(surface_2)
-
-        s1 = [slice(None)] * self.chief_ray.axis.num_axes
-        s2 = [slice(None)] * self.chief_ray.axis.num_axes
-
-        s1[self.chief_ray.axis.surf] = slice(surface_1_index, surface_1_index + 1)
-        s2[self.chief_ray.axis.surf] = slice(surface_2_index, surface_2_index + 1)
-
-        x1 = self.chief_ray.position[s1]
-        x2 = self.chief_ray.position[s2]
-
-        x1 = self.local_to_global(surface_1, x1, configuration_axis=self.chief_ray.axis.config)
-        x2 = self.local_to_global(surface_2, x2, configuration_axis=self.chief_ray.axis.config)
-
-        return np.sqrt(np.sum(np.square(x2 - x1), axis=~0, keepdims=True))
 
     def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
 

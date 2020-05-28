@@ -2,7 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-
+import matplotlib.pyplot as plt
 import kgpy.optics.material.no_material
 import kgpy.vector
 from .. import Rays, coordinate, material as material_, aperture as aperture_

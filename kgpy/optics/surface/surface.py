@@ -3,6 +3,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
+import matplotlib.pyplot as plt
 import kgpy.mixin
 from .. import Rays, zemax_compatible
 
@@ -106,3 +107,7 @@ class Surface(
         intercept += rays.direction * t
 
         return intercept
+
+    @abc.abstractmethod
+    def plot_xz(self, ax: plt.Axes) -> typ.NoReturn:
+        pass

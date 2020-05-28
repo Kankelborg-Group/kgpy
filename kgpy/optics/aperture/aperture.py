@@ -19,3 +19,7 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         pass
 
+    @property
+    @abc.abstractmethod
+    def points(self) -> u.Quantity:
+        pass
