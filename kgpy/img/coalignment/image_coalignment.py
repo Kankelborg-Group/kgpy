@@ -103,6 +103,12 @@ class ImageTransform:
 
         return img
 
+    def transform_coordinates(self,img)-> np.ndarray:
+
+        img = img[self.initial_crop]
+        img = np.pad(img,self.initial_pad)
+
+        return
 
 
 def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func:'Function', kwargs = {}) -> float:
@@ -157,7 +163,12 @@ def modified_affine(img: np.ndarray, transform: np.ndarray, origin: np.ndarray) 
 
 def quadratic_transform(img: np.ndarray, transform: np.ndarray, origin: np.ndarray, prefilter = True, old_coord = None) -> np.ndarray:
     """
-    Apply a quadratic coordinate transformation
+    Apply a quadratic coordinate transformation of the form:
+    x' = transform[0] + transform[1]*x + transform[2]*y + transform[3]*x*y + transform[4]*x^2 + transform[5]*y^2
+    y' = transform[6] + transform[7]*x + transform[8]*y + transform[9]*x*y + transform[10]*x^2 + transform[11]*y^2
+    about the specified origin = (x = origin[0], y = origin[1])
+
+    returns primed coordinates for use with scipy.ndimage.map_coordinates()
     """
 
 
@@ -195,6 +206,14 @@ def affine_params(origin,scale_x, scale_y, shear_x, shear_y,disp_x,disp_y,rot_an
     offset = np.array(origin) -np.array([disp_x,disp_y])- np.dot(m,np.array(origin))
 
     return m, offset
+
+def modified_affine_to_quadratic(transform: np.ndarray, origin: np.ndarray) -> np.ndarray:
+
+    affine_m = affine_params(origin, *transform)[0]
+    quad_transform = np.array([transform[4],affine_m[0, 0], affine_m[0, 1], 0, 0, 0,
+                               transform[5],affine_m[1, 0], affine_m[1, 1], 0, 0, 0,
+                               origin[0],origin[1]])
+    return quad_transform
 
 
 
