@@ -15,6 +15,7 @@ setup(
         'pywin32 ; platform_system=="Windows"',
         'pytest',
         'vg',
+        'wget',
         'numpy-stubs @ git+https://github.com/numpy/numpy-stubs.gitt#egg=numpy-stubs',
     ],
     url='https://titan.ssel.montana.edu/gitlab/Kankelborg-Group/kgpy',
