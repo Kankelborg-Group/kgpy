@@ -1,7 +1,7 @@
 import dataclasses
 import typing as typ
 import kgpy
-import kgpy.optics.coordinate
+from .... import coordinate as base_coordinate
 from ... import CoordinateBreak, CoordinateTransform
 from . import Tilt, Translate
 
@@ -24,7 +24,7 @@ class Base:
 
 
 @dataclasses.dataclass
-class Transform(kgpy.optics.coordinate.Transform, Base):
+class Transform(base_coordinate.Transform, Base):
 
     @property
     def name(self) -> kgpy.Name:

@@ -45,5 +45,6 @@ class Rectangular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
         x = np.stack([wx, wx, -wx, -wx], axis=0)
         y = np.stack([wy, -wy, wy, -wy], axis=0)
+        z = np.broadcast_to(0, x.shape)
 
-        return np.stack([x, y, 0], axis=~0)
+        return np.stack([x, y, z], axis=~0)

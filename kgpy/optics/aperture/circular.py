@@ -1,3 +1,4 @@
+import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u

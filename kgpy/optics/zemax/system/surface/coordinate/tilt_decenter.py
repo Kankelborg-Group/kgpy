@@ -1,8 +1,8 @@
 import dataclasses
 import abc
 import typing as typ
-from kgpy.component import Component
-from kgpy.optics.system.surface import coordinate
+from kgpy import Component
+from kgpy.optics import coordinate
 from ... import configuration, surface
 from . import Tilt, Decenter
 

@@ -1,7 +1,7 @@
 import dataclasses
 import typing as typ
-from kgpy.component import Component
-from kgpy.optics.system.surface import coordinate
+from kgpy import Component
+from kgpy.optics import coordinate
 from ... import surface
 from . import Tilt, Translate
 

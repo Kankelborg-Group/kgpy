@@ -37,9 +37,9 @@ class Tilt(kgpy.mixin.Broadcastable):
     def apply(self, value: u.Quantity, inverse: bool = False) -> np.ndarray:
         rot = self.rotation(inverse)
         new_value = np.empty_like(value)
-        new_value[0] = rot[0, 0] * value[..., 0] + rot[0, 1] * value[..., 1] + rot[0, 2] * value[..., 2]
-        new_value[1] = rot[1, 0] * value[..., 0] + rot[1, 1] * value[..., 1] + rot[1, 2] * value[..., 2]
-        new_value[2] = rot[2, 0] * value[..., 0] + rot[2, 1] * value[..., 1] + rot[2, 2] * value[..., 2]
+        new_value[..., 0] = rot[0, 0] * value[..., 0] + rot[0, 1] * value[..., 1] + rot[0, 2] * value[..., 2]
+        new_value[..., 1] = rot[1, 0] * value[..., 0] + rot[1, 1] * value[..., 1] + rot[1, 2] * value[..., 2]
+        new_value[..., 2] = rot[2, 0] * value[..., 0] + rot[2, 1] * value[..., 1] + rot[2, 2] * value[..., 2]
         return new_value
 
     def rotation(self, inverse: bool = False) -> np.ndarray:

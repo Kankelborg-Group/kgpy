@@ -2,7 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-from . import surface, coordinate
+from . import coordinate
 
 __all__ = ['Rays']
 

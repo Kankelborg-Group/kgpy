@@ -125,9 +125,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         for surf in self.surfaces:
 
             if isinstance(surf, surface.Standard):
-                points = self.local_to_global(surf, surf.aperture.points)
+                print(surf)
+                if surf.aperture.points is not None:
+                    points = self.local_to_global(surf, surf.aperture.points)
 
-                ax[0, 0].plot(points[..., 2], points[..., 0])
+                    ax[0, 0].plot(points[..., 2], points[..., 0])
 
 
 
@@ -141,7 +143,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             ax = fig.add_subplot(111, projection='3d', proj_type='ortho')
 
             x, mask = rays.position, rays.mask
-
             xsl = [slice(None)] * len(x.shape)
             for surf in self.surfaces:
                 s = self.surfaces.index(surf)

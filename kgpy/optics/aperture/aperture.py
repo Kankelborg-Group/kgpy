@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import typing as typ
 import numpy as np
 import astropy.units as u
 import kgpy.mixin
@@ -21,5 +22,5 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def points(self) -> u.Quantity:
+    def points(self) -> typ.Optional[u.Quantity]:
         pass

@@ -1,8 +1,8 @@
 import dataclasses
 import typing as typ
 from astropy import units as u
-from kgpy.component import Component
-from kgpy.optics.system.surface import coordinate
+from kgpy import Component
+from kgpy.optics import coordinate
 from .... import ZOSAPI
 from ... import configuration, surface
 from .decenter import Decenter

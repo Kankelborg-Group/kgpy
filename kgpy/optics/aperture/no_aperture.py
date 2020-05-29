@@ -1,3 +1,4 @@
+import typing as typ
 import numpy as np
 import astropy.units as u
 from . import Aperture
@@ -12,4 +13,8 @@ class NoAperture(Aperture):
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         return np.array(True)
+
+    @property
+    def points(self) -> typ.Optional[u.Quantity]:
+        return None
 

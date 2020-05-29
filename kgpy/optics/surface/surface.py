@@ -107,7 +107,3 @@ class Surface(
         intercept += rays.direction * t
 
         return intercept
-
-    @abc.abstractmethod
-    def plot_xz(self, ax: plt.Axes) -> typ.NoReturn:
-        pass

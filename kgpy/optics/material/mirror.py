@@ -1,4 +1,5 @@
 import dataclasses
+import typing as typ
 from astropy import units as u
 from . import Material
 

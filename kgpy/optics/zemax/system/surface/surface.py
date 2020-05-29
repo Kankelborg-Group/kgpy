@@ -4,9 +4,8 @@ import typing as typ
 import win32com.client
 import numpy as np
 import astropy.units as u
-from kgpy.component import Component
-from kgpy.optics.system import name
-import kgpy.optics.system.surface
+from kgpy import Name, Component
+import kgpy.optics
 from ... import ZOSAPI
 from .. import system, configuration
 
@@ -40,7 +39,7 @@ class OperandBase:
 
 
 @dataclasses.dataclass
-class Surface(Component[system.System], kgpy.optics.system.Surface, OperandBase, abc.ABC):
+class Surface(Component[system.System], kgpy.optics.Surface, OperandBase, abc.ABC):
 
     def _update(self) -> typ.NoReturn:
         super()._update()

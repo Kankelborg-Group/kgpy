@@ -3,7 +3,7 @@ import dataclasses
 import typing as typ
 import astropy.units as u
 from kgpy.component import Component
-from kgpy.optics.system.surface import coordinate
+from kgpy.optics import coordinate
 from ... import configuration, surface
 
 __all__ = ['Tilt']

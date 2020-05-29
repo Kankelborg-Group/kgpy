@@ -2,14 +2,14 @@ import dataclasses
 import typing as typ
 import astropy.units as u
 import kgpy
-import kgpy.optics.coordinate
+from .... import coordinate as base_coordinate
 from .. import coordinate
 
 __all__ = ['Translate']
 
 
 @dataclasses.dataclass
-class Translate(kgpy.Component['coordinate.Transform'], kgpy.optics.coordinate.Translate):
+class Translate(kgpy.Component['coordinate.Transform'], base_coordinate.Translate):
 
     def _update(self) -> typ.NoReturn:
         super()._update()

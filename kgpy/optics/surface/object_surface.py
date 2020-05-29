@@ -26,3 +26,6 @@ class ObjectSurface(Surface):
 
         if np.isfinite(self.thickness):
             rays.pz -= self.thickness
+
+    def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+        raise NotImplementedError
