@@ -11,8 +11,7 @@ __all__ = ['Circular']
 @dataclasses.dataclass
 class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
-    inner_radius: u.Quantity = 0 * u.mm
-    outer_radius: u.Quantity = 0 * u.mm
+    radius: u.Quantity = 0 * u.mm
 
     def to_zemax(self) -> 'Circular':
         raise NotImplementedError
@@ -21,26 +20,23 @@ class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
-            self.inner_radius,
-            self.outer_radius,
+            self.radius,
         )
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         x = points[..., 0]
         y = points[..., 1]
         r = np.sqrt(np.square(x) + np.square(y))
-        return self.inner_radius < r < self.outer_radius
+        return r < self.radius
 
     @property
     def points(self) -> u.Quantity:
+
         a = np.linspace(0 * u.deg, 360 * u.deg, num=100)
+        r = np.expand_dims(self.radius.copy(), ~0)
 
-        x = u.Quantity([np.cos(a), np.sin(a)])
-        x = np.moveaxis(x, 0, ~0)
+        x = r * np.cos(a)
+        y = r * np.sin(a)
+        z = np.broadcast_to(0, x.shape)
 
-        r0, r1 = np.broadcast_arrays(self.outer_radius, self.inner_radius)
-
-        r0 = np.reshape(r0, r0.shape + (1, 1, 1))
-        r1 = np.reshape(r1, r1.shape + (1, 1, 1))
-
-        return np.stack([r0 * x, r1 * x], axis=~2)
+        return np.stack([x, y, z], axis=~0)

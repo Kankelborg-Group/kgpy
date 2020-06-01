@@ -15,5 +15,6 @@ def mul(a: u.Quantity, b: u.Quantity) -> u.Quantity:
 
 def mul(a, b):
     a = np.expand_dims(a, ~0)
+    b = np.swapaxes(b, ~0, ~1)
     b = np.expand_dims(b, ~2)
-    return np.sum(a * b, axis=~0)
+    return np.sum(a * b, axis=~1)

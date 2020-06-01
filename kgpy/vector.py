@@ -1,6 +1,7 @@
 import typing as typ
 import numpy as np
 import astropy.units as u
+from . import matrix
 
 __all__ = ['dot', 'length', 'normalize']
 
@@ -31,7 +32,7 @@ def matmul(a: u.Quantity, b: u.Quantity) -> u.Quantity:
 
 def matmul(a, b):
     b = np.expand_dims(b, ~1)
-    return np.sum(a * b, axis=~0)
+    return matrix.mul(a, b)[..., 0]
 
 
 @typ.overload

@@ -43,8 +43,8 @@ class Rectangular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
         wx, wy = np.broadcast_arrays(self.half_width_x, self.half_width_y, subok=True)
 
-        x = np.stack([wx, wx, -wx, -wx], axis=0)
-        y = np.stack([wy, -wy, -wy, wy], axis=0)
+        x = np.stack([wx, wx, -wx, -wx], axis=~0)
+        y = np.stack([wy, -wy, -wy, wy], axis=~0)
         z = np.broadcast_to(0, x.shape)
 
         return np.stack([x, y, z], axis=~0)

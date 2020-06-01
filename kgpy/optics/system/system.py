@@ -106,21 +106,22 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         surfaces = list(self.surfaces)
         local_surface_index = surfaces.index(local_surface)
-        surfaces = surfaces[:local_surface_index + 1]
-        surfaces.reverse()
+        # surfaces = surfaces[:local_surface_index + 1]
+        # surfaces.reverse()
 
         for surf in surfaces:
 
             if isinstance(surf, surface.CoordinateBreak):
                 if surf is not local_surface:
-                    x -= surf.thickness
-                    x = surf.transform.apply(x, inverse=True, extra_dim=extra_dim)
+                    x = surf.transform.apply(x, extra_dim=extra_dim)
 
             elif isinstance(surf, surface.Standard):
-                if surf is not local_surface:
-                    x -= surf.thickness
-                    x = surf.transform_after.apply(x, inverse=True, extra_dim=extra_dim)
-                x = surf.transform_before.apply(x, inverse=True, extra_dim=extra_dim)
+                x = surf.transform_before.apply(x, extra_dim=extra_dim)
+                if surf is local_surface:
+                    break
+                x = surf.transform_after.apply(x, extra_dim=extra_dim)
+
+            x[..., ~0] += surf.thickness
 
         return x
 
@@ -150,7 +151,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
                         ax[0, 0].fill(points[x].T, points[y].T, fill=False)
                         ax[0, 1].fill(points[z].T, points[y].T, fill=False)
-                        ax[1, 0].axis('off')
+                        # ax[1, 0].axis('off')
                         ax[1, 1].fill(points[z].T, points[x].T, fill=False)
 
 
