@@ -26,7 +26,7 @@ class Tilt(kgpy.component.Component['coordinate.Transform'], base_coordinate.Til
         self._x = value
         try:
             self._composite._cb_tilt.transform.tilt.x = value
-            self._composite._cb_translate.transform.tilt.x = 0
+            self._composite._cb_translate.transform.tilt.x = 0 * u.deg
         except AttributeError:
             pass
 
@@ -39,7 +39,7 @@ class Tilt(kgpy.component.Component['coordinate.Transform'], base_coordinate.Til
         self._y = value
         try:
             self._composite._cb_tilt.transform.tilt.y = value
-            self._composite._cb_translate.transform.tilt.y = 0
+            self._composite._cb_translate.transform.tilt.y = 0 * u.deg
         except AttributeError:
             pass
 
@@ -52,6 +52,6 @@ class Tilt(kgpy.component.Component['coordinate.Transform'], base_coordinate.Til
         self._z = value
         try:
             self._composite._cb_tilt.transform.tilt.z = value
-            self._composite._cb_translate.transform.tilt.z = 0
+            self._composite._cb_translate.transform.tilt.z = 0 * u.deg
         except AttributeError:
             pass

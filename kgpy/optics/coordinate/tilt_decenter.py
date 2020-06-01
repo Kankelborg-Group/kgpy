@@ -50,16 +50,17 @@ class TiltDecenter(zemax_compatible.InitArgs, kgpy.mixin.Broadcastable):
             tilt: bool = True,
             decenter: bool = True,
             inverse: bool = False,
+            extra_dim: bool = False,
     ) -> u.Quantity:
         value = value.copy()
         if not self.tilt_first:
             if decenter:
                 value = self.decenter.apply(value, inverse)
             if tilt:
-                value = self.tilt.apply(value, inverse)
+                value = self.tilt.apply(value, inverse, extra_dim)
         else:
             if tilt:
-                value = self.tilt.apply(value, inverse)
+                value = self.tilt.apply(value, inverse, extra_dim)
             if decenter:
                 value = self.decenter.apply(value, inverse)
         return value

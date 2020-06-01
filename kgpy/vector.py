@@ -20,6 +20,21 @@ def dot(a, b, keepdims=True):
 
 
 @typ.overload
+def matmul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    ...
+
+
+@typ.overload
+def matmul(a: u.Quantity, b: u.Quantity) -> u.Quantity:
+    ...
+
+
+def matmul(a, b):
+    b = np.expand_dims(b, ~1)
+    return np.sum(a * b, axis=~0)
+
+
+@typ.overload
 def length(a: np.ndarray, keepdims: bool = True) -> np.ndarray:
     ...
 

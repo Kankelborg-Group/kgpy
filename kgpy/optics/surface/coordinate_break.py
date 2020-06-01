@@ -1,5 +1,6 @@
 import dataclasses
 import typing as typ
+import numpy as np
 import astropy.units as u
 from .. import Rays, coordinate
 from . import surface
@@ -19,6 +20,13 @@ class CoordinateBreak(surface.Surface):
             'transform': self.transform
         })
         return args
+
+    @property
+    def config_broadcast(self):
+        return np.broadcast(
+            super().config_broadcast,
+            self.transform.config_broadcast,
+        )
 
     def to_zemax(self) -> 'CoordinateBreak':
         from kgpy.optics import zemax

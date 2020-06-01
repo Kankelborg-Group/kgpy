@@ -26,7 +26,7 @@ class Translate(kgpy.Component['coordinate.Transform'], base_coordinate.Translat
         self._x = value
         try:
             self._composite._cb_translate.transform.decenter.x = value
-            self._composite._cb_tilt.transform.decenter.x = 0
+            self._composite._cb_tilt.transform.decenter.x = 0 * u.mm
         except AttributeError:
             pass
 
@@ -39,7 +39,7 @@ class Translate(kgpy.Component['coordinate.Transform'], base_coordinate.Translat
         self._y = value
         try:
             self._composite._cb_translate.transform.decenter.y = value
-            self._composite._cb_tilt.transform.decenter.y = 0
+            self._composite._cb_tilt.transform.decenter.y = 0 * u.mm
         except AttributeError:
             pass
 
@@ -52,6 +52,6 @@ class Translate(kgpy.Component['coordinate.Transform'], base_coordinate.Translat
         self._z = value
         try:
             self._composite._cb_translate.thickness = value
-            self._composite._cb_tilt.thickness = 0
+            self._composite._cb_tilt.thickness = 0 * u.mm
         except AttributeError:
             pass

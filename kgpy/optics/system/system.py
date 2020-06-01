@@ -39,15 +39,17 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         all_surface_battrs = None
         for s in self.surfaces:
             all_surface_battrs = np.broadcast(all_surface_battrs, s.config_broadcast)
-            all_surface_battrs = np.empty(all_surface_battrs.shape)
+            all_surface_battrs = np.broadcast_to(np.array(1), all_surface_battrs.shape)
 
-        return np.broadcast(
-            all_surface_battrs,
-            self.fields.config_broadcast,
-            self.wavelengths.config_broadcast,
-            self.entrance_pupil_radius,
-            self.stop_surface_index,
-        )
+        return all_surface_battrs
+
+        # return np.broadcast(
+        #     all_surface_battrs,
+        #     # self.fields.config_broadcast,
+        #     # self.wavelengths.config_broadcast,
+        #     # self.entrance_pupil_radius,
+        #     # self.stop_surface_index,
+        # )
 
     def raytrace_subsystem(
             self,
@@ -99,6 +101,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             self,
             local_surface: surface.Surface,
             x: u.Quantity,
+            extra_dim: bool = False
     ) -> u.Quantity:
 
         surfaces = list(self.surfaces)
@@ -109,27 +112,46 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         for surf in surfaces:
 
             if isinstance(surf, surface.CoordinateBreak):
-                x = surf.transform.apply(x, inverse=True)
+                if surf is not local_surface:
+                    x -= surf.thickness
+                    x = surf.transform.apply(x, inverse=True, extra_dim=extra_dim)
 
             elif isinstance(surf, surface.Standard):
                 if surf is not local_surface:
-                    x = surf.transform_after.apply(x, inverse=True)
-                x = surf.transform_before.apply(x, inverse=True)
+                    x -= surf.thickness
+                    x = surf.transform_after.apply(x, inverse=True, extra_dim=extra_dim)
+                x = surf.transform_before.apply(x, inverse=True, extra_dim=extra_dim)
 
         return x
 
     def plot_xz(self):
 
-        fig, ax = plt.subplots(1, 1)
+        x = ..., 0
+        y = ..., 1
+        z = ..., 2
 
-        for surf in self.surfaces:
+        with astropy.visualization.quantity_support():
 
-            if isinstance(surf, surface.Standard):
+            fig, ax = plt.subplots(2, 2, sharex='col', sharey='row')
+
+            for surf in self.surfaces:
                 print(surf)
-                if surf.aperture.points is not None:
-                    points = self.local_to_global(surf, surf.aperture.points)
+                if isinstance(surf, surface.Standard):
+                    points = surf.aperture.points
+                    if points is not None:
+                        sh = self.shape
+                        sh += points.shape[~1:]
+                        points = np.broadcast_to(points, sh, subok=True).copy()
+                        # for p in range(points.shape[~1]):
+                        #     sl = ..., p, slice(None)
+                        #     points[sl] = self.local_to_global(surf, points[sl])
+                        points = self.local_to_global(surf, points, extra_dim=True)
 
-                    ax[0, 0].plot(points[..., 2], points[..., 0])
+
+                        ax[0, 0].fill(points[x].T, points[y].T, fill=False)
+                        ax[0, 1].fill(points[z].T, points[y].T, fill=False)
+                        ax[1, 0].axis('off')
+                        ax[1, 1].fill(points[z].T, points[x].T, fill=False)
 
 
 
