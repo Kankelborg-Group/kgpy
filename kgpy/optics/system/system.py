@@ -8,7 +8,7 @@ import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
 import kgpy.mixin
-from .. import ZemaxCompatible, Rays, surface
+from .. import ZemaxCompatible, Rays, material, surface
 
 __all__ = ['System']
 
@@ -17,7 +17,6 @@ SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surfac
 
 @dataclasses.dataclass
 class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Generic[SurfacesT]):
-
     object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [surface.Standard()])
     stop_surface: surface.Surface = None
@@ -106,21 +105,23 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         surfaces = list(self.surfaces)
         local_surface_index = surfaces.index(local_surface)
-        surfaces = surfaces[:local_surface_index + 1]
+        surfaces = surfaces[:local_surface_index]
         surfaces.reverse()
+
+        if isinstance(local_surface, surface.Standard):
+            x = local_surface.transform_before.apply(x, extra_dim=extra_dim)
 
         for surf in surfaces:
 
             if isinstance(surf, surface.CoordinateBreak):
                 if surf is not local_surface:
                     x = surf.transform.apply(x, extra_dim=extra_dim)
-                    x[..., ~0] += surf.thickness
 
             elif isinstance(surf, surface.Standard):
                 x = surf.transform_before.apply(x, extra_dim=extra_dim)
-                if surf is not local_surface:
-                    x = surf.transform_after.apply(x, extra_dim=extra_dim)
-                    x[..., ~0] += surf.thickness
+                x = surf.transform_after.apply(x, extra_dim=extra_dim)
+
+            x[..., ~0] += surf.thickness
 
         return x
 
@@ -133,32 +134,79 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         with astropy.visualization.quantity_support():
 
             fig, ax = plt.subplots(2, 2, sharex='col', sharey='row')
+            ax[1, 1].invert_yaxis()
+
+            prop_direction = 1
 
             for surf in self.surfaces:
                 if isinstance(surf, surface.Standard):
-                    points = surf.aperture.points
-                    if points is not None:
+                    if surf.aperture.points is not None:
+
+                        points = surf.aperture.points.copy()
                         points[z] = surf.sag(points[x], points[y])
-                        sh = self.shape
-                        sh += points.shape[~1:]
-                        points = np.broadcast_to(points, sh, subok=True).copy()
                         points = self.local_to_global(surf, points, extra_dim=True)
                         points = points.to(u.mm)
 
                         ax[0, 0].fill(points[x].T, points[y].T, fill=False)
                         ax[0, 1].fill(points[z].T, points[y].T, fill=False)
-                        # ax[1, 0].axis('off')
                         ax[1, 1].fill(points[z].T, points[x].T, fill=False)
-                        ax[1, 1].invert_yaxis()
+
+                        if isinstance(surf.material, material.Mirror):
+                            back = surf.aperture.points.copy()
+
+                            xmax, ymax = back[x].max(~0, keepdims=True), back[y].max(~0, keepdims=True)
+                            xmin, ymin = back[x].min(~0, keepdims=True), back[y].min(~0, keepdims=True)
+
+                            t = prop_direction * surf.material.thickness
+                            back[z] = t
+                            prop_direction *= -1
+                            back = self.local_to_global(surf, back, extra_dim=True)
+
+                            t = np.broadcast_to(t, xmax.shape, subok=True)
+                            c1 = np.concatenate([
+                                np.stack([xmax, ymax, surf.sag(xmax, ymax)], axis=~0),
+                                np.stack([xmax, ymax, t], axis=~0),
+                            ], axis=~1)
+                            c2 = np.concatenate([
+                                np.stack([xmax, ymin, surf.sag(xmax, ymin)], axis=~0),
+                                np.stack([xmax, ymin, t], axis=~0),
+                            ], axis=~1)
+                            c3 = np.concatenate([
+                                np.stack([xmin, ymin, surf.sag(xmin, ymin)], axis=~0),
+                                np.stack([xmin, ymin, t], axis=~0),
+                            ], axis=~1)
+                            c4 = np.concatenate([
+                                np.stack([xmin, ymax, surf.sag(xmin, ymax)], axis=~0),
+                                np.stack([xmin, ymax, t], axis=~0),
+                            ], axis=~1)
+
+                            c1 = self.local_to_global(surf, c1, extra_dim=True)
+                            c2 = self.local_to_global(surf, c2, extra_dim=True)
+                            c3 = self.local_to_global(surf, c3, extra_dim=True)
+                            c4 = self.local_to_global(surf, c4, extra_dim=True)
+
+                            ax[0, 0].fill(back[x].T, back[y].T, fill=False)
+                            ax[0, 1].fill(back[z].T, back[y].T, fill=False)
+                            ax[1, 1].fill(back[z].T, back[x].T, fill=False)
+
+                            ax[0, 0].plot(c1[x].T, c1[y].T, color='black')
+                            ax[0, 0].plot(c2[x].T, c2[y].T, color='black')
+                            ax[0, 0].plot(c3[x].T, c3[y].T, color='black')
+                            ax[0, 0].plot(c4[x].T, c4[y].T, color='black')
 
 
+                            ax[0, 1].plot(c1[z].T, c1[y].T, color='black')
+                            ax[0, 1].plot(c2[z].T, c2[y].T, color='black')
+                            ax[0, 1].plot(c3[z].T, c3[y].T, color='black')
+                            ax[0, 1].plot(c4[z].T, c4[y].T, color='black')
 
-
-
+                            ax[1, 1].plot(c1[z].T, c1[x].T, color='black')
+                            ax[1, 1].plot(c2[z].T, c2[x].T, color='black')
+                            ax[1, 1].plot(c3[z].T, c3[x].T, color='black')
+                            ax[1, 1].plot(c4[z].T, c4[x].T, color='black')
 
 
     def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
-
         with astropy.visualization.quantity_support():
 
             fig = plt.figure()
@@ -222,6 +270,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                             ax.plot(x_, y_, z_, 'k')
                             ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
                                     u.Quantity([z_[-1], z_[0]]), 'k')
+
 
     def __iter__(self) -> typ.Iterator[surface.Surface]:
         yield from self.object_surface
