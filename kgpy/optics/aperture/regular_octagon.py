@@ -27,11 +27,11 @@ class RegularOctagon(decenterable.Decenterable, obscurable.Obscurable, Aperture)
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         p = shapely.geometry.Point(points[0:2])
-        poly = shapely.geometry.Polygon(self.points)
+        poly = shapely.geometry.Polygon(self.edges)
         return poly.contains(p)
 
     @property
-    def points(self) -> u.Quantity:
+    def edges(self) -> u.Quantity:
 
         angles = np.linspace(0, 360 * u.deg, self.num_sides, endpoint=False)
         x = self.radius * np.cos(angles)

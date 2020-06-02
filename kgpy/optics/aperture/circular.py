@@ -30,9 +30,9 @@ class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
         return r < self.radius
 
     @property
-    def points(self) -> u.Quantity:
+    def edges(self) -> u.Quantity:
 
-        a = np.linspace(0 * u.deg, 360 * u.deg, num=self.points_per_segment)
+        a = np.linspace(0 * u.deg, 360 * u.deg, num=self.num_samples)
         r = np.expand_dims(self.radius.copy(), ~0)
 
         x = r * np.cos(a)

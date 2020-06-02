@@ -15,6 +15,6 @@ class NoAperture(Aperture):
         return np.array(True)
 
     @property
-    def points(self) -> typ.Optional[u.Quantity]:
+    def edges(self) -> typ.Optional[u.Quantity]:
         return None
 

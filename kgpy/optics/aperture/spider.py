@@ -25,7 +25,7 @@ class Spider(decenterable.Decenterable, Aperture):
         )
 
     @property
-    def points(self) -> u.Quantity:
+    def edges(self) -> u.Quantity:
         a = np.linspace(0 * u.deg, 360 * u.deg, self.num_arms, endpoint=False)
         a = np.expand_dims(a, ~0)
 

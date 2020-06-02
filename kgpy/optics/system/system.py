@@ -127,84 +127,84 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def plot_projections(self):
 
+        with astropy.visualization.quantity_support():
+
+            fig, axs = plt.subplots(2, 2, sharex='col', sharey='row')
+            axs[1, 1].invert_yaxis()
+
+            self.plot_surface_projections(axs)
+
+    def plot_surface_projections(self, axs: np.ndarray):
         x = ..., 0
         y = ..., 1
         z = ..., 2
 
-        with astropy.visualization.quantity_support():
+        prop_direction = 1
+        for surf in self.surfaces:
+            if isinstance(surf, surface.Standard):
+                if not surf.aperture:
 
-            fig, ax = plt.subplots(2, 2, sharex='col', sharey='row')
-            ax[1, 1].invert_yaxis()
+                    points = surf.aperture.points.copy()
+                    points[z] = surf.sag(points[x], points[y])
+                    points = self.local_to_global(surf, points, extra_dim=True)
+                    points = points.to(u.mm)
 
-            prop_direction = 1
+                    axs[0, 0].fill(points[x].T, points[y].T, fill=False)
+                    axs[0, 1].fill(points[z].T, points[y].T, fill=False)
+                    axs[1, 1].fill(points[z].T, points[x].T, fill=False)
 
-            for surf in self.surfaces:
-                if isinstance(surf, surface.Standard):
-                    if surf.aperture.points is not None:
+                    if isinstance(surf.material, material.Mirror):
+                        back = surf.aperture.points.copy()
 
-                        points = surf.aperture.points.copy()
-                        points[z] = surf.sag(points[x], points[y])
-                        points = self.local_to_global(surf, points, extra_dim=True)
-                        points = points.to(u.mm)
+                        xmax, ymax = back[x].max(~0, keepdims=True), back[y].max(~0, keepdims=True)
+                        xmin, ymin = back[x].min(~0, keepdims=True), back[y].min(~0, keepdims=True)
 
-                        ax[0, 0].fill(points[x].T, points[y].T, fill=False)
-                        ax[0, 1].fill(points[z].T, points[y].T, fill=False)
-                        ax[1, 1].fill(points[z].T, points[x].T, fill=False)
+                        t = prop_direction * surf.material.thickness
+                        back[z] = t
+                        prop_direction *= -1
+                        back = self.local_to_global(surf, back, extra_dim=True)
 
-                        if isinstance(surf.material, material.Mirror):
-                            back = surf.aperture.points.copy()
+                        t = np.broadcast_to(t, xmax.shape, subok=True)
+                        c1 = np.concatenate([
+                            np.stack([xmax, ymax, surf.sag(xmax, ymax)], axis=~0),
+                            np.stack([xmax, ymax, t], axis=~0),
+                        ], axis=~1)
+                        c2 = np.concatenate([
+                            np.stack([xmax, ymin, surf.sag(xmax, ymin)], axis=~0),
+                            np.stack([xmax, ymin, t], axis=~0),
+                        ], axis=~1)
+                        c3 = np.concatenate([
+                            np.stack([xmin, ymin, surf.sag(xmin, ymin)], axis=~0),
+                            np.stack([xmin, ymin, t], axis=~0),
+                        ], axis=~1)
+                        c4 = np.concatenate([
+                            np.stack([xmin, ymax, surf.sag(xmin, ymax)], axis=~0),
+                            np.stack([xmin, ymax, t], axis=~0),
+                        ], axis=~1)
 
-                            xmax, ymax = back[x].max(~0, keepdims=True), back[y].max(~0, keepdims=True)
-                            xmin, ymin = back[x].min(~0, keepdims=True), back[y].min(~0, keepdims=True)
+                        c1 = self.local_to_global(surf, c1, extra_dim=True)
+                        c2 = self.local_to_global(surf, c2, extra_dim=True)
+                        c3 = self.local_to_global(surf, c3, extra_dim=True)
+                        c4 = self.local_to_global(surf, c4, extra_dim=True)
 
-                            t = prop_direction * surf.material.thickness
-                            back[z] = t
-                            prop_direction *= -1
-                            back = self.local_to_global(surf, back, extra_dim=True)
+                        axs[0, 0].fill(back[x].T, back[y].T, fill=False)
+                        axs[0, 1].fill(back[z].T, back[y].T, fill=False)
+                        axs[1, 1].fill(back[z].T, back[x].T, fill=False)
 
-                            t = np.broadcast_to(t, xmax.shape, subok=True)
-                            c1 = np.concatenate([
-                                np.stack([xmax, ymax, surf.sag(xmax, ymax)], axis=~0),
-                                np.stack([xmax, ymax, t], axis=~0),
-                            ], axis=~1)
-                            c2 = np.concatenate([
-                                np.stack([xmax, ymin, surf.sag(xmax, ymin)], axis=~0),
-                                np.stack([xmax, ymin, t], axis=~0),
-                            ], axis=~1)
-                            c3 = np.concatenate([
-                                np.stack([xmin, ymin, surf.sag(xmin, ymin)], axis=~0),
-                                np.stack([xmin, ymin, t], axis=~0),
-                            ], axis=~1)
-                            c4 = np.concatenate([
-                                np.stack([xmin, ymax, surf.sag(xmin, ymax)], axis=~0),
-                                np.stack([xmin, ymax, t], axis=~0),
-                            ], axis=~1)
+                        axs[0, 0].plot(c1[x].T, c1[y].T, color='black')
+                        axs[0, 0].plot(c2[x].T, c2[y].T, color='black')
+                        axs[0, 0].plot(c3[x].T, c3[y].T, color='black')
+                        axs[0, 0].plot(c4[x].T, c4[y].T, color='black')
 
-                            c1 = self.local_to_global(surf, c1, extra_dim=True)
-                            c2 = self.local_to_global(surf, c2, extra_dim=True)
-                            c3 = self.local_to_global(surf, c3, extra_dim=True)
-                            c4 = self.local_to_global(surf, c4, extra_dim=True)
+                        axs[0, 1].plot(c1[z].T, c1[y].T, color='black')
+                        axs[0, 1].plot(c2[z].T, c2[y].T, color='black')
+                        axs[0, 1].plot(c3[z].T, c3[y].T, color='black')
+                        axs[0, 1].plot(c4[z].T, c4[y].T, color='black')
 
-                            ax[0, 0].fill(back[x].T, back[y].T, fill=False)
-                            ax[0, 1].fill(back[z].T, back[y].T, fill=False)
-                            ax[1, 1].fill(back[z].T, back[x].T, fill=False)
-
-                            ax[0, 0].plot(c1[x].T, c1[y].T, color='black')
-                            ax[0, 0].plot(c2[x].T, c2[y].T, color='black')
-                            ax[0, 0].plot(c3[x].T, c3[y].T, color='black')
-                            ax[0, 0].plot(c4[x].T, c4[y].T, color='black')
-
-
-                            ax[0, 1].plot(c1[z].T, c1[y].T, color='black')
-                            ax[0, 1].plot(c2[z].T, c2[y].T, color='black')
-                            ax[0, 1].plot(c3[z].T, c3[y].T, color='black')
-                            ax[0, 1].plot(c4[z].T, c4[y].T, color='black')
-
-                            ax[1, 1].plot(c1[z].T, c1[x].T, color='black')
-                            ax[1, 1].plot(c2[z].T, c2[x].T, color='black')
-                            ax[1, 1].plot(c3[z].T, c3[x].T, color='black')
-                            ax[1, 1].plot(c4[z].T, c4[x].T, color='black')
-
+                        axs[1, 1].plot(c1[z].T, c1[x].T, color='black')
+                        axs[1, 1].plot(c2[z].T, c2[x].T, color='black')
+                        axs[1, 1].plot(c3[z].T, c3[x].T, color='black')
+                        axs[1, 1].plot(c4[z].T, c4[x].T, color='black')
 
     def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
         with astropy.visualization.quantity_support():
@@ -258,10 +258,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 if isinstance(surf, surface.Standard):
                     if surf.aperture is not None:
 
-                        psh = list(surf.aperture.points.shape)
+                        psh = list(surf.aperture.edges.shape)
                         psh[~0] = 3
                         polys = np.zeros(psh) * u.mm
-                        polys[..., 0:2] = surf.aperture.points
+                        polys[..., 0:2] = surf.aperture.edges
 
                         polys = self.local_to_global(surf, polys, configuration_axis=None)[0]
 

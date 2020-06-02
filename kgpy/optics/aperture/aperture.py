@@ -12,7 +12,7 @@ __all__ = ['Aperture']
 @dataclasses.dataclass
 class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
 
-    points_per_segment: int = 100
+    num_samples: int = 100
 
     def to_zemax(self) -> 'Aperture':
         from kgpy.optics import zemax
@@ -24,5 +24,5 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def points(self) -> typ.Optional[u.Quantity]:
+    def edges(self) -> typ.Optional[u.Quantity]:
         pass

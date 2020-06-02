@@ -1,13 +1,13 @@
 import dataclasses
 import numpy as np
 import astropy.units as u
-from . import Aperture, decenterable, obscurable
+from . import polygon
 
 __all__ = ['Rectangular']
 
 
 @dataclasses.dataclass
-class Rectangular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
+class Rectangular(polygon.Polygon):
 
     half_width_x: u.Quantity = 0 * u.mm
     half_width_y: u.Quantity = 0 * u.mm
@@ -39,12 +39,23 @@ class Rectangular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
         return m1 & m2 & m3 & m4
 
     @property
-    def points(self) -> u.Quantity:
+    def vertices(self):
 
         wx, wy = np.broadcast_arrays(self.half_width_x, self.half_width_y, subok=True)
 
-        rx = np.linspace(-wx, wx, self.points_per_segment, axis=~0)
-        ry = np.linspace(-wy, wy, self.points_per_segment, axis=~0)
+        x = np.stack([wx, wx, -wx, -wx], axis=~0)
+        y = np.stack([wy, -wy, -wy, wy], axis=~0)
+        z = np.broadcast_to(0, x.shape)
+
+        return np.stack([x, y, z], axis=~0)
+
+    @property
+    def edges(self) -> u.Quantity:
+
+        wx, wy = np.broadcast_arrays(self.half_width_x, self.half_width_y, subok=True)
+
+        rx = np.linspace(-wx, wx, self.num_samples, axis=~0)
+        ry = np.linspace(-wy, wy, self.num_samples, axis=~0)
 
         wx = np.expand_dims(wx, ~0)
         wy = np.expand_dims(wy, ~0)
