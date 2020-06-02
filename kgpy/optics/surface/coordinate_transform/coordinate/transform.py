@@ -76,8 +76,8 @@ class Transform(kgpy.Component['coordinate_transform.CoordinateTransform'], coor
     def tilt_first(self, value: bool):
         self._tilt_first = value
         try:
-            self._cb1.tilt_first = value
-            self._cb2.tilt_first = value
+            self._cb1.transform.tilt_first = value
+            self._cb2.transform.tilt_first = value
             self._cb_tilt.name.base = 'tilt'
             self._cb_translate.name.base = 'translate'
         except AttributeError:

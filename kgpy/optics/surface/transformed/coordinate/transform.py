@@ -67,7 +67,7 @@ class Transform(base_coordinate.Transform, Base):
     def tilt_first(self, value: bool):
         self._tilt_first = value
         self._ct_before.transform.tilt_first = value
-        self._ct_after.transform.tilt_first = ~value
+        self._ct_after.transform.tilt_first = not value
 
     def iter_before(self) -> typ.Iterator[CoordinateBreak]:
         yield from self._ct_before
