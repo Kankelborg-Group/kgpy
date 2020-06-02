@@ -8,7 +8,7 @@ import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
 import kgpy.mixin
-from .. import ZemaxCompatible, Rays, material, surface
+from .. import ZemaxCompatible, Rays, material, surface, aperture
 
 __all__ = ['System']
 
@@ -134,6 +134,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             self.plot_surface_projections(axs)
 
+            points = u.Quantity([p.position for p in self.all_rays])
+
+            print(points.shape)
+
     def plot_surface_projections(self, axs: np.ndarray):
         x = ..., 0
         y = ..., 1
@@ -142,9 +146,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         prop_direction = 1
         for surf in self.surfaces:
             if isinstance(surf, surface.Standard):
-                if not surf.aperture:
+                if not isinstance(surf.aperture, aperture.NoAperture):
 
-                    points = surf.aperture.points.copy()
+                    points = surf.aperture.edges.copy()
                     points[z] = surf.sag(points[x], points[y])
                     points = self.local_to_global(surf, points, extra_dim=True)
                     points = points.to(u.mm)
@@ -154,7 +158,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                     axs[1, 1].fill(points[z].T, points[x].T, fill=False)
 
                     if isinstance(surf.material, material.Mirror):
-                        back = surf.aperture.points.copy()
+                        back = surf.aperture.edges.copy()
 
                         xmax, ymax = back[x].max(~0, keepdims=True), back[y].max(~0, keepdims=True)
                         xmin, ymin = back[x].min(~0, keepdims=True), back[y].min(~0, keepdims=True)

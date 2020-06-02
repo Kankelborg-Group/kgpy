@@ -74,4 +74,5 @@ def from_components(x: u.Quantity, y: u.Quantity, z: u.Quantity) -> u.Quantity:
 
 
 def from_components(x, y, z):
+    x, y, z = np.broadcast_arrays(x, y, z)
     return np.stack([x, y, z], axis=~0)
