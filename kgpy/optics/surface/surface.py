@@ -93,8 +93,8 @@ class Surface(
             a0 = intercept + rays.direction * t0
             a1 = intercept + rays.direction * t1
 
-            f0 = a0[rays.z] - self.sag(a0[rays.x], a0[rays.y])
-            f1 = a1[rays.z] - self.sag(a1[rays.x], a1[rays.y])
+            f0 = a0[rays.components.z] - self.sag(a0[rays.components.x], a0[rays.components.y])
+            f1 = a1[rays.components.z] - self.sag(a1[rays.components.x], a1[rays.components.y])
 
             t2 = (t0 * f1 - t1 * f0) / (f1 - f0)
 

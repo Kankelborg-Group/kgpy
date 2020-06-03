@@ -65,8 +65,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if final_surface is None:
             final_surface = surfaces[~0]
 
-        start_surface_index = surfaces.index(start_surface)
-        final_surface_index = surfaces.index(final_surface)
+        for s, surf in enumerate(surfaces):
+            if surf is start_surface:
+                start_surface_index = s
+            if surf is final_surface:
+                final_surface_index = s
+                break
 
         for s in range(start_surface_index, final_surface_index + 1):
             surf = surfaces[s]
@@ -103,8 +107,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             extra_dim: bool = False
     ) -> u.Quantity:
 
-        surfaces = list(self.surfaces)
-        local_surface_index = surfaces.index(local_surface)
+        surfaces = list(self)
+        for s, surf in enumerate(surfaces):
+            if surf is local_surface:
+                local_surface_index = s
+                break
         surfaces = surfaces[:local_surface_index]
         surfaces.reverse()
 
@@ -127,16 +134,25 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def plot_projections(self):
 
+        x = ..., 0
+        y = ..., 1
+        z = ..., 2
+
         with astropy.visualization.quantity_support():
 
             fig, axs = plt.subplots(2, 2, sharex='col', sharey='row')
-            axs[1, 1].invert_yaxis()
+            axs[0, 0].invert_xaxis()
 
             self.plot_surface_projections(axs)
 
-            points = u.Quantity([p.position for p in self.all_rays])
 
-            print(points.shape)
+
+            points = u.Quantity([self.local_to_global(s, r.position, extra_dim=True) for s, r in zip(self, self.all_rays)])
+            points = points.reshape((points.shape[0], -1, points.shape[~0]))
+
+            axs[0, 0].plot(points[x], points[y])
+            axs[0, 1].plot(points[z], points[y])
+            axs[1, 1].plot(points[z], points[x])
 
     def plot_surface_projections(self, axs: np.ndarray):
         x = ..., 0

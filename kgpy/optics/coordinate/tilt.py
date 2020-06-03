@@ -59,8 +59,8 @@ class Tilt(kgpy.mixin.Broadcastable):
             x *= -1
         r[..., 0, 0] = 1
         r[..., 1, 1] = np.cos(x)
-        r[..., 1, 2] = -np.sin(x)
-        r[..., 2, 1] = np.sin(x)
+        r[..., 1, 2] = np.sin(x)
+        r[..., 2, 1] = -np.sin(x)
         r[..., 2, 2] = np.cos(x)
         return r
 
@@ -70,9 +70,9 @@ class Tilt(kgpy.mixin.Broadcastable):
         if inverse:
             y *= -1
         r[..., 0, 0] = np.cos(y)
-        r[..., 0, 2] = np.sin(y)
+        r[..., 0, 2] = -np.sin(y)
         r[..., 1, 1] = 1
-        r[..., 2, 0] = -np.sin(y)
+        r[..., 2, 0] = np.sin(y)
         r[..., 2, 2] = np.cos(y)
         return r
 
@@ -82,8 +82,8 @@ class Tilt(kgpy.mixin.Broadcastable):
         if inverse:
             z *= -1
         r[..., 0, 0] = np.cos(z)
-        r[..., 0, 1] = -np.sin(z)
-        r[..., 1, 0] = np.sin(z)
+        r[..., 0, 1] = np.sin(z)
+        r[..., 1, 0] = -np.sin(z)
         r[..., 1, 1] = np.cos(z)
         r[..., 2, 2] = 1
         return r

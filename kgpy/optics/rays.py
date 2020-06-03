@@ -70,10 +70,10 @@ class Rays:
     def tilt_decenter(self, transform: coordinate.TiltDecenter) -> 'Rays':
         return type(self)(
             wavelength=self.wavelength.copy(),
-            position=transform.apply(self.position),
-            direction=transform.apply(self.direction, decenter=False),
+            position=transform.apply(self.position, extra_dim=True),
+            direction=transform.apply(self.direction, decenter=False, extra_dim=True),
             polarization=self.polarization.copy(),
-            surface_normal=transform.apply(self.surface_normal, decenter=False),
+            surface_normal=transform.apply(self.surface_normal, decenter=False, extra_dim=True),
             index_of_refraction=self.index_of_refraction.copy(),
             vignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
