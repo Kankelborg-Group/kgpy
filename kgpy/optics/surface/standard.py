@@ -94,13 +94,13 @@ class Standard(
 
             b = r * a + (r * c - p * np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
 
-            rays.direction = b
+            rays.direction = kgpy.vector.normalize(b)
             rays.surface_normal = n
             rays.vignetted_mask = self.aperture.is_unvignetted(rays.position)
             rays.index_of_refraction = n2
 
         if not is_final_surface:
-            rays = rays.tilt_decenter(~self.transform_after)
             rays.pz -= self.thickness
+            rays = rays.tilt_decenter(~self.transform_after)
 
         return rays

@@ -85,7 +85,7 @@ class Surface(
         t1 = step_size
 
         i = 0
-        while np.max(np.abs(t1 - t0)) < max_error:
+        while np.max(np.abs(t1 - t0)) > max_error:
 
             if i > max_iterations:
                 raise ValueError('Number of iterations exceeded')
@@ -95,6 +95,9 @@ class Surface(
 
             f0 = a0[rays.components.z] - self.sag(a0[rays.components.x], a0[rays.components.y])
             f1 = a1[rays.components.z] - self.sag(a1[rays.components.x], a1[rays.components.y])
+
+            f0 = np.expand_dims(f0, ~0)
+            f1 = np.expand_dims(f1, ~0)
 
             t2 = (t0 * f1 - t1 * f0) / (f1 - f0)
 

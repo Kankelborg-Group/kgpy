@@ -75,11 +75,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         for s in range(start_surface_index, final_surface_index + 1):
             surf = surfaces[s]
             if s == start_surface_index:
-                surf.propagate_rays(rays, is_first_surface=True)
+                rays = surf.propagate_rays(rays, is_first_surface=True)
             elif s == final_surface_index:
-                surf.propagate_rays(rays, is_final_surface=True)
+                rays = surf.propagate_rays(rays, is_final_surface=True)
             else:
-                surf.propagate_rays(rays)
+                rays = surf.propagate_rays(rays)
 
         return rays
 
@@ -146,8 +146,15 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             self.plot_surface_projections(axs)
 
 
+            points = []
+            for s, r in zip(self, self.all_rays):
+                if isinstance(s, surface.Standard):
+                    print(s)
+                    print(r.position)
+                    points.append(self.local_to_global(s, r.position, extra_dim=True))
+            points = u.Quantity(points)
 
-            points = u.Quantity([self.local_to_global(s, r.position, extra_dim=True) for s, r in zip(self, self.all_rays)])
+            # points = u.Quantity([self.local_to_global(s, r.position, extra_dim=True) for s, r in zip(self, self.all_rays)])
             points = points.reshape((points.shape[0], -1, points.shape[~0]))
 
             axs[0, 0].plot(points[x], points[y])

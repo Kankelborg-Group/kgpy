@@ -44,3 +44,5 @@ class CoordinateBreak(surface.Surface):
 
         if not is_final_surface:
             rays.pz -= self.thickness
+
+        return rays
