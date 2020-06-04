@@ -4,14 +4,15 @@ import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
 import typing as typ
+import copy
 
-from kso.kso_iii.science.instruments.esis import level_3
+# from kso.kso_iii.science.instruments.esis import level_3
 import scipy.signal
 import scipy.ndimage
 import scipy.optimize
 
 from dataclasses import dataclass
-from kso.kso_iii.science.instruments.esis import ndimage_transforms
+# from kso.kso_iii.science.instruments.esis import ndimage_transforms
 
 @dataclass
 class TransformCube:
@@ -88,12 +89,17 @@ class ImageTransform:
         return obj
 
     def transform_image(self,img) -> np.ndarray:
-        '''Take in img and perform all transformation operations stored in the ImageTransform object.  This should work
-        on an '''
+        '''Take in image and perform all transformation operations stored in the ImageTransform object. '''
 
         img = img[self.initial_crop]
         img = np.pad(img,self.initial_pad)
-        img = self.transform_func(img,self.transform,self.origin)
+
+        if self.transform_func == modified_affine:
+            img = self.transform_func(img,self.transform,self.origin)
+        else:
+            transformed_coord = self.transform_func(img, self.transform, self.origin)
+            img = scipy.ndimage.map_coordinates(img, transformed_coord)
+            img = img.T
 
         big_img = np.empty(self.post_transform_size)
         big_img[0:img.shape[0], 0:img.shape[1]] = img
@@ -104,21 +110,72 @@ class ImageTransform:
         return img
 
     def transform_coordinates(self,img)-> np.ndarray:
-
+        '''
+        If you only want the transformed coordinates and not the transformed images to avoid extra interpolation
+        this function will return a cropped and padded image, as well as the primed coordinates for use with map_coordinates
+        or extra coordinate transformations.
+        '''
         img = img[self.initial_crop]
-        img = np.pad(img,self.initial_pad)
+        img = np.pad(img, self.initial_pad)
+        if self.transform_func == modified_affine:
+            quad_transform = modified_affine_to_quadratic(self.transform,self.origin)
+            prime_coord = quadratic_transform(img,quad_transform,self.origin)
+        else:
+            prime_coord = self.transform_func(img,self.transform,self.origin)
 
-        return
+        big_coord = np.empty((2,self.post_transform_size[1],self.post_transform_size[0]))
+        big_coord[:,0:img.shape[1], 0:img.shape[0]] = prime_coord
+        big_coord = np.roll(big_coord, self.post_transform_translation, (-2, -1))
 
+        coords = big_coord[:,self.post_transform_crop[1],self.post_transform_crop[0]]
 
-def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func:'Function', kwargs = {}) -> float:
+        return  img , coords
+
+def test_alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transformation_object: 'ImageTransform') -> float:
     """
     Apply a chosen transform to Image 1 and cross-correlate with Image 2 to check coalignment
     Designed as a merit function for scipy.optimize routines
+
+    If origin isn't specified it is assumed to be (0,0).  If moving_origin is set to True, origin = transform[-2:]
+    so that it can be controlled by scipy.optimize routines.
+    """
+    # temp_transform_object = copy.deepcopy(transformation_object)
+
+    transformation_object.transform = transform
+    im1 = transformation_object.transform_image(im1)
+
+    if im1.std() != 0:
+        im1 = (im1 - im1.mean()) / im1.std()
+    if im2.std() != 0:
+        im2 = (im2 - im2.mean()) / im2.std()
+
+    cc = scipy.signal.correlate(im1,im2, mode='same')
+    cc /= cc.size
+
+    # fit_quality = np.max(cc)
+    center = np.array(cc.shape) // 2
+    fit_quality = cc[center[0],center[1]]
+
+
+    # print(fit_quality)
+    return -fit_quality
+
+def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func, origin = np.array([0,0]),
+                      moving_origin = False, kwargs = {}) -> float:
+    """
+    Apply a chosen transform to Image 1 and cross-correlate with Image 2 to check coalignment
+    Designed as a merit function for scipy.optimize routines
+
+    If origin isn't specified it is assumed to be (0,0).  If moving_origin is set to True, origin = transform[-2:]
+    so that it can be controlled by scipy.optimize routines.
     """
 
-    transformed_coord = transform_func(im1, transform[:-2], transform[-2:], **kwargs)
 
+    if moving_origin == True:
+        origin = transform[-2:]
+        transform = transform[:-2]
+
+    transformed_coord = transform_func(im1, transform, origin, **kwargs)
     im1 = scipy.ndimage.map_coordinates(im1,transformed_coord)
     im1 = im1.T
 
@@ -156,6 +213,9 @@ def affine_alignment_quality(transform, im1, im2):
 
 
 def modified_affine(img: np.ndarray, transform: np.ndarray, origin: np.ndarray) -> np.ndarray:
+    '''
+    scale_x, scale_y, shear_x, shear_y, disp_x, disp_y, rot_angle = transform
+    '''
     affine_param = affine_params(origin, *transform)
     img = scipy.ndimage.affine_transform(img, *affine_param)
     return img
@@ -193,7 +253,10 @@ def quadratic_transform(img: np.ndarray, transform: np.ndarray, origin: np.ndarr
     return prime_coord
 
 def affine_params(origin,scale_x, scale_y, shear_x, shear_y,disp_x,disp_y,rot_angle):
-    #implied order for easier inversion displace, rotate, scale, shear
+    '''
+    scale_x, scale_y, shear_x, shear_y, disp_x, disp_y, rot_angle = transform
+    '''
+
     c_theta = np.cos(np.radians(rot_angle))
     s_theta = np.sin(np.radians(rot_angle))
 
@@ -209,10 +272,14 @@ def affine_params(origin,scale_x, scale_y, shear_x, shear_y,disp_x,disp_y,rot_an
 
 def modified_affine_to_quadratic(transform: np.ndarray, origin: np.ndarray) -> np.ndarray:
 
+    '''
+    Since scipy.ndimage.affine_transform goes straight to an image transform instead of through map_coordinates
+    this will convert the transform parameters used in modified affine for use with quadratic transform
+    '''
+
     affine_m = affine_params(origin, *transform)[0]
-    quad_transform = np.array([transform[4],affine_m[0, 0], affine_m[0, 1], 0, 0, 0,
-                               transform[5],affine_m[1, 0], affine_m[1, 1], 0, 0, 0,
-                               origin[0],origin[1]])
+    quad_transform = np.array([-transform[4],affine_m[0, 0], affine_m[0, 1], 0, 0, 0,
+                               -transform[5],affine_m[1, 0], affine_m[1, 1], 0, 0, 0])
     return quad_transform
 
 
