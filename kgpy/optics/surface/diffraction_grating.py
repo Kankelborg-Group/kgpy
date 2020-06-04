@@ -59,7 +59,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             n = self.normal(rays.px, rays.py)
             c = -kgpy.vector.dot(a, n)
 
-            p = self.material.propagation_signum
+            p = -self.material.propagation_signum
 
             b = r * a + (r * c - p * np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
 

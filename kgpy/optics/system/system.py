@@ -149,8 +149,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             points = []
             for s, r in zip(self, self.all_rays):
                 if isinstance(s, surface.Standard):
-                    print(s)
-                    print(r.position)
                     points.append(self.local_to_global(s, r.position, extra_dim=True))
             points = u.Quantity(points)
 
