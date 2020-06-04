@@ -43,6 +43,7 @@ class CoordinateBreak(surface.Surface):
             rays = rays.tilt_decenter(~self.transform)
 
         if not is_final_surface:
+            rays = rays.copy()
             rays.pz -= self.thickness
 
         return rays

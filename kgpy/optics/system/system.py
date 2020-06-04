@@ -132,7 +132,22 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return x
 
-    def plot_projections(self):
+    def plot_projections(
+            self,
+            start_surface: typ.Optional[surface.Surface] = None,
+            end_surface: typ.Optional[surface.Surface] = None,
+    ):
+
+        surfaces = list(self)
+
+        start_surface_index = 0
+        end_surface_index = ~0
+        for s, surf in enumerate(surfaces):
+            if surf is start_surface:
+                start_surface_index = s
+            if surf is end_surface:
+                end_surface_index = s
+                break
 
         x = ..., 0
         y = ..., 1
@@ -145,9 +160,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             self.plot_surface_projections(axs)
 
-
             points = []
-            for s, r in zip(self, self.all_rays):
+            i = slice(start_surface_index, end_surface_index)
+            for s, r in zip(surfaces[i], self.all_rays[i]):
                 if isinstance(s, surface.Standard):
                     points.append(self.local_to_global(s, r.position, extra_dim=True))
             points = u.Quantity(points)

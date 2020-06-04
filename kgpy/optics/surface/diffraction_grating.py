@@ -69,8 +69,9 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             rays.index_of_refraction = n2
 
         if not is_final_surface:
-            rays = rays.tilt_decenter(~self.transform_after)
+            rays = rays.copy()
             rays.pz -= self.thickness
+            rays = rays.tilt_decenter(~self.transform_after)
 
         return rays
 
