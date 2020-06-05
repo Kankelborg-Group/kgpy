@@ -85,7 +85,7 @@ class Surface(
         t1 = step_size
 
         i = 0
-        while np.max(np.abs(t1 - t0)) > max_error:
+        while np.nanmax(np.abs(t1 - t0)) > max_error:
 
             if i > max_iterations:
                 raise ValueError('Number of iterations exceeded')

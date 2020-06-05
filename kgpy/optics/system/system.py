@@ -141,7 +141,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         surfaces = list(self)
 
         start_surface_index = 0
-        end_surface_index = ~0
+        end_surface_index = None
         for s, surf in enumerate(surfaces):
             if surf is start_surface:
                 start_surface_index = s
