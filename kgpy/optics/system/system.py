@@ -146,7 +146,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             if surf is start_surface:
                 start_surface_index = s
             if surf is end_surface:
-                end_surface_index = s
+                end_surface_index = s + 1
                 break
 
         x = ..., 0
