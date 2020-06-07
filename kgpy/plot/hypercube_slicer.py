@@ -291,7 +291,7 @@ class HypercubeSlicer:
         self._ax_z.set_title('x = ' + self._x_pos.to_string(format='latex') +
                              ', y = ' + self._y_pos.to_string(format='latex'))
         self._plot_z = self._ax_z.plot(self._data[self.t_index, self._y_index_int, self._x_index_int])
-        self._plot_z = self._ax_z.plot(self._data_xy_median[self.t_index])
+        self._plot_z_med = self._ax_z.plot(self._data_xy_median[self.t_index])
         self._ax_z.set_ylim((self._vmin, self._vmax))
         self._z_vline = self._ax_z.axvline(self._z_index, **self.line_kwargs)
 
