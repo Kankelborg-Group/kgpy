@@ -3,204 +3,256 @@ import pathlib
 import pickle
 import numpy as np
 import typing as typ
-from scipy.spatial.transform import Rotation
+import scipy.spatial.transform
 import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-from . import mixin
-from . import Surface, Fields, Wavelengths, surface, Rays
+import kgpy.mixin
+from .. import ZemaxCompatible, Rays, material, surface, aperture
 
 __all__ = ['System']
 
-SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Iterable[Surface])
+SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surface], ZemaxCompatible])
 
 
 @dataclasses.dataclass
-class System(mixin.Named, typ.Generic[SurfacesT]):
+class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Generic[SurfacesT]):
+    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
+    surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [surface.Standard()])
+    stop_surface: surface.Surface = None
+    input_rays: Rays = dataclasses.field(default_factory=lambda: Rays.zeros())
 
-    surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
-    fields: Fields = dataclasses.field(default_factory=lambda: Fields())
-    wavelengths: Wavelengths = dataclasses.field(default_factory=lambda: Wavelengths())
-    entrance_pupil_radius: u.Quantity = 0 * u.m
-    # stop_surface_index: typ.Union[int, np.ndarray] = 1
-    num_pupil_rays: typ.Tuple[int, int] = (7, 7)
-    num_field_rays: typ.Tuple[int, int] = (7, 7)
-    raytrace_path: pathlib.Path = dataclasses.field(default_factory=lambda: pathlib.Path())
+    def __post_init__(self):
+        if self.stop_surface is None:
+            self.stop_surface = next(iter(self.surfaces))
+
+    def to_zemax(self) -> 'System':
+        from kgpy.optics import zemax
+        return zemax.System(
+            name=self.name,
+            surfaces=self.surfaces.to_zemax(),
+        )
 
     @property
     def config_broadcast(self):
         all_surface_battrs = None
         for s in self.surfaces:
             all_surface_battrs = np.broadcast(all_surface_battrs, s.config_broadcast)
-            all_surface_battrs = np.empty(all_surface_battrs.shape)
+            all_surface_battrs = np.broadcast_to(np.array(1), all_surface_battrs.shape)
 
-        return np.broadcast(
-            all_surface_battrs,
-            self.fields.config_broadcast,
-            self.wavelengths.config_broadcast,
-            self.entrance_pupil_radius,
-            self.stop_surface_index,
-        )
+        return all_surface_battrs
 
-    @property
-    def stop_surface_index(self):
-        for i, s in enumerate(self.surfaces):
-            if s.is_stop:
-                return i + 1
+        # return np.broadcast(
+        #     all_surface_battrs,
+        #     # self.fields.config_broadcast,
+        #     # self.wavelengths.config_broadcast,
+        #     # self.entrance_pupil_radius,
+        #     # self.stop_surface_index,
+        # )
 
-    @property
-    def raytrace(self):
-
-        if self.raytrace_path.exists():
-            with open(str(self.raytrace_path), 'rb') as f:
-                return pickle.load(f)
-
-        else:
-            from kgpy.optics import zemax
-
-            zemax_system, zemax_units = zemax.system.calc_zemax_system(self)
-            zemax_system.SaveAs(self.raytrace_path.parent / self.raytrace_path.stem / '.zmx')
-
-            raytrace = zemax.system.rays.trace(zemax_system, zemax_units, self.num_pupil_rays, self.num_field_rays,
-                                               surface_indices=None)
-
-            with open(str(self.raytrace_path), 'wb') as f:
-                pickle.dump(raytrace, f)
-
-            return raytrace
-
-    def raytrace_to_image(
+    def raytrace_subsystem(
             self,
-            num_pupil: typ.Union[int, typ.Tuple[int, int]] = 5,
-            num_field: typ.Union[int, typ.Tuple[int, int]] = 5,
-    ):
-        from kgpy.optics import zemax
+            rays: Rays,
+            start_surface: typ.Optional[surface.Surface] = None,
+            final_surface: typ.Optional[surface.Surface] = None,
+    ) -> Rays:
 
-        zemax_system, zemax_units = zemax.system.calc_zemax_system(self)
-        zemax_system.SaveAs(self.raytrace_path.parent / self.raytrace_path.stem / '.zmx')
+        surfaces = list(self)
 
-        return zemax.system.rays.trace(zemax_system, zemax_units, num_pupil, num_field)
+        if start_surface is None:
+            start_surface = surfaces[0]
+
+        if final_surface is None:
+            final_surface = surfaces[~0]
+
+        for s, surf in enumerate(surfaces):
+            if surf is start_surface:
+                start_surface_index = s
+            if surf is final_surface:
+                final_surface_index = s
+                break
+
+        for s in range(start_surface_index, final_surface_index + 1):
+            surf = surfaces[s]
+            if s == start_surface_index:
+                rays = surf.propagate_rays(rays, is_first_surface=True)
+            elif s == final_surface_index:
+                rays = surf.propagate_rays(rays, is_final_surface=True)
+            else:
+                rays = surf.propagate_rays(rays)
+
+        return rays
 
     @property
-    def chief_ray(self):
-        return self.raytrace.pupil_mean.field_mean
+    def image_rays(self) -> Rays:
+        return self.raytrace_subsystem(self.input_rays)
 
-    def local_to_global(self, local_surface: Surface, x: u.Quantity,
-                        configuration_axis: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None) -> u.Quantity:
-        """
-        Convert from the local coordinates of a particular surface to global coordinates.
-        :param local_surface: The local surface and the origin of the coordinate system
-        :param x: Array of coordinates, may be of any shape.
-        :param configuration_axis: The axis or axes of `x` corresponding to different configurations of the optical
-        system.
-        If None, the configuration axis is created at the zeroth axis of `x`.
-        :return: If configuration axis is not None, a new array is returned the same shape as `x`.
-        If None, the returned shape is `self.config_broadcast.shape + x.shape`
-        """
+    @property
+    def all_rays(self) -> typ.List[Rays]:
 
-        if configuration_axis is None:
-            x = np.broadcast_to(x.value, self.config_broadcast.shape + x.shape) << x.unit
-            configuration_axis = 0
+        rays = [self.input_rays]
 
-        if np.ndim(configuration_axis) == 0:
-            configuration_axis = [configuration_axis]
+        old_surf = self.object_surface
 
-        surface_index = self.surfaces.index(local_surface)
+        for surf in self.surfaces:
+            rays.append(self.raytrace_subsystem(rays[~0], old_surf, surf))
+            old_surf = surf
 
-        translation = [0, 0, 0] * u.mm
-        rotation = Rotation.from_euler('XYZ', [0, 0, 0])  # type: Rotation
+        return rays
 
-        for s, surf in enumerate(self.surfaces[:surface_index + 1]):
+    def local_to_global(
+            self,
+            local_surface: surface.Surface,
+            x: u.Quantity,
+            extra_dim: bool = False
+    ) -> u.Quantity:
 
-            if isinstance(surf, surface.Standard):
+        surfaces = list(self)
+        for s, surf in enumerate(surfaces):
+            if surf is local_surface:
+                local_surface_index = s
+                break
+        surfaces = surfaces[:local_surface_index]
+        surfaces.reverse()
 
-                rotation, translation = self._transform(translation, rotation, surf.decenter_before,
-                                                        surf.tilt_before, surf.tilt_first)
+        if isinstance(local_surface, surface.Standard):
+            x = local_surface.transform_before.apply(x, extra_dim=extra_dim)
 
-                if s < surface_index:
-                    rotation, translation = self._transform(translation, rotation, surf.decenter_after, surf.tilt_after,
-                                                            ~surf.tilt_first)
+        for surf in surfaces:
 
-            elif isinstance(surf, surface.CoordinateBreak):
+            if isinstance(surf, surface.CoordinateBreak):
+                if surf is not local_surface:
+                    x = surf.transform.apply(x, extra_dim=extra_dim)
 
-                rotation, translation = self._transform(translation, rotation, surf.decenter, surf.tilt,
-                                                        surf.tilt_first)
+            elif isinstance(surf, surface.Standard):
+                x = surf.transform_before.apply(x, extra_dim=extra_dim)
+                x = surf.transform_after.apply(x, extra_dim=extra_dim)
 
-            if s < surface_index:
-                translation = translation + rotation.apply([0, 0, surf.thickness.value]) * surf.thickness.unit
+            x[..., ~0] += surf.thickness
 
-        x = x.copy()
+        return x
 
-        x_global = x
-
-        for axis in reversed(configuration_axis):
-            x = np.moveaxis(x, axis, 0)
-
-        xsh = x.shape
-
-        x = x.reshape(xsh[:len(configuration_axis)] + (-1, 3))
-
-        for i in range(x.shape[len(configuration_axis)]):
-            j = ..., i, slice(None)
-            x[j] = rotation.apply(x[j]) << x.unit
-            x[j] = x[j] + translation
-
-        return x_global
-
-    @staticmethod
-    def _transform(
-            current_translation: u.Quantity,
-            current_rotation: Rotation,
-            next_translation: u.Quantity,
-            next_euler_angles: u.Quantity,
-            tilt_first: bool,
+    def plot_projections(
+            self,
+            start_surface: typ.Optional[surface.Surface] = None,
+            end_surface: typ.Optional[surface.Surface] = None,
     ):
 
-        next_translation = next_translation.copy()
-        next_translation[~0] = 0 * u.mm
+        surfaces = list(self)
 
-        if not tilt_first:
+        start_surface_index = 0
+        end_surface_index = None
+        for s, surf in enumerate(surfaces):
+            if surf is start_surface:
+                start_surface_index = s
+            if surf is end_surface:
+                end_surface_index = s + 1
+                break
 
-            translation = current_translation + current_rotation.apply(next_translation.value) * next_translation.unit
-            rotation = current_rotation * Rotation.from_euler('XYZ', next_euler_angles.to(u.rad))
+        x = ..., 0
+        y = ..., 1
+        z = ..., 2
 
-        else:
+        with astropy.visualization.quantity_support():
 
-            rotation = current_rotation * Rotation.from_euler('ZYX', np.flip(next_euler_angles.to(u.rad), axis=~0))
-            translation = current_translation + rotation.apply(next_translation.value) * next_translation.unit
+            fig, axs = plt.subplots(2, 2, sharex='col', sharey='row')
+            axs[0, 0].invert_xaxis()
 
-        return rotation, translation
+            self.plot_surface_projections(axs)
 
-    def distance_between_surfaces(self, surface_1: Surface, surface_2: Surface):
+            points = []
+            i = slice(start_surface_index, end_surface_index)
+            for s, r in zip(surfaces[i], self.all_rays[i]):
+                if isinstance(s, surface.Standard):
+                    points.append(self.local_to_global(s, r.position, extra_dim=True))
+            points = u.Quantity(points)
 
-        surface_1_index = self.surfaces.index(surface_1)
-        surface_2_index = self.surfaces.index(surface_2)
+            # points = u.Quantity([self.local_to_global(s, r.position, extra_dim=True) for s, r in zip(self, self.all_rays)])
+            points = points.reshape((points.shape[0], -1, points.shape[~0]))
 
-        s1 = [slice(None)] * self.chief_ray.axis.num_axes
-        s2 = [slice(None)] * self.chief_ray.axis.num_axes
+            axs[0, 0].plot(points[x], points[y])
+            axs[0, 1].plot(points[z], points[y])
+            axs[1, 1].plot(points[z], points[x])
 
-        s1[self.chief_ray.axis.surf] = slice(surface_1_index, surface_1_index + 1)
-        s2[self.chief_ray.axis.surf] = slice(surface_2_index, surface_2_index + 1)
+    def plot_surface_projections(self, axs: np.ndarray):
+        x = ..., 0
+        y = ..., 1
+        z = ..., 2
 
-        x1 = self.chief_ray.position[s1]
-        x2 = self.chief_ray.position[s2]
+        prop_direction = 1
+        for surf in self.surfaces:
+            if isinstance(surf, surface.Standard):
+                if not isinstance(surf.aperture, aperture.NoAperture):
 
-        x1 = self.local_to_global(surface_1, x1, configuration_axis=self.chief_ray.axis.config)
-        x2 = self.local_to_global(surface_2, x2, configuration_axis=self.chief_ray.axis.config)
+                    points = surf.aperture.edges.copy()
+                    points[z] = surf.sag(points[x], points[y])
+                    points = self.local_to_global(surf, points, extra_dim=True)
+                    points = points.to(u.mm)
 
-        return np.sqrt(np.sum(np.square(x2 - x1), axis=~0, keepdims=True))
+                    axs[0, 0].fill(points[x].T, points[y].T, fill=False)
+                    axs[0, 1].fill(points[z].T, points[y].T, fill=False)
+                    axs[1, 1].fill(points[z].T, points[x].T, fill=False)
+
+                    if isinstance(surf.material, material.Mirror):
+                        back = surf.aperture.edges.copy()
+
+                        xmax, ymax = back[x].max(~0, keepdims=True), back[y].max(~0, keepdims=True)
+                        xmin, ymin = back[x].min(~0, keepdims=True), back[y].min(~0, keepdims=True)
+
+                        t = prop_direction * surf.material.thickness
+                        back[z] = t
+                        prop_direction *= -1
+                        back = self.local_to_global(surf, back, extra_dim=True)
+
+                        t = np.broadcast_to(t, xmax.shape, subok=True)
+                        c1 = np.concatenate([
+                            np.stack([xmax, ymax, surf.sag(xmax, ymax)], axis=~0),
+                            np.stack([xmax, ymax, t], axis=~0),
+                        ], axis=~1)
+                        c2 = np.concatenate([
+                            np.stack([xmax, ymin, surf.sag(xmax, ymin)], axis=~0),
+                            np.stack([xmax, ymin, t], axis=~0),
+                        ], axis=~1)
+                        c3 = np.concatenate([
+                            np.stack([xmin, ymin, surf.sag(xmin, ymin)], axis=~0),
+                            np.stack([xmin, ymin, t], axis=~0),
+                        ], axis=~1)
+                        c4 = np.concatenate([
+                            np.stack([xmin, ymax, surf.sag(xmin, ymax)], axis=~0),
+                            np.stack([xmin, ymax, t], axis=~0),
+                        ], axis=~1)
+
+                        c1 = self.local_to_global(surf, c1, extra_dim=True)
+                        c2 = self.local_to_global(surf, c2, extra_dim=True)
+                        c3 = self.local_to_global(surf, c3, extra_dim=True)
+                        c4 = self.local_to_global(surf, c4, extra_dim=True)
+
+                        axs[0, 0].fill(back[x].T, back[y].T, fill=False)
+                        axs[0, 1].fill(back[z].T, back[y].T, fill=False)
+                        axs[1, 1].fill(back[z].T, back[x].T, fill=False)
+
+                        axs[0, 0].plot(c1[x].T, c1[y].T, color='black')
+                        axs[0, 0].plot(c2[x].T, c2[y].T, color='black')
+                        axs[0, 0].plot(c3[x].T, c3[y].T, color='black')
+                        axs[0, 0].plot(c4[x].T, c4[y].T, color='black')
+
+                        axs[0, 1].plot(c1[z].T, c1[y].T, color='black')
+                        axs[0, 1].plot(c2[z].T, c2[y].T, color='black')
+                        axs[0, 1].plot(c3[z].T, c3[y].T, color='black')
+                        axs[0, 1].plot(c4[z].T, c4[y].T, color='black')
+
+                        axs[1, 1].plot(c1[z].T, c1[x].T, color='black')
+                        axs[1, 1].plot(c2[z].T, c2[x].T, color='black')
+                        axs[1, 1].plot(c3[z].T, c3[x].T, color='black')
+                        axs[1, 1].plot(c4[z].T, c4[x].T, color='black')
 
     def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
-
         with astropy.visualization.quantity_support():
 
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d', proj_type='ortho')
 
             x, mask = rays.position, rays.mask
-
             xsl = [slice(None)] * len(x.shape)
             for surf in self.surfaces:
                 s = self.surfaces.index(surf)
@@ -226,8 +278,8 @@ class System(mixin.Named, typ.Generic[SurfacesT]):
 
             rebin_factor = 1
             sl = (
-            0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
-            slice(None, None, rebin_factor))
+                0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
+                slice(None, None, rebin_factor))
             x = x[sl]
             mask = mask[sl]
 
@@ -246,10 +298,10 @@ class System(mixin.Named, typ.Generic[SurfacesT]):
                 if isinstance(surf, surface.Standard):
                     if surf.aperture is not None:
 
-                        psh = list(surf.aperture.points.shape)
+                        psh = list(surf.aperture.edges.shape)
                         psh[~0] = 3
                         polys = np.zeros(psh) * u.mm
-                        polys[..., 0:2] = surf.aperture.points
+                        polys[..., 0:2] = surf.aperture.edges
 
                         polys = self.local_to_global(surf, polys, configuration_axis=None)[0]
 
@@ -258,3 +310,8 @@ class System(mixin.Named, typ.Generic[SurfacesT]):
                             ax.plot(x_, y_, z_, 'k')
                             ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
                                     u.Quantity([z_[-1], z_[0]]), 'k')
+
+
+    def __iter__(self) -> typ.Iterator[surface.Surface]:
+        yield from self.object_surface
+        yield from self.surfaces

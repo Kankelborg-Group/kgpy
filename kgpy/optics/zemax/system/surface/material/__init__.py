@@ -1,1 +1,2 @@
-from .material import add_to_zemax_surface
+from .material import Material, NoMaterial
+from .mirror import Mirror
