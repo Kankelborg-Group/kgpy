@@ -30,8 +30,12 @@ class Decenter(kgpy.mixin.Broadcastable):
             -self.y,
         )
 
-    def apply(self, value: u.Quantity, inverse: bool = False) -> u.Quantity:
+    def __call__(self, value: u.Quantity, inverse: bool = False, num_extra_dims: int = 0) -> u.Quantity:
         value = value.copy()
+        x = self.x
+        y = self.y
+        for i in range:
+            pass
         if not inverse:
             value[..., 0] += self.x
             value[..., 1] += self.y

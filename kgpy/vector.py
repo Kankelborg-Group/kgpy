@@ -3,7 +3,15 @@ import numpy as np
 import astropy.units as u
 from . import matrix
 
-__all__ = ['dot', 'length', 'normalize']
+__all__ = ['x', 'y', 'z', 'ix', 'iy', 'iz','dot', 'matmul', 'length', 'normalize']
+
+ix = 0
+iy = 1
+iz = 2
+
+x = ..., ix
+y = ..., iy
+z = ..., iz
 
 
 @typ.overload
@@ -64,15 +72,15 @@ def normalize(a, keepdims=True):
 
 
 @typ.overload
-def from_components(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
+def from_components(ax: np.ndarray, ay: np.ndarray, az: np.ndarray) -> np.ndarray:
     ...
 
 
 @typ.overload
-def from_components(x: u.Quantity, y: u.Quantity, z: u.Quantity) -> u.Quantity:
+def from_components(ax: u.Quantity, ay: u.Quantity, az: u.Quantity) -> u.Quantity:
     ...
 
 
-def from_components(x, y, z):
-    x, y, z = np.broadcast_arrays(x, y, z)
-    return np.stack([x, y, z], axis=~0)
+def from_components(ax, ay, az):
+    ax, ay, az = np.broadcast_arrays(ax, ay, az)
+    return np.stack([ax, ay, az], axis=~0)

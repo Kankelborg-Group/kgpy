@@ -5,6 +5,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import kgpy.optics.material.no_material
 import kgpy.vector
+from kgpy.vector import x, y, z
 from .. import Rays, coordinate, material as material_, aperture as aperture_
 from . import Surface
 
@@ -60,19 +61,19 @@ class Standard(
     def curvature(self):
         return np.where(np.isinf(self.radius), 0, 1 / self.radius)
 
-    def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
-        r2 = np.square(x) + np.square(y)
+    def sag(self, ax: u.Quantity, ay: u.Quantity) -> u.Quantity:
+        r2 = np.square(ax) + np.square(ay)
         c = self.curvature
         return c * r2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * r2))
 
-    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
-        x2 = np.square(x)
-        y2 = np.square(y)
+    def normal(self, ax: u.Quantity, ay: u.Quantity) -> u.Quantity:
+        x2 = np.square(ax)
+        y2 = np.square(ay)
         c = self.curvature
         c2 = np.square(c)
         g = np.sqrt(1 - (1 + self.conic) * c2 * (x2 + y2))
-        dzdx = c * x / g
-        dzdy = c * y / g
+        dzdx = c * ax / g
+        dzdy = c * ay / g
         return kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
 
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
@@ -105,3 +106,20 @@ class Standard(
             rays = rays.tilt_decenter(~self.transform_after)
 
         return rays
+
+    def plot_2d(
+            self,
+            ax: plt.Axes,
+            components: typ.Tuple[int, int] = (0, 1),
+            transform_func: typ.Optional[typ.Callable[[Surface, u.Quantity, bool], u.Quantity]] = None,
+    ):
+
+        pass
+
+
+
+
+
+
+
+

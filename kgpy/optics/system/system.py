@@ -132,6 +132,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return x
 
+    def plot_footprint(self, surf: surface.Standard):
+
+        pass
+
     def plot_projections(
             self,
             start_surface: typ.Optional[surface.Surface] = None,
