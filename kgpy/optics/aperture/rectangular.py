@@ -39,7 +39,7 @@ class Rectangular(polygon.Polygon):
         return m1 & m2 & m3 & m4
 
     @property
-    def vertices(self):
+    def vertices(self) -> u.Quantity:
 
         wx, wy = np.broadcast_arrays(self.half_width_x, self.half_width_y, subok=True)
 
@@ -63,8 +63,8 @@ class Rectangular(polygon.Polygon):
         wx, rx = np.broadcast_arrays(wx, rx, subok=True)
         wy, ry = np.broadcast_arrays(wy, ry, subok=True)
 
-        x = np.concatenate([rx, wx, rx[::-1], -wx], axis=~0)
-        y = np.concatenate([wy, ry[::-1], -wy, ry], axis=~0)
+        x = np.stack([rx, wx, rx[::-1], -wx])
+        y = np.stack([wy, ry[::-1], -wy, ry])
         z = np.broadcast_to(0, x.shape)
 
         return np.stack([x, y, z], axis=~0)

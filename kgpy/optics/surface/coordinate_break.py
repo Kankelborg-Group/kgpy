@@ -2,6 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
+import kgpy.vector
 from .. import Rays, coordinate
 from . import surface
 
@@ -47,3 +48,10 @@ class CoordinateBreak(surface.Surface):
             rays.pz -= self.thickness
 
         return rays
+
+    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        return self.transform(x, num_extra_dims=num_extra_dims)
+
+    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        x[kgpy.vector.z] += self.thickness
+        return x

@@ -2,9 +2,10 @@ import abc
 import dataclasses
 import typing as typ
 import numpy as np
-import astropy.units as u
 import matplotlib.pyplot as plt
+import astropy.units as u
 import kgpy.mixin
+import kgpy.optics
 from .. import Rays, zemax_compatible
 
 __all__ = ['Surface']
@@ -110,3 +111,43 @@ class Surface(
         intercept += rays.direction * t
 
         return intercept
+
+    @abc.abstractmethod
+    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        return x
+
+    @abc.abstractmethod
+    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        pass
+
+    def transform_to_global(self, x: u.Quantity, system: 'kgpy.optics.System', num_extra_dims: int = 0):
+
+        surfaces = list(system)     # type: typ.List['Surface']
+        index = None
+        for s, surf in enumerate(surfaces):
+            if surf is self:
+                index = s
+                break
+        surfaces = surfaces[:index]
+        surfaces.reverse()
+
+        x = self.apply_pre_transforms(x, num_extra_dims)
+
+        for surf in surfaces:
+            x = surf.apply_pre_transforms(x, num_extra_dims)
+            x = surf.apply_post_transforms(x, num_extra_dims)
+
+        return x
+
+    def plot_2d(
+            self,
+            ax: plt.Axes,
+            components: typ.Tuple[int, int] = (0, 1),
+            system: typ.Optional['kgpy.optics.System'] = None,
+    ):
+        pass
+
+
+
+
+

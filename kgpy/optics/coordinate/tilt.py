@@ -37,10 +37,11 @@ class Tilt(kgpy.mixin.Broadcastable):
             -self.z,
         )
 
-    def apply(self, value: u.Quantity, inverse: bool = False, extra_dim: bool = False) -> np.ndarray:
+    def __call__(self, value: u.Quantity, inverse: bool = False, num_extra_dims: int = 0) -> np.ndarray:
         rot = self.rotation(inverse)
-        if extra_dim:
-            rot = np.expand_dims(rot, ~2)
+        sh = list(rot.shape)
+        sh[~1:~1] = [1] * num_extra_dims
+        rot = rot.reshape(sh)
         return kgpy.vector.matmul(rot, value)
 
     def rotation(self, inverse: bool = False) -> np.ndarray:

@@ -5,7 +5,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import kgpy.optics.material.no_material
 import kgpy.vector
-from kgpy.vector import x, y, z
+import kgpy.optics
 from .. import Rays, coordinate, material as material_, aperture as aperture_
 from . import Surface
 
@@ -107,14 +107,22 @@ class Standard(
 
         return rays
 
+    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        return self.transform_before(x, num_extra_dims=num_extra_dims)
+
+    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        x = self.transform_after(x, num_extra_dims=num_extra_dims)
+        x[kgpy.vector.z] += self.thickness
+        return x
+
     def plot_2d(
             self,
             ax: plt.Axes,
             components: typ.Tuple[int, int] = (0, 1),
-            transform_func: typ.Optional[typ.Callable[[Surface, u.Quantity, bool], u.Quantity]] = None,
+            system: typ.Optional['kgpy.optics.System'] = None,
     ):
-
-        pass
+        self.aperture.plot_2d(ax, components, system, self)
+        self.material.plot_2d(ax, components, system, self)
 
 
 

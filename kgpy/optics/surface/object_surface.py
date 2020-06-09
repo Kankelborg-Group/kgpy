@@ -31,3 +31,9 @@ class ObjectSurface(Surface):
 
     def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         raise NotImplementedError
+
+    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        return x
+
+    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        return x
