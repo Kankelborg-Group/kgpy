@@ -134,8 +134,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         return x
 
     def plot_footprint(self, surf: surface.Standard):
-
-        pass
+        surfaces = list(self)
+        surf_index = surfaces.index(surf)
+        rays = self.all_rays[surf_index]
+        fig, ax = plt.subplots()
+        surf.plot_2d(ax)
+        ax.scatter(rays.position[kgpy.vector.x], rays.position[kgpy.vector.y])
 
     def plot_2d(
             self,
@@ -144,17 +148,16 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             start_surface: typ.Optional[surface.Surface] = None,
             end_surface: typ.Optional[surface.Surface] = None,
     ):
-
         surfaces = list(self)   # type: typ.List[surface.Surface]
 
-        start_surface_index = 0
-        end_surface_index = None
-        for s, surf in enumerate(surfaces):
-            if surf is start_surface:
-                start_surface_index = s
-            if surf is end_surface:
-                end_surface_index = s + 1
-                break
+        if start_surface is None:
+            start_surface = surfaces[0]
+
+        if end_surface is None:
+            end_surface = surfaces[~0]
+
+        start_surface_index = surfaces.index(start_surface)
+        end_surface_index = surfaces.index(end_surface)
 
         intercepts = []
         i = slice(start_surface_index, end_surface_index)

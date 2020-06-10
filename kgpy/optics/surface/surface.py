@@ -120,23 +120,29 @@ class Surface(
     def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
         pass
 
-    def transform_to_global(self, x: u.Quantity, system: 'kgpy.optics.System', num_extra_dims: int = 0):
+    def transform_to_global(
+            self, 
+            x: u.Quantity, 
+            system: typ.Optional['kgpy.optics.System'] = None, 
+            num_extra_dims: int = 0
+    ):
 
-        surfaces = list(system)     # type: typ.List['Surface']
-        index = None
-        for s, surf in enumerate(surfaces):
-            if surf is self:
-                index = s
-                break
-        surfaces = surfaces[:index]
-        surfaces.reverse()
-
-        x = self.apply_pre_transforms(x, num_extra_dims)
-
-        for surf in surfaces:
-            x = surf.apply_pre_transforms(x, num_extra_dims)
-            x = surf.apply_post_transforms(x, num_extra_dims)
-
+        if system is not None:
+            surfaces = list(system)     # type: typ.List['Surface']
+            index = None
+            for s, surf in enumerate(surfaces):
+                if surf is self:
+                    index = s
+                    break
+            surfaces = surfaces[:index]
+            surfaces.reverse()
+    
+            x = self.apply_pre_transforms(x, num_extra_dims)
+    
+            for surf in surfaces:
+                x = surf.apply_pre_transforms(x, num_extra_dims)
+                x = surf.apply_post_transforms(x, num_extra_dims)
+    
         return x
 
     def plot_2d(
