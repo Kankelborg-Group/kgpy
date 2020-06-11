@@ -138,7 +138,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         surf_index = surfaces.index(surf)
         rays = self.all_rays[surf_index]
         fig, ax = plt.subplots()
+        ax.invert_xaxis()
         surf.plot_2d(ax)
+        print(rays.position.shape)
         ax.scatter(rays.position[kgpy.vector.x], rays.position[kgpy.vector.y])
 
     def plot_2d(
