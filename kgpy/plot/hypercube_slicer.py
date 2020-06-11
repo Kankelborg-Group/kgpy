@@ -264,6 +264,7 @@ class HypercubeSlicer:
             aspect='auto',
             vmin=self._vmin,
             vmax=self._vmax,
+            interpolation='nearest',
         )
         self._xy_vline = self._ax_xy.axvline(self._x_index_int, **self.line_kwargs)
         self._xy_hline = self._ax_xy.axhline(self._y_index_int, **self.line_kwargs)
@@ -274,6 +275,7 @@ class HypercubeSlicer:
             aspect='auto',
             vmax=self._vmax,
             vmin=self._vmin,
+            interpolation='nearest',
         )
         self._xz_vline = self._ax_xz.axvline(self._x_index_int, **self.line_kwargs)
         self._xz_hline = self._ax_xz.axhline(self._z_index_int, **self.line_kwargs)
@@ -284,6 +286,7 @@ class HypercubeSlicer:
             aspect='auto',
             vmax=self._vmax,
             vmin=self._vmin,
+            interpolation='nearest',
         )
         self._yz_vline = self._ax_yz.axvline(self._z_index_int, **self.line_kwargs)
         self._yz_hline = self._ax_yz.axhline(self._y_index_int, **self.line_kwargs)
