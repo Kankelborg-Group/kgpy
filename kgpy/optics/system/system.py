@@ -133,20 +133,31 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return x
 
-    def plot_footprint(self, surf: surface.Standard):
+    def plot_footprint(
+            self,
+            surf: typ.Optional[surface.Standard] = None,
+            color_axis: int = 0,
+    ):
         surfaces = list(self)
+        if surf is None:
+            surf = surfaces[~0]
         surf_index = surfaces.index(surf)
         rays = self.all_rays[surf_index]
+
+        sh = [1] * rays.ndim
+        sh[color_axis] = rays.shape[color_axis]
+        colors = np.arange(rays.shape[color_axis]).reshape(sh)
+        colors = np.broadcast_to(colors, rays.shape)
+
         fig, ax = plt.subplots()
         ax.invert_xaxis()
+
         surf.plot_2d(ax)
-        # color = np.arange(np.prod(np.array(self.shape)))
-        # color = np.expand_dims(color, ~0)
-        # print(self.shape)
-        # print(color.shape)
-        # print(rays.shape)
-        # color = np.broadcast_to(color, rays.shape)
-        ax.scatter(rays.position[kgpy.vector.x], rays.position[kgpy.vector.y], c=rays.direction[kgpy.vector.y])
+        ax.scatter(
+            x=rays.position[kgpy.vector.x],
+            y=rays.position[kgpy.vector.y],
+            c=colors
+        )
 
     def plot_2d(
             self,
@@ -175,7 +186,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         intercepts = u.Quantity(intercepts)
         intercepts = intercepts.reshape((intercepts.shape[0], -1, intercepts.shape[~0]))
-        ax.plot(intercepts[..., components[0]], intercepts[..., components[1]])
+        ax.plot(intercepts[..., components[0]], intercepts[..., components[1]], color='blue')
 
     def plot_projections(
             self,

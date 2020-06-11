@@ -14,6 +14,11 @@ class Axis:
         self.num_axes = 0
 
         self.components = self.auto_axis_index()
+        self.pupil_y = self.auto_axis_index()
+        self.pupil_x = self.auto_axis_index()
+        self.field_y = self.auto_axis_index()
+        self.field_x = self.auto_axis_index()
+        self.wavelength = self.auto_axis_index()
         self.config = self.auto_axis_index()
 
     def auto_axis_index(self):
@@ -70,10 +75,10 @@ class Rays:
     def tilt_decenter(self, transform: coordinate.TiltDecenter) -> 'Rays':
         return type(self)(
             wavelength=self.wavelength.copy(),
-            position=transform(self.position, num_extra_dims=1),
-            direction=transform(self.direction, decenter=False, num_extra_dims=1),
+            position=transform(self.position, num_extra_dims=5),
+            direction=transform(self.direction, decenter=False, num_extra_dims=5),
             polarization=self.polarization.copy(),
-            surface_normal=transform(self.surface_normal, decenter=False, num_extra_dims=1),
+            surface_normal=transform(self.surface_normal, decenter=False, num_extra_dims=5),
             index_of_refraction=self.index_of_refraction.copy(),
             vignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
@@ -91,6 +96,10 @@ class Rays:
             self.polarization,
             self.index_of_refraction,
         ).shape[:~0]
+
+    @property
+    def ndim(self):
+        return len(self.shape)
 
     @property
     def px(self) -> u.Quantity:

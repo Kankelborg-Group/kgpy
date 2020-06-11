@@ -76,7 +76,7 @@ class Surface(
             self,
             rays: Rays,
             step_size: u.Quantity = 1 << u.mm,
-            max_error: u.Quantity = 1 << u.nm,
+            max_error: u.Quantity = .1 << u.nm,
             max_iterations: int = 100,
     ) -> u.Quantity:
 
@@ -85,8 +85,11 @@ class Surface(
         t0 = -step_size
         t1 = step_size
 
+        t0 = np.broadcast_to(t0, rays.wavelength.shape, subok=True)
+        t1 = np.broadcast_to(t1, rays.wavelength.shape, subok=True)
+
         i = 0
-        while np.nanmax(np.abs(t1 - t0)) > max_error:
+        while True:
 
             if i > max_iterations:
                 raise ValueError('Number of iterations exceeded')
@@ -97,10 +100,16 @@ class Surface(
             f0 = a0[rays.components.z] - self.sag(a0[rays.components.x], a0[rays.components.y])
             f1 = a1[rays.components.z] - self.sag(a1[rays.components.x], a1[rays.components.y])
 
+            if np.nanmax(np.abs(f1 - f0)) < max_error:
+                break
+
             f0 = np.expand_dims(f0, ~0)
             f1 = np.expand_dims(f1, ~0)
 
+            m = (f1 - f0) == 0
+
             t2 = (t0 * f1 - t1 * f0) / (f1 - f0)
+            t2[m] = t1[m]
 
             t0 = t1
             t1 = t2
