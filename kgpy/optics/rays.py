@@ -83,14 +83,14 @@ class Rays:
     def shape(self) -> typ.Tuple[int, ...]:
         return np.broadcast(
             self.wavelength,
-            self.position[0],
-            self.direction[0],
-            self.surface_normal[0],
+            self.position,
+            self.direction,
+            self.surface_normal,
             self.vignetted_mask,
             self.error_mask,
             self.polarization,
             self.index_of_refraction,
-        ).shape
+        ).shape[:~0]
 
     @property
     def px(self) -> u.Quantity:

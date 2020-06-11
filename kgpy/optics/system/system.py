@@ -140,8 +140,13 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         fig, ax = plt.subplots()
         ax.invert_xaxis()
         surf.plot_2d(ax)
-        print(rays.position.shape)
-        ax.scatter(rays.position[kgpy.vector.x], rays.position[kgpy.vector.y])
+        # color = np.arange(np.prod(np.array(self.shape)))
+        # color = np.expand_dims(color, ~0)
+        # print(self.shape)
+        # print(color.shape)
+        # print(rays.shape)
+        # color = np.broadcast_to(color, rays.shape)
+        ax.scatter(rays.position[kgpy.vector.x], rays.position[kgpy.vector.y], c=rays.direction[kgpy.vector.y])
 
     def plot_2d(
             self,
