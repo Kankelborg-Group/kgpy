@@ -2,24 +2,17 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
+import kgpy.vector
 from . import coordinate
 
 __all__ = ['Rays']
 
 
-@dataclasses.dataclass
-class Axis:
+class AutoAxis:
 
-    def __post_init__(self):
+    def __init__(self):
+        super().__init__()
         self.num_axes = 0
-
-        self.components = self.auto_axis_index()
-        self.pupil_y = self.auto_axis_index()
-        self.pupil_x = self.auto_axis_index()
-        self.field_y = self.auto_axis_index()
-        self.field_x = self.auto_axis_index()
-        self.wavelength = self.auto_axis_index()
-        self.config = self.auto_axis_index()
 
     def auto_axis_index(self):
         i = ~self.num_axes
@@ -27,17 +20,48 @@ class Axis:
         return i
 
 
-class Components:
-    x = ..., 0
-    y = ..., 1
-    z = ..., 2
+class CAxis(AutoAxis):
+    def __init__(self):
+        super().__init__()
+        self.components = self.auto_axis_index()
+
+
+class Axis(AutoAxis):
+    def __init__(self):
+        super().__init__()
+        self.pupil_y = self.auto_axis_index()
+        self.pupil_x = self.auto_axis_index()
+        self.field_y = self.auto_axis_index()
+        self.field_x = self.auto_axis_index()
+        self.wavelength = self.auto_axis_index()
+
+
+class VAxis(Axis, CAxis):
+    pass
+
+
+# @dataclasses.dataclass
+# class Axis:
+#
+#     def __post_init__(self):
+#         self.num_axes = 0
+#
+#         self.components = self.auto_axis_index()
+#         self.pupil_y = self.auto_axis_index()
+#         self.pupil_x = self.auto_axis_index()
+#         self.field_y = self.auto_axis_index()
+#         self.field_x = self.auto_axis_index()
+#         self.wavelength = self.auto_axis_index()
+#         # self.config = self.auto_axis_index()
+
+
 
 
 @dataclasses.dataclass
 class Rays:
 
     axis = Axis()
-    components = Components()
+    vaxis = VAxis()
 
     wavelength: u.Quantity
     position: u.Quantity
@@ -57,9 +81,9 @@ class Rays:
         polarization = np.zeros(vsh) << u.dimensionless_unscaled
         normal = np.zeros(vsh) << u.dimensionless_unscaled
 
-        direction[cls.components.z] = 1
-        polarization[cls.components.x] = 1
-        normal[cls.components.z] = 1
+        direction[kgpy.vector.z] = 1
+        polarization[kgpy.vector.x] = 1
+        normal[kgpy.vector.z] = 1
 
         return cls(
             wavelength=np.zeros(ssh) << u.nm,
@@ -103,27 +127,27 @@ class Rays:
 
     @property
     def px(self) -> u.Quantity:
-        return self.position[self.components.x]
+        return self.position[kgpy.vector.x]
 
     @px.setter
     def px(self, value: u.Quantity):
-        self.position[self.components.x] = value
+        self.position[kgpy.vector.x] = value
 
     @property
     def py(self) -> u.Quantity:
-        return self.position[self.components.y]
+        return self.position[kgpy.vector.y]
 
     @py.setter
     def py(self, value: u.Quantity):
-        self.position[self.components.y] = value
+        self.position[kgpy.vector.y] = value
 
     @property
     def pz(self) -> u.Quantity:
-        return self.position[self.components.z]
+        return self.position[kgpy.vector.z]
 
     @pz.setter
     def pz(self, value: u.Quantity):
-        self.position[self.components.z] = value
+        self.position[kgpy.vector.z] = value
 
     def copy(self) -> 'Rays':
         return Rays(

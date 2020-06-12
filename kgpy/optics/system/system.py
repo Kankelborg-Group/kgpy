@@ -101,37 +101,29 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return rays
 
-    def local_to_global(
+    def plot_hist2d(
             self,
-            local_surface: surface.Surface,
-            x: u.Quantity,
-            num_extra_dims: int = 0
-    ) -> u.Quantity:
-
+            surf: typ.Optional[surface.Standard] = None,
+            config_index: int = 0,
+            nbins_x: int = 10,
+            nbins_y: int = 10,
+    ):
         surfaces = list(self)
-        for s, surf in enumerate(surfaces):
-            if surf is local_surface:
-                local_surface_index = s
-                break
-        surfaces = surfaces[:local_surface_index]
-        surfaces.reverse()
+        if surf is None:
+            surf = surfaces[~0]
+        surf_index = surfaces.index(surf)
+        rays = self.all_rays[surf_index]
+        position = rays.position[config_index]
 
-        if isinstance(local_surface, surface.Standard):
-            x = local_surface.transform_before(x, num_extra_dims=num_extra_dims)
+        fig, ax = plt.subplots()
+        ax.invert_xaxis()
 
-        for surf in surfaces:
-
-            if isinstance(surf, surface.CoordinateBreak):
-                if surf is not local_surface:
-                    x = surf.transform(x, num_extra_dims=num_extra_dims)
-
-            elif isinstance(surf, surface.Standard):
-                x = surf.transform_before(x, num_extra_dims=num_extra_dims)
-                x = surf.transform_after(x, num_extra_dims=num_extra_dims)
-
-            x[..., ~0] += surf.thickness
-
-        return x
+        surf.plot_2d(ax)
+        ax.hist2d(
+            x=position[kgpy.vector.x].flatten().value,
+            y=position[kgpy.vector.y].flatten().value,
+            bins=(nbins_x, nbins_y),
+        )
 
     def plot_footprint(
             self,
@@ -144,10 +136,13 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         surf_index = surfaces.index(surf)
         rays = self.all_rays[surf_index]
 
-        sh = [1] * rays.ndim
-        sh[color_axis] = rays.shape[color_axis]
-        colors = np.arange(rays.shape[color_axis]).reshape(sh)
-        colors = np.broadcast_to(colors, rays.shape)
+        if self.shape:
+            sh = [1] * rays.ndim
+            sh[color_axis] = rays.shape[color_axis]
+            colors = np.arange(rays.shape[color_axis]).reshape(sh)
+            colors = np.broadcast_to(colors, rays.shape)
+        else:
+            colors = None
 
         fig, ax = plt.subplots()
         ax.invert_xaxis()
@@ -166,7 +161,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             start_surface: typ.Optional[surface.Surface] = None,
             end_surface: typ.Optional[surface.Surface] = None,
     ):
-        surfaces = list(self)   # type: typ.List[surface.Surface]
+        surfaces = list(self)  # type: typ.List[surface.Surface]
 
         if start_surface is None:
             start_surface = surfaces[0]

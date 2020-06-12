@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.mixin
+import kgpy.vector
 import kgpy.optics
 from .. import Rays, zemax_compatible
 
@@ -97,8 +98,8 @@ class Surface(
             a0 = intercept + rays.direction * t0
             a1 = intercept + rays.direction * t1
 
-            f0 = a0[rays.components.z] - self.sag(a0[rays.components.x], a0[rays.components.y])
-            f1 = a1[rays.components.z] - self.sag(a1[rays.components.x], a1[rays.components.y])
+            f0 = a0[kgpy.vector.z] - self.sag(a0[kgpy.vector.x], a0[kgpy.vector.y])
+            f1 = a1[kgpy.vector.z] - self.sag(a1[kgpy.vector.x], a1[kgpy.vector.y])
 
             if np.nanmax(np.abs(f1 - f0)) < max_error:
                 break
