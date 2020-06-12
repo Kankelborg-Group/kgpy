@@ -101,6 +101,15 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return rays
 
+    def psf_hist2d(
+            self,
+            xbins: int = 10,
+            ybins: int = 10,
+            xrange: typ.Optional[typ.Tuple[int, int]] = None,
+            yrange: typ.Optional[typ.Tuple[int, int]] = None,
+    ):
+        return
+
     def plot_hist2d(
             self,
             surf: typ.Optional[surface.Standard] = None,
@@ -118,12 +127,13 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         fig, ax = plt.subplots()
         ax.invert_xaxis()
 
-        surf.plot_2d(ax)
-        ax.hist2d(
-            x=position[kgpy.vector.x].flatten().value,
-            y=position[kgpy.vector.y].flatten().value,
-            bins=(nbins_x, nbins_y),
-        )
+        with astropy.visualization.quantity_support():
+            surf.plot_2d(ax)
+            ax.hist2d(
+                x=position[kgpy.vector.x].flatten(),
+                y=position[kgpy.vector.y].flatten(),
+                bins=(nbins_x, nbins_y),
+            )
 
     def plot_footprint(
             self,
