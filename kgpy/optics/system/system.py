@@ -130,8 +130,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         with astropy.visualization.quantity_support():
             surf.plot_2d(ax)
             ax.hist2d(
-                x=position[kgpy.vector.x].flatten(),
-                y=position[kgpy.vector.y].flatten(),
+                x=position[kgpy.vector.x].flatten().value,
+                y=position[kgpy.vector.y].flatten().value,
                 bins=(nbins_x, nbins_y),
             )
 
