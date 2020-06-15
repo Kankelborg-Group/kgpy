@@ -97,7 +97,7 @@ class Standard(
 
             rays.direction = kgpy.vector.normalize(b)
             rays.surface_normal = n
-            rays.vignetted_mask = self.aperture.is_unvignetted(rays.position)
+            rays.vignetted_mask &= self.aperture.is_unvignetted(rays.position)
             rays.index_of_refraction = n2
 
         if not is_final_surface:

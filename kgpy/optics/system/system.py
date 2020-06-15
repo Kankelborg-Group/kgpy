@@ -51,6 +51,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         #     # self.stop_surface_index,
         # )
 
+    @property
+    def image_surface(self) -> surface.Surface:
+        s = list(self)
+        return s[~0]
+
     def raytrace_subsystem(
             self,
             rays: Rays,
@@ -60,11 +65,14 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         surfaces = list(self)
 
+        start_surface_index = 0
+        final_surface_index = ~0
+
         if start_surface is None:
-            start_surface = surfaces[0]
+            start_surface = surfaces[start_surface_index]
 
         if final_surface is None:
-            final_surface = surfaces[~0]
+            final_surface = surfaces[final_surface_index]
 
         for s, surf in enumerate(surfaces):
             if surf is start_surface:
@@ -103,12 +111,13 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def psf_hist2d(
             self,
-            xbins: int = 10,
-            ybins: int = 10,
-            xrange: typ.Optional[typ.Tuple[int, int]] = None,
-            yrange: typ.Optional[typ.Tuple[int, int]] = None,
+            bins: typ.Union[int, typ.Tuple[int, int]],
+            limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
     ):
-        return
+        if np.isscalar(bins):
+            bins = [bins, bins]
+
+        rays = self.image_rays
 
     def plot_hist2d(
             self,
@@ -117,52 +126,71 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             nbins_x: int = 10,
             nbins_y: int = 10,
     ):
-        surfaces = list(self)
         if surf is None:
-            surf = surfaces[~0]
-        surf_index = surfaces.index(surf)
-        rays = self.all_rays[surf_index]
+            surf = self.image_surface
+
+        rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
         position = rays.position[config_index]
+        mask = rays.vignetted_mask[config_index]
+        mask = mask[..., 0]
 
         fig, ax = plt.subplots()
         ax.invert_xaxis()
 
         with astropy.visualization.quantity_support():
-            surf.plot_2d(ax)
             ax.hist2d(
-                x=position[kgpy.vector.x].flatten().value,
-                y=position[kgpy.vector.y].flatten().value,
+                x=position[mask, kgpy.vector.ix].flatten().value,
+                y=position[mask, kgpy.vector.iy].flatten().value,
                 bins=(nbins_x, nbins_y),
             )
+            # surf.plot_2d(ax)
 
     def plot_footprint(
             self,
             surf: typ.Optional[surface.Standard] = None,
+            config_index: typ.Union[int, slice] = slice(None),
             color_axis: int = 0,
+            plot_apertures: bool = True,
+            plot_vignetted: bool = False,
     ):
-        surfaces = list(self)
         if surf is None:
-            surf = surfaces[~0]
-        surf_index = surfaces.index(surf)
-        rays = self.all_rays[surf_index]
+            surf = self.image_surface
+
+        rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
+        position = rays.position[config_index]
 
         if self.shape:
             sh = [1] * rays.ndim
             sh[color_axis] = rays.shape[color_axis]
             colors = np.arange(rays.shape[color_axis]).reshape(sh)
             colors = np.broadcast_to(colors, rays.shape)
+            colors = colors[config_index]
         else:
             colors = None
 
-        fig, ax = plt.subplots()
-        ax.invert_xaxis()
+        if not plot_vignetted:
+            mask = rays.vignetted_mask[config_index]
+            mask = mask[..., 0]
+            px = position[mask, kgpy.vector.ix],
+            py = position[mask, kgpy.vector.iy],
+            colors = colors[mask]
+        else:
+            px = position[kgpy.vector.x]
+            py = position[kgpy.vector.y]
 
-        surf.plot_2d(ax)
-        ax.scatter(
-            x=rays.position[kgpy.vector.x],
-            y=rays.position[kgpy.vector.y],
-            c=colors
-        )
+        with astropy.visualization.quantity_support():
+
+            fig, ax = plt.subplots()
+            ax.invert_xaxis()
+
+            if plot_apertures:
+                surf.plot_2d(ax)
+
+            ax.scatter(
+                x=px,
+                y=py,
+                c=colors,
+            )
 
     def plot_2d(
             self,
