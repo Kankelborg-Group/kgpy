@@ -147,7 +147,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                             bins=bins,
                             weights=mask[c, w, i, j].flatten(),
                             range=vlimits,
-
                         )
 
         return hist, limits
@@ -163,13 +162,20 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         with astropy.visualization.quantity_support():
 
             hist, limits = self.ray_hist2d(surf=surf, bins=bins)
+            print(limits)
             limits = [lim.value for axlim in limits for lim in axlim]
 
             fig, axs = plt.subplots(nrows=hist.shape[Rays.axis.field_x], ncols=hist.shape[Rays.axis.field_y])
 
             for i, axs_i in enumerate(axs):
                 for j, axs_ij in enumerate(axs_i):
-                    axs_ij.imshow(hist[config_index, wavlen_index, j, i].T, extent=limits, aspect='auto')
+                    axs_ij.invert_xaxis()
+                    axs_ij.imshow(
+                        X=hist[config_index, wavlen_index, j, i].T,
+                        extent=limits,
+                        aspect='auto',
+                        origin='lower'
+                    )
 
         # if surf is None:
         #     surf = self.image_surface
