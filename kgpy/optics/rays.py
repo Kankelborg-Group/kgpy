@@ -69,7 +69,7 @@ class Rays:
     polarization: u.Quantity
     surface_normal: u.Quantity
     index_of_refraction: u.Quantity
-    vignetted_mask: np.ndarray
+    unvignetted_mask: np.ndarray
     error_mask: np.ndarray
 
     @classmethod
@@ -92,7 +92,7 @@ class Rays:
             polarization=polarization,
             surface_normal=normal,
             index_of_refraction=np.ones(ssh) << u.dimensionless_unscaled,
-            vignetted_mask=np.zeros(ssh, dtype=np.bool),
+            unvignetted_mask=np.zeros(ssh, dtype=np.bool),
             error_mask=np.zeros(ssh, dtype=np.bool),
         )
 
@@ -104,7 +104,7 @@ class Rays:
             polarization=self.polarization.copy(),
             surface_normal=transform(self.surface_normal, decenter=False, num_extra_dims=5),
             index_of_refraction=self.index_of_refraction.copy(),
-            vignetted_mask=self.vignetted_mask.copy(),
+            unvignetted_mask=self.unvignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
         )
 
@@ -115,7 +115,7 @@ class Rays:
             self.position,
             self.direction,
             self.surface_normal,
-            self.vignetted_mask,
+            self.unvignetted_mask,
             self.error_mask,
             self.polarization,
             self.index_of_refraction,
@@ -155,7 +155,7 @@ class Rays:
             position=self.position.copy(),
             direction=self.direction.copy(),
             surface_normal=self.surface_normal.copy(),
-            vignetted_mask=self.vignetted_mask.copy(),
+            unvignetted_mask=self.unvignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
             polarization=self.polarization.copy(),
             index_of_refraction=self.index_of_refraction.copy(),
