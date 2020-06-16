@@ -7,6 +7,7 @@ import scipy.spatial.transform
 import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
+import matplotlib.colors
 import kgpy.mixin
 import kgpy.vector
 from .. import ZemaxCompatible, Rays, material, surface, aperture
@@ -118,13 +119,16 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if surf is None:
             surf = self.image_surface
 
+        if isinstance(bins, int):
+            bins = (bins, bins)
+
         rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
         positions = rays.position
 
-        mask = rays.unvignetted_mask & ~rays.error_mask
+        mask = rays.unvignetted_mask
         mask = mask[..., 0]
 
-        hist = np.empty(positions.shape[:rays.axis.pupil_x+1])
+        hist = np.empty(positions.shape[:rays.axis.pupil_x-1] + tuple(bins))
 
         px = positions[mask, kgpy.vector.ix]
         py = positions[mask, kgpy.vector.iy]
@@ -162,7 +166,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         with astropy.visualization.quantity_support():
 
             hist, limits = self.ray_hist2d(surf=surf, bins=bins)
-            print(limits)
             limits = [lim.value for axlim in limits for lim in axlim]
 
             fig, axs = plt.subplots(nrows=hist.shape[Rays.axis.field_x], ncols=hist.shape[Rays.axis.field_y])
@@ -174,7 +177,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         X=hist[config_index, wavlen_index, j, i].T,
                         extent=limits,
                         aspect='auto',
-                        origin='lower'
+                        origin='lower',
+                        vmin=hist.min(),
+                        vmax=hist.max(),
+                        # norm=matplotlib.colors.PowerNorm(1/2),
                     )
 
         # if surf is None:
