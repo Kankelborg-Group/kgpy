@@ -168,7 +168,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             hist, limits = self.ray_hist2d(surf=surf, bins=bins)
             limits = [lim.value for axlim in limits for lim in axlim]
 
-            fig, axs = plt.subplots(nrows=hist.shape[Rays.axis.field_x], ncols=hist.shape[Rays.axis.field_y])
+            fig, axs = plt.subplots(
+                nrows=hist.shape[Rays.axis.field_x],
+                ncols=hist.shape[Rays.axis.field_y],
+                sharex='all',
+                sharey='all',
+            )
 
             for i, axs_i in enumerate(axs):
                 for j, axs_ij in enumerate(axs_i):
@@ -180,27 +185,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         origin='lower',
                         vmin=hist.min(),
                         vmax=hist.max(),
-                        # norm=matplotlib.colors.PowerNorm(1/2),
                     )
-
-        # if surf is None:
-        #     surf = self.image_surface
-        #
-        # rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
-        # position = rays.position[config_index]
-        # mask = rays.unvignetted_mask[config_index]
-        # mask = mask[..., 0]
-        #
-        # with astropy.visualization.quantity_support():
-        #
-        #     fig, ax = plt.subplots()
-        #     ax.invert_xaxis()
-        #
-        #     ax.hist2d(
-        #         x=position[mask, kgpy.vector.ix].value,
-        #         y=position[mask, kgpy.vector.iy].value,
-        #         bins=(nbins_x, nbins_y),
-        #     )
 
     def plot_footprint(
             self,
