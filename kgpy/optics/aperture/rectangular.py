@@ -1,6 +1,7 @@
 import dataclasses
 import numpy as np
 import astropy.units as u
+import kgpy.vector
 from . import polygon
 
 __all__ = ['Rectangular']
@@ -30,8 +31,8 @@ class Rectangular(polygon.Polygon):
         )
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
-        x = points[..., 0:1]
-        y = points[..., 1:2]
+        x = points[kgpy.vector.x]
+        y = points[kgpy.vector.y]
         m1 = x < self.half_width_x
         m2 = x > -self.half_width_x
         m3 = y < self.half_width_y

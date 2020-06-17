@@ -110,83 +110,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return rays
 
-    def ray_hist2d(
-            self,
-            surf: typ.Optional[surface.Standard] = None,
-            bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-    ) -> typ.Tuple[np.ndarray, typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]]:
-
-        if surf is None:
-            surf = self.image_surface
-
-        if isinstance(bins, int):
-            bins = (bins, bins)
-
-        rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
-        positions = rays.position
-
-        mask = rays.unvignetted_mask
-        mask = mask[..., 0]
-
-        hist = np.empty(positions.shape[:rays.axis.pupil_x-1] + tuple(bins))
-
-        px = positions[mask, kgpy.vector.ix]
-        py = positions[mask, kgpy.vector.iy]
-        limits = (
-            (px.min(), px.max()),
-            (py.min(), py.max()),
-        )
-        vlimits = (
-            (px.min().value, px.max().value),
-            (py.min().value, py.max().value),
-        )
-
-        for c, p_c in enumerate(positions):
-            for w, p_cw in enumerate(p_c):
-                for i, p_cwi in enumerate(p_cw):
-                    for j, p_cwij in enumerate(p_cwi):
-                        hist[c, w, i, j], _, _ = np.histogram2d(
-                            x=p_cwij[kgpy.vector.x].flatten().value,
-                            y=p_cwij[kgpy.vector.y].flatten().value,
-                            bins=bins,
-                            weights=mask[c, w, i, j].flatten(),
-                            range=vlimits,
-                        )
-
-        return hist, limits
-
-    def plot_ray_hist2d(
-            self,
-            surf: typ.Optional[surface.Standard] = None,
-            bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            config_index: int = 0,
-            wavlen_index: int = 0,
-    ):
-
-        with astropy.visualization.quantity_support():
-
-            hist, limits = self.ray_hist2d(surf=surf, bins=bins)
-            limits = [lim.value for axlim in limits for lim in axlim]
-
-            fig, axs = plt.subplots(
-                nrows=hist.shape[Rays.axis.field_x],
-                ncols=hist.shape[Rays.axis.field_y],
-                sharex='all',
-                sharey='all',
-            )
-
-            for i, axs_i in enumerate(axs):
-                for j, axs_ij in enumerate(axs_i):
-                    axs_ij.invert_xaxis()
-                    axs_ij.imshow(
-                        X=hist[config_index, wavlen_index, j, i].T,
-                        extent=limits,
-                        aspect='auto',
-                        origin='lower',
-                        vmin=hist.min(),
-                        vmax=hist.max(),
-                    )
-
     def plot_footprint(
             self,
             surf: typ.Optional[surface.Standard] = None,
@@ -232,6 +155,54 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 x=px,
                 y=py,
                 c=colors,
+            )
+
+    def plot_psf_vs_field(
+            self,
+            config_index: int = 0,
+            wavlen_index: int = 0,
+            bins: typ.Union[int, typ.Tuple[int, int]] = 10,
+            limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
+            use_vignetted: bool = False,
+    ) -> plt.Figure:
+
+        return self.image_rays.plot_pupil_hist2d_vs_field(
+            config_index=config_index,
+            wavlen_index=wavlen_index,
+            bins=bins,
+            limits=limits,
+            use_vignetted=use_vignetted,
+        )
+
+    def plot_projections(
+            self,
+            start_surface: typ.Optional[surface.Surface] = None,
+            end_surface: typ.Optional[surface.Surface] = None,
+            color_axis: int = 0,
+            plot_vignetted: bool = False,
+    ):
+        fig, axs = plt.subplots(2, 2, sharex='col', sharey='row')
+
+        xy = 0, 0
+        yz = 0, 1
+        xz = 1, 1
+
+        axs[xy].invert_xaxis()
+
+        ax_indices = [xy, yz, xz]
+        planes = [
+            (kgpy.vector.ix, kgpy.vector.iy),
+            (kgpy.vector.iz, kgpy.vector.iy),
+            (kgpy.vector.iz, kgpy.vector.ix),
+        ]
+        for ax_index, plane in zip(ax_indices, planes):
+            self.plot_2d(
+                ax=axs[ax_index],
+                components=plane,
+                start_surface=start_surface,
+                end_surface=end_surface,
+                color_axis=color_axis,
+                plot_vignetted=plot_vignetted
             )
 
     def plot_2d(
@@ -284,37 +255,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             intercepts[..., components[1]],
             # color=colors,
         )
-
-    def plot_projections(
-            self,
-            start_surface: typ.Optional[surface.Surface] = None,
-            end_surface: typ.Optional[surface.Surface] = None,
-            color_axis: int = 0,
-            plot_vignetted: bool = False,
-    ):
-        fig, axs = plt.subplots(2, 2, sharex='col', sharey='row')
-
-        xy = 0, 0
-        yz = 0, 1
-        xz = 1, 1
-
-        axs[xy].invert_xaxis()
-
-        ax_indices = [xy, yz, xz]
-        planes = [
-            (kgpy.vector.ix, kgpy.vector.iy),
-            (kgpy.vector.iz, kgpy.vector.iy),
-            (kgpy.vector.iz, kgpy.vector.ix),
-        ]
-        for ax_index, plane in zip(ax_indices, planes):
-            self.plot_2d(
-                ax=axs[ax_index],
-                components=plane,
-                start_surface=start_surface,
-                end_surface=end_surface,
-                color_axis=color_axis,
-                plot_vignetted=plot_vignetted
-            )
 
     def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
         with astropy.visualization.quantity_support():

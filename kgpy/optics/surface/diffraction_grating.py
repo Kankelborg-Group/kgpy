@@ -66,7 +66,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             rays.direction = kgpy.vector.normalize(b)
             rays.surface_normal = n
             rays.unvignetted_mask &= self.aperture.is_unvignetted(rays.position)
-            rays.index_of_refraction = n2
+            rays.index_of_refraction[...] = n2
 
         if not is_final_surface:
             rays = rays.copy()
