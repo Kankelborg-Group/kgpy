@@ -44,14 +44,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return all_surface_battrs
 
-        # return np.broadcast(
-        #     all_surface_battrs,
-        #     # self.fields.config_broadcast,
-        #     # self.wavelengths.config_broadcast,
-        #     # self.entrance_pupil_radius,
-        #     # self.stop_surface_index,
-        # )
-
     @property
     def image_surface(self) -> surface.Surface:
         s = list(self)
@@ -110,6 +102,19 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return rays
 
+    def psf(
+            self,
+            bins: typ.Union[int, typ.Tuple[int, int]] = 10,
+            limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
+            use_vignetted: bool = False,
+    ) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return self.image_rays.pupil_hist2d(
+            bins=bins,
+            limits=limits,
+            use_vignetted=use_vignetted,
+            relative_to_centroid=True,
+        )
+
     def plot_footprint(
             self,
             surf: typ.Optional[surface.Standard] = None,
@@ -166,12 +171,24 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             use_vignetted: bool = False,
     ) -> plt.Figure:
 
+        rays = self.input_rays
+
+        fax_x = (rays.axis.field_y, rays.axis.pupil_x, rays.axis.pupil_y)
+        field_x = rays.direction[config_index, wavlen_index, ..., kgpy.vector.ix].mean(fax_x)
+        field_x = np.arcsin(field_x) << u.rad
+
+        fax_y = (rays.axis.field_x, rays.axis.pupil_x, rays.axis.pupil_y)
+        field_y = rays.direction[config_index, wavlen_index, ..., kgpy.vector.iy].mean(fax_y)
+        field_y = np.arcsin(field_y) << u.rad
+
         return self.image_rays.plot_pupil_hist2d_vs_field(
             config_index=config_index,
             wavlen_index=wavlen_index,
             bins=bins,
             limits=limits,
             use_vignetted=use_vignetted,
+            field_x=field_x,
+            field_y=field_y,
         )
 
     def plot_projections(

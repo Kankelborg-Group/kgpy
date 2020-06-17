@@ -163,6 +163,7 @@ class Rays:
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
             limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
             use_vignetted: bool = False,
+            relative_to_centroid: bool = False,
     ) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         if isinstance(bins, int):
@@ -173,19 +174,28 @@ class Rays:
         else:
             mask = np.broadcast_to(True, self.shape)
 
+        position = self.position.copy()
+        if relative_to_centroid:
+            axes = (self.vaxis.pupil_x, self.vaxis.pupil_y)
+            position -= np.mean(position.value, axis=axes, keepdims=True) << position.unit
+
+        if limits is None:
+            px = position[kgpy.vector.x]
+            py = position[kgpy.vector.y]
+            if not use_vignetted:
+                px = px[self.goodmask]
+                py = py[self.goodmask]
+            limits = (
+                (px.min().value, px.max().value),
+                (py.min().value, py.max().value),
+            )
+
         base_shape = self.shape[:~1]
         hist = np.empty(base_shape + tuple(bins))
         edges_x = np.empty(base_shape + (bins[kgpy.vector.ix] + 1,))
         edges_y = np.empty(base_shape + (bins[kgpy.vector.iy] + 1,))
 
-        # px = positions[mask, kgpy.vector.ix]
-        # py = positions[mask, kgpy.vector.iy]
-        # limits = (
-        #     (px.min().value, px.max().value),
-        #     (py.min().value, py.max().value),
-        # )
-
-        for c, p_c in enumerate(self.position):
+        for c, p_c in enumerate(position):
             for w, p_cw in enumerate(p_c):
                 for i, p_cwi in enumerate(p_cw):
                     for j, p_cwij in enumerate(p_cwi):
@@ -198,7 +208,8 @@ class Rays:
                             range=limits,
                         )
 
-        return hist, edges_x, edges_y
+        unit = self.position.unit
+        return hist, edges_x << unit, edges_y << unit
 
     def plot_pupil_hist2d_vs_field(
             self,
@@ -207,46 +218,62 @@ class Rays:
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
             limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
             use_vignetted: bool = False,
+            field_x: typ.Optional[u.Quantity] = None,
+            field_y: typ.Optional[u.Quantity] = None,
     ) -> plt.Figure:
-        with astropy.visualization.quantity_support():
 
-            if limits is None:
-                if not use_vignetted:
-                    px = self.position[self.gx]
-                    py = self.position[self.gy]
-                else:
-                    px = self.px
-                    py = self.py
-                limits = (
-                    (px.min().value, px.max().value),
-                    (py.min().value, py.max().value),
+        if field_x is None:
+            fax_x = (self.axis.field_y, self.axis.pupil_x, self.axis.pupil_y)
+            field_x = self.direction[config_index, wavlen_index, ..., kgpy.vector.ix].mean(fax_x)
+            field_x = np.arcsin(field_x) << u.rad
+        if field_y is None:
+            fax_y = (self.axis.field_x, self.axis.pupil_x, self.axis.pupil_y)
+            field_y = self.direction[config_index, wavlen_index, ..., kgpy.vector.iy].mean(fax_y)
+            field_y = np.arcsin(field_y) << u.rad
+
+        hist, edges_x, edges_y = self.pupil_hist2d(bins=bins, limits=limits, use_vignetted=use_vignetted)
+
+        fig, axs = plt.subplots(
+            nrows=self.shape[self.axis.field_x],
+            ncols=self.shape[self.axis.field_y],
+            sharex='all',
+            sharey='all',
+        )
+
+        for i, axs_i in enumerate(axs):
+            for j, axs_ij in enumerate(axs_i):
+                axs_ij.invert_xaxis()
+                cwji = config_index, wavlen_index, j, i
+                limits = [
+                    edges_x[cwji].min().value,
+                    edges_x[cwji].max().value,
+                    edges_y[cwji].min().value,
+                    edges_y[cwji].max().value,
+                ]
+                img = axs_ij.imshow(
+                    X=hist[cwji].T,
+                    extent=limits,
+                    aspect='auto',
+                    origin='lower',
+                    vmin=hist[config_index, wavlen_index].min(),
+                    vmax=hist[config_index, wavlen_index].max(),
                 )
+                if i == 0:
+                    axs_ij.set_xlabel('{0.value:0.2f} {0.unit:latex}'.format(field_x[j].to(u.deg)))
+                    axs_ij.xaxis.set_label_position('top')
+                elif i == len(axs) - 1:
+                    axs_ij.set_xlabel(edges_x.unit)
 
-            hist, edges_x, edges_y = self.pupil_hist2d(bins=bins, limits=limits, use_vignetted=use_vignetted)
+                if j == 0:
+                    axs_ij.set_ylabel(edges_y.unit)
+                elif j == len(axs_i) - 1:
+                    axs_ij.set_ylabel('{0.value:0.2f} {0.unit:latex}'.format(field_y[i].to(u.deg)))
+                    axs_ij.yaxis.set_label_position('right')
 
-            fig, axs = plt.subplots(
-                nrows=hist.shape[Rays.axis.field_x],
-                ncols=hist.shape[Rays.axis.field_y],
-                sharex='all',
-                sharey='all',
-            )
-
-            for i, axs_i in enumerate(axs):
-                for j, axs_ij in enumerate(axs_i):
-                    axs_ij.invert_xaxis()
-                    cwji = config_index, wavlen_index, j, i
-                    limits = [edges_x[cwji].min(), edges_x[cwji].max(), edges_y[cwji].min(), edges_y[cwji].max(), ]
-                    axs_ij.imshow(
-                        X=hist[cwji].T,
-                        extent=limits,
-                        aspect='auto',
-                        origin='lower',
-                        vmin=hist[config_index, wavlen_index].min(),
-                        vmax=hist[config_index, wavlen_index].max(),
-                    )
-
-            wavl_str = np.unique(self.wavelength[config_index, wavlen_index]).squeeze().to_string(format='latex')
-            fig.suptitle('config_index = ' + str(config_index) + ', wavelength = ' + wavl_str)
+        wavl_str = np.unique(self.wavelength[config_index, wavlen_index]).squeeze()
+        wavl_str = '{0.value:0.3f} {0.unit:latex}'.format(wavl_str)
+        fig.suptitle('configuration = ' + str(config_index) + ', wavelength = ' + wavl_str)
+        fig.colorbar(img, ax=axs, fraction=0.05)
 
         return fig
 
