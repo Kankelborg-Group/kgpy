@@ -15,11 +15,6 @@ class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.AB
     def to_zemax(self) -> 'Polygon':
         raise NotImplementedError
 
-    @property
-    @abc.abstractmethod
-    def vertices(self) -> u.Quantity:
-        pass
-
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         p = shapely.geometry.Point(points[0:2])
         poly = shapely.geometry.Polygon(self.vertices)

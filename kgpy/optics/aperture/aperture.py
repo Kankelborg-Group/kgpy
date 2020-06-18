@@ -15,7 +15,6 @@ __all__ = ['Aperture']
 
 @dataclasses.dataclass
 class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
-
     num_samples: int = 100
 
     def to_zemax(self) -> 'Aperture':
@@ -28,8 +27,22 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def edges(self) -> typ.Optional[u.Quantity]:
+    def edges(self) -> u.Quantity:
         pass
+
+    @property
+    def vertices(self) -> u.Quantity:
+        x_min = self.edges[kgpy.vector.x].min(~0, keepdims=True)
+        x_max = self.edges[kgpy.vector.x].max(~0, keepdims=True)
+        y_min = self.edges[kgpy.vector.y].min(~0, keepdims=True)
+        y_max = self.edges[kgpy.vector.y].max(~0, keepdims=True)
+
+        zero = np.zeros_like(x_min)
+        x = np.stack([zero, x_min, zero, x_max], axis=~0)
+        y = np.stack([y_min, zero, y_max, zero], axis=~0)
+        z = np.stack([zero, zero, zero, zero], axis=~0)
+
+        return np.stack([x, y, z], axis=~0)
 
     def plot_2d(
             self,
@@ -45,8 +58,3 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
             edges = surface.transform_to_global(edges, system, num_extra_dims=2)
             edges = edges.reshape(edges.shape[:~2] + (edges.shape[~2] * edges.shape[~1], edges.shape[~0]))
             ax.fill(edges[..., c1].T, edges[..., c2].T, fill=False)
-
-
-
-
-

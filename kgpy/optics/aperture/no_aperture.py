@@ -18,8 +18,8 @@ class NoAperture(Aperture):
         return np.array(True)
 
     @property
-    def edges(self) -> typ.Optional[u.Quantity]:
-        return None
+    def edges(self) -> u.Quantity:
+        return u.Quantity([])
 
     def plot_2d(
             self,

@@ -179,7 +179,7 @@ def calc_zemax_system(system: 'optics.System') -> typ.Tuple[ZOSAPI.IOpticalSyste
         zemax_system.MCE.AddConfiguration(False)
 
     set_entrance_pupil_radius(zemax_system, system.entrance_pupil_radius, configuration_shape, zemax_lens_units)
-    fields.add_to_zemax_system(zemax_system, system.fields, configuration_shape)
+    fields.add_to_zemax_system(zemax_system, system.field_grid, configuration_shape)
     wavelengths.add_to_zemax_system(zemax_system, system.wavelengths, configuration_shape)
     surface.add_surfaces_to_zemax_system(zemax_system, system.surfaces, configuration_shape, zemax_lens_units)
 

@@ -19,14 +19,21 @@ SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surfac
 
 @dataclasses.dataclass
 class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Generic[SurfacesT]):
-    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
-    surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [surface.Standard()])
-    stop_surface: surface.Surface = None
-    input_rays: Rays = dataclasses.field(default_factory=lambda: Rays.zeros())
 
-    def __post_init__(self):
-        if self.stop_surface is None:
-            self.stop_surface = next(iter(self.surfaces))
+    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
+    surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
+    stop_surface: typ.Optional[surface.Surface] = None
+    # input_rays: Rays = dataclasses.field(default_factory=lambda: Rays.zeros())
+    wavelengths: typ.Optional[u.Quantity] = None
+    pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
+    field_limits: typ.Optional[u.Quantity] = None
+    field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
+    field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None
+
+    @property
+    def image_surface(self) -> surface.Surface:
+        s = list(self)
+        return s[~0]
 
     def to_zemax(self) -> 'System':
         from kgpy.optics import zemax
@@ -44,10 +51,58 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return all_surface_battrs
 
+    def _pupil_grid(self, component: int) -> u.Quantity:
+        if self.stop_surface is not None:
+            if isinstance(self.stop_surface, surface.Standard):
+                aper = self.stop_surface.aperture
+                if not isinstance(aper, aperture.NoAperture):
+                    ps = self.pupil_samples
+                    if isinstance(ps, int):
+                        ps = (ps, ps)
+                    aper_min = aper.edges.min(~1, keepdims=True)
+                    aper_max = aper.edges.max(~1, keepdims=True)
+                    return np.linspace(
+                        start=aper_min[..., component],
+                        stop=aper_max[..., component],
+                        num=ps[component],
+                        axis=~0,
+                    )
+
+        raise ValueError('Incorrectly defined stop surface')
+
     @property
-    def image_surface(self) -> surface.Surface:
-        s = list(self)
-        return s[~0]
+    def pupil_x(self) -> u.Quantity:
+        return self._pupil_grid(kgpy.vector.ix)
+
+    @property
+    def pupil_y(self) -> u.Quantity:
+        return self._pupil_grid(kgpy.vector.iy)
+
+    def _field_grid(self, component: int) -> u.Quantity:
+        fs = self.field_samples
+        if isinstance(fs, int):
+            fs = (fs, fs)
+
+        fr = self.field_limits
+        if fr is not None:
+            if fr.ndim == 1:
+                fr = np.stack([fr, fr], axis=~0)
+            return np.linspace(
+                start=fr[..., 0, component],
+                stop=fr[..., 1, component],
+                num=fs[component],
+                axis=~0
+            )
+        else:
+            raise ValueError('Fields not specified')
+
+    @property
+    def field_x(self) -> u.Quantity:
+        return self._field_grid(kgpy.vector.ix)
+    
+    @property
+    def field_y(self) -> u.Quantity:
+        return self._field_grid(kgpy.vector.iy)
 
     def raytrace_subsystem(
             self,
@@ -120,7 +175,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         ndim = len(grids)
 
         labels = []
-
 
         for i, grid in enumerate(grids):
             # grid = grid[config_index]
