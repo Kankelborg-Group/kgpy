@@ -147,29 +147,28 @@ class Rays:
         avg_position = avg_position << self.position.unit
         return self.position - avg_position
 
-    @property
-    def mean_sparse_grid(self) -> typ.List[np.ndarray]:
-        out = []
-        for axis in range(self.ndim):
-            axes = self.axis.all.copy()
-            axes = [a % self.ndim for a in axes]
-            try:
-                axes.remove(axis)
-            except ValueError:
-                pass
-            axes = tuple(axes)
-            if axis == self.axis.wavelength % self.ndim:
-                out.append(self.wavelength[..., 0].mean(axes))
-            elif axis == self.axis.field_x % self.ndim:
-                out.append(self.direction[kgpy.vector.x].mean(axes))
-            elif axis == self.axis.field_y % self.ndim:
-                out.append(self.direction[kgpy.vector.y].mean(axes))
-            elif axis == self.axis.pupil_x % self.ndim:
-                out.append(self.relative_position[kgpy.vector.x].mean(axes))
-            elif axis == self.axis.pupil_y % self.ndim:
-                out.append(self.relative_position[kgpy.vector.y].mean(axes))
-            # else:
-            #     out.append(np.arange(self.shape[axis]))
+    def mean_sparse_grid(self, config_index: typ.Union[int, typ.Tuple[int, ...]]) -> typ.List[np.ndarray]:
+        axes = self.axis.all
+        out = [None] * len(axes)
+        for axis in axes:
+            other_axes = axes.copy()
+            other_axes.remove(axis)
+            other_axes = tuple(other_axes)
+
+            if axis == self.axis.wavelength:
+                grid = self.wavelength[config_index][..., 0]
+            elif axis == self.axis.field_x:
+                grid = self.direction[config_index][kgpy.vector.x]
+            elif axis == self.axis.field_y:
+                grid = self.direction[config_index][kgpy.vector.y]
+            elif axis == self.axis.pupil_x:
+                grid = self.relative_position[config_index][kgpy.vector.x]
+            elif axis == self.axis.pupil_y:
+                grid = self.relative_position[config_index][kgpy.vector.y]
+            else:
+                raise ValueError('unsupported axis index')
+            out[axis] = grid.mean(other_axes)
+
         return out
 
     def copy(self) -> 'Rays':
