@@ -118,8 +118,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def plot_footprint(
             self,
             surf: typ.Optional[surface.Standard] = None,
-            config_index: typ.Union[int, slice] = slice(None),
-            color_axis: int = 0,
+            config_index: int = 0,
+            color_axis: int = Rays.axis.wavelength,
             plot_apertures: bool = True,
             plot_vignetted: bool = False,
     ):
@@ -127,38 +127,67 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             surf = self.image_surface
 
         rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
+        wavelength = rays.wavelength[config_index]
         position = rays.position[config_index]
+        mask = rays.unvignetted_mask[config_index]
 
-        if self.shape:
-            sh = [1] * rays.ndim
-            sh[color_axis] = rays.shape[color_axis]
-            colors = np.arange(rays.shape[color_axis]).reshape(sh)
-            colors = np.broadcast_to(colors, rays.shape)
-            colors = colors[config_index]
-        else:
-            colors = None
+        input_pos = self.input_rays.position[config_index]
+        input_dir = self.input_rays.direction[config_index]
 
-        if not plot_vignetted:
-            mask = rays.unvignetted_mask[config_index]
-            px = position[mask, kgpy.vector.ix]
-            py = position[mask, kgpy.vector.iy]
-            colors = colors[mask]
+        pupil_axes = (self.input_rays.vaxis.pupil_x, self.input_rays.vaxis.pupil_y)
+        avg_position = np.mean(input_pos.value, axis=pupil_axes, keepdims=True) << input_pos.unit
+        avg_position = avg_position << input_pos.unit
+        rel_position = input_pos - avg_position
+
+        ndim = mask.ndim
+        if color_axis >= 0:
+            color_axis = color_axis - ndim
+
+        sl = [0] * ndim
+        sl[color_axis] = slice(None)
+        sl = tuple(sl)
+        if color_axis == self.input_rays.axis.wavelength:
+            labels = wavelength[sl].squeeze()
+        elif color_axis == self.input_rays.axis.field_x:
+            labels = (np.arcsin(input_dir[sl][kgpy.vector.x]) << u.rad).to(u.deg)
+        elif color_axis == self.input_rays.axis.field_y:
+            labels = (np.arcsin(input_dir[sl][kgpy.vector.y]) << u.rad).to(u.deg)
+        elif color_axis == self.input_rays.axis.pupil_x:
+            labels = rel_position[sl][kgpy.vector.x]
+        elif color_axis == self.input_rays.axis.pupil_y:
+            labels = rel_position[sl][kgpy.vector.y]
         else:
-            px = position[kgpy.vector.x]
-            py = position[kgpy.vector.y]
+            labels = np.arange(self.input_rays.shape[color_axis])
+
+        labels = ['{0:0.2f}'.format(lb) for lb in labels]
 
         with astropy.visualization.quantity_support():
 
             fig, ax = plt.subplots()
+            ax.set_title('configuration = ' + str(config_index))
 
-            if plot_apertures:
-                surf.plot_2d(ax)
+            len_color_axis = self.input_rays.shape[color_axis]
+            for i in range(len_color_axis):
 
-            ax.scatter(
-                x=px,
-                y=py,
-                c=colors,
-            )
+                sl = [slice(None)] * (position.ndim - 1)
+                sl[color_axis] = slice(i, i + 1)
+
+                p = position[sl]
+                m = mask[sl]
+
+                if not plot_vignetted:
+                    p = p[m]
+
+                ax.scatter(
+                    x=p[kgpy.vector.x],
+                    y=p[kgpy.vector.y],
+                    label=labels[i],
+                )
+
+            ax.legend()
+
+        if plot_apertures:
+            surf.plot_2d(ax)
 
     def plot_psf_vs_field(
             self,

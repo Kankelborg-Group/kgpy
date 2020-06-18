@@ -243,6 +243,7 @@ class Rays:
             ncols=self.shape[self.axis.field_y],
             sharex='all',
             sharey='all',
+            figsize=(15, 10)
         )
 
         for i, axs_i in enumerate(axs):
