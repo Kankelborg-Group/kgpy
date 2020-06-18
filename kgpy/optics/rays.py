@@ -58,6 +58,7 @@ class Rays:
     index_of_refraction: u.Quantity
     unvignetted_mask: np.ndarray
     error_mask: np.ndarray
+    input_grid: typ.Optional[typ.List[np.ndarray]] = None
 
     @classmethod
     def zeros(cls, shape: typ.Tuple[int, ...] = ()):
