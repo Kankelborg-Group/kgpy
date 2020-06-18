@@ -15,9 +15,11 @@ class AutoAxis:
     def __init__(self):
         super().__init__()
         self.num_axes = 0
+        self.all = []
 
     def auto_axis_index(self):
         i = ~self.num_axes
+        self.all.append(i)
         self.num_axes += 1
         return i
 
@@ -77,8 +79,8 @@ class Rays:
             polarization=polarization,
             surface_normal=normal,
             index_of_refraction=np.ones(ssh) << u.dimensionless_unscaled,
-            unvignetted_mask=np.zeros(shape, dtype=np.bool),
-            error_mask=np.zeros(shape, dtype=np.bool),
+            unvignetted_mask=np.ones(shape, dtype=np.bool),
+            error_mask=np.ones(shape, dtype=np.bool),
         )
 
     def tilt_decenter(self, transform: coordinate.TiltDecenter) -> 'Rays':
@@ -135,16 +137,40 @@ class Rays:
         self.position[kgpy.vector.z] = value
 
     @property
-    def goodmask(self) -> np.ndarray:
-        return self.unvignetted_mask & ~self.error_mask
+    def mask(self) -> np.ndarray:
+        return self.unvignetted_mask & self.error_mask
 
     @property
-    def gx(self) -> typ.Tuple[np.ndarray, int]:
-        return self.goodmask, kgpy.vector.ix
+    def relative_position(self):
+        pupil_axes = (self.vaxis.pupil_x, self.vaxis.pupil_y)
+        avg_position = np.mean(self.position.value, axis=pupil_axes, keepdims=True) << self.position.unit
+        avg_position = avg_position << self.position.unit
+        return self.position - avg_position
 
     @property
-    def gy(self):
-        return self.goodmask, kgpy.vector.iy
+    def mean_sparse_grid(self) -> typ.List[np.ndarray]:
+        out = []
+        for axis in range(self.ndim):
+            axes = self.axis.all.copy()
+            axes = [a % self.ndim for a in axes]
+            try:
+                axes.remove(axis)
+            except ValueError:
+                pass
+            axes = tuple(axes)
+            if axis == self.axis.wavelength % self.ndim:
+                out.append(self.wavelength[..., 0].mean(axes))
+            elif axis == self.axis.field_x % self.ndim:
+                out.append(self.direction[kgpy.vector.x].mean(axes))
+            elif axis == self.axis.field_y % self.ndim:
+                out.append(self.direction[kgpy.vector.y].mean(axes))
+            elif axis == self.axis.pupil_x % self.ndim:
+                out.append(self.relative_position[kgpy.vector.x].mean(axes))
+            elif axis == self.axis.pupil_y % self.ndim:
+                out.append(self.relative_position[kgpy.vector.y].mean(axes))
+            # else:
+            #     out.append(np.arange(self.shape[axis]))
+        return out
 
     def copy(self) -> 'Rays':
         return Rays(
@@ -170,9 +196,9 @@ class Rays:
             bins = (bins, bins)
 
         if not use_vignetted:
-            mask = self.goodmask
+            mask = self.mask
         else:
-            mask = np.broadcast_to(True, self.shape)
+            mask = self.error_mask
 
         position = self.position.copy()
         if relative_to_centroid:
@@ -183,8 +209,9 @@ class Rays:
             px = position[kgpy.vector.x]
             py = position[kgpy.vector.y]
             if not use_vignetted:
-                px = px[self.goodmask]
-                py = py[self.goodmask]
+                px = px[self.mask]
+                py = py[self.mask]
+            print(px.shape)
             limits = (
                 (px.min().value, px.max().value),
                 (py.min().value, py.max().value),
@@ -243,7 +270,7 @@ class Rays:
             ncols=self.shape[self.axis.field_y],
             sharex='all',
             sharey='all',
-            figsize=(15, 10)
+            figsize=(9, 7)
         )
 
         for i, axs_i in enumerate(axs):

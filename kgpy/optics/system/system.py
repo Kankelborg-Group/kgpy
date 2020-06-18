@@ -115,6 +115,25 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             relative_to_centroid=True,
         )
 
+    def calc_plot_labels(self, config_index: typ.Union[int, typ.Tuple[int, ...]] = 0) -> typ.List[typ.List[str]]:
+        grids = self.input_rays.mean_sparse_grid
+        ndim = len(grids)
+
+        labels = []
+
+        for i, grid in enumerate(grids):
+            grid = grid[config_index]
+
+            if i == Rays.axis.field_x % ndim:
+                grid = (np.arcsin(grid) << u.rad).to(u.deg)
+            elif i == Rays.axis.field_y % ndim:
+                grid = (np.arcsin(grid) << u.rad).to(u.deg)
+
+            labels.append(['{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid])
+
+        return labels
+
+
     def plot_footprint(
             self,
             surf: typ.Optional[surface.Standard] = None,
@@ -131,35 +150,37 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         position = rays.position[config_index]
         mask = rays.unvignetted_mask[config_index]
 
-        input_pos = self.input_rays.position[config_index]
-        input_dir = self.input_rays.direction[config_index]
+        # input_pos = self.input_rays.position[config_index]
+        # input_dir = self.input_rays.direction[config_index]
+        #
+        # pupil_axes = (self.input_rays.vaxis.pupil_x, self.input_rays.vaxis.pupil_y)
+        # avg_position = np.mean(input_pos.value, axis=pupil_axes, keepdims=True) << input_pos.unit
+        # avg_position = avg_position << input_pos.unit
+        # rel_position = input_pos - avg_position
+        #
+        # ndim = mask.ndim
+        # if color_axis >= 0:
+        #     color_axis = color_axis - ndim
+        #
+        # sl = [0] * ndim
+        # sl[color_axis] = slice(None)
+        # sl = tuple(sl)
+        # if color_axis == self.input_rays.axis.wavelength:
+        #     labels = wavelength[sl].squeeze()
+        # elif color_axis == self.input_rays.axis.field_x:
+        #     labels = (np.arcsin(input_dir[sl][kgpy.vector.x]) << u.rad).to(u.deg)
+        # elif color_axis == self.input_rays.axis.field_y:
+        #     labels = (np.arcsin(input_dir[sl][kgpy.vector.y]) << u.rad).to(u.deg)
+        # elif color_axis == self.input_rays.axis.pupil_x:
+        #     labels = rel_position[sl][kgpy.vector.x]
+        # elif color_axis == self.input_rays.axis.pupil_y:
+        #     labels = rel_position[sl][kgpy.vector.y]
+        # else:
+        #     labels = np.arange(self.input_rays.shape[color_axis])
+        #
+        # labels = ['{0:0.2f}'.format(lb) for lb in labels]
 
-        pupil_axes = (self.input_rays.vaxis.pupil_x, self.input_rays.vaxis.pupil_y)
-        avg_position = np.mean(input_pos.value, axis=pupil_axes, keepdims=True) << input_pos.unit
-        avg_position = avg_position << input_pos.unit
-        rel_position = input_pos - avg_position
-
-        ndim = mask.ndim
-        if color_axis >= 0:
-            color_axis = color_axis - ndim
-
-        sl = [0] * ndim
-        sl[color_axis] = slice(None)
-        sl = tuple(sl)
-        if color_axis == self.input_rays.axis.wavelength:
-            labels = wavelength[sl].squeeze()
-        elif color_axis == self.input_rays.axis.field_x:
-            labels = (np.arcsin(input_dir[sl][kgpy.vector.x]) << u.rad).to(u.deg)
-        elif color_axis == self.input_rays.axis.field_y:
-            labels = (np.arcsin(input_dir[sl][kgpy.vector.y]) << u.rad).to(u.deg)
-        elif color_axis == self.input_rays.axis.pupil_x:
-            labels = rel_position[sl][kgpy.vector.x]
-        elif color_axis == self.input_rays.axis.pupil_y:
-            labels = rel_position[sl][kgpy.vector.y]
-        else:
-            labels = np.arange(self.input_rays.shape[color_axis])
-
-        labels = ['{0:0.2f}'.format(lb) for lb in labels]
+        labels = self.calc_plot_labels(config_index)[color_axis]
 
         with astropy.visualization.quantity_support():
 
