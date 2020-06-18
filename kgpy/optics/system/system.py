@@ -140,7 +140,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         if not plot_vignetted:
             mask = rays.unvignetted_mask[config_index]
-            mask = mask[..., 0]
             px = position[mask, kgpy.vector.ix]
             py = position[mask, kgpy.vector.iy]
             colors = colors[mask]
@@ -151,7 +150,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         with astropy.visualization.quantity_support():
 
             fig, ax = plt.subplots()
-            ax.invert_xaxis()
 
             if plot_apertures:
                 surf.plot_2d(ax)
@@ -255,7 +253,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         mask = ~all_rays[~0].error_mask
         if not plot_vignetted:
             mask &= all_rays[~0].unvignetted_mask
-        mask = mask[..., 0]
 
         if self.shape:
             sh = [1] * intercepts.ndim

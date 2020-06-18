@@ -231,7 +231,12 @@ class Rays:
             field_y = self.direction[config_index, wavlen_index, ..., kgpy.vector.iy].mean(fax_y)
             field_y = np.arcsin(field_y) << u.rad
 
-        hist, edges_x, edges_y = self.pupil_hist2d(bins=bins, limits=limits, use_vignetted=use_vignetted)
+        hist, edges_x, edges_y = self.pupil_hist2d(
+            bins=bins,
+            limits=limits,
+            use_vignetted=use_vignetted,
+            relative_to_centroid=True,
+        )
 
         fig, axs = plt.subplots(
             nrows=self.shape[self.axis.field_x],
