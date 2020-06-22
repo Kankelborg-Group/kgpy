@@ -1,7 +1,7 @@
 import typing as typ
 import numpy as np
 import astropy.units as u
-from . import matrix
+from .. import matrix
 
 __all__ = ['x', 'y', 'z', 'ix', 'iy', 'iz','dot', 'matmul', 'length', 'normalize']
 
