@@ -22,7 +22,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
-    stop_surface: typ.Optional[surface.Surface] = None
+    stop_surface: typ.Optional[surface.Standard] = None
     # input_rays: Rays = dataclasses.field(default_factory=lambda: Rays.zeros())
     wavelengths: typ.Optional[u.Quantity] = None
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
@@ -65,7 +65,20 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return all_surface_battrs
 
-    def _pupil_grid(self, component: int) -> u.Quantity:
+    @property
+    def pupil_x(self):
+        xmin, xmax = self.stop_surface.aperture.limits_x
+        return np.linspace(start=xmin, stop=xmax, num=self.pupil_samples_normalized[kgpy.vector.ix], axis=~0)
+
+    @property
+    def pupil_y(self):
+        ymin, ymax = self.stop_surface.aperture.limits_y
+        return np.linspace(start=ymin, stop=ymax, num=self.pupil_samples_normalized[kgpy.vector.iy], axis=~0)
+
+    def pupil_grid(self, component: int) -> u.Quantity:
+
+
+
         if self.stop_surface is not None:
             if isinstance(self.stop_surface, surface.Standard):
                 aper = self.stop_surface.aperture
