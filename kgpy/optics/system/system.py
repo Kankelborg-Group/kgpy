@@ -26,9 +26,23 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     # input_rays: Rays = dataclasses.field(default_factory=lambda: Rays.zeros())
     wavelengths: typ.Optional[u.Quantity] = None
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
-    field_limits: typ.Optional[u.Quantity] = None
+    field_limits: typ.Optional[typ.Tuple[u.Quantity, u.Quantity]] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None
+
+    @staticmethod
+    def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
+        if isinstance(samples, int):
+            samples = samples, samples
+        return samples
+
+    @property
+    def pupil_samples_normalized(self) -> typ.Tuple[int, int]:
+        return self._normalize_2d_samples(self.pupil_samples)
+
+    @property
+    def field_samples_normalized(self) -> typ.Tuple[int, int]:
+        return self._normalize_2d_samples(self.field_samples)
 
     @property
     def image_surface(self) -> surface.Surface:
@@ -79,18 +93,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         return self._pupil_grid(kgpy.vector.iy)
 
     def _field_grid(self, component: int) -> u.Quantity:
-        fs = self.field_samples
-        if isinstance(fs, int):
-            fs = (fs, fs)
-
-        fr = self.field_limits
-        if fr is not None:
-            if fr.ndim == 1:
-                fr = np.stack([fr, fr], axis=~0)
+        if self.field_limits is not None:
+            field_min, field_max = self.field_limits
             return np.linspace(
-                start=fr[..., 0, component],
-                stop=fr[..., 1, component],
-                num=fs[component],
+                start=field_min[..., component],
+                stop=field_max[..., component],
+                num=self.field_samples_normalized[component],
                 axis=~0
             )
         else:
@@ -103,6 +111,35 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     @property
     def field_y(self) -> u.Quantity:
         return self._field_grid(kgpy.vector.iy)
+
+    @property
+    def input_direction(self):
+        fx = self.field_x
+        
+        return
+
+    def entrance_pupil_limits(self):
+        pupil_samples = self.pupil_samples_normalized
+
+
+        wavelengths = np.expand_dims(self.wavelengths, axis=Rays.vaxis.all.copy().remove(Rays.axis.wavelength))
+        fields_x = np.expand_dims(self.field, axis=Rays.vaxis.all.copy().remove(Rays.axis.wavelength))
+
+
+        for surf in self.surfaces:
+            if isinstance(surf, surface.Standard):
+                if surf.aperture is not None:
+                    xmin, xmax = surf.aperture.limits_x
+                    ymin, ymax = surf.aperture.limits_y
+                    pupil_x = np.linspace(xmin, xmax, pupil_samples[kgpy.vector.x], axis=~0)
+                    pupil_y = np.linspace(ymin, ymax, pupil_samples[kgpy.vector.y], axis=~0)
+
+                    wavl =
+
+
+            for fx in self.field_x:
+                for fy in self.field_y:
+                    sol
 
     def raytrace_subsystem(
             self,

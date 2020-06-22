@@ -1,3 +1,4 @@
+import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
@@ -38,6 +39,14 @@ class Rectangular(polygon.Polygon):
         m3 = y < self.half_width_y
         m4 = y > -self.half_width_y
         return m1 & m2 & m3 & m4
+
+    @property
+    def limits_x(self) -> typ.Tuple[u.Quantity, u.Quantity]:
+        return -self.half_width_x, self.half_width_x
+
+    @property
+    def limits_y(self) -> typ.Tuple[u.Quantity, u.Quantity]:
+        return -self.half_width_y, self.half_width_y
 
     @property
     def vertices(self) -> u.Quantity:

@@ -1,5 +1,5 @@
-import dataclasses
 import typing as typ
+import dataclasses
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -11,8 +11,8 @@ from . import Surface
 
 __all__ = ['Standard']
 
-MaterialT = typ.TypeVar('MaterialT', bound=material_.Material)
-ApertureT = typ.TypeVar('ApertureT', bound=aperture_.Aperture)
+MaterialT = typ.TypeVar('MaterialT', bound=typ.Optional[material_.Material])
+ApertureT = typ.TypeVar('ApertureT', bound=typ.Optional[aperture_.Aperture])
 
 
 @dataclasses.dataclass
@@ -23,8 +23,8 @@ class Standard(
 
     radius: u.Quantity = np.inf * u.mm
     conic: u.Quantity = 0
-    material: MaterialT = dataclasses.field(default_factory=lambda: kgpy.optics.material.no_material.NoMaterial())
-    aperture: ApertureT = dataclasses.field(default_factory=lambda: aperture_.NoAperture())
+    material: MaterialT = None
+    aperture: ApertureT = None
     transform_before: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
     transform_after: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
 
