@@ -41,12 +41,12 @@ class Rectangular(polygon.Polygon):
         return m1 & m2 & m3 & m4
 
     @property
-    def limits_x(self) -> typ.Tuple[u.Quantity, u.Quantity]:
-        return -self.half_width_x, self.half_width_x
+    def min(self) -> u.Quantity:
+        return -self.max
 
     @property
-    def limits_y(self) -> typ.Tuple[u.Quantity, u.Quantity]:
-        return -self.half_width_y, self.half_width_y
+    def max(self) -> u.Quantity:
+        return np.stack(np.broadcast(self.half_width_x, self.half_width_y, subok=True), axis=~0)
 
     @property
     def vertices(self) -> u.Quantity:

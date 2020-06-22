@@ -27,12 +27,12 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def limits_x(self) -> typ.Tuple[u.Quantity, u.Quantity]:
+    def min(self) -> u.Quantity:
         pass
 
     @property
     @abc.abstractmethod
-    def limits_y(self) -> typ.Tuple[u.Quantity, u.Quantity]:
+    def max(self) -> u.Quantity:
         pass
 
     @property

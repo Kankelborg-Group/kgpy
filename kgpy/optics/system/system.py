@@ -26,7 +26,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     # input_rays: Rays = dataclasses.field(default_factory=lambda: Rays.zeros())
     wavelengths: typ.Optional[u.Quantity] = None
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
-    field_limits: typ.Optional[typ.Tuple[u.Quantity, u.Quantity]] = None
+    field_min: typ.Optional[u.Quantity] = None
+    field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None
 
@@ -66,93 +67,71 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         return all_surface_battrs
 
     @property
-    def pupil_x(self):
-        xmin, xmax = self.stop_surface.aperture.limits_x
-        return np.linspace(start=xmin, stop=xmax, num=self.pupil_samples_normalized[kgpy.vector.ix], axis=~0)
+    def field_x(self) -> u.Quantity:
+        return np.linspace(
+            start=self.field_min[kgpy.vector.x],
+            stop=self.field_max[kgpy.vector.x],
+            num=self.field_samples_normalized[kgpy.vector.x],
+            axis=~0
+        )
 
     @property
-    def pupil_y(self):
-        ymin, ymax = self.stop_surface.aperture.limits_y
-        return np.linspace(start=ymin, stop=ymax, num=self.pupil_samples_normalized[kgpy.vector.iy], axis=~0)
-
-    def pupil_grid(self, component: int) -> u.Quantity:
-
-
-
-        if self.stop_surface is not None:
-            if isinstance(self.stop_surface, surface.Standard):
-                aper = self.stop_surface.aperture
-                if not isinstance(aper, aperture.NoAperture):
-                    ps = self.pupil_samples
-                    if isinstance(ps, int):
-                        ps = (ps, ps)
-                    aper_min = aper.edges.min(~1, keepdims=True)
-                    aper_max = aper.edges.max(~1, keepdims=True)
-                    return np.linspace(
-                        start=aper_min[..., component],
-                        stop=aper_max[..., component],
-                        num=ps[component],
-                        axis=~0,
-                    )
-
-        raise ValueError('Incorrectly defined stop surface')
+    def field_y(self) -> u.Quantity:
+        return np.linspace(
+            start=self.field_min[kgpy.vector.y],
+            stop=self.field_max[kgpy.vector.y],
+            num=self.field_samples_normalized[kgpy.vector.y],
+            axis=~0
+        )
 
     @property
     def pupil_x(self) -> u.Quantity:
-        return self._pupil_grid(kgpy.vector.ix)
+        return np.linspace(
+            start=self.stop_surface.aperture.min[kgpy.vector.x],
+            stop=self.stop_surface.aperture.max[kgpy.vector.x],
+            num=self.pupil_samples_normalized[kgpy.vector.x],
+            axis=~0
+        )
 
     @property
     def pupil_y(self) -> u.Quantity:
-        return self._pupil_grid(kgpy.vector.iy)
-
-    def _field_grid(self, component: int) -> u.Quantity:
-        if self.field_limits is not None:
-            field_min, field_max = self.field_limits
-            return np.linspace(
-                start=field_min[..., component],
-                stop=field_max[..., component],
-                num=self.field_samples_normalized[component],
-                axis=~0
-            )
-        else:
-            raise ValueError('Fields not specified')
+        return np.linspace(
+            start=self.stop_surface.aperture.min[kgpy.vector.y],
+            stop=self.stop_surface.aperture.max[kgpy.vector.y],
+            num=self.pupil_samples_normalized[kgpy.vector.y],
+            axis=~0
+        )
 
     @property
-    def field_x(self) -> u.Quantity:
-        return self._field_grid(kgpy.vector.ix)
-    
-    @property
-    def field_y(self) -> u.Quantity:
-        return self._field_grid(kgpy.vector.iy)
+    def field_mesh(self) -> u.Quantity:
+        x = np.broadcast_to(np.expand_dims(self.field_x, ~0), self.field_samples_normalized, subok=True)
+        y = np.broadcast_to(np.expand_dims(self.field_y, ~1), self.field_samples_normalized, subok=True)
+        z = np.broadcast_to(0, self.field_samples_normalized, subok=True)
+        return np.stack([x, y, z], axis=~0)
 
     @property
-    def input_direction(self):
-        fx = self.field_x
-        
-        return
+    def pupil_mesh(self) -> u.Quantity:
+        x = np.broadcast_to(np.expand_dims(self.pupil_x, ~0), self.pupil_samples_normalized, subok=True)
+        y = np.broadcast_to(np.expand_dims(self.pupil_y, ~1), self.pupil_samples_normalized, subok=True)
+        z = np.broadcast_to(0, self.pupil_samples_normalized, subok=True)
+        return np.stack([x, y, z], axis=~0)
 
-    def entrance_pupil_limits(self):
-        pupil_samples = self.pupil_samples_normalized
+    @property
+    def input_rays(self):
 
+        wavelengths = np.expand_dims(self.wavelengths, Rays.vaxis.all.copy().remove(Rays.vaxis.wavelength))
+        fields = self.field_mesh
 
-        wavelengths = np.expand_dims(self.wavelengths, axis=Rays.vaxis.all.copy().remove(Rays.axis.wavelength))
-        fields_x = np.expand_dims(self.field, axis=Rays.vaxis.all.copy().remove(Rays.axis.wavelength))
-
+        if np.isinf(self.object_surface.thickness):
+            directions = np.sin(fields)
 
         for surf in self.surfaces:
             if isinstance(surf, surface.Standard):
                 if surf.aperture is not None:
-                    xmin, xmax = surf.aperture.limits_x
-                    ymin, ymax = surf.aperture.limits_y
-                    pupil_x = np.linspace(xmin, xmax, pupil_samples[kgpy.vector.x], axis=~0)
-                    pupil_y = np.linspace(ymin, ymax, pupil_samples[kgpy.vector.y], axis=~0)
-
-                    wavl =
+                    pass
 
 
-            for fx in self.field_x:
-                for fy in self.field_y:
-                    sol
+
 
     def raytrace_subsystem(
             self,
