@@ -90,37 +90,37 @@ class Rays:
     @classmethod
     def from_field_angles(
             cls,
-            wavelength: u.Quantity,
-            field_x: u.Quantity,
-            field_y: u.Quantity,
-            pupil_x: u.Quantity,
-            pupil_y: u.Quantity,
+            wavelength_grid: u.Quantity,
+            position: u.Quantity,
+            field_grid_x: u.Quantity,
+            field_grid_y: u.Quantity,
             field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None,
-    ):
-        wavelength_mesh = np.expand_dims(wavelength, cls.vaxis.perp_axes(cls.vaxis.wavelength))
-        field_x_mesh = np.expand_dims(field_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
-        field_y_mesh = np.expand_dims(field_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
-        pupil_x_mesh = np.expand_dims(pupil_x, cls.vaxis.perp_axes(cls.vaxis.pupil_x))
-        pupil_y_mesh = np.expand_dims(pupil_y, cls.vaxis.perp_axes(cls.vaxis.pupil_y))
+            pupil_grid_x: typ.Optional[u.Quantity] = None,
+            pupil_grid_y: typ.Optional[u.Quantity] = None,
+    ) -> 'Rays':
+        wavelength = np.expand_dims(wavelength_grid, cls.vaxis.perp_axes(cls.vaxis.wavelength))
+        field_x = np.expand_dims(field_grid_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
+        field_y = np.expand_dims(field_grid_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
 
-        wavelength_mesh, field_x_mesh, field_y_mesh, pupil_x_mesh, pupil_y_mesh = np.broadcast_arrays(
-            wavelength_mesh, field_x_mesh, field_y_mesh, pupil_x_mesh, pupil_y_mesh
-        )
+        wavelength, position, field_x, field_y = np.broadcast_arrays(wavelength, position, field_x, field_y, )
 
-        mask = field_mask_func(field_x_mesh, field_y_mesh)
+        mask = field_mask_func(field_x, field_y)
 
-        positions = kgpy.vector.from_components(pupil_x_mesh, pupil_y_mesh)
-
-        directions = np.zeros(positions.shape)
-        directions[z] = 1
-        directions = kgpy.vector.rotate_x(directions, field_x_mesh)
-        directions = kgpy.vector.rotate_y(directions, field_y_mesh)
+        direction = np.zeros(position.shape)
+        direction[z] = 1
+        direction = kgpy.vector.rotate_x(direction, field_x)
+        direction = kgpy.vector.rotate_y(direction, field_y)
 
         return cls(
-            wavelength=wavelength_mesh,
-            position=positions,
-            direction=directions,
+            wavelength=wavelength,
+            position=position,
+            direction=direction,
             vignetted_mask=mask,
+            wavelength_grid=wavelength_grid,
+            field_grid_x=field_grid_x,
+            field_grid_y=field_grid_y,
+            pupil_grid_x=pupil_grid_x,
+            pupil_grid_y=pupil_grid_y,
         )
 
     @classmethod

@@ -21,7 +21,6 @@ SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surfac
 
 @dataclasses.dataclass
 class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Generic[SurfacesT]):
-
     object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
     stop_surface: typ.Optional[surface.Standard] = None
@@ -128,18 +127,27 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         wavelengths, field_mesh, pupil_mesh = np.broadcast_arrays(wavelengths, field_mesh, pupil_mesh, subok=True)
 
         if np.isinf(self.object_surface.thickness):
-            directions = np.zeros(field_mesh.shape)
-            directions[kgpy.vector.z] = 1
-            directions = kgpy.vector.rotate(directions, field_mesh)
 
             position_guess = np.zeros_like(pupil_mesh)
+
+            rays = Rays.from_field_angles(
+                wavelength_grid=self.wavelengths,
+                position=position_guess,
+                field_grid_x=self.field_x,
+                field_grid_y=self.field_y,
+                field_mask_func=self.field_mask_func,
+                pupil_grid_x=self.pupil_x,
+                pupil_grid_y=self.pupil_y,
+            )
+
             for surf in self.aperture_surfaces:
                 px = np.linspace(surf.aperture.min[x], surf.aperture.max[x], self.pupil_samples[x], axis=~0)
                 py = np.linspace(surf.aperture.min[y], surf.aperture.max[y], self.pupil_samples[y], axis=~0)
                 surf_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
-                position = kgpy.optimization.root_finding.secant(
-                    func=lambda p: p - surf_position
+                rays.position = kgpy.optimization.root_finding.secant(
+                    func=lambda p: self.raytrace_subsystem(rays, final_surface=surf).position - surf_position
                 )
+
 
 
 
@@ -148,14 +156,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         else:
             pass
 
-
         for surf in self.surfaces:
             if isinstance(surf, surface.Standard):
                 if surf.aperture is not None:
                     pass
-
-
-
 
     def raytrace_subsystem(
             self,
