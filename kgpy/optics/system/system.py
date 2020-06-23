@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 import kgpy.mixin
 import kgpy.vector
+from kgpy.vector import x, y, z
+import kgpy.optimization.root_finding
 from .. import ZemaxCompatible, Rays, material, surface, aperture
 
 __all__ = ['System']
@@ -29,7 +31,19 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_min: typ.Optional[u.Quantity] = None
     field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
-    field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None
+    field_mask_func: typ.Optional[typ.Callable[[u.Quantity], np.ndarray]] = None
+
+    @property
+    def standard_surfaces(self) -> typ.Iterator[surface.Standard]:
+        for s in self.surfaces:
+            if isinstance(s, surface.Standard):
+                yield s
+
+    @property
+    def aperture_surfaces(self) -> typ.Iterator[surface.Standard]:
+        for s in self.standard_surfaces:
+            if s.aperture is not None:
+                yield s
 
     @staticmethod
     def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
@@ -68,62 +82,72 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def field_x(self) -> u.Quantity:
-        return np.linspace(
-            start=self.field_min[kgpy.vector.x],
-            stop=self.field_max[kgpy.vector.x],
-            num=self.field_samples_normalized[kgpy.vector.x],
-            axis=~0
-        )
+        return np.linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[x], axis=~0)
 
     @property
     def field_y(self) -> u.Quantity:
-        return np.linspace(
-            start=self.field_min[kgpy.vector.y],
-            stop=self.field_max[kgpy.vector.y],
-            num=self.field_samples_normalized[kgpy.vector.y],
-            axis=~0
-        )
+        return np.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[y], axis=~0)
 
     @property
     def pupil_x(self) -> u.Quantity:
-        return np.linspace(
-            start=self.stop_surface.aperture.min[kgpy.vector.x],
-            stop=self.stop_surface.aperture.max[kgpy.vector.x],
-            num=self.pupil_samples_normalized[kgpy.vector.x],
-            axis=~0
-        )
+        aper = self.stop_surface.aperture
+        return np.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[x], axis=~0)
 
     @property
     def pupil_y(self) -> u.Quantity:
-        return np.linspace(
-            start=self.stop_surface.aperture.min[kgpy.vector.y],
-            stop=self.stop_surface.aperture.max[kgpy.vector.y],
-            num=self.pupil_samples_normalized[kgpy.vector.y],
-            axis=~0
-        )
+        aper = self.stop_surface.aperture
+        return np.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[y], axis=~0)
 
     @property
     def field_mesh(self) -> u.Quantity:
-        x = np.broadcast_to(np.expand_dims(self.field_x, ~0), self.field_samples_normalized, subok=True)
-        y = np.broadcast_to(np.expand_dims(self.field_y, ~1), self.field_samples_normalized, subok=True)
-        z = np.broadcast_to(0, self.field_samples_normalized, subok=True)
-        return np.stack([x, y, z], axis=~0)
+        fx = np.broadcast_to(np.expand_dims(self.field_x, ~0), self.field_samples_normalized, subok=True)
+        fy = np.broadcast_to(np.expand_dims(self.field_y, ~1), self.field_samples_normalized, subok=True)
+        fz = np.broadcast_to(0, self.field_samples_normalized, subok=True)
+        return np.stack([fx, fy, fz], axis=~0)
 
     @property
     def pupil_mesh(self) -> u.Quantity:
-        x = np.broadcast_to(np.expand_dims(self.pupil_x, ~0), self.pupil_samples_normalized, subok=True)
-        y = np.broadcast_to(np.expand_dims(self.pupil_y, ~1), self.pupil_samples_normalized, subok=True)
-        z = np.broadcast_to(0, self.pupil_samples_normalized, subok=True)
-        return np.stack([x, y, z], axis=~0)
+        px = np.broadcast_to(np.expand_dims(self.pupil_x, ~0), self.pupil_samples_normalized, subok=True)
+        py = np.broadcast_to(np.expand_dims(self.pupil_y, ~1), self.pupil_samples_normalized, subok=True)
+        pz = np.broadcast_to(0, self.pupil_samples_normalized, subok=True)
+        return np.stack([px, py, pz], axis=~0)
+
+    def _input_rays(self, pupil_mesh: u.Quantity) -> Rays:
+        wavelengths = np.expand_dims(self.wavelengths, Rays.vaxis.all.copy().remove(Rays.vaxis.wavelength))
+        field_mesh = np.expand_dims(self.field_mesh, (Rays.vaxis.pupil_x, Rays.vaxis.pupil_y))
+
+        wavelengths, field_mesh, pupil_mesh = np.broadcast_arrays(wavelengths, field_mesh, pupil_mesh, subok=True)
 
     @property
     def input_rays(self):
 
         wavelengths = np.expand_dims(self.wavelengths, Rays.vaxis.all.copy().remove(Rays.vaxis.wavelength))
-        fields = self.field_mesh
+        field_mesh = np.expand_dims(self.field_mesh, (Rays.vaxis.pupil_x, Rays.vaxis.pupil_y))
+        pupil_mesh = self.pupil_mesh
+
+        wavelengths, field_mesh, pupil_mesh = np.broadcast_arrays(wavelengths, field_mesh, pupil_mesh, subok=True)
 
         if np.isinf(self.object_surface.thickness):
-            directions = np.sin(fields)
+            directions = np.zeros(field_mesh.shape)
+            directions[kgpy.vector.z] = 1
+            directions = kgpy.vector.rotate(directions, field_mesh)
+
+            position_guess = np.zeros_like(pupil_mesh)
+            for surf in self.aperture_surfaces:
+                px = np.linspace(surf.aperture.min[x], surf.aperture.max[x], self.pupil_samples[x], axis=~0)
+                py = np.linspace(surf.aperture.min[y], surf.aperture.max[y], self.pupil_samples[y], axis=~0)
+                surf_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
+                position = kgpy.optimization.root_finding.secant(
+                    func=lambda p: p - surf_position
+                )
+
+
+
+
+
+        else:
+            pass
+
 
         for surf in self.surfaces:
             if isinstance(surf, surface.Standard):
@@ -357,7 +381,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         mask = ~all_rays[~0].error_mask
         if not plot_vignetted:
-            mask &= all_rays[~0].unvignetted_mask
+            mask &= all_rays[~0].vignetted_mask
 
         if self.shape:
             sh = [1] * intercepts.ndim

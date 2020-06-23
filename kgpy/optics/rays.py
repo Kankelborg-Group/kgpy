@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.visualization
 import kgpy.vector
+from kgpy.vector import x, y, z
 from . import coordinate
 
 __all__ = ['Rays']
@@ -14,14 +15,19 @@ class AutoAxis:
 
     def __init__(self):
         super().__init__()
-        self.num_axes = 0
+        self.ndim = 0
         self.all = []
 
     def auto_axis_index(self):
-        i = ~self.num_axes
+        i = ~self.ndim
         self.all.append(i)
-        self.num_axes += 1
+        self.ndim += 1
         return i
+
+    def perp_axes(self, axis: int):
+        axes = self.all.copy()
+        axes.remove(axis)
+        return axes
 
 
 class CAxis(AutoAxis):
@@ -38,6 +44,7 @@ class Axis(AutoAxis):
         self.field_y = self.auto_axis_index()
         self.field_x = self.auto_axis_index()
         self.wavelength = self.auto_axis_index()
+        self.surface = self.auto_axis_index()
 
 
 class VAxis(Axis, CAxis):
@@ -53,12 +60,68 @@ class Rays:
     wavelength: u.Quantity
     position: u.Quantity
     direction: u.Quantity
-    polarization: u.Quantity
-    surface_normal: u.Quantity
-    index_of_refraction: u.Quantity
-    unvignetted_mask: np.ndarray
-    error_mask: np.ndarray
-    input_grid: typ.Optional[typ.List[np.ndarray]] = None
+    polarization: u.Quantity = None
+    surface_normal: u.Quantity = None
+    index_of_refraction: u.Quantity = None
+    vignetted_mask: np.ndarray = None
+    error_mask: np.ndarray = None
+
+    wavelength_grid: typ.Optional[u.Quantity] = None
+    field_grid_x: typ.Optional[u.Quantity] = None
+    field_grid_y: typ.Optional[u.Quantity] = None
+    pupil_grid_x: typ.Optional[u.Quantity] = None
+    pupil_grid_y: typ.Optional[u.Quantity] = None
+
+    def __post_init__(self):
+        if self.polarization is None:
+            self.polarization = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
+            self.polarization[z] = 1
+        if self.surface_normal is None:
+            self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
+            self.surface_normal[z] = 1
+        if self.index_of_refraction is None:
+            self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
+            self.surface_normal[z] = 1
+        if self.vignetted_mask is None:
+            self.vignetted_mask = np.ones(self.grid_shape, dtype=np.bool)
+        if self.error_mask is None:
+            self.error_mask = np.ones(self.grid_shape, dtype=np.bool)
+
+    @classmethod
+    def from_field_angles(
+            cls,
+            wavelength: u.Quantity,
+            field_x: u.Quantity,
+            field_y: u.Quantity,
+            pupil_x: u.Quantity,
+            pupil_y: u.Quantity,
+            field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None,
+    ):
+        wavelength_mesh = np.expand_dims(wavelength, cls.vaxis.perp_axes(cls.vaxis.wavelength))
+        field_x_mesh = np.expand_dims(field_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
+        field_y_mesh = np.expand_dims(field_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
+        pupil_x_mesh = np.expand_dims(pupil_x, cls.vaxis.perp_axes(cls.vaxis.pupil_x))
+        pupil_y_mesh = np.expand_dims(pupil_y, cls.vaxis.perp_axes(cls.vaxis.pupil_y))
+
+        wavelength_mesh, field_x_mesh, field_y_mesh, pupil_x_mesh, pupil_y_mesh = np.broadcast_arrays(
+            wavelength_mesh, field_x_mesh, field_y_mesh, pupil_x_mesh, pupil_y_mesh
+        )
+
+        mask = field_mask_func(field_x_mesh, field_y_mesh)
+
+        positions = kgpy.vector.from_components(pupil_x_mesh, pupil_y_mesh)
+
+        directions = np.zeros(positions.shape)
+        directions[z] = 1
+        directions = kgpy.vector.rotate_x(directions, field_x_mesh)
+        directions = kgpy.vector.rotate_y(directions, field_y_mesh)
+
+        return cls(
+            wavelength=wavelength_mesh,
+            position=positions,
+            direction=directions,
+            vignetted_mask=mask,
+        )
 
     @classmethod
     def zeros(cls, shape: typ.Tuple[int, ...] = ()):
@@ -80,7 +143,7 @@ class Rays:
             polarization=polarization,
             surface_normal=normal,
             index_of_refraction=np.ones(ssh) << u.dimensionless_unscaled,
-            unvignetted_mask=np.ones(shape, dtype=np.bool),
+            vignetted_mask=np.ones(shape, dtype=np.bool),
             error_mask=np.ones(shape, dtype=np.bool),
         )
 
@@ -92,54 +155,42 @@ class Rays:
             polarization=self.polarization.copy(),
             surface_normal=transform(self.surface_normal, decenter=False, num_extra_dims=5),
             index_of_refraction=self.index_of_refraction.copy(),
-            unvignetted_mask=self.unvignetted_mask.copy(),
+            unvignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
         )
 
     @property
-    def shape(self) -> typ.Tuple[int, ...]:
+    def grid_shape(self) -> typ.Tuple[int, ...]:
         return np.broadcast(
-            self.wavelength[..., 0],
-            self.position[..., 0],
-            self.direction[..., 0],
-            self.surface_normal[..., 0],
-            self.unvignetted_mask,
+            self.wavelength[x],
+            self.position[x],
+            self.direction[x],
+            self.surface_normal[x],
+            self.polarization[x],
+            self.index_of_refraction[x],
+            self.vignetted_mask,
             self.error_mask,
-            self.polarization[..., 0],
-            self.index_of_refraction[..., 0],
         ).shape
+
+    @property
+    def vector_grid_shape(self) -> typ.Tuple[int, ...]:
+        return self.grid_shape + (3, )
+
+    @property
+    def scalar_shape(self) -> typ.Tuple[int, ...]:
+        return self.grid_shape + (1, )
+
+    @property
+    def shape(self) -> typ.Tuple[int, ...]:
+        return self.vector_grid_shape[:~self.vaxis.ndim]
 
     @property
     def ndim(self):
         return len(self.shape)
 
     @property
-    def px(self) -> u.Quantity:
-        return self.position[kgpy.vector.x]
-
-    @px.setter
-    def px(self, value: u.Quantity):
-        self.position[kgpy.vector.x] = value
-
-    @property
-    def py(self) -> u.Quantity:
-        return self.position[kgpy.vector.y]
-
-    @py.setter
-    def py(self, value: u.Quantity):
-        self.position[kgpy.vector.y] = value
-
-    @property
-    def pz(self) -> u.Quantity:
-        return self.position[kgpy.vector.z]
-
-    @pz.setter
-    def pz(self, value: u.Quantity):
-        self.position[kgpy.vector.z] = value
-
-    @property
     def mask(self) -> np.ndarray:
-        return self.unvignetted_mask & self.error_mask
+        return self.vignetted_mask & self.error_mask
 
     @property
     def relative_position(self):
@@ -178,7 +229,7 @@ class Rays:
             position=self.position.copy(),
             direction=self.direction.copy(),
             surface_normal=self.surface_normal.copy(),
-            unvignetted_mask=self.unvignetted_mask.copy(),
+            unvignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
             polarization=self.polarization.copy(),
             index_of_refraction=self.index_of_refraction.copy(),

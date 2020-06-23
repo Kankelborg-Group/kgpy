@@ -1,9 +1,10 @@
 import typing as typ
 import numpy as np
-import astropy.units as u
+
+__all__ = ['secant']
 
 
-def find_root(
+def secant(
         func: typ.Callable[[np.ndarray], np.ndarray],
         root_guess: np.ndarray = np.array(0),
         step_size: np.ndarray = np.array(1),

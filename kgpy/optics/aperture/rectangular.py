@@ -46,7 +46,7 @@ class Rectangular(polygon.Polygon):
 
     @property
     def max(self) -> u.Quantity:
-        return np.stack(np.broadcast(self.half_width_x, self.half_width_y, subok=True), axis=~0)
+        return kgpy.vector.from_components(self.half_width_x, self.half_width_y)
 
     @property
     def vertices(self) -> u.Quantity:
@@ -55,9 +55,8 @@ class Rectangular(polygon.Polygon):
 
         x = np.stack([wx, wx, -wx, -wx], axis=~0)
         y = np.stack([wy, -wy, -wy, wy], axis=~0)
-        z = np.broadcast_to(0, x.shape)
 
-        return np.stack([x, y, z], axis=~0)
+        return kgpy.vector.from_components(x, y)
 
     @property
     def edges(self) -> u.Quantity:
@@ -75,6 +74,5 @@ class Rectangular(polygon.Polygon):
 
         x = np.stack([rx, wx, rx[::-1], -wx])
         y = np.stack([wy, ry[::-1], -wy, ry])
-        z = np.broadcast_to(0, x.shape)
 
-        return np.stack([x, y, z], axis=~0)
+        return kgpy.vector.from_components(x, y)
