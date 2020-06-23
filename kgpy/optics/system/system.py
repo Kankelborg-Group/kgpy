@@ -111,12 +111,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         pz = np.broadcast_to(0, self.pupil_samples_normalized, subok=True)
         return np.stack([px, py, pz], axis=~0)
 
-    def _input_rays(self, pupil_mesh: u.Quantity) -> Rays:
-        wavelengths = np.expand_dims(self.wavelengths, Rays.vaxis.all.copy().remove(Rays.vaxis.wavelength))
-        field_mesh = np.expand_dims(self.field_mesh, (Rays.vaxis.pupil_x, Rays.vaxis.pupil_y))
-
-        wavelengths, field_mesh, pupil_mesh = np.broadcast_arrays(wavelengths, field_mesh, pupil_mesh, subok=True)
-
     @property
     def input_rays(self):
 
@@ -126,7 +120,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         wavelengths, field_mesh, pupil_mesh = np.broadcast_arrays(wavelengths, field_mesh, pupil_mesh, subok=True)
 
-        if np.isinf(self.object_surface.thickness):
+        if np.isinf(self.object_surface.thickness).all():
 
             position_guess = np.zeros_like(pupil_mesh)
 
@@ -145,21 +139,15 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 py = np.linspace(surf.aperture.min[y], surf.aperture.max[y], self.pupil_samples[y], axis=~0)
                 surf_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
                 rays.position = kgpy.optimization.root_finding.secant(
-                    func=lambda p: self.raytrace_subsystem(rays, final_surface=surf).position - surf_position
+                    func=lambda p: self.raytrace_subsystem(rays, final_surface=surf).position - surf_position,
+                    step_size=[1, 1, 0] << u.mm,
+                    max_abs_error=1 << u.pm,
                 )
 
-
-
-
-
+            return rays
 
         else:
-            pass
-
-        for surf in self.surfaces:
-            if isinstance(surf, surface.Standard):
-                if surf.aperture is not None:
-                    pass
+            raise NotImplementedError
 
     def raytrace_subsystem(
             self,
