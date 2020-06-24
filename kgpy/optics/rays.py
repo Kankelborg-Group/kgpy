@@ -44,7 +44,6 @@ class Axis(AutoAxis):
         self.field_y = self.auto_axis_index()
         self.field_x = self.auto_axis_index()
         self.wavelength = self.auto_axis_index()
-        self.surface = self.auto_axis_index()
 
 
 class VAxis(Axis, CAxis):
