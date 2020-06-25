@@ -101,7 +101,8 @@ class Surface(
             f0 = a0[kgpy.vector.z] - self.sag(a0[kgpy.vector.x], a0[kgpy.vector.y])
             f1 = a1[kgpy.vector.z] - self.sag(a1[kgpy.vector.x], a1[kgpy.vector.y])
 
-            if np.nanmax(np.abs(f1 - f0)) < max_error:
+            current_error = np.max(np.abs(f1 - f0))
+            if current_error < max_error:
                 break
 
             f0 = np.expand_dims(f0, ~0)
@@ -110,6 +111,7 @@ class Surface(
             m = (f1 - f0) == 0
 
             t2 = (t0 * f1 - t1 * f0) / (f1 - f0)
+            t1 = np.broadcast_to(t1, t2.shape, subok=True)
             t2[m] = t1[m]
 
             t0 = t1
@@ -118,7 +120,7 @@ class Surface(
             i += 1
 
         t = t1
-        intercept += rays.direction * t
+        intercept = intercept + rays.direction * t
 
         return intercept
 

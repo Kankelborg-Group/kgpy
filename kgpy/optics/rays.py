@@ -79,8 +79,8 @@ class Rays:
             self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
             self.surface_normal[z] = 1
         if self.index_of_refraction is None:
-            self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
-            self.surface_normal[z] = 1
+            self.index_of_refraction = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
+            self.index_of_refraction[z] = 1
         if self.vignetted_mask is None:
             self.vignetted_mask = np.ones(self.grid_shape, dtype=np.bool)
         if self.error_mask is None:
@@ -101,14 +101,16 @@ class Rays:
         field_x = np.expand_dims(field_grid_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
         field_y = np.expand_dims(field_grid_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
 
-        wavelength, position, field_x, field_y = np.broadcast_arrays(wavelength, position, field_x, field_y, )
+        wavelength, field_x, field_y = np.broadcast_arrays(wavelength, field_x, field_y, subok=True)
 
-        mask = field_mask_func(field_x, field_y)
+        position, _ = np.broadcast_arrays(position, wavelength, subok=True)
+
+        mask = field_mask_func(field_x, field_y)[..., 0]
 
         direction = np.zeros(position.shape)
         direction[z] = 1
-        direction = kgpy.vector.rotate_x(direction, field_x)
-        direction = kgpy.vector.rotate_y(direction, field_y)
+        direction = kgpy.vector.rotate_x(direction, field_x[..., 0])
+        direction = kgpy.vector.rotate_y(direction, field_y[..., 0])
 
         return cls(
             wavelength=wavelength,
@@ -154,7 +156,7 @@ class Rays:
             polarization=self.polarization.copy(),
             surface_normal=transform(self.surface_normal, decenter=False, num_extra_dims=5),
             index_of_refraction=self.index_of_refraction.copy(),
-            unvignetted_mask=self.vignetted_mask.copy(),
+            vignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
         )
 
@@ -164,11 +166,6 @@ class Rays:
             self.wavelength[x],
             self.position[x],
             self.direction[x],
-            self.surface_normal[x],
-            self.polarization[x],
-            self.index_of_refraction[x],
-            self.vignetted_mask,
-            self.error_mask,
         ).shape
 
     @property
@@ -228,7 +225,7 @@ class Rays:
             position=self.position.copy(),
             direction=self.direction.copy(),
             surface_normal=self.surface_normal.copy(),
-            unvignetted_mask=self.vignetted_mask.copy(),
+            vignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
             polarization=self.polarization.copy(),
             index_of_refraction=self.index_of_refraction.copy(),

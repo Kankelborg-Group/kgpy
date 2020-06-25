@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 import kgpy.mixin
 import kgpy.vector
-from kgpy.vector import x, y, z
+from kgpy.vector import x, y, z, ix, iy, iz
 import kgpy.optimization.root_finding
 from .. import ZemaxCompatible, Rays, material, surface, aperture
 
@@ -30,7 +30,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_min: typ.Optional[u.Quantity] = None
     field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
-    field_mask_func: typ.Optional[typ.Callable[[u.Quantity], np.ndarray]] = None
+    field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None
 
     @property
     def standard_surfaces(self) -> typ.Iterator[surface.Standard]:
@@ -81,21 +81,21 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def field_x(self) -> u.Quantity:
-        return np.linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[x], axis=~0)
+        return np.linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
 
     @property
     def field_y(self) -> u.Quantity:
-        return np.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[y], axis=~0)
+        return np.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
 
     @property
     def pupil_x(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return np.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[x], axis=~0)
+        return np.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
 
     @property
     def pupil_y(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return np.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[y], axis=~0)
+        return np.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
 
     @property
     def field_mesh(self) -> u.Quantity:
@@ -114,17 +114,30 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     @property
     def input_rays(self):
 
-        wavelengths = np.expand_dims(self.wavelengths, Rays.vaxis.all.copy().remove(Rays.vaxis.wavelength))
-        field_mesh = np.expand_dims(self.field_mesh, (Rays.vaxis.pupil_x, Rays.vaxis.pupil_y))
-        pupil_mesh = self.pupil_mesh
-
-        wavelengths, field_mesh, pupil_mesh = np.broadcast_arrays(wavelengths, field_mesh, pupil_mesh, subok=True)
-
         if np.isinf(self.object_surface.thickness).all():
 
-            position_guess = np.zeros_like(pupil_mesh)
+            position_guess = kgpy.vector.from_components() << u.mm
 
-            rays = Rays.from_field_angles(
+            for surf in self.aperture_surfaces:
+                px = np.linspace(surf.aperture.min[x], surf.aperture.max[x], self.pupil_samples_normalized[ix], axis=~0)
+                py = np.linspace(surf.aperture.min[y], surf.aperture.max[y], self.pupil_samples_normalized[iy], axis=~0)
+                surf_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
+                position_guess = kgpy.optimization.root_finding.secant(
+                    func=lambda p: self.raytrace_subsystem(Rays.from_field_angles(
+                        wavelength_grid=self.wavelengths,
+                        position=p,
+                        field_grid_x=self.field_x,
+                        field_grid_y=self.field_y,
+                        field_mask_func=self.field_mask_func,
+                        pupil_grid_x=self.pupil_x,
+                        pupil_grid_y=self.pupil_y,
+                    ), final_surface=surf).position - surf_position,
+                    root_guess=position_guess,
+                    step_size=[1, 1, 0] << u.mm,
+                    max_abs_error=1 << u.nm,
+                )
+
+            return Rays.from_field_angles(
                 wavelength_grid=self.wavelengths,
                 position=position_guess,
                 field_grid_x=self.field_x,
@@ -134,17 +147,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 pupil_grid_y=self.pupil_y,
             )
 
-            for surf in self.aperture_surfaces:
-                px = np.linspace(surf.aperture.min[x], surf.aperture.max[x], self.pupil_samples[x], axis=~0)
-                py = np.linspace(surf.aperture.min[y], surf.aperture.max[y], self.pupil_samples[y], axis=~0)
-                surf_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
-                rays.position = kgpy.optimization.root_finding.secant(
-                    func=lambda p: self.raytrace_subsystem(rays, final_surface=surf).position - surf_position,
-                    step_size=[1, 1, 0] << u.mm,
-                    max_abs_error=1 << u.pm,
-                )
-
-            return rays
 
         else:
             raise NotImplementedError

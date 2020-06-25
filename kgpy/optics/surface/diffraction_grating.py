@@ -3,6 +3,7 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 import kgpy.vector
+from kgpy.vector import x, y, z
 from .. import Rays, material, aperture
 from . import Standard
 
@@ -52,11 +53,11 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
 
             a = n1 * rays.direction / n2
-            a += self.diffraction_order * rays.wavelength * self.groove_normal(rays.px, rays.py)
+            a += self.diffraction_order * rays.wavelength * self.groove_normal(rays.position[x], rays.position[y])
             r = kgpy.vector.length(a)
             a = kgpy.vector.normalize(a)
 
-            n = self.normal(rays.px, rays.py)
+            n = self.normal(rays.position[x], rays.position[y])
             c = -kgpy.vector.dot(a, n)
 
             p = -self.material.propagation_signum
@@ -70,7 +71,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
 
         if not is_final_surface:
             rays = rays.copy()
-            rays.pz -= self.thickness
+            rays.position[z] -= self.thickness
             rays = rays.tilt_decenter(~self.transform_after)
 
         return rays

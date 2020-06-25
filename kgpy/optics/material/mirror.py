@@ -50,9 +50,9 @@ class Mirror(Material):
             front_vertices[kgpy.vector.z] = surface.sag(front_vertices[kgpy.vector.x], front_vertices[kgpy.vector.y])
             back_vertices[kgpy.vector.z] = self.thickness
 
-            vertices = np.stack([front_vertices, back_vertices], axis=~1)
+            vertices = np.concatenate([front_vertices, back_vertices], axis=~1)
 
-            vertices = surface.transform_to_global(vertices, system, num_extra_dims=2)
+            vertices = surface.transform_to_global(vertices, system, num_extra_dims=1)
 
             ax.plot(vertices[..., c1].T, vertices[..., c2].T, color='black')
 

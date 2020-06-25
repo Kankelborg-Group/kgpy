@@ -3,6 +3,7 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 import kgpy.vector
+from kgpy.vector import x, y, z
 from .. import Rays, coordinate
 from . import surface
 
@@ -45,7 +46,7 @@ class CoordinateBreak(surface.Surface):
 
         if not is_final_surface:
             rays = rays.copy()
-            rays.pz -= self.thickness
+            rays.position[z] -= self.thickness
 
         return rays
 

@@ -41,7 +41,7 @@ class Toroidal(Standard[MaterialT, ApertureT]):
         y2 = np.square(ay)
         c = self.curvature
         r = self.radius_of_rotation
-        mask = np.abs(ax) > r
+        mask = np.abs(ax) >= r
         zy = c * y2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * y2))
         z = r - np.sqrt(np.square(r - zy) - x2)
         z[mask] = 0
@@ -59,4 +59,7 @@ class Toroidal(Standard[MaterialT, ApertureT]):
         dzdx = ax / f
         dzydy = c * ay / g
         dzdy = (r - zy) * dzydy / f
+        mask = np.abs(ax) >= r
+        dzdx[mask] = 0
+        dzdy[mask] = 0
         return kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))

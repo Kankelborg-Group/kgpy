@@ -5,6 +5,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import kgpy.optics.material.no_material
 import kgpy.vector
+from kgpy.vector import x, y, z
 import kgpy.optics
 from .. import Rays, coordinate, material as material_, aperture as aperture_
 from . import Surface
@@ -47,15 +48,18 @@ class Standard(
 
     @property
     def config_broadcast(self):
-        return np.broadcast(
+        out = np.broadcast(
             super().config_broadcast,
             self.radius,
             self.conic,
-            self.material.config_broadcast,
-            self.aperture.config_broadcast,
             self.transform_before.config_broadcast,
             self.transform_after.config_broadcast,
         )
+        if self.material is not None:
+            out = np.broadcast(out, self.material.config_broadcast)
+        if self.aperture is not None:
+            out = np.broadcast(out, self.aperture.config_broadcast)
+        return out
 
     @property
     def curvature(self):
@@ -64,7 +68,10 @@ class Standard(
     def sag(self, ax: u.Quantity, ay: u.Quantity) -> u.Quantity:
         r2 = np.square(ax) + np.square(ay)
         c = self.curvature
-        return c * r2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * r2))
+        sz = c * r2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * r2))
+        mask = r2 >= np.square(self.radius)
+        sz[mask] = 0
+        return sz
 
     def normal(self, ax: u.Quantity, ay: u.Quantity) -> u.Quantity:
         x2 = np.square(ax)
@@ -83,37 +90,41 @@ class Standard(
             rays.position = self.calc_intercept(rays)
 
             n1 = rays.index_of_refraction
-            n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
+            if self.material is not None:
+                n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
+                p = self.material.propagation_signum
+            else:
+                n2 = 1 << u.dimensionless_unscaled
+                p = 1.
 
             a = rays.direction
             r = n1 / n2
 
-            n = self.normal(rays.px, rays.py)
+            n = self.normal(rays.position[x], rays.position[y])
             c = -kgpy.vector.dot(a, n)
-
-            p = self.material.propagation_signum
 
             b = r * a + (r * c - p * np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
 
             rays.direction = kgpy.vector.normalize(b)
             rays.surface_normal = n
-            rays.vignetted_mask &= self.aperture.is_unvignetted(rays.position)
+            if self.aperture is not None:
+                rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
             rays.index_of_refraction[...] = n2
 
         if not is_final_surface:
             rays = rays.copy()
-            rays.pz -= self.thickness
+            rays.position[z] -= self.thickness
             rays = rays.tilt_decenter(~self.transform_after)
 
         return rays
 
-    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        return self.transform_before(x, num_extra_dims=num_extra_dims)
+    def apply_pre_transforms(self, value: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        return self.transform_before(value, num_extra_dims=num_extra_dims)
 
-    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        x = self.transform_after(x, num_extra_dims=num_extra_dims)
-        x[kgpy.vector.z] += self.thickness
-        return x
+    def apply_post_transforms(self, value: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+        value = self.transform_after(value, num_extra_dims=num_extra_dims)
+        value[kgpy.vector.z] += self.thickness
+        return value
 
     def plot_2d(
             self,
@@ -121,8 +132,10 @@ class Standard(
             components: typ.Tuple[int, int] = (0, 1),
             system: typ.Optional['kgpy.optics.System'] = None,
     ):
-        self.aperture.plot_2d(ax, components, system, self)
-        self.material.plot_2d(ax, components, system, self)
+        if self.aperture is not None:
+            self.aperture.plot_2d(ax, components, system, self)
+        if self.material is not None:
+            self.material.plot_2d(ax, components, system, self)
 
 
 
