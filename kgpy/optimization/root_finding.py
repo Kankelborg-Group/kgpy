@@ -27,7 +27,8 @@ def secant(
 
         df = f1 - f0
 
-        current_error = np.nanmax(np.abs(df))
+        current_error = np.max(np.abs(df))
+        print(np.min(np.abs(df)), current_error)
         if current_error < max_abs_error:
             break
 
@@ -35,6 +36,7 @@ def secant(
 
         x2 = (x0 * f1 - x1 * f0) / df
 
+        mask = np.broadcast_to(mask, x2.shape)
         x1 = np.broadcast_to(x1, x2.shape, subok=True)
         x2[mask] = x1[mask]
 

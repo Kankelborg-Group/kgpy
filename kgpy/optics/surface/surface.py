@@ -81,6 +81,8 @@ class Surface(
             max_iterations: int = 100,
     ) -> u.Quantity:
 
+        # print(self)
+
         intercept = rays.position.copy()
 
         t0 = -step_size
@@ -102,6 +104,7 @@ class Surface(
             f1 = a1[kgpy.vector.z] - self.sag(a1[kgpy.vector.x], a1[kgpy.vector.y])
 
             current_error = np.max(np.abs(f1 - f0))
+            # print(current_error)
             if current_error < max_error:
                 break
 

@@ -81,6 +81,9 @@ class Standard(
         g = np.sqrt(1 - (1 + self.conic) * c2 * (x2 + y2))
         dzdx = c * ax / g
         dzdy = c * ay / g
+        mask = (x2 + y2) >= np.square(self.radius)
+        dzdx[mask] = 0
+        dzdy[mask] = 0
         return kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
 
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:

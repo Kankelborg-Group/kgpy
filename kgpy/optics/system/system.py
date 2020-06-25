@@ -119,21 +119,32 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             position_guess = kgpy.vector.from_components() << u.mm
 
             for surf in self.aperture_surfaces:
+                print(surf)
+                print(position_guess[x].min(), position_guess[x].max())
                 px = np.linspace(surf.aperture.min[x], surf.aperture.max[x], self.pupil_samples_normalized[ix], axis=~0)
                 py = np.linspace(surf.aperture.min[y], surf.aperture.max[y], self.pupil_samples_normalized[iy], axis=~0)
-                surf_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
-                position_guess = kgpy.optimization.root_finding.secant(
-                    func=lambda p: self.raytrace_subsystem(Rays.from_field_angles(
+                target_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
+
+                def position_error(pos: u.Quantity) -> u.Quantity:
+                    rays = Rays.from_field_angles(
                         wavelength_grid=self.wavelengths,
-                        position=p,
+                        position=pos,
                         field_grid_x=self.field_x,
                         field_grid_y=self.field_y,
                         field_mask_func=self.field_mask_func,
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
-                    ), final_surface=surf).position - surf_position,
+                    )
+                    rays = self.raytrace_subsystem(rays, final_surface=surf)
+                    # plt.scatter(rays.position[x], rays.position[y])
+                    # plt.scatter(target_position[x], target_position[y])
+                    # plt.show()
+                    return np.sqrt(np.sum(np.square(rays.position - target_position), axis=~0, keepdims=True))
+
+                position_guess = kgpy.optimization.root_finding.secant(
+                    func=position_error,
                     root_guess=position_guess,
-                    step_size=[1, 1, 0] << u.mm,
+                    step_size=[1, 1, 0] << u.nm,
                     max_abs_error=1 << u.nm,
                 )
 
@@ -146,7 +157,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 pupil_grid_x=self.pupil_x,
                 pupil_grid_y=self.pupil_y,
             )
-
 
         else:
             raise NotImplementedError
