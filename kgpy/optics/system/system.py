@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 import kgpy.mixin
 import kgpy.vector
-from kgpy.vector import x, y, z, ix, iy, iz
-import kgpy.optimization.root_finding
+import kgpy.linspace
+from kgpy.vector import x, y, z, ix, iy, iz, xy
+import kgpy.optimization.minimization
 from .. import ZemaxCompatible, Rays, material, surface, aperture
 
 __all__ = ['System']
@@ -24,7 +25,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
     stop_surface: typ.Optional[surface.Standard] = None
-    # input_rays: Rays = dataclasses.field(default_factory=lambda: Rays.zeros())
     wavelengths: typ.Optional[u.Quantity] = None
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_min: typ.Optional[u.Quantity] = None
@@ -42,7 +42,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def aperture_surfaces(self) -> typ.Iterator[surface.Standard]:
         for s in self.standard_surfaces:
             if s.aperture is not None:
-                yield s
+                if s.aperture.is_active:
+                    yield s
 
     @staticmethod
     def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
@@ -90,12 +91,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     @property
     def pupil_x(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return np.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
+        return kgpy.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
 
     @property
     def pupil_y(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return np.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
+        return kgpy.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
 
     @property
     def field_mesh(self) -> u.Quantity:
@@ -114,21 +115,24 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     @property
     def input_rays(self):
 
+        x_hat = np.array([1, 0])
+        y_hat = np.array([0, 1])
+
         if np.isinf(self.object_surface.thickness).all():
 
-            position_guess = kgpy.vector.from_components() << u.mm
+            position_guess = kgpy.vector.from_components(use_z=False) << u.mm
 
             for surf in self.aperture_surfaces:
                 print(surf)
-                print(position_guess[x].min(), position_guess[x].max())
-                px = np.linspace(surf.aperture.min[x], surf.aperture.max[x], self.pupil_samples_normalized[ix], axis=~0)
-                py = np.linspace(surf.aperture.min[y], surf.aperture.max[y], self.pupil_samples_normalized[iy], axis=~0)
+                aper = surf.aperture
+                px = kgpy.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
+                py = kgpy.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
                 target_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
                     rays = Rays.from_field_angles(
                         wavelength_grid=self.wavelengths,
-                        position=pos,
+                        position=kgpy.vector.to_3d(pos),
                         field_grid_x=self.field_x,
                         field_grid_y=self.field_y,
                         field_mask_func=self.field_mask_func,
@@ -136,21 +140,27 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_y=self.pupil_y,
                     )
                     rays = self.raytrace_subsystem(rays, final_surface=surf)
-                    # plt.scatter(rays.position[x], rays.position[y])
-                    # plt.scatter(target_position[x], target_position[y])
-                    # plt.show()
-                    return np.sqrt(np.sum(np.square(rays.position - target_position), axis=~0, keepdims=True))
+                    # surf.plot_2d(plt.gca())
+                    plt.scatter(rays.position[x], rays.position[y])
+                    plt.scatter(target_position[x], target_position[y])
+                    plt.show()
+                    return kgpy.vector.length(rays.position - target_position, keepdims=False)
 
-                position_guess = kgpy.optimization.root_finding.secant(
+                step_size = 1 * u.m
+                step = step_size * x_hat + step_size * y_hat
+                position_guess = kgpy.optimization.minimization.coordinate_descent(
                     func=position_error,
-                    root_guess=position_guess,
-                    step_size=[1, 1, 0] << u.nm,
-                    max_abs_error=1 << u.nm,
+                    x_min=position_guess - step,
+                    x_max=position_guess + step,
+                    tolerance=1 * u.nm,
                 )
+
+                if surf is self.stop_surface:
+                    break
 
             return Rays.from_field_angles(
                 wavelength_grid=self.wavelengths,
-                position=position_guess,
+                position=kgpy.vector.to_3d(position_guess),
                 field_grid_x=self.field_x,
                 field_grid_y=self.field_y,
                 field_mask_func=self.field_mask_func,
@@ -383,7 +393,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         intercepts = u.Quantity(intercepts)
 
-        mask = ~all_rays[~0].error_mask
+        mask = all_rays[~0].error_mask
         if not plot_vignetted:
             mask &= all_rays[~0].vignetted_mask
 
@@ -397,6 +407,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             colors = None
 
         intercepts = intercepts[:, mask, :]
+
         ax.plot(
             intercepts[..., components[0]],
             intercepts[..., components[1]],

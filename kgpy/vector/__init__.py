@@ -3,7 +3,10 @@ import numpy as np
 import astropy.units as u
 from .. import matrix
 
-__all__ = ['x', 'y', 'z', 'ix', 'iy', 'iz', 'dot', 'matmul', 'length', 'normalize', 'from_components']
+__all__ = [
+    'x', 'y', 'z', 'ix', 'iy', 'iz', 'xy', 'x_hat', 'y_hat', 'z_hat',
+    'dot', 'outer', 'matmul', 'lefmatmul', 'length', 'normalize', 'from_components'
+]
 
 ix = 0
 iy = 1
@@ -13,13 +16,39 @@ x = ..., ix
 y = ..., iy
 z = ..., iz
 
+xy = ..., slice(None, iz)
+
+x_hat = np.array([1, 0, 0])
+y_hat = np.array([0, 1, 0])
+z_hat = np.array([0, 0, 1])
+
+
+
+def to_3d(a: np.ndarray) -> np.ndarray:
+    sh = list(a.shape)
+    sh[~0] = 3
+    a = a.copy()
+    a.resize(sh)
+    return a
+
 
 def dot(a: np.ndarray, b: np.ndarray, keepdims: bool = True) -> np.ndarray:
     return np.sum(a * b, axis=~0, keepdims=keepdims)
 
 
+def outer(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    a = np.expand_dims(a, ~0)
+    b = np.expand_dims(b, ~1)
+    return a * b
+
+
 def matmul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     b = np.expand_dims(b, ~1)
+    return matrix.mul(a, b)[..., 0]
+
+
+def lefmatmul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    a = np.expand_dims(a, ~0)
     return matrix.mul(a, b)[..., 0]
 
 
@@ -31,9 +60,12 @@ def normalize(a: np.ndarray, keepdims: bool = True) -> np.ndarray:
     return a / length(a, keepdims=keepdims)
 
 
-def from_components(ax: np.ndarray = 0, ay: np.ndarray = 0, az: np.ndarray = 0) -> np.ndarray:
+def from_components(ax: np.ndarray = 0, ay: np.ndarray = 0, az: np.ndarray = 0, use_z: bool = True) -> np.ndarray:
     ax, ay, az = np.broadcast_arrays(ax, ay, az, subok=True)
-    return np.stack([ax, ay, az], axis=~0)
+    if use_z:
+        return np.stack([ax, ay, az], axis=~0)
+    else:
+        return np.stack([ax, ay], axis=~0)
 
 
 def rotate_x(vector: np.ndarray, angle: u.Quantity, inverse: bool = False) -> np.ndarray:
