@@ -79,8 +79,7 @@ class Rays:
             self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
             self.surface_normal[z] = 1
         if self.index_of_refraction is None:
-            self.index_of_refraction = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
-            self.index_of_refraction[z] = 1
+            self.index_of_refraction = np.ones(self.scalar_grid_shape) << u.dimensionless_unscaled
         if self.vignetted_mask is None:
             self.vignetted_mask = np.ones(self.grid_shape, dtype=np.bool)
         if self.error_mask is None:
@@ -105,12 +104,14 @@ class Rays:
 
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
 
-        mask = field_mask_func(field_x, field_y)[..., 0]
+        # mask = field_mask_func(field_x, field_y)[..., 0]
 
         direction = np.zeros(position.shape)
         direction[z] = 1
         direction = kgpy.vector.rotate_x(direction, field_x[..., 0])
         direction = kgpy.vector.rotate_y(direction, field_y[..., 0])
+
+        mask = field_mask_func(np.arcsin(direction[x]) << u.rad, np.arcsin(direction[y]) << u.rad)
 
         return cls(
             wavelength=wavelength,
@@ -173,7 +174,7 @@ class Rays:
         return self.grid_shape + (3, )
 
     @property
-    def scalar_shape(self) -> typ.Tuple[int, ...]:
+    def scalar_grid_shape(self) -> typ.Tuple[int, ...]:
         return self.grid_shape + (1, )
 
     @property

@@ -82,11 +82,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def field_x(self) -> u.Quantity:
-        return np.linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
+        return kgpy.linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
 
     @property
     def field_y(self) -> u.Quantity:
-        return np.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
+        return kgpy.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
 
     @property
     def pupil_x(self) -> u.Quantity:
@@ -122,6 +122,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             position_guess = kgpy.vector.from_components(use_z=False) << u.mm
 
+            step_size = 1 * u.m
+            step = step_size * x_hat + step_size * y_hat
+            x_min = position_guess - step
+            x_max = position_guess + step
+
             for surf in self.aperture_surfaces:
                 print(surf)
                 aper = surf.aperture
@@ -130,30 +135,30 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 target_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
+                    position = kgpy.vector.to_3d(pos)
                     rays = Rays.from_field_angles(
                         wavelength_grid=self.wavelengths,
-                        position=kgpy.vector.to_3d(pos),
+                        position=position,
                         field_grid_x=self.field_x,
                         field_grid_y=self.field_y,
                         field_mask_func=self.field_mask_func,
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
+                    print('pos', rays.position)
+                    print('dir', rays.direction)
+                    surf.plot_2d(plt.gca())
                     rays = self.raytrace_subsystem(rays, final_surface=surf)
-                    # surf.plot_2d(plt.gca())
-                    plt.scatter(rays.position[x], rays.position[y])
-                    plt.scatter(target_position[x], target_position[y])
-                    plt.show()
                     return kgpy.vector.length(rays.position - target_position, keepdims=False)
 
-                step_size = 1 * u.m
-                step = step_size * x_hat + step_size * y_hat
                 position_guess = kgpy.optimization.minimization.coordinate_descent(
                     func=position_error,
-                    x_min=position_guess - step,
-                    x_max=position_guess + step,
+                    x_min=x_min,
+                    x_max=x_max,
                     tolerance=1 * u.nm,
                 )
+                x_min = position_guess.min(axis=(Rays.vaxis.pupil_x, Rays.vaxis.pupil_y), keepdims=True)
+                x_max = position_guess.max(axis=(Rays.vaxis.pupil_x, Rays.vaxis.pupil_y), keepdims=True)
 
                 if surf is self.stop_surface:
                     break

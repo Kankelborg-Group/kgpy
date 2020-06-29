@@ -26,11 +26,7 @@ def coordinate_descent(
 
     for i in range(max_iterations):
 
-        print('iteration', i)
-
         for component_index in range(x_min.shape[~0]):
-
-            print('component_index', component_index)
 
             component = ..., component_index
 
@@ -41,13 +37,10 @@ def coordinate_descent(
 
             x_current[component] = golden_section_search(
                 line_func, x_min[component], x_max[component], **line_search_kwargs)
-            print(x_current.shape)
 
         f_old = f_current
         f_current = func(x_current)
         current_error = np.max(np.abs(f_current - f_old))
-        print(current_error)
-        # plt.show()
         if current_error < tolerance:
             return x_current
 

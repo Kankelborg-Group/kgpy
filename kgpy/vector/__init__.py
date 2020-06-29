@@ -23,13 +23,8 @@ y_hat = np.array([0, 1, 0])
 z_hat = np.array([0, 0, 1])
 
 
-
 def to_3d(a: np.ndarray) -> np.ndarray:
-    sh = list(a.shape)
-    sh[~0] = 3
-    a = a.copy()
-    a.resize(sh)
-    return a
+    return from_components(a[x], a[y])
 
 
 def dot(a: np.ndarray, b: np.ndarray, keepdims: bool = True) -> np.ndarray:

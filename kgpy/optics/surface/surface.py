@@ -76,7 +76,7 @@ class Surface(
     def calc_intercept(
             self,
             rays: Rays,
-            step_size: u.Quantity = 1 << u.mm,
+            step_size: u.Quantity = 1 << u.m,
             max_error: u.Quantity = .1 << u.nm,
             max_iterations: int = 100,
     ) -> u.Quantity:
@@ -93,15 +93,18 @@ class Surface(
         while True:
 
             if i > max_iterations:
+                plt.show()
                 raise ValueError('Number of iterations exceeded')
 
             a0 = intercept + rays.direction * t0
             a1 = intercept + rays.direction * t1
+            plt.scatter(a1[kgpy.vector.x], a1[kgpy.vector.y])
 
             f0 = a0[kgpy.vector.z] - self.sag(a0[kgpy.vector.x], a0[kgpy.vector.y])
             f1 = a1[kgpy.vector.z] - self.sag(a1[kgpy.vector.x], a1[kgpy.vector.y])
 
-            current_error = np.nanmax(np.abs(f1 - f0))
+            current_error = np.nanmax(np.abs(f1))
+            print(current_error)
             if current_error < max_error:
                 break
 
@@ -121,6 +124,8 @@ class Surface(
 
         t = t1
         intercept = intercept + rays.direction * t
+
+        plt.show()
 
         return intercept
 
