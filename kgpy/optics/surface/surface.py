@@ -93,18 +93,14 @@ class Surface(
         while True:
 
             if i > max_iterations:
-                plt.show()
                 raise ValueError('Number of iterations exceeded')
 
             a0 = intercept + rays.direction * t0
             a1 = intercept + rays.direction * t1
-            plt.scatter(a1[kgpy.vector.x], a1[kgpy.vector.y])
-
             f0 = a0[kgpy.vector.z] - self.sag(a0[kgpy.vector.x], a0[kgpy.vector.y])
             f1 = a1[kgpy.vector.z] - self.sag(a1[kgpy.vector.x], a1[kgpy.vector.y])
 
             current_error = np.nanmax(np.abs(f1))
-            print(current_error)
             if current_error < max_error:
                 break
 
@@ -124,8 +120,6 @@ class Surface(
 
         t = t1
         intercept = intercept + rays.direction * t
-
-        plt.show()
 
         return intercept
 

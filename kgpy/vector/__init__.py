@@ -32,8 +32,8 @@ def dot(a: np.ndarray, b: np.ndarray, keepdims: bool = True) -> np.ndarray:
 
 
 def outer(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    a = np.expand_dims(a, ~0)
-    b = np.expand_dims(b, ~1)
+    a = np.expand_dims(a, ~1)
+    b = np.expand_dims(b, ~0)
     return a * b
 
 

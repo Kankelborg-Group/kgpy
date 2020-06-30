@@ -13,22 +13,34 @@ def good_method(
         step_size: np.ndarray = np.array(1),
         max_abs_error: float = 1e-9,
         max_iterations: int = 100,
-        components: slice = slice(None),
 ):
-    x0 = root_guess - step_size
-    x1 = root_guess + step_size
+    x0, x1 = root_guess - step_size, root_guess + step_size
+
+    dx = x1 - x0
 
     f0 = func(x0)
     # plt.show()
 
-    inv_j0 = np.zeros((f0.shape[~0], x0.shape[~0]))
-    xind, yind = np.indices(inv_j0.shape)
-    inv_j0[xind == yind] = 1
+
+    j0 = []
+    for component_index in range(dx.shape[~0]):
+        c = ..., slice(component_index, component_index + 1)
+        x0_c, x1_c = np.zeros_like(x0), np.zeros_like(x1)
+        x0_c[c], x1_c[c] = x0[c], x1[c]
+        j0.append((func(x1_c) - func(x0_c)) / dx[c])
+    j0 = np.stack(j0, axis=~0)
+
+    print(j0)
+
+    inv_j0 = np.linalg.inv(j0)
+
+
+    # inv_j0 = np.empty((f0.shape[~0], x0.shape[~0]))
+    # xind, yind = np.indices(inv_j0.shape)
+    # inv_j0[xind == yind] = 0
+    # inv_j0[xind != yind] = 1
 
     # inv_j0 = np.ones((f0.shape[~0], x0.shape[~0]))
-
-
-    print(inv_j0)
 
     i = 0
     while True:
@@ -46,7 +58,7 @@ def good_method(
 
         current_error = np.max(f1_mag)
         print('error = ', current_error.to(u.nm))
-        print('num converged = ', converged.sum())
+        # print('num converged = ', converged.sum())
         # if current_error < max_abs_error:
         #     break
         if converged.all():
@@ -60,9 +72,9 @@ def good_method(
         dxjdf = vector.dot(dx, jdf)
         mask = (dxjdf == 0)[..., 0]
         factor = (dx - jdf) / dxjdf
-        # factor[mask, :] = 0
-        # inv_j1 = inv_j0 + vector.outer(factor, vector.lefmatmul(dx, inv_j0))
-        inv_j1 = inv_j0 + matrix.mul(vector.outer(factor, dx), inv_j0)
+        factor[mask, :] = 0
+        inv_j1 = inv_j0 + vector.outer(factor, vector.lefmatmul(dx, inv_j0))
+        # inv_j1 = inv_j0 + matrix.mul(vector.outer(factor, dx), inv_j0)
         # inv_j0 = np.broadcast_to(inv_j0, inv_j1.shape, subok=True)
         # inv_j1[mask, :, :] = inv_j0[mask, :, :]
         # inv_j0 = np.broadcast_to(inv_j0, inv_j1.shape, subok=True)
@@ -74,12 +86,12 @@ def good_method(
 
 
 
-        print('df', df)
-        print('dx',  dx)
-        print('jdf', jdf)
-        print('dxjdf', dxjdf)
-        print('factor', factor)
-        print('inv_j1', inv_j1)
+        # print('df', df)
+        # print('dx',  dx)
+        # print('jdf', jdf)
+        # print('dxjdf', dxjdf)
+        # print('factor', factor)
+        # print('inv_j1', inv_j1)
 
         # plt.show()
 
@@ -107,7 +119,7 @@ def good_method(
         f0 = f1
         inv_j0 = inv_j1
 
-        print()
+        # print()
 
     return x1
 
