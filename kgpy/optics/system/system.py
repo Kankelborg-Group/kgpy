@@ -123,10 +123,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             position_guess = kgpy.vector.from_components(use_z=False) << u.mm
 
-            step_size = .001 * u.nm
+            step_size = 1 * u.nm
             step = step_size * x_hat + step_size * y_hat
-            x_min = position_guess - step
-            x_max = position_guess + step
 
             for surf in self.aperture_surfaces:
                 print(surf)
@@ -146,28 +144,15 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
-                    # print('pos', rays.position)
-                    # print('dir', rays.direction)
-                    # surf.plot_2d(plt.gca())
                     rays = self.raytrace_subsystem(rays, final_surface=surf)
-                    # return kgpy.vector.length((rays.position - target_position)[xy], keepdims=False)
                     return (rays.position - target_position)[xy]
 
-                # position_guess = kgpy.optimization.minimization.coordinate_descent(
-                #     func=position_error,
-                #     x_min=x_min,
-                #     x_max=x_max,
-                #     tolerance=1 * u.nm,
-                # )
-                # x_min = position_guess.min(axis=(Rays.vaxis.pupil_x, Rays.vaxis.pupil_y), keepdims=True)
-                # x_max = position_guess.max(axis=(Rays.vaxis.pupil_x, Rays.vaxis.pupil_y), keepdims=True)
-
-                position_guess = kgpy.optimization.root_finding.broyden.good_method(
+                position_guess = kgpy.optimization.root_finding.secant(
                     func=position_error,
                     root_guess=position_guess,
                     step_size=step,
                     max_abs_error=1 * u.nm,
-                    # max_iterations=10,
+                    max_iterations=100,
                 )
 
                 if surf is self.stop_surface:
