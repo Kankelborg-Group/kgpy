@@ -276,29 +276,37 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
 
-            labels = self.calc_plot_labels(config_index)[color_axis]
+            print(rays.grid[color_axis][config_index])
+
+            grid = rays.grid[color_axis]
+            mesh = np.expand_dims(grid, rays.axis.perp_axes(color_axis))
+            mesh = np.broadcast_to(mesh, rays.scalar_grid_shape)
+
+            labels = ['{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid]
             print(labels)
 
-            len_color_axis = len(labels)
-            for i in range(len_color_axis):
+            scatter = ax.scatter(x=rays.position[x], y=rays.position[y], c=mesh)
 
-                sl = [slice(None)] * rays.mask[config_index].ndim
-                sl = sl
-                sl[color_axis] = slice(i, i + 1)
+            # len_color_axis = len(labels)
+            # for i in range(len_color_axis):
+            #
+            #     sl = [slice(None)] * rays.mask[config_index].ndim
+            #     sl = sl
+            #     sl[color_axis] = slice(i, i + 1)
+            #
+            #     p = rays.position[config_index][sl]
+            #     m = rays.mask[config_index][sl]
+            #
+            #     if not plot_vignetted:
+            #         p = p[m]
+            #
+            #     ax.scatter(
+            #         x=p[kgpy.vector.x],
+            #         y=p[kgpy.vector.y],
+            #         label=labels[i],
+            #     )
 
-                p = rays.position[config_index][sl]
-                m = rays.mask[config_index][sl]
-
-                if not plot_vignetted:
-                    p = p[m]
-
-                ax.scatter(
-                    x=p[kgpy.vector.x],
-                    y=p[kgpy.vector.y],
-                    label=labels[i],
-                )
-
-            ax.legend()
+            ax.legend(handles=scatter.legend_elements()[0], labels=labels)
 
         if plot_apertures:
             surf.plot_2d(ax)

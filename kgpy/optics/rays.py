@@ -45,6 +45,10 @@ class Axis(AutoAxis):
         self.field_x = self.auto_axis_index()
         self.wavelength = self.auto_axis_index()
 
+    @property
+    def latex_names(self) -> typ.List[str]:
+        return ['$\\lambda$', '$f_x$', '$f_y$', '$p_x$', '$p_y$']
+
 
 class VAxis(Axis, CAxis):
     pass
@@ -65,11 +69,15 @@ class Rays:
     vignetted_mask: np.ndarray = None
     error_mask: np.ndarray = None
 
-    wavelength_grid: typ.Optional[u.Quantity] = None
-    field_grid_x: typ.Optional[u.Quantity] = None
-    field_grid_y: typ.Optional[u.Quantity] = None
-    pupil_grid_x: typ.Optional[u.Quantity] = None
-    pupil_grid_y: typ.Optional[u.Quantity] = None
+    grid: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
+        default_factory=lambda: [None, None, None, None, None],
+    )
+
+    # wavelength_grid: typ.Optional[u.Quantity] = None
+    # field_grid_x: typ.Optional[u.Quantity] = None
+    # field_grid_y: typ.Optional[u.Quantity] = None
+    # pupil_grid_x: typ.Optional[u.Quantity] = None
+    # pupil_grid_y: typ.Optional[u.Quantity] = None
 
     def __post_init__(self):
         if self.polarization is None:
@@ -104,7 +112,6 @@ class Rays:
 
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
 
-        # mask = field_mask_func(field_x, field_y)[..., 0]
 
         direction = np.zeros(position.shape)
         direction[z] = 1
@@ -118,36 +125,32 @@ class Rays:
             position=position,
             direction=direction,
             vignetted_mask=mask,
-            wavelength_grid=wavelength_grid,
-            field_grid_x=field_grid_x,
-            field_grid_y=field_grid_y,
-            pupil_grid_x=pupil_grid_x,
-            pupil_grid_y=pupil_grid_y,
+            grid=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
-    @classmethod
-    def zeros(cls, shape: typ.Tuple[int, ...] = ()):
-        vsh = shape + (3, )
-        ssh = shape + (1, )
-
-        direction = np.zeros(vsh) << u.dimensionless_unscaled
-        polarization = np.zeros(vsh) << u.dimensionless_unscaled
-        normal = np.zeros(vsh) << u.dimensionless_unscaled
-
-        direction[kgpy.vector.z] = 1
-        polarization[kgpy.vector.x] = 1
-        normal[kgpy.vector.z] = 1
-
-        return cls(
-            wavelength=np.zeros(ssh) << u.nm,
-            position=np.zeros(vsh) << u.mm,
-            direction=direction,
-            polarization=polarization,
-            surface_normal=normal,
-            index_of_refraction=np.ones(ssh) << u.dimensionless_unscaled,
-            vignetted_mask=np.ones(shape, dtype=np.bool),
-            error_mask=np.ones(shape, dtype=np.bool),
-        )
+    # @classmethod
+    # def zeros(cls, shape: typ.Tuple[int, ...] = ()):
+    #     vsh = shape + (3, )
+    #     ssh = shape + (1, )
+    #
+    #     direction = np.zeros(vsh) << u.dimensionless_unscaled
+    #     polarization = np.zeros(vsh) << u.dimensionless_unscaled
+    #     normal = np.zeros(vsh) << u.dimensionless_unscaled
+    #
+    #     direction[kgpy.vector.z] = 1
+    #     polarization[kgpy.vector.x] = 1
+    #     normal[kgpy.vector.z] = 1
+    #
+    #     return cls(
+    #         wavelength=np.zeros(ssh) << u.nm,
+    #         position=np.zeros(vsh) << u.mm,
+    #         direction=direction,
+    #         polarization=polarization,
+    #         surface_normal=normal,
+    #         index_of_refraction=np.ones(ssh) << u.dimensionless_unscaled,
+    #         vignetted_mask=np.ones(shape, dtype=np.bool),
+    #         error_mask=np.ones(shape, dtype=np.bool),
+    #     )
 
     def tilt_decenter(self, transform: coordinate.TiltDecenter) -> 'Rays':
         return type(self)(
@@ -159,6 +162,7 @@ class Rays:
             index_of_refraction=self.index_of_refraction.copy(),
             vignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
+            grid=self.grid.copy(),
         )
 
     @property
@@ -189,37 +193,6 @@ class Rays:
     def mask(self) -> np.ndarray:
         return self.vignetted_mask & self.error_mask
 
-    @property
-    def relative_position(self):
-        pupil_axes = (self.vaxis.pupil_x, self.vaxis.pupil_y)
-        avg_position = np.mean(self.position.value, axis=pupil_axes, keepdims=True) << self.position.unit
-        avg_position = avg_position << self.position.unit
-        return self.position - avg_position
-
-    def mean_sparse_grid(self, config_index: typ.Union[int, typ.Tuple[int, ...]]) -> typ.List[np.ndarray]:
-        axes = self.axis.all
-        out = [None] * len(axes)
-        for axis in axes:
-            other_axes = axes.copy()
-            other_axes.remove(axis)
-            other_axes = tuple(other_axes)
-
-            if axis == self.axis.wavelength:
-                grid = self.wavelength[config_index][..., 0]
-            elif axis == self.axis.field_x:
-                grid = self.direction[config_index][kgpy.vector.x]
-            elif axis == self.axis.field_y:
-                grid = self.direction[config_index][kgpy.vector.y]
-            elif axis == self.axis.pupil_x:
-                grid = self.relative_position[config_index][kgpy.vector.x]
-            elif axis == self.axis.pupil_y:
-                grid = self.relative_position[config_index][kgpy.vector.y]
-            else:
-                raise ValueError('unsupported axis index')
-            out[axis] = grid.mean(other_axes)
-
-        return out
-
     def copy(self) -> 'Rays':
         return Rays(
             wavelength=self.wavelength.copy(),
@@ -230,6 +203,7 @@ class Rays:
             error_mask=self.error_mask.copy(),
             polarization=self.polarization.copy(),
             index_of_refraction=self.index_of_refraction.copy(),
+            grid=self.grid.copy(),
         )
 
     def pupil_hist2d(
