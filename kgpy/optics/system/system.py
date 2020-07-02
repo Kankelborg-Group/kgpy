@@ -256,36 +256,40 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if surf is None:
             surf = self.image_surface
 
-        with astropy.visualization.quantity_support():
+        fig, ax = plt.subplots()
+        ax.set_title('configuration = ' + str(config_index))
 
-            fig, ax = plt.subplots()
-            ax.set_title('configuration = ' + str(config_index))
+        rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
 
-            rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
+        rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
-            grid = rays.input_grid[color_axis]
-            if grid.ndim > 1:
-                grid = grid[config_index]
-            mesh = np.expand_dims(grid, rays.axis.perp_axes(color_axis))
-            mesh = np.broadcast_to(mesh, rays.grid_shape)
-
-            labels = [rays.axis.latex_names[color_axis] + '=' + '{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid]
-
-            if not plot_vignetted:
-                mask = rays.mask[config_index]
-                scatter = ax.scatter(
-                    x=rays.position[config_index, mask, ix],
-                    y=rays.position[config_index, mask, iy],
-                    c=mesh[config_index, mask]
-                )
-            else:
-                scatter = ax.scatter(
-                    x=rays.position[config_index][x],
-                    y=rays.position[config_index][y],
-                    c=mesh[config_index]
-                )
-
-            ax.legend(handles=scatter.legend_elements(num=grid)[0], labels=labels)
+        # with astropy.visualization.quantity_support():
+        #
+        #     fig, ax = plt.subplots()
+        #     ax.set_title('configuration = ' + str(config_index))
+        #
+        #     rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
+        #
+        #     mask = rays.error_mask
+        #     if not plot_vignetted:
+        #         mask &= rays.vignetted_mask
+        #     mask = mask[config_index]
+        #
+        #     grid = rays.input_grids[color_axis]
+        #     if grid.ndim > 1:
+        #         grid = grid[config_index]
+        #     mesh = np.expand_dims(grid, rays.axis.perp_axes(color_axis))
+        #     mesh = np.broadcast_to(mesh, rays.grid_shape)
+        #
+        #     labels = [rays.axis.latex_names[color_axis] + '=' + '{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid]
+        #
+        #     scatter = ax.scatter(
+        #         x=rays.position[config_index, mask, ix],
+        #         y=rays.position[config_index, mask, iy],
+        #         c=mesh[config_index, mask]
+        #     )
+        #
+        #     ax.legend(handles=scatter.legend_elements(num=grid)[0], labels=labels)
 
         if plot_apertures:
             surf.plot_2d(ax)
@@ -356,7 +360,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
             start_surface: typ.Optional[surface.Surface] = None,
             end_surface: typ.Optional[surface.Surface] = None,
-            color_axis: int = 0,
+            color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
     ):
         surfaces = list(self)  # type: typ.List[surface.Surface]
@@ -384,19 +388,27 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if not plot_vignetted:
             mask &= all_rays[~0].vignetted_mask
 
-        grid = all_rays[0].input_grid[color_axis]
+        grid = all_rays[0].input_grids[color_axis]
         mesh = np.expand_dims(grid, Rays.axis.perp_axes(color_axis))
-        mesh = np.broadcast_to(mesh, all_rays[0].grid_shape)
+        mesh = np.broadcast_to(mesh, intercepts[x].shape)
+        mesh = mesh[:, mask]
 
-        labels = [rays.axis.latex_names[color_axis] + '=' + '{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid]
+        colors = plt.cm.viridis(mesh)
+
+        labels = [all_rays[0].axis.latex_names[color_axis] + '=' + '{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid.flatten()]
 
         intercepts = intercepts[:, mask, :]
 
-        ax.plot(
+        print(colors.shape)
+        print(intercepts.shape)
+
+        lines = ax.plot(
             intercepts[..., components[0]],
             intercepts[..., components[1]],
-            # color=colors,
+            color=colors,
         )
+
+        # ax.legend()
 
     def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
         with astropy.visualization.quantity_support():

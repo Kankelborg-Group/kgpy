@@ -26,8 +26,9 @@ class AutoAxis:
 
     def perp_axes(self, axis: int):
         axes = self.all.copy()
-        axes.remove(axis)
-        return axes
+        axes = [a % self.ndim for a in axes]
+        axes.remove(axis % self.ndim)
+        return [a - self.ndim for a in axes]
 
 
 class CAxis(AutoAxis):
@@ -66,10 +67,10 @@ class Rays:
     polarization: u.Quantity = None
     surface_normal: u.Quantity = None
     index_of_refraction: u.Quantity = None
+    field_mask: np.ndarray = None
     vignetted_mask: np.ndarray = None
     error_mask: np.ndarray = None
-
-    input_grid: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
+    input_grids: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
         default_factory=lambda: [None, None, None, None, None],
     )
 
@@ -98,6 +99,7 @@ class Rays:
             pupil_grid_x: typ.Optional[u.Quantity] = None,
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ) -> 'Rays':
+
         wavelength = np.expand_dims(wavelength_grid, cls.vaxis.perp_axes(cls.vaxis.wavelength))
         field_x = np.expand_dims(field_grid_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
         field_y = np.expand_dims(field_grid_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
@@ -105,7 +107,6 @@ class Rays:
         wavelength, field_x, field_y = np.broadcast_arrays(wavelength, field_x, field_y, subok=True)
 
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
-
 
         direction = np.zeros(position.shape)
         direction[z] = 1
@@ -118,8 +119,8 @@ class Rays:
             wavelength=wavelength,
             position=position,
             direction=direction,
-            vignetted_mask=mask,
-            input_grid=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
+            field_mask=mask,
+            input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
     # @classmethod
@@ -154,9 +155,10 @@ class Rays:
             polarization=self.polarization.copy(),
             surface_normal=transform(self.surface_normal, decenter=False, num_extra_dims=5),
             index_of_refraction=self.index_of_refraction.copy(),
+            field_mask=self.field_mask.copy(),
             vignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
-            input_grid=self.input_grid.copy(),
+            input_grids=self.input_grids.copy(),
         )
 
     @property
@@ -177,7 +179,7 @@ class Rays:
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
-        return self.vector_grid_shape[:~self.vaxis.ndim]
+        return self.vector_grid_shape[:~(self.vaxis.ndim - 1)]
 
     @property
     def ndim(self):
@@ -185,7 +187,7 @@ class Rays:
 
     @property
     def mask(self) -> np.ndarray:
-        return self.vignetted_mask & self.error_mask
+        return self.vignetted_mask & self.error_mask & self.field_mask
 
     def copy(self) -> 'Rays':
         return Rays(
@@ -193,11 +195,12 @@ class Rays:
             position=self.position.copy(),
             direction=self.direction.copy(),
             surface_normal=self.surface_normal.copy(),
-            vignetted_mask=self.vignetted_mask.copy(),
-            error_mask=self.error_mask.copy(),
             polarization=self.polarization.copy(),
             index_of_refraction=self.index_of_refraction.copy(),
-            input_grid=self.input_grid.copy(),
+            input_grids=self.input_grids.copy(),
+            field_mask=self.field_mask.copy(),
+            vignetted_mask=self.vignetted_mask.copy(),
+            error_mask=self.error_mask.copy(),
         )
 
     def pupil_hist2d(
@@ -253,6 +256,58 @@ class Rays:
 
         unit = self.position.unit
         return hist, edges_x << unit, edges_y << unit
+
+    def colorgrid(self, axis: int = axis.wavelength) -> np.ndarray:
+        grid = self.input_grids[axis]
+        return np.broadcast_to(grid, self.shape + grid.shape[~0:], subok=True)
+
+    def colormesh(self, axis: int = axis.wavelength) -> np.ndarray:
+        mesh = np.expand_dims(self.colorgrid(axis), self.axis.perp_axes(axis))
+        return np.broadcast_to(mesh, self.grid_shape, subok=True)
+
+    def grid_labels(self, axis: int = axis.wavelength) -> np.ndarray:
+        name = self.axis.latex_names[axis]
+        label_func = np.vectorize(lambda g: name + '= {0}'.format(g))
+        # labels = []
+        # for color in self.colorgrid(axis).T:
+        #     label = name + '= {0} {1:latex}'.format(color.value, color.unit)
+        #     labels.append(label)
+        grid = self.input_grids[axis]
+        return label_func(grid.value)
+
+    def plot_position(
+            self,
+            ax: typ.Optional[plt.Axes] = None,
+            color_axis: int = axis.wavelength,
+            plot_vignetted: bool = False,
+    ) -> plt.Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+
+        if plot_vignetted:
+            mask = self.error_mask & self.field_mask
+        else:
+            mask = self.mask
+
+        with astropy.visualization.quantity_support():
+            scatter = ax.scatter(
+                x=self.position[x][mask],
+                y=self.position[y][mask],
+                c=self.colormesh(color_axis)[mask].value,
+            )
+            ax.legend(
+                handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
+                labels=list(self.grid_labels(color_axis).flatten()),
+            )
+
+        return ax
+
+
+
+
+
+
+
 
     def plot_pupil_hist2d_vs_field(
             self,
