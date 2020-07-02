@@ -69,15 +69,9 @@ class Rays:
     vignetted_mask: np.ndarray = None
     error_mask: np.ndarray = None
 
-    grid: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
+    input_grid: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
         default_factory=lambda: [None, None, None, None, None],
     )
-
-    # wavelength_grid: typ.Optional[u.Quantity] = None
-    # field_grid_x: typ.Optional[u.Quantity] = None
-    # field_grid_y: typ.Optional[u.Quantity] = None
-    # pupil_grid_x: typ.Optional[u.Quantity] = None
-    # pupil_grid_y: typ.Optional[u.Quantity] = None
 
     def __post_init__(self):
         if self.polarization is None:
@@ -115,8 +109,8 @@ class Rays:
 
         direction = np.zeros(position.shape)
         direction[z] = 1
-        direction = kgpy.vector.rotate_x(direction, field_x[..., 0])
-        direction = kgpy.vector.rotate_y(direction, field_y[..., 0])
+        direction = kgpy.vector.rotate_x(direction, field_y[..., 0])
+        direction = kgpy.vector.rotate_y(direction, field_x[..., 0])
 
         mask = field_mask_func(np.arcsin(direction[x]) << u.rad, np.arcsin(direction[y]) << u.rad)
 
@@ -125,7 +119,7 @@ class Rays:
             position=position,
             direction=direction,
             vignetted_mask=mask,
-            grid=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
+            input_grid=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
     # @classmethod
@@ -162,7 +156,7 @@ class Rays:
             index_of_refraction=self.index_of_refraction.copy(),
             vignetted_mask=self.vignetted_mask.copy(),
             error_mask=self.error_mask.copy(),
-            grid=self.grid.copy(),
+            input_grid=self.input_grid.copy(),
         )
 
     @property
@@ -203,7 +197,7 @@ class Rays:
             error_mask=self.error_mask.copy(),
             polarization=self.polarization.copy(),
             index_of_refraction=self.index_of_refraction.copy(),
-            grid=self.grid.copy(),
+            input_grid=self.input_grid.copy(),
         )
 
     def pupil_hist2d(

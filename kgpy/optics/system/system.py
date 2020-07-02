@@ -100,21 +100,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         return kgpy.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
 
     @property
-    def field_mesh(self) -> u.Quantity:
-        fx = np.broadcast_to(np.expand_dims(self.field_x, ~0), self.field_samples_normalized, subok=True)
-        fy = np.broadcast_to(np.expand_dims(self.field_y, ~1), self.field_samples_normalized, subok=True)
-        fz = np.broadcast_to(0, self.field_samples_normalized, subok=True)
-        return np.stack([fx, fy, fz], axis=~0)
-
-    @property
-    def pupil_mesh(self) -> u.Quantity:
-        px = np.broadcast_to(np.expand_dims(self.pupil_x, ~0), self.pupil_samples_normalized, subok=True)
-        py = np.broadcast_to(np.expand_dims(self.pupil_y, ~1), self.pupil_samples_normalized, subok=True)
-        pz = np.broadcast_to(0, self.pupil_samples_normalized, subok=True)
-        return np.stack([px, py, pz], axis=~0)
-
-    @property
     def input_rays(self):
+
+        shrink_factor = 1e-3
 
         x_hat = np.array([1, 0])
         y_hat = np.array([0, 1])
@@ -129,8 +117,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             for surf in self.aperture_surfaces:
                 print(surf)
                 aper = surf.aperture
-                px = kgpy.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
-                py = kgpy.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
+                dx = shrink_factor * (aper.max - aper.min)
+                amin, amax = aper.min + dx, aper.max - dx
+                px = kgpy.linspace(amin[x], amax[x], self.pupil_samples_normalized[ix], axis=~0)
+                py = kgpy.linspace(amin[y], amax[y], self.pupil_samples_normalized[iy], axis=~0)
                 target_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
@@ -271,42 +261,31 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             fig, ax = plt.subplots()
             ax.set_title('configuration = ' + str(config_index))
 
-            if isinstance(config_index, int):
-                config_index = config_index,
-
             rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
 
-            print(rays.grid[color_axis][config_index])
-
-            grid = rays.grid[color_axis]
+            grid = rays.input_grid[color_axis]
+            if grid.ndim > 1:
+                grid = grid[config_index]
             mesh = np.expand_dims(grid, rays.axis.perp_axes(color_axis))
-            mesh = np.broadcast_to(mesh, rays.scalar_grid_shape)
+            mesh = np.broadcast_to(mesh, rays.grid_shape)
 
-            labels = ['{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid]
-            print(labels)
+            labels = [rays.axis.latex_names[color_axis] + '=' + '{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid]
 
-            scatter = ax.scatter(x=rays.position[x], y=rays.position[y], c=mesh)
+            if not plot_vignetted:
+                mask = rays.mask[config_index]
+                scatter = ax.scatter(
+                    x=rays.position[config_index, mask, ix],
+                    y=rays.position[config_index, mask, iy],
+                    c=mesh[config_index, mask]
+                )
+            else:
+                scatter = ax.scatter(
+                    x=rays.position[config_index][x],
+                    y=rays.position[config_index][y],
+                    c=mesh[config_index]
+                )
 
-            # len_color_axis = len(labels)
-            # for i in range(len_color_axis):
-            #
-            #     sl = [slice(None)] * rays.mask[config_index].ndim
-            #     sl = sl
-            #     sl[color_axis] = slice(i, i + 1)
-            #
-            #     p = rays.position[config_index][sl]
-            #     m = rays.mask[config_index][sl]
-            #
-            #     if not plot_vignetted:
-            #         p = p[m]
-            #
-            #     ax.scatter(
-            #         x=p[kgpy.vector.x],
-            #         y=p[kgpy.vector.y],
-            #         label=labels[i],
-            #     )
-
-            ax.legend(handles=scatter.legend_elements()[0], labels=labels)
+            ax.legend(handles=scatter.legend_elements(num=grid)[0], labels=labels)
 
         if plot_apertures:
             surf.plot_2d(ax)
@@ -405,14 +384,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if not plot_vignetted:
             mask &= all_rays[~0].vignetted_mask
 
-        if self.shape:
-            sh = [1] * intercepts.ndim
-            sh[color_axis] = intercepts.shape[color_axis]
-            colors = np.arange(intercepts.shape[color_axis]).reshape(sh)
-            colors = np.broadcast_to(colors, intercepts.shape)
-            colors = colors[:, mask, 0]
-        else:
-            colors = None
+        grid = all_rays[0].input_grid[color_axis]
+        mesh = np.expand_dims(grid, Rays.axis.perp_axes(color_axis))
+        mesh = np.broadcast_to(mesh, all_rays[0].grid_shape)
+
+        labels = [rays.axis.latex_names[color_axis] + '=' + '{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid]
 
         intercepts = intercepts[:, mask, :]
 
