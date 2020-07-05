@@ -29,9 +29,6 @@ def secant(
 
         f1_mag = kgpy.vector.length(f1, keepdims=False)
         converged = f1_mag < max_abs_error
-
-        current_error = np.max(f1_mag)
-        print('error = ', current_error.to(u.nm))
         if converged.all():
             break
 

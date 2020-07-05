@@ -34,10 +34,10 @@ class Rectangular(polygon.Polygon):
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         x = points[kgpy.vector.x]
         y = points[kgpy.vector.y]
-        m1 = x < self.half_width_x
-        m2 = x > -self.half_width_x
-        m3 = y < self.half_width_y
-        m4 = y > -self.half_width_y
+        m1 = x <= self.half_width_x
+        m2 = x >= -self.half_width_x
+        m3 = y <= self.half_width_y
+        m4 = y >= -self.half_width_y
         return m1 & m2 & m3 & m4
 
     @property

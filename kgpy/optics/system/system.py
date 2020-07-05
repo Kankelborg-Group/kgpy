@@ -83,26 +83,24 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def field_x(self) -> u.Quantity:
-        return kgpy.linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
+        return kgpy.midspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
 
     @property
     def field_y(self) -> u.Quantity:
-        return kgpy.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
+        return kgpy.midspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
 
     @property
     def pupil_x(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return kgpy.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
+        return kgpy.midspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
 
     @property
     def pupil_y(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return kgpy.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
+        return kgpy.midspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
 
     @property
     def input_rays(self):
-
-        shrink_factor = 1e-3
 
         x_hat = np.array([1, 0])
         y_hat = np.array([0, 1])
@@ -115,12 +113,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             step = step_size * x_hat + step_size * y_hat
 
             for surf in self.aperture_surfaces:
-                print(surf)
                 aper = surf.aperture
-                dx = shrink_factor * (aper.max - aper.min)
-                amin, amax = aper.min + dx, aper.max - dx
-                px = kgpy.linspace(amin[x], amax[x], self.pupil_samples_normalized[ix], axis=~0)
-                py = kgpy.linspace(amin[y], amax[y], self.pupil_samples_normalized[iy], axis=~0)
+                amin, amax = aper.min, aper.max
+                px = kgpy.midspace(amin[x], amax[x], self.pupil_samples_normalized[ix], axis=~0)
+                py = kgpy.midspace(amin[y], amax[y], self.pupil_samples_normalized[iy], axis=~0)
                 target_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
@@ -219,36 +215,18 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
             limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
             use_vignetted: bool = False,
+            relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
     ) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return self.image_rays.pupil_hist2d(
             bins=bins,
             limits=limits,
             use_vignetted=use_vignetted,
-            relative_to_centroid=True,
+            relative_to_centroid=relative_to_centroid,
         )
-
-    def calc_plot_labels(self, config_index: typ.Union[int, typ.Tuple[int, ...]] = 0) -> typ.List[typ.List[str]]:
-        grids = self.input_rays.mean_sparse_grid(config_index)
-        ndim = len(grids)
-
-        labels = []
-
-        for i, grid in enumerate(grids):
-            # grid = grid[config_index]
-
-            if i == Rays.axis.field_x % ndim:
-                grid = (np.arcsin(grid) << u.rad).to(u.deg)
-            elif i == Rays.axis.field_y % ndim:
-                grid = (np.arcsin(grid) << u.rad).to(u.deg)
-
-            labels.append(['{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid])
-
-        return labels
 
     def plot_footprint(
             self,
             surf: typ.Optional[surface.Standard] = None,
-            config_index: typ.Tuple[int, typ.Tuple[int, ...]] = 0,
             color_axis: int = Rays.axis.wavelength,
             plot_apertures: bool = True,
             plot_vignetted: bool = False,
@@ -257,71 +235,13 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             surf = self.image_surface
 
         fig, ax = plt.subplots()
-        ax.set_title('configuration = ' + str(config_index))
 
         rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
 
         rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
-        # with astropy.visualization.quantity_support():
-        #
-        #     fig, ax = plt.subplots()
-        #     ax.set_title('configuration = ' + str(config_index))
-        #
-        #     rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
-        #
-        #     mask = rays.error_mask
-        #     if not plot_vignetted:
-        #         mask &= rays.vignetted_mask
-        #     mask = mask[config_index]
-        #
-        #     grid = rays.input_grids[color_axis]
-        #     if grid.ndim > 1:
-        #         grid = grid[config_index]
-        #     mesh = np.expand_dims(grid, rays.axis.perp_axes(color_axis))
-        #     mesh = np.broadcast_to(mesh, rays.grid_shape)
-        #
-        #     labels = [rays.axis.latex_names[color_axis] + '=' + '{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid]
-        #
-        #     scatter = ax.scatter(
-        #         x=rays.position[config_index, mask, ix],
-        #         y=rays.position[config_index, mask, iy],
-        #         c=mesh[config_index, mask]
-        #     )
-        #
-        #     ax.legend(handles=scatter.legend_elements(num=grid)[0], labels=labels)
-
         if plot_apertures:
             surf.plot_2d(ax)
-
-    def plot_psf_vs_field(
-            self,
-            config_index: int = 0,
-            wavlen_index: int = 0,
-            bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
-            use_vignetted: bool = False,
-    ) -> plt.Figure:
-
-        rays = self.input_rays
-
-        fax_x = (rays.axis.field_y, rays.axis.pupil_x, rays.axis.pupil_y)
-        field_x = rays.direction[config_index, wavlen_index, ..., kgpy.vector.ix].mean(fax_x)
-        field_x = np.arcsin(field_x) << u.rad
-
-        fax_y = (rays.axis.field_x, rays.axis.pupil_x, rays.axis.pupil_y)
-        field_y = rays.direction[config_index, wavlen_index, ..., kgpy.vector.iy].mean(fax_y)
-        field_y = np.arcsin(field_y) << u.rad
-
-        return self.image_rays.plot_pupil_hist2d_vs_field(
-            config_index=config_index,
-            wavlen_index=wavlen_index,
-            bins=bins,
-            limits=limits,
-            use_vignetted=use_vignetted,
-            field_x=field_x,
-            field_y=field_y,
-        )
 
     def plot_projections(
             self,
@@ -354,15 +274,22 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 plot_vignetted=plot_vignetted
             )
 
+        handles, labels = axs[xy].get_legend_handles_labels()
+        label_dict = dict(zip(labels, handles))
+        fig.legend(label_dict.values(), label_dict.keys())
+
     def plot_2d(
             self,
-            ax: plt.Axes,
+            ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
             start_surface: typ.Optional[surface.Surface] = None,
             end_surface: typ.Optional[surface.Surface] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
-    ):
+    ) -> plt.Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+
         surfaces = list(self)  # type: typ.List[surface.Surface]
 
         if start_surface is None:
@@ -381,34 +308,40 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             surf.plot_2d(ax, components, self)
             intercept = surf.transform_to_global(rays.position, self, num_extra_dims=5)
             intercepts.append(intercept)
-
         intercepts = u.Quantity(intercepts)
 
-        mask = all_rays[~0].error_mask
-        if not plot_vignetted:
-            mask &= all_rays[~0].vignetted_mask
+        img_rays = all_rays[~0]
 
-        grid = all_rays[0].input_grids[color_axis]
-        mesh = np.expand_dims(grid, Rays.axis.perp_axes(color_axis))
-        mesh = np.broadcast_to(mesh, intercepts[x].shape)
-        mesh = mesh[:, mask]
+        color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 
-        colors = plt.cm.viridis(mesh)
+        if plot_vignetted:
+            mask = img_rays.error_mask & img_rays.field_mask
+        else:
+            mask = img_rays.mask
 
-        labels = [all_rays[0].axis.latex_names[color_axis] + '=' + '{0.value:0.3f} {0.unit:latex}'.format(p) for p in grid.flatten()]
+        grid = img_rays.input_grids[color_axis].flatten()
+        colors = plt.cm.viridis((grid - grid.min()) / (grid.max() - grid.min()))
+        labels = img_rays.grid_labels(color_axis).flatten()
 
-        intercepts = intercepts[:, mask, :]
+        intercepts = np.moveaxis(intercepts, color_axis - 1, img_rays.ndim + 1)
+        mask = np.moveaxis(mask, color_axis, img_rays.ndim)
 
-        print(colors.shape)
-        print(intercepts.shape)
+        new_shape = intercepts.shape[0:1] + (-1,) + grid.shape + intercepts.shape[~(img_rays.vaxis.ndim - 2):]
+        intercepts = intercepts.reshape(new_shape)
+        mask = mask.reshape((-1,) + grid.shape + mask.shape[~(img_rays.axis.ndim - 2):])
 
-        lines = ax.plot(
-            intercepts[..., components[0]],
-            intercepts[..., components[1]],
-            color=colors,
-        )
+        intercepts = np.moveaxis(intercepts, ~(img_rays.vaxis.ndim - 1), 0)
+        mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
 
-        # ax.legend()
+        for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
+            ax.plot(
+                intercept_c[:, mask_c, components[0]],
+                intercept_c[:, mask_c, components[1]],
+                color=color,
+                label=label,
+            )
+
+        return ax
 
     def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
         with astropy.visualization.quantity_support():
