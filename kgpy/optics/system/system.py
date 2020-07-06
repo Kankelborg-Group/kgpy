@@ -81,6 +81,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         return all_surface_battrs
 
+    def __iter__(self) -> typ.Iterator[surface.Surface]:
+        yield from self.object_surface
+        yield from self.surfaces
+
     @property
     def field_x(self) -> u.Quantity:
         return kgpy.midspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
@@ -407,7 +411,3 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                             ax.plot(x_, y_, z_, 'k')
                             ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
                                     u.Quantity([z_[-1], z_[0]]), 'k')
-
-    def __iter__(self) -> typ.Iterator[surface.Surface]:
-        yield from self.object_surface
-        yield from self.surfaces

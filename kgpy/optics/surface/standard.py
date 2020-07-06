@@ -3,6 +3,11 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
+import OCC.Core.Geom
+import OCC.Core.GeomAPI
+import OCC.Core.GC
+import OCC.Core.BRepPrimAPI
+import OCC.Core.gp
 import kgpy.optics.material.no_material
 import kgpy.vector
 from kgpy.vector import x, y, z
@@ -60,6 +65,30 @@ class Standard(
         if self.aperture is not None:
             out = np.broadcast(out, self.aperture.config_broadcast)
         return out
+
+    @property
+    def is_plane(self):
+        return self.radius == np.inf
+
+    @property
+    def is_hyperbola(self) -> np.ndarray:
+        return self.conic < - 1
+
+    @property
+    def is_parabola(self) -> np.ndarray:
+        return self.conic == 1
+
+    @property
+    def is_ellipse(self) -> np.ndarray:
+        return -1 < self.conic < 0
+
+    @property
+    def is_sphere(self) -> np.ndarray:
+        return self.conic == 0
+
+    @property
+    def is_oblate_ellisoid(self) -> np.ndarray:
+        return self.conic > 0
 
     @property
     def curvature(self):
@@ -140,6 +169,18 @@ class Standard(
             self.aperture.plot_2d(ax, components, system, self)
         if self.material is not None:
             self.material.plot_2d(ax, components, system, self)
+
+    @property
+    def occ_surf(self) -> OCC.Core.Geom.Geom_Surface:
+
+        if self.is_sphere:
+            sphere_axis = OCC.Core.gp.gp_Ax3()
+            occ_surf = OCC.Core.Geom.Geom_SphericalSurface(sphere_axis, self.radius.value)
+
+        else:
+            raise NotImplementedError
+
+        return occ_surf
 
 
 
