@@ -24,11 +24,11 @@ class AutoAxis:
         self.ndim += 1
         return i
 
-    def perp_axes(self, axis: int):
+    def perp_axes(self, axis: int) -> typ.Tuple[int, ...]:
         axes = self.all.copy()
         axes = [a % self.ndim for a in axes]
         axes.remove(axis % self.ndim)
-        return [a - self.ndim for a in axes]
+        return tuple([a - self.ndim for a in axes])
 
 
 class CAxis(AutoAxis):
