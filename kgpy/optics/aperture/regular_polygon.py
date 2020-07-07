@@ -6,16 +6,16 @@ import shapely.geometry
 import kgpy.vector
 from . import Aperture, decenterable, obscurable
 
-__all__ = ['RegularOctagon']
+__all__ = ['RegularPolygon']
 
 
 @dataclasses.dataclass
-class RegularOctagon(decenterable.Decenterable, obscurable.Obscurable, Aperture):
+class RegularPolygon(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
     num_sides: typ.ClassVar[int] = 8
     radius: u.Quantity = 0 * u.mm
 
-    def to_zemax(self) -> 'RegularOctagon':
+    def to_zemax(self) -> 'RegularPolygon':
         raise NotImplementedError
 
     @property
