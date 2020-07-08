@@ -8,3 +8,4 @@ from .rectangular import Rectangular
 from .spider import Spider
 from .regular_polygon import RegularPolygon
 from .general_polygon import GeneralPolygon
+from .isosceles_trapezoid import IsoscelesTrapezoid
