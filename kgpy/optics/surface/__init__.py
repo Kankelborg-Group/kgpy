@@ -9,3 +9,4 @@ from .elliptical_grating import EllipticalGrating1
 from .coordinate_transform import CoordinateTransform
 from .transformed import Transformed
 from .substrate import Substrate
+from .transformed_substrate import TransformedSubstrate

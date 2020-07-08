@@ -28,7 +28,7 @@ class Standard(
 ):
 
     radius: u.Quantity = np.inf * u.mm
-    conic: u.Quantity = 0
+    conic: float = 0
     material: MaterialT = None
     aperture: ApertureT = None
     transform_before: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())

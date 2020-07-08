@@ -15,7 +15,6 @@ setup(
         'wget',
         'urlpath',
         'shapely',
-        'pythonocc-core',
     ],
     url='https://titan.ssel.montana.edu/gitlab/Kankelborg-Group/kgpy',
     license='',

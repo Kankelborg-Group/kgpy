@@ -12,8 +12,8 @@ __all__ = ['RegularPolygon']
 @dataclasses.dataclass
 class RegularPolygon(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
-    num_sides: typ.ClassVar[int] = 8
     radius: u.Quantity = 0 * u.mm
+    num_sides: int = 8
 
     def to_zemax(self) -> 'RegularPolygon':
         raise NotImplementedError
