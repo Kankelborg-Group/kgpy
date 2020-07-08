@@ -40,7 +40,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             self.groove_frequency,
         )
 
-    def groove_normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
         return u.Quantity([0 << 1 / u.mm, self.groove_frequency, 0 << 1 / u.mm])
 
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
