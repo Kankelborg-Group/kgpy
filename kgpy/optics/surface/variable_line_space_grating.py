@@ -2,13 +2,17 @@ import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
+from .. import material, aperture
 from . import DiffractionGrating
 
 __all__ = ['VariableLineSpaceGrating']
 
+MaterialT = typ.TypeVar('MaterialT', bound=material.Material)
+ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
+
 
 @dataclasses.dataclass
-class VariableLineSpaceGrating(DiffractionGrating):
+class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
 
     coeff_linear: u.Quantity = 0
     coeff_quadratic: u.Quantity = 0

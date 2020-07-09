@@ -12,7 +12,7 @@ class IsoscelesTrapezoid(Polygon):
 
     inner_radius: u.Quantity = 0 * u.mm
     outer_radius: u.Quantity = 0 * u.mm
-    wedge_angle: u.Quantity = 0 * u.deg
+    wedge_half_angle: u.Quantity = 0 * u.deg
 
     @property
     def config_broadcast(self):
