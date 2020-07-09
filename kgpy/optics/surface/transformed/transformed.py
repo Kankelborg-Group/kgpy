@@ -42,7 +42,7 @@ class TransformList:
 @dataclasses.dataclass
 class Base:
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
-    transforms: TransformList = dataclasses.field(default_factory=lambda: TransformList())
+    transforms: typ.Iterable[coordinate.Transform] = dataclasses.field(default_factory=lambda: TransformList())
     is_last_surface: bool = False
 
 
@@ -62,7 +62,7 @@ class Transformed(Base, ZemaxCompatible, kgpy.mixin.Named, typ.Generic[SurfacesT
         return self._transforms
 
     @transforms.setter
-    def transforms(self, value: TransformList):
+    def transforms(self, value: typ.Iterable[coordinate.Transform]):
         if not isinstance(value, TransformList):
             value = TransformList.promote(value)
         self._transforms = value
