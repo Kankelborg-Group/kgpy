@@ -199,6 +199,15 @@ def default_vertices(ax):
     y1, y2 = ylims + h // 4 * np.array([1, -1])
     return ((x1, y1), (x1, y2), (x2, y2), (x2, y1))
 
+def make_mask(poly, img_shape):
+            """Return image mask given by mask creator"""
+            h, w = img_shape
+            y, x = np.mgrid[:h, :w]
+            points = np.transpose((x.ravel(), y.ravel()))
+            path = poly.get_path()
+            mask = path.contains_points(points)
+            return mask.reshape(h, w)
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from matplotlib.patches import Polygon
@@ -212,13 +221,12 @@ if __name__ == '__main__':
     ax.add_patch(poly)
     p = PolygonInteractor(ax, poly)
 
-    ax.set_title('Click and drag a vertex to move it. Hold "i" and click line to insert. \n '
+    ax.set_title('Click and drag a vertex to move it. Press "i" near line to insert. \n '
                  'Click and hold vertex then press "d" to delete. \n'
                  'Press "t" to hide vertices.')
     plt.show()
 
     mask = p.get_mask(img.shape)
-    print(mask[0,0])
     img[~mask]= 0
     plt.imshow(img)
     plt.title('Region outside of mask is now zero')
