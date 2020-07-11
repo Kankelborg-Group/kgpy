@@ -33,6 +33,13 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None
 
+    def __post_init__(self):
+        self.update()
+
+    def update(self) -> typ.NoReturn:
+        self.input_rays = self._input_rays
+        self.all_rays = self._all_rays
+
     @property
     def standard_surfaces(self) -> typ.Iterator[surface.Standard]:
         for s in self.surfaces:
@@ -87,24 +94,24 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def field_x(self) -> u.Quantity:
-        return kgpy.midspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
+        return kgpy.linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
 
     @property
     def field_y(self) -> u.Quantity:
-        return kgpy.midspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
+        return kgpy.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
 
     @property
     def pupil_x(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return kgpy.midspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
+        return kgpy.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
 
     @property
     def pupil_y(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return kgpy.midspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
+        return kgpy.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
 
     @property
-    def input_rays(self):
+    def _input_rays(self):
 
         x_hat = np.array([1, 0])
         y_hat = np.array([0, 1])
@@ -199,10 +206,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def image_rays(self) -> Rays:
-        return self.raytrace_subsystem(self.input_rays)
+        return self.all_rays[~0]
+        # return self.raytrace_subsystem(self.input_rays)
 
     @property
-    def all_rays(self) -> typ.List[Rays]:
+    def _all_rays(self) -> typ.List[Rays]:
 
         rays = [self.input_rays]
 

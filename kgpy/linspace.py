@@ -1,6 +1,13 @@
+import typing as typ
 import numpy as np
+import astropy.units as u
 
 __all__ = ['linspace', 'midspace']
+
+
+@typ.overload
+def linspace(start: u.Quantity, stop: u.Quantity, num: int, axis: int = 0) -> u.Quantity:
+    ...
 
 
 def linspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np.ndarray:
