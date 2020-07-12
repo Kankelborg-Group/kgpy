@@ -17,14 +17,14 @@ ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
 class DiffractionGrating(Standard[MaterialT, ApertureT]):
 
     diffraction_order: int = 1
-    groove_frequency: u.Quantity = 0 * (1 / u.mm)
+    groove_density: u.Quantity = 0 * (1 / u.mm)
 
     @property
     def __init__args(self) -> typ.Dict[str, typ.Any]:
         args = super().__init__args
         args.update({
             'diffraction_order': self.diffraction_order,
-            'groove_frequency': self.groove_frequency,
+            'groove_density': self.groove_density,
         })
         return args
 
@@ -37,11 +37,11 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
         return np.broadcast(
             super().config_broadcast,
             self.diffraction_order,
-            self.groove_frequency,
+            self.groove_density,
         )
 
     def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
-        return u.Quantity([0 << 1 / u.mm, self.groove_frequency, 0 << 1 / u.mm])
+        return u.Quantity([0 << 1 / u.mm, self.groove_density, 0 << 1 / u.mm])
 
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
 
@@ -85,4 +85,4 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
     ) -> u.Quantity:
         a = np.sin(input_angle) + np.sin(output_angle)
 
-        return a / (self.diffraction_order * self.groove_frequency)
+        return a / (self.diffraction_order * self.groove_density)

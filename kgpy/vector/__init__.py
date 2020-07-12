@@ -5,7 +5,7 @@ from .. import matrix
 
 __all__ = [
     'x', 'y', 'z', 'ix', 'iy', 'iz', 'xy', 'x_hat', 'y_hat', 'z_hat',
-    'dot', 'outer', 'matmul', 'lefmatmul', 'length', 'normalize', 'from_components'
+    'dot', 'outer', 'matmul', 'lefmatmul', 'length', 'normalize', 'from_components', 'from_components_cylindrical'
 ]
 
 ix = 0
@@ -61,6 +61,10 @@ def from_components(ax: np.ndarray = 0, ay: np.ndarray = 0, az: np.ndarray = 0, 
         return np.stack([ax, ay, az], axis=~0)
     else:
         return np.stack([ax, ay], axis=~0)
+
+
+def from_components_cylindrical(ar: np.ndarray = 0, ap: np.ndarray = 0, az: np.ndarray = 0) -> np.ndarray:
+    return from_components(ar * np.cos(ap), ar * np.sin(ap), az)
 
 
 def rotate_x(vector: np.ndarray, angle: u.Quantity, inverse: bool = False) -> np.ndarray:

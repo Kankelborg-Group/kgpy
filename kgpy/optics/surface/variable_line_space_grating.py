@@ -32,13 +32,14 @@ class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
-            self.diffraction_order,
-            self.groove_frequency,
+            self.coeff_linear,
+            self.coeff_quadratic,
+            self.coeff_cubic,
         )
 
     def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
         sx2 = np.square(sx)
-        term0 = 1 / self.groove_frequency
+        term0 = 1 / self.groove_density
         term1 = self.coeff_linear * sx
         term2 = self.coeff_quadratic * sx2
         term3 = self.coeff_cubic * sx * sx2
