@@ -18,7 +18,7 @@ class NoAperture(Aperture):
         return np.array(True)
 
     @property
-    def edges(self) -> u.Quantity:
+    def wire(self) -> u.Quantity:
         return u.Quantity([])
 
     def plot_2d(

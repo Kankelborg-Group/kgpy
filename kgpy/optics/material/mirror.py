@@ -35,7 +35,7 @@ class Mirror(Material):
         with astropy.visualization.quantity_support():
 
             c1, c2 = components
-            edges = surface.aperture.edges.copy()
+            edges = surface.aperture.wire.copy()
             edges[kgpy.vector.z] = self.thickness
             edges = surface.transform_to_global(edges, system, num_extra_dims=2)
             edges = edges.reshape(edges.shape[:~2] + (edges.shape[~2] * edges.shape[~1], edges.shape[~0]))

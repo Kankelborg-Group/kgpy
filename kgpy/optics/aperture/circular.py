@@ -2,7 +2,7 @@ import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
-
+import kgpy.vector
 from . import Aperture, decenterable, obscurable
 
 __all__ = ['Circular']
@@ -23,6 +23,14 @@ class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
             self.radius,
         )
 
+    @property
+    def min(self) -> u.Quantity:
+        return -self.max
+
+    @property
+    def max(self) -> u.Quantity:
+        return kgpy.vector.from_components(self.radius, self.radius)
+
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         x = points[..., 0]
         y = points[..., 1]
@@ -30,7 +38,7 @@ class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
         return r < self.radius
 
     @property
-    def edges(self) -> u.Quantity:
+    def wire(self) -> u.Quantity:
 
         a = np.linspace(0 * u.deg, 360 * u.deg, num=self.num_samples)
         r = np.expand_dims(self.radius.copy(), ~0)

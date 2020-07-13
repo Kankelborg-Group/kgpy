@@ -55,12 +55,22 @@ def normalize(a: np.ndarray, keepdims: bool = True) -> np.ndarray:
     return a / length(a, keepdims=keepdims)
 
 
+@typ.overload
+def from_components(ax: u.Quantity = 0, ay: u.Quantity = 0, az: u.Quantity = 0, use_z: bool = True) -> u.Quantity:
+    ...
+
+
 def from_components(ax: np.ndarray = 0, ay: np.ndarray = 0, az: np.ndarray = 0, use_z: bool = True) -> np.ndarray:
     ax, ay, az = np.broadcast_arrays(ax, ay, az, subok=True)
     if use_z:
         return np.stack([ax, ay, az], axis=~0)
     else:
         return np.stack([ax, ay], axis=~0)
+
+
+@typ.overload
+def from_components_cylindrical(ar: u.Quantity = 0, ap: u.Quantity = 0, az: u.Quantity = 0) -> u.Quantity:
+    ...
 
 
 def from_components_cylindrical(ar: np.ndarray = 0, ap: np.ndarray = 0, az: np.ndarray = 0) -> np.ndarray:

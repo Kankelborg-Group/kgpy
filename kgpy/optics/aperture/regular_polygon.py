@@ -4,13 +4,13 @@ import numpy as np
 import astropy.units as u
 import shapely.geometry
 import kgpy.vector
-from . import Aperture, decenterable, obscurable
+from . import Polygon
 
 __all__ = ['RegularPolygon']
 
 
 @dataclasses.dataclass
-class RegularPolygon(decenterable.Decenterable, obscurable.Obscurable, Aperture):
+class RegularPolygon(Polygon):
 
     radius: u.Quantity = 0 * u.mm
     num_sides: int = 8
@@ -27,14 +27,10 @@ class RegularPolygon(decenterable.Decenterable, obscurable.Obscurable, Aperture)
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         p = shapely.geometry.Point(points[0:2])
-        poly = shapely.geometry.Polygon(self.edges)
+        poly = shapely.geometry.Polygon(self.wire)
         return poly.contains(p)
 
     @property
-    def edges(self) -> u.Quantity:
-
-        angles = np.linspace(0, 360 * u.deg, self.num_sides, endpoint=False)
-        x = self.radius * np.cos(angles)
-        y = self.radius * np.sin(angles)
-
-        return kgpy.vector.from_components(x, y, 0 * u.dimensionless_unscaled)
+    def vertices(self) -> u.Quantity:
+        angles = np.linspace(0, 360, self.num_sides, endpoint=False) << u.deg
+        return kgpy.vector.from_components_cylindrical(self.radius, angles)

@@ -59,7 +59,7 @@ class Rectangular(polygon.Polygon):
         return kgpy.vector.from_components(x, y)
 
     @property
-    def edges(self) -> u.Quantity:
+    def wire(self) -> u.Quantity:
 
         wx, wy = np.broadcast_arrays(self.half_width_x, self.half_width_y, subok=True)
 

@@ -21,6 +21,11 @@ __all__ = ['System']
 SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surface], ZemaxCompatible])
 
 
+def default_field_mask_func(fx: u.Quantity, fy: u.Quantity) -> np.ndarray:
+    fx, fy = np.broadcast_arrays(fx, fy, subok=True)
+    return np.ones(fx.shape, dtype=np.bool)
+
+
 @dataclasses.dataclass
 class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Generic[SurfacesT]):
     object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
@@ -31,7 +36,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_min: typ.Optional[u.Quantity] = None
     field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
-    field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None
+    field_mask_func: typ.Callable[[u.Quantity, u.Quantity], np.ndarray] = default_field_mask_func
 
     def __post_init__(self):
         self.update()
@@ -407,10 +412,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 if isinstance(surf, surface.Standard):
                     if surf.aperture is not None:
 
-                        psh = list(surf.aperture.edges.shape)
+                        psh = list(surf.aperture.wire.shape)
                         psh[~0] = 3
                         polys = np.zeros(psh) * u.mm
-                        polys[..., 0:2] = surf.aperture.edges
+                        polys[..., 0:2] = surf.aperture.wire
 
                         polys = self.local_to_global(surf, polys, configuration_axis=None)[0]
 
