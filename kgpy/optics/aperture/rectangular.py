@@ -40,13 +40,13 @@ class Rectangular(polygon.Polygon):
         m4 = y >= -self.half_width_y
         return m1 & m2 & m3 & m4
 
-    @property
-    def min(self) -> u.Quantity:
-        return -self.max
-
-    @property
-    def max(self) -> u.Quantity:
-        return kgpy.vector.from_components(self.half_width_x, self.half_width_y)
+    # @property
+    # def min(self) -> u.Quantity:
+    #     return -self.max
+    #
+    # @property
+    # def max(self) -> u.Quantity:
+    #     return kgpy.vector.from_components(self.half_width_x, self.half_width_y)
 
     @property
     def vertices(self) -> u.Quantity:
@@ -58,21 +58,21 @@ class Rectangular(polygon.Polygon):
 
         return kgpy.vector.from_components(x, y)
 
-    @property
-    def wire(self) -> u.Quantity:
-
-        wx, wy = np.broadcast_arrays(self.half_width_x, self.half_width_y, subok=True)
-
-        rx = np.linspace(-wx, wx, self.num_samples, axis=~0)
-        ry = np.linspace(-wy, wy, self.num_samples, axis=~0)
-
-        wx = np.expand_dims(wx, ~0)
-        wy = np.expand_dims(wy, ~0)
-
-        wx, rx = np.broadcast_arrays(wx, rx, subok=True)
-        wy, ry = np.broadcast_arrays(wy, ry, subok=True)
-
-        x = np.stack([rx, wx, rx[::-1], -wx])
-        y = np.stack([wy, ry[::-1], -wy, ry])
-
-        return kgpy.vector.from_components(x, y)
+    # @property
+    # def wire(self) -> u.Quantity:
+    #
+    #     wx, wy = np.broadcast_arrays(self.half_width_x, self.half_width_y, subok=True)
+    #
+    #     rx = np.linspace(-wx, wx, self.num_samples, axis=~0)
+    #     ry = np.linspace(-wy, wy, self.num_samples, axis=~0)
+    #
+    #     wx = np.expand_dims(wx, ~0)
+    #     wy = np.expand_dims(wy, ~0)
+    #
+    #     wx, rx = np.broadcast_arrays(wx, rx, subok=True)
+    #     wy, ry = np.broadcast_arrays(wy, ry, subok=True)
+    #
+    #     x = np.stack([rx, wx, rx[::-1], -wx])
+    #     y = np.stack([wy, ry[::-1], -wy, ry])
+    #
+    #     return kgpy.vector.from_components(x, y)

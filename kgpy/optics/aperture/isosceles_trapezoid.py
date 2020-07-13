@@ -28,6 +28,7 @@ class IsoscelesTrapezoid(Polygon):
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
-            self.half_width_x,
-            self.half_width_y,
+            self.inner_radius,
+            self.outer_radius,
+            self.wedge_half_angle,
         )

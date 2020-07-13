@@ -15,11 +15,11 @@ class Name:
         )
 
     def __add__(self, other: str) -> 'Name':
-        return type(self)(self, other)
+        return type(self)(base=other, parent=self)
 
-    def __str__(self):
+    def __repr__(self):
         if self.parent is not None:
-            return self.parent.__str__() + '.' + self.base
+            return self.parent.__repr__() + '.' + self.base
 
         else:
             return self.base

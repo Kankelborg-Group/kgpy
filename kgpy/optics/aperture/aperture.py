@@ -66,6 +66,5 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
             c1, c2 = components
             wire = self.wire.copy()
             wire[kgpy.vector.z] = surface.sag(wire[kgpy.vector.x], wire[kgpy.vector.y])
-            wire = surface.transform_to_global(wire, system, num_extra_dims=2)
-            wire = wire.reshape(wire.shape[:~2] + (wire.shape[~2] * wire.shape[~1], wire.shape[~0]))
+            wire = surface.transform_to_global(wire, system, num_extra_dims=1)
             ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)

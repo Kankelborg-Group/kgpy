@@ -22,7 +22,7 @@ class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.AB
         return shapely.geometry.Polygon(self.vertices)
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
-        p = shapely.geometry.Point(points[kgpy.vector.xy])
+        p = shapely.geometry.Point(points[kgpy.vector.xy].to(self.vertices.unit).value)
         return self.shapely_poly.contains(p)
 
     @property
@@ -40,4 +40,6 @@ class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.AB
 
     @property
     def wire(self) -> u.Quantity:
-        return self.shapely_poly.interpolate(np.linspace(0, 1, num=self.num_samples, endpoint=False))
+        coords = self.shapely_poly.exterior
+        wire_samples = np.linspace(0, 1, num=self.num_samples, endpoint=False)
+        return u.Quantity([coords.interpolate(a, normalized=True) << self.vertices.unit for a in wire_samples])

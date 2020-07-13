@@ -35,11 +35,11 @@ class Mirror(Material):
         with astropy.visualization.quantity_support():
 
             c1, c2 = components
-            edges = surface.aperture.wire.copy()
-            edges[kgpy.vector.z] = self.thickness
-            edges = surface.transform_to_global(edges, system, num_extra_dims=2)
-            edges = edges.reshape(edges.shape[:~2] + (edges.shape[~2] * edges.shape[~1], edges.shape[~0]))
-            ax.fill(edges[..., c1].T, edges[..., c2].T, fill=False)
+            wire = surface.aperture.wire.copy()
+            wire[kgpy.vector.z] = self.thickness
+            wire = surface.transform_to_global(wire, system, num_extra_dims=1)
+            # wire = wire.reshape(wire.shape[:~2] + (wire.shape[~2] * wire.shape[~1], wire.shape[~0]))
+            ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
 
             front_vertices = surface.aperture.vertices.copy()
             back_vertices = surface.aperture.vertices.copy()

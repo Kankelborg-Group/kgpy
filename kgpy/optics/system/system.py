@@ -131,8 +131,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             for surf in self.aperture_surfaces:
                 aper = surf.aperture
                 amin, amax = aper.min, aper.max
-                px = kgpy.midspace(amin[x], amax[x], self.pupil_samples_normalized[ix], axis=~0)
-                py = kgpy.midspace(amin[y], amax[y], self.pupil_samples_normalized[iy], axis=~0)
+                px = kgpy.linspace(amin[x], amax[x], self.pupil_samples_normalized[ix], axis=~0)
+                py = kgpy.linspace(amin[y], amax[y], self.pupil_samples_normalized[iy], axis=~0)
                 target_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
@@ -157,7 +157,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                     max_iterations=100,
                 )
 
-                if surf is self.stop_surface:
+                if surf == self.stop_surface:
                     break
 
             return Rays.from_field_angles(

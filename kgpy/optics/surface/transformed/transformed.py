@@ -65,6 +65,8 @@ class Transformed(Base, ZemaxCompatible, kgpy.mixin.Named, typ.Generic[SurfacesT
     def transforms(self, value: typ.Iterable[coordinate.Transform]):
         if not isinstance(value, TransformList):
             value = TransformList.promote(value)
+        for v in value:
+            v.name = self.name
         self._transforms = value
 
     def __iter__(self) -> typ.Iterator[Surface]:
