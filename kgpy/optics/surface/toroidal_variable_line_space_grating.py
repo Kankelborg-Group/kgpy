@@ -1,7 +1,12 @@
+import typing as typ
+from .. import material, aperture
 from . import Toroidal, VariableLineSpaceGrating
 
 __all__ = ['ToroidalVariableLineSpaceGrating']
 
+MaterialT = typ.TypeVar('MaterialT', bound=material.Material)
+ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
 
-class ToroidalVariableLineSpaceGrating(VariableLineSpaceGrating, Toroidal):
+
+class ToroidalVariableLineSpaceGrating(VariableLineSpaceGrating[MaterialT, ApertureT], Toroidal[MaterialT, ApertureT]):
     pass

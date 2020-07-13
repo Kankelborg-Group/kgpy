@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.mixin
 import kgpy.optics
-from .. import ZemaxCompatible, Aperture
+from .. import ZemaxCompatible
 
 __all__ = ['Material']
 
