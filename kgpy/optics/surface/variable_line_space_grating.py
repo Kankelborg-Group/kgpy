@@ -39,7 +39,7 @@ class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
         )
 
     def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
-        norm_radius = 100 * u.um
+        norm_radius = 100 * u.mm
         sx, sy = sx / norm_radius, sy / norm_radius
         sx2 = np.square(sx)
         term0 = 1 / self.groove_density
