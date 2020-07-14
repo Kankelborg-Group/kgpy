@@ -2,6 +2,7 @@ import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
+import kgpy.vector
 from .. import material, aperture
 from . import DiffractionGrating
 
@@ -14,9 +15,9 @@ ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
 @dataclasses.dataclass
 class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
 
-    coeff_linear: u.Quantity = 0
-    coeff_quadratic: u.Quantity = 0
-    coeff_cubic: u.Quantity = 0
+    coeff_linear: u.Quantity = 0 / (u.mm ** 2)
+    coeff_quadratic: u.Quantity = 0 / (u.mm ** 3)
+    coeff_cubic: u.Quantity = 0 / (u.mm ** 4)
 
     @property
     def __init__args(self) -> typ.Dict[str, typ.Any]:
@@ -38,10 +39,12 @@ class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
         )
 
     def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
+        norm_radius = 100 * u.um
+        sx, sy = sx / norm_radius, sy / norm_radius
         sx2 = np.square(sx)
         term0 = 1 / self.groove_density
         term1 = self.coeff_linear * sx
         term2 = self.coeff_quadratic * sx2
         term3 = self.coeff_cubic * sx * sx2
-        groove_density = term0 + term1 + term2 + term3
-        return u.Quantity([0 << 1 / u.mm, 1 / groove_density, 0 << 1 / u.mm])
+        groove_density = 1 / (term0 + term1 + term2 + term3)
+        return kgpy.vector.from_components(ax=groove_density)

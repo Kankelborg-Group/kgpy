@@ -22,8 +22,15 @@ class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.AB
         return shapely.geometry.Polygon(self.vertices)
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
-        p = shapely.geometry.Point(points[kgpy.vector.xy].to(self.vertices.unit).value)
-        return self.shapely_poly.contains(p)
+        sh = points.shape
+        points = points.reshape((-1, ) + points.shape[~0:])
+        p = shapely.geometry.MultiPoint(points[0:2].to(self.vertices.unit).value)
+        poly = shapely.geometry.Polygon(self.wire)
+        return poly.contains(p)
+
+    # def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
+    #     p = shapely.geometry.Point(points[kgpy.vector.xy].to(self.vertices.unit).value)
+    #     return self.shapely_poly.contains(p)
 
     @property
     def min(self) -> u.Quantity:

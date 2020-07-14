@@ -52,11 +52,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 yield s
 
     @property
-    def aperture_surfaces(self) -> typ.Iterator[surface.Standard]:
+    def test_stop_surfaces(self) -> typ.Iterator[surface.Standard]:
         for s in self.standard_surfaces:
             if s.aperture is not None:
                 if s.aperture.is_active:
-                    yield s
+                    if s.aperture.is_test_stop:
+                        yield s
 
     @staticmethod
     def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
@@ -128,7 +129,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             step_size = 1 * u.nm
             step = step_size * x_hat + step_size * y_hat
 
-            for surf in self.aperture_surfaces:
+            for surf in self.test_stop_surfaces:
+                print(surf)
                 aper = surf.aperture
                 amin, amax = aper.min, aper.max
                 px = kgpy.linspace(amin[x], amax[x], self.pupil_samples_normalized[ix], axis=~0)
@@ -146,12 +148,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
-                    print('input_rays', rays.position.shape)
                     rays = self.raytrace_subsystem(rays, final_surface=surf)
-                    print('output rays', rays.position.shape)
                     return (rays.position - target_position)[xy]
-                print(surf)
-                print(position_guess.shape)
+
                 position_guess = kgpy.optimization.root_finding.secant(
                     func=position_error,
                     root_guess=position_guess,
@@ -185,21 +184,14 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         surfaces = list(self)
 
-        start_surface_index = 0
-        final_surface_index = ~0
-
         if start_surface is None:
-            start_surface = surfaces[start_surface_index]
+            start_surface = surfaces[0]
 
         if final_surface is None:
-            final_surface = surfaces[final_surface_index]
+            final_surface = surfaces[~0]
 
-        for s, surf in enumerate(surfaces):
-            if surf is start_surface:
-                start_surface_index = s
-            if surf is final_surface:
-                final_surface_index = s
-                break
+        start_surface_index = surfaces.index(start_surface)
+        final_surface_index = surfaces.index(final_surface)
 
         for s in range(start_surface_index, final_surface_index + 1):
             surf = surfaces[s]
@@ -328,7 +320,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             surf.plot_2d(ax, components, self)
             intercept = surf.transform_to_global(rays.position, self, num_extra_dims=5)
             intercepts.append(intercept)
-            print(intercept.shape)
         intercepts = u.Quantity(intercepts)
 
         img_rays = all_rays[~0]

@@ -17,6 +17,7 @@ __all__ = ['Aperture']
 class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
     num_samples: int = 100
     is_active: bool = True
+    is_test_stop: bool = True
 
     def to_zemax(self) -> 'Aperture':
         from kgpy.optics import zemax

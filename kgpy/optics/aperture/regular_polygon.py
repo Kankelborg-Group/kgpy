@@ -25,10 +25,6 @@ class RegularPolygon(Polygon):
             self.radius,
         )
 
-    def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
-        p = shapely.geometry.Point(points[0:2])
-        poly = shapely.geometry.Polygon(self.wire)
-        return poly.contains(p)
 
     @property
     def vertices(self) -> u.Quantity:
