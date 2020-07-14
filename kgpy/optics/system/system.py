@@ -146,9 +146,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
+                    print('input_rays', rays.position.shape)
                     rays = self.raytrace_subsystem(rays, final_surface=surf)
+                    print('output rays', rays.position.shape)
                     return (rays.position - target_position)[xy]
-
+                print(surf)
+                print(position_guess.shape)
                 position_guess = kgpy.optimization.root_finding.secant(
                     func=position_error,
                     root_guess=position_guess,
@@ -325,6 +328,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             surf.plot_2d(ax, components, self)
             intercept = surf.transform_to_global(rays.position, self, num_extra_dims=5)
             intercepts.append(intercept)
+            print(intercept.shape)
         intercepts = u.Quantity(intercepts)
 
         img_rays = all_rays[~0]
