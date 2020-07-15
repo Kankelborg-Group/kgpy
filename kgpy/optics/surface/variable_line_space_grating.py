@@ -40,11 +40,17 @@ class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
 
     def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
         norm_radius = 100 * u.mm
-        sx, sy = sx / norm_radius, sy / norm_radius
+        # sx, sy = sx / norm_radius, sy / norm_radius
+        # sx, sy = -sx, -sy
         sx2 = np.square(sx)
         term0 = 1 / self.groove_density
         term1 = self.coeff_linear * sx
         term2 = self.coeff_quadratic * sx2
         term3 = self.coeff_cubic * sx * sx2
-        groove_density = 1 / (term0 + term1 + term2 + term3)
+        groove_spacing = term0 + term1 + term2 + term3
+        groove_density = 1 / groove_spacing
+        print(sx.min(), sx.max())
+        print(groove_spacing.min())
+        print(groove_spacing.max())
+        print()
         return kgpy.vector.from_components(ax=groove_density)
