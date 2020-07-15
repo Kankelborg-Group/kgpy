@@ -345,6 +345,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         intercepts = np.moveaxis(intercepts, ~(img_rays.vaxis.ndim - 1), 0)
         mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
 
+        print(mask.shape)
+
         for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
             ax.plot(
                 intercept_c[:, mask_c, components[0]],

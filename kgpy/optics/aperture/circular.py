@@ -35,7 +35,11 @@ class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
         x = points[..., 0]
         y = points[..., 1]
         r = np.sqrt(np.square(x) + np.square(y))
-        return r < self.radius
+        is_inside = r < self.radius
+        if not self.is_obscuration:
+            return is_inside
+        else:
+            return ~is_inside
 
     @property
     def wire(self) -> u.Quantity:

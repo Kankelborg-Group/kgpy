@@ -38,7 +38,11 @@ class Rectangular(polygon.Polygon):
         m2 = x >= -self.half_width_x
         m3 = y <= self.half_width_y
         m4 = y >= -self.half_width_y
-        return m1 & m2 & m3 & m4
+        is_inside = m1 & m2 & m3 & m4
+        if not self.is_obscuration:
+            return is_inside
+        else:
+            return ~is_inside
 
     # @property
     # def min(self) -> u.Quantity:

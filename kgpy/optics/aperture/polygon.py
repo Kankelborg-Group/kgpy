@@ -26,7 +26,11 @@ class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.AB
         points = points.reshape((-1, ) + points.shape[~0:])
         p = shapely.geometry.MultiPoint(points[0:2].to(self.vertices.unit).value)
         poly = shapely.geometry.Polygon(self.wire)
-        return poly.contains(p)
+        is_inside = poly.contains(p)
+        if not self.is_obscuration:
+            return is_inside
+        else:
+            return ~is_inside
 
     # def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
     #     p = shapely.geometry.Point(points[kgpy.vector.xy].to(self.vertices.unit).value)
