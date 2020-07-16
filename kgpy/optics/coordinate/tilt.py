@@ -30,6 +30,13 @@ class Tilt(kgpy.mixin.Broadcastable):
             self.z,
         )
 
+    def __eq__(self, other: 'Tilt'):
+        out = True
+        out &= np.array(self.x == other.x).all()
+        out &= np.array(self.y == other.y).all()
+        out &= np.array(self.z == other.z).all()
+        return out
+
     def __invert__(self):
         return type(self)(
             -self.x,

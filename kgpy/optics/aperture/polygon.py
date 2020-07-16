@@ -22,19 +22,22 @@ class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.AB
         return shapely.geometry.Polygon(self.vertices)
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
-        sh = points.shape
-        points = points.reshape((-1, ) + points.shape[~0:])
-        p = shapely.geometry.MultiPoint(points[0:2].to(self.vertices.unit).value)
-        poly = shapely.geometry.Polygon(self.wire)
-        is_inside = poly.contains(p)
-        if not self.is_obscuration:
-            return is_inside
-        else:
-            return ~is_inside
 
-    # def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
-    #     p = shapely.geometry.Point(points[kgpy.vector.xy].to(self.vertices.unit).value)
-    #     return self.shapely_poly.contains(p)
+        c = np.zeros(points[x].shape, dtype=np.bool)
+
+        for v in range(self.vertices.shape[~1]):
+            vert_j = self.vertices[..., v - 1, :]
+            vert_i = self.vertices[..., v, :]
+            slope = (vert_j[y] - vert_i[y]) / (vert_j[x] - vert_i[x])
+            condition_1 = (vert_i[y] > points[y]) != (vert_j[y] > points[y])
+            condition_2 = points[x] < ((points[y] - vert_i[y]) / slope + vert_i[x])
+            mask = condition_1 & condition_2
+            c[mask] = ~c[mask]
+
+        if not self.is_obscuration:
+            return c
+        else:
+            return ~c
 
     @property
     def min(self) -> u.Quantity:

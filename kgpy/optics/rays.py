@@ -66,6 +66,7 @@ class Rays:
     direction: u.Quantity
     polarization: u.Quantity = None
     surface_normal: u.Quantity = None
+    propagation_signum: float = 1
     index_of_refraction: u.Quantity = None
     field_mask: np.ndarray = None
     vignetted_mask: np.ndarray = None
@@ -154,6 +155,7 @@ class Rays:
             direction=transform(self.direction, decenter=False, num_extra_dims=5),
             polarization=self.polarization.copy(),
             surface_normal=transform(self.surface_normal, decenter=False, num_extra_dims=5),
+            propagation_signum=self.propagation_signum,
             index_of_refraction=self.index_of_refraction.copy(),
             field_mask=self.field_mask.copy(),
             vignetted_mask=self.vignetted_mask.copy(),
@@ -196,6 +198,7 @@ class Rays:
             direction=self.direction.copy(),
             surface_normal=self.surface_normal.copy(),
             polarization=self.polarization.copy(),
+            propagation_signum=self.propagation_signum,
             index_of_refraction=self.index_of_refraction.copy(),
             input_grids=self.input_grids.copy(),
             field_mask=self.field_mask.copy(),

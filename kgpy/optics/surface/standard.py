@@ -113,7 +113,8 @@ class Standard(
         mask = (x2 + y2) >= np.square(self.radius)
         dzdx[mask] = 0
         dzdy[mask] = 0
-        return kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
+        n = kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
+        return n
 
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
 
@@ -124,10 +125,10 @@ class Standard(
             n1 = rays.index_of_refraction
             if self.material is not None:
                 n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
-                p = self.material.propagation_signum
+                p = rays.propagation_signum * self.material.propagation_signum
             else:
                 n2 = 1 << u.dimensionless_unscaled
-                p = 1.
+                p = rays.propagation_signum
 
             a = rays.direction
             r = n1 / n2
@@ -143,6 +144,7 @@ class Standard(
                 if self.aperture.is_active:
                     rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
             rays.index_of_refraction[...] = n2
+            rays.propagation_signum = p
 
         if not is_final_surface:
             rays = rays.copy()

@@ -50,7 +50,12 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             rays.position = self.calc_intercept(rays)
 
             n1 = rays.index_of_refraction
-            n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
+            if self.material is not None:
+                n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
+                p = rays.propagation_signum * self.material.propagation_signum
+            else:
+                n2 = 1 << u.dimensionless_unscaled
+                p = rays.propagation_signum
 
             a = n1 * rays.direction / n2
             a += self.diffraction_order * rays.wavelength * self.groove_normal(rays.position[x], rays.position[y])
@@ -60,7 +65,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             n = self.normal(rays.position[x], rays.position[y])
             c = -kgpy.vector.dot(a, n)
 
-            p = -self.material.propagation_signum
+            # p = -self.material.propagation_signum
 
             b = r * a + (r * c - p * np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
 
@@ -70,6 +75,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
                 if self.aperture.is_active:
                     rays.vignetted_mask &= self.aperture.is_unvignetted(rays.position)
             rays.index_of_refraction[...] = n2
+            rays.propagation_signum = p
 
         if not is_final_surface:
             rays = rays.copy()

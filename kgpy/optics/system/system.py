@@ -33,6 +33,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     stop_surface: typ.Optional[surface.Standard] = None
     wavelengths: typ.Optional[u.Quantity] = None
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
+    pupil_margin: u.Quantity = 1 * u.um
     field_min: typ.Optional[u.Quantity] = None
     field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
@@ -109,12 +110,22 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     @property
     def pupil_x(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return kgpy.linspace(aper.min[x], aper.max[x], self.pupil_samples_normalized[ix], axis=~0)
+        return kgpy.linspace(
+            start=aper.min[x] + self.pupil_margin,
+            stop=aper.max[x] - self.pupil_margin,
+            num=self.pupil_samples_normalized[ix],
+            axis=~0,
+        )
 
     @property
     def pupil_y(self) -> u.Quantity:
         aper = self.stop_surface.aperture
-        return kgpy.linspace(aper.min[y], aper.max[y], self.pupil_samples_normalized[iy], axis=~0)
+        return kgpy.linspace(
+            start=aper.min[y] + self.pupil_margin,
+            stop=aper.max[y] - self.pupil_margin,
+            num=self.pupil_samples_normalized[iy],
+            axis=~0,
+        )
 
     @property
     def _input_rays(self):
@@ -126,15 +137,15 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             position_guess = kgpy.vector.from_components(use_z=False) << u.mm
 
+            margin = self.pupil_margin
             step_size = 1 * u.nm
             step = step_size * x_hat + step_size * y_hat
 
             for surf in self.test_stop_surfaces:
-                print(surf)
                 aper = surf.aperture
                 amin, amax = aper.min, aper.max
-                px = kgpy.linspace(amin[x], amax[x], self.pupil_samples_normalized[ix], axis=~0)
-                py = kgpy.linspace(amin[y], amax[y], self.pupil_samples_normalized[iy], axis=~0)
+                px = kgpy.linspace(amin[x] + margin, amax[x] - margin, self.pupil_samples_normalized[ix], axis=~0)
+                py = kgpy.linspace(amin[y] + margin, amax[y] - margin, self.pupil_samples_normalized[iy], axis=~0)
                 target_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
@@ -207,7 +218,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     @property
     def image_rays(self) -> Rays:
         return self.all_rays[~0]
-        # return self.raytrace_subsystem(self.input_rays)
 
     @property
     def _all_rays(self) -> typ.List[Rays]:
@@ -346,11 +356,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
 
         for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
-
-            print(intercept_c.shape)
-            print(mask_c.shape)
-            print(color.shape)
-            print()
 
             ax.plot(
                 intercept_c[:, mask_c, components[0]],

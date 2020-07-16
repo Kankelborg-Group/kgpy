@@ -47,7 +47,8 @@ def secant(
         x2 = x1 - kgpy.vector.matmul(inv_jac, f1)
 
         x1 = np.broadcast_to(x1, x2.shape, subok=True)
-        x2[~mask, :] = x1[~mask]
+        mask = np.broadcast_to(mask, x2[..., 0].shape)
+        x2[~mask, :] = x1[~mask, :]
 
         x0 = x1
         x1 = x2
