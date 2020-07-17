@@ -14,6 +14,7 @@ class RegularPolygon(Polygon):
 
     radius: u.Quantity = 0 * u.mm
     num_sides: int = 8
+    offset_angle: u.Quantity = 0 * u.deg
 
     def to_zemax(self) -> 'RegularPolygon':
         raise NotImplementedError
@@ -25,8 +26,7 @@ class RegularPolygon(Polygon):
             self.radius,
         )
 
-
     @property
     def vertices(self) -> u.Quantity:
-        angles = np.linspace(0, 360, self.num_sides, endpoint=False) << u.deg
+        angles = np.linspace(self.offset_angle, 360 * u.deg + self.offset_angle, self.num_sides, endpoint=False)
         return kgpy.vector.from_components_cylindrical(self.radius, angles)

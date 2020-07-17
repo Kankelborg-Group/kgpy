@@ -257,8 +257,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             surf = self.image_surface
 
         fig, ax = plt.subplots()
+        rays = self.all_rays[list(self).index(surf)]
 
-        rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
+        # rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
 
         rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
