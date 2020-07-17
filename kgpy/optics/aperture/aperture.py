@@ -15,7 +15,7 @@ __all__ = ['Aperture']
 
 @dataclasses.dataclass
 class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
-    num_samples: int = 100
+    num_samples: int = 1000
     is_active: bool = True
     is_test_stop: bool = True
 
