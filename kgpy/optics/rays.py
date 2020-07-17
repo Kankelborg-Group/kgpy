@@ -327,7 +327,8 @@ class Rays:
             ncols=self.grid_shape[self.axis.field_y],
             sharex='all',
             sharey='all',
-            figsize=(9, 7)
+            figsize=(9, 7),
+            squeeze=False,
         )
 
         for i, axs_i in enumerate(axs):
