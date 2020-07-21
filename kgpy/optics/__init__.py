@@ -1,4 +1,5 @@
 from .zemax_compatible import ZemaxCompatible
+from .occ_compatible import OCC_Compatible
 from . import coordinate
 from .rays import Rays
 from .material import Material

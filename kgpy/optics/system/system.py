@@ -8,6 +8,7 @@ import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
 import matplotlib.colors
+import OCC.Core.TopoDS
 import kgpy.mixin
 import kgpy.vector
 import kgpy.linspace
@@ -42,23 +43,99 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def __post_init__(self):
         self.update()
 
+    def to_zemax(self) -> 'System':
+        from kgpy.optics import zemax
+        return zemax.System(
+            name=self.name,
+            surfaces=self.surfaces.to_zemax(),
+        )
+
+    def to_occ(self) -> typ.List[OCC.Core.TopoDS.TopoDS_Shape]:
+
+        occ_unit = u.mm
+
+        from OCC.Core import gp, Geom, BRepBuilderAPI
+
+        occ_shapes = []
+
+        for surf in self.aperture_surfaces:
+
+            # wire = surf.transform_to_global(surf.aperture.wire, self, num_extra_dims=1)
+            wire = surf.aperture.global_wire(self, surf)
+            for c, wire_c in enumerate(wire):
+                occ_poly = OCC.Core.BRepBuilderAPI.BRepBuilderAPI_MakePolygon()
+                for point in wire_c:
+                    occ_point = OCC.Core.gp.gp_Pnt(*point.to(occ_unit).value)
+                    occ_poly.Add(occ_point)
+                occ_poly.Close()
+                occ_wire = occ_poly.Wire()
+                occ_shapes.append(occ_wire)
+
+
+
+                if surf.is_plane:
+                    length = 1 * occ_unit
+                    point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
+                    point_1 = surf.transform_to_global(kgpy.vector.from_components(az=length), self)[c]
+                    normal = (point_1 - point_0) / length
+                    occ_point_0 = gp.gp_Pnt(*point_0.value)
+                    occ_normal = gp.gp_Dir(*normal.value)
+                    occ_ax3 = gp.gp_Ax3(occ_point_0, occ_normal)
+                    occ_surf = Geom.Geom_Plane(occ_ax3)
+                    occ_face = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf, occ_wire).Shape()
+                    occ_shapes.append(occ_face)
+
+                elif surf.is_sphere:
+                    print(surf)
+                    point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
+                    point_1 = surf.transform_to_global(kgpy.vector.from_components(ax=surf.radius), self)[c]
+                    point_2 = surf.transform_to_global(kgpy.vector.from_components(ay=surf.radius), self)[c]
+                    point_3 = surf.transform_to_global(kgpy.vector.from_components(az=surf.radius), self)[c]
+                    xhat = (point_1 - point_0) / surf.radius
+                    yhat = (point_2 - point_0) / surf.radius
+                    zhat = (point_3 - point_0) / surf.radius
+                    occ_point_3 = gp.gp_Pnt(*point_3.to(occ_unit).value)
+                    occ_xhat = gp.gp_Dir(*xhat.value)
+                    occ_yhat = gp.gp_Dir(*yhat.value)
+                    occ_zhat = gp.gp_Dir(*zhat.value)
+                    occ_ax2 = gp.gp_Ax2(occ_point_3, occ_xhat, occ_zhat)
+                    occ_curve = Geom.Geom_Circle(occ_ax2, surf.radius.to(occ_unit).value)
+                    occ_curve = Geom.Geom_TrimmedCurve(occ_curve, np.pi, 5 * np.pi/4,)
+                    rev_ax = gp.gp_Ax1(occ_point_3, occ_zhat)
+                    occ_surf = Geom.Geom_SurfaceOfRevolution(occ_curve, rev_ax)
+                    occ_face = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf, occ_wire).Shape()
+                    # occ_surf = Geom.Geom_SphericalSurface(occ_ax3, surf.radius.to(occ_unit).value)
+                    # occ_surf = Geom.Geom_RectangularTrimmedSurface(occ_surf, -np.pi / 2, -np.pi/4, False)
+                    occ_shapes.append(occ_face)
+
+
+
+
+        return occ_shapes
+
     def update(self) -> typ.NoReturn:
-        self.input_rays = self._input_rays
-        self.all_rays = self._all_rays
+        self._input_rays = None
+        self._all_rays = None
 
     @property
     def standard_surfaces(self) -> typ.Iterator[surface.Standard]:
         for s in self.surfaces:
             if isinstance(s, surface.Standard):
-                yield s
+                if s.is_active:
+                    yield s
 
     @property
-    def test_stop_surfaces(self) -> typ.Iterator[surface.Standard]:
+    def aperture_surfaces(self) -> typ.Iterator[surface.Standard]:
         for s in self.standard_surfaces:
             if s.aperture is not None:
                 if s.aperture.is_active:
-                    if s.aperture.is_test_stop:
-                        yield s
+                    yield s
+
+    @property
+    def test_stop_surfaces(self) -> typ.Iterator[surface.Standard]:
+        for s in self.aperture_surfaces:
+            if s.aperture.is_test_stop:
+                yield s
 
     @staticmethod
     def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
@@ -78,13 +155,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def image_surface(self) -> surface.Surface:
         s = list(self)
         return s[~0]
-
-    def to_zemax(self) -> 'System':
-        from kgpy.optics import zemax
-        return zemax.System(
-            name=self.name,
-            surfaces=self.surfaces.to_zemax(),
-        )
 
     @property
     def config_broadcast(self):
@@ -128,7 +198,18 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         )
 
     @property
-    def _input_rays(self):
+    def input_rays(self):
+        if self._input_rays is None:
+            self._input_rays = self._calc_input_rays()
+        return self._input_rays
+
+    @property
+    def all_rays(self):
+        if self._all_rays in None:
+            self._all_rays = self._calc_all_rays()
+        return self._all_rays
+
+    def _calc_input_rays(self):
 
         x_hat = np.array([1, 0])
         y_hat = np.array([0, 1])
@@ -219,8 +300,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def image_rays(self) -> Rays:
         return self.all_rays[~0]
 
-    @property
-    def _all_rays(self) -> typ.List[Rays]:
+    def _calc_all_rays(self) -> typ.List[Rays]:
 
         rays = [self.input_rays]
 
@@ -431,3 +511,16 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                             ax.plot(x_, y_, z_, 'k')
                             ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
                                     u.Quantity([z_[-1], z_[0]]), 'k')
+
+    def plot_occ(self):
+
+        import OCC.Display.SimpleGui
+
+        display, start_display, add_menu, add_function_to_menu = OCC.Display.SimpleGui.init_display()
+
+        occ_shapes = self.to_occ()
+
+        for shape in occ_shapes:
+            display.DisplayShape(shape)
+
+        start_display()

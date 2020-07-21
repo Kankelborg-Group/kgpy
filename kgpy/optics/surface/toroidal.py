@@ -36,6 +36,14 @@ class Toroidal(Standard[MaterialT, ApertureT]):
             self.radius_of_rotation,
         )
 
+    @property
+    def is_plane(self) -> np.ndarray:
+        return np.isinf(self.radius) & np.isinf(self.radius_of_rotation)
+
+    @property
+    def is_sphere(self) -> np.ndarray:
+        return (self.conic == 0) & (self.radius == self.radius_of_rotation)
+
     def sag(self, ax: u.Quantity, ay: u.Quantity) -> u.Quantity:
         x2 = np.square(ax)
         y2 = np.square(ay)

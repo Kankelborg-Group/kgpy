@@ -44,13 +44,13 @@ class Rectangular(polygon.Polygon):
         else:
             return ~is_inside
 
-    # @property
-    # def min(self) -> u.Quantity:
-    #     return -self.max
-    #
-    # @property
-    # def max(self) -> u.Quantity:
-    #     return kgpy.vector.from_components(self.half_width_x, self.half_width_y)
+    @property
+    def min(self) -> u.Quantity:
+        return -self.max
+
+    @property
+    def max(self) -> u.Quantity:
+        return kgpy.vector.from_components(self.half_width_x, self.half_width_y)
 
     @property
     def vertices(self) -> u.Quantity:

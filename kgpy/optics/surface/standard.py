@@ -46,6 +46,9 @@ class Standard(
         from kgpy.optics import zemax
         return zemax.system.surface.Standard(**self.__init__args)
 
+    def to_occ(self):
+        pass
+
     @property
     def config_broadcast(self):
         out = np.broadcast(
@@ -63,7 +66,7 @@ class Standard(
 
     @property
     def is_plane(self):
-        return self.radius == np.inf
+        return np.isinf(self.radius)
 
     @property
     def is_hyperbola(self) -> np.ndarray:
