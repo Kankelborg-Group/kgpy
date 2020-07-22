@@ -2,6 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors
 import astropy.units as u
 import astropy.visualization
 import kgpy.vector
@@ -310,6 +311,7 @@ class Rays:
             limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
+            norm: typ.Optional[matplotlib.colors.Normalize] = None,
     ) -> plt.Figure:
 
         field_x = self.input_grids[self.axis.field_x]
@@ -348,6 +350,7 @@ class Rays:
                     origin='lower',
                     vmin=hist[config_index, wavlen_index].min(),
                     vmax=hist[config_index, wavlen_index].max(),
+                    norm=norm,
                 )
                 if i == 0:
                     axs_ij.set_xlabel('{0.value:0.2f} {0.unit:latex}'.format(field_x[j]))

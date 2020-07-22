@@ -206,7 +206,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def all_rays(self):
-        if self._all_rays in None:
+        if self._all_rays is None:
             self._all_rays = self._calc_all_rays()
         return self._all_rays
 
