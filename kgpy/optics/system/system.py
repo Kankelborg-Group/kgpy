@@ -329,23 +329,26 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def plot_footprint(
             self,
+            ax: typ.Optional[plt.Axes] = None,
             surf: typ.Optional[surface.Standard] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_apertures: bool = True,
             plot_vignetted: bool = False,
-    ):
+    ) -> plt.Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+
         if surf is None:
             surf = self.image_surface
 
-        fig, ax = plt.subplots()
         rays = self.all_rays[list(self).index(surf)]
-
-        # rays = self.raytrace_subsystem(self.input_rays, final_surface=surf)
 
         rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
         if plot_apertures:
             surf.plot_2d(ax)
+
+        return ax
 
     def plot_projections(
             self,
@@ -353,7 +356,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             end_surface: typ.Optional[surface.Surface] = None,
             color_axis: int = 0,
             plot_vignetted: bool = False,
-    ):
+    ) -> plt.Figure:
         fig, axs = plt.subplots(2, 2, sharex='col', sharey='row')
 
         xy = 0, 0
@@ -381,6 +384,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         handles, labels = axs[xy].get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
         fig.legend(label_dict.values(), label_dict.keys())
+
+        return fig
 
     def plot_2d(
             self,
