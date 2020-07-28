@@ -209,8 +209,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def _calc_input_rays(self):
 
-        print('calc input rays')
-
         x_hat = np.array([1, 0])
         y_hat = np.array([0, 1])
 
@@ -299,10 +297,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def _calc_all_rays(self) -> typ.List[Rays]:
 
-
         rays = [self.input_rays]
 
-        print('calc all rays')
         surfaces = list(self)
         for s1, s2 in zip(surfaces[:~0], surfaces[1:]):
             rays.append(self.raytrace_subsystem(rays[~0], s1, s2))

@@ -118,8 +118,6 @@ class Standard(
 
         rays = rays.copy()
 
-        print(self)
-
         if not is_first_surface:
             if self.transform_before is not None:
                 rays = rays.tilt_decenter(~self.transform_before)
