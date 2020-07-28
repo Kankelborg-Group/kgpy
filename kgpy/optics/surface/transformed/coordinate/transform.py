@@ -58,7 +58,6 @@ class Transform(base_coordinate.Transform, Base):
         value._composite = self
         self._translate = value
 
-
     @property
     def tilt_first(self) -> bool:
         return self._tilt_first

@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import typing as typ
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
@@ -46,6 +47,12 @@ class Surface(
             self.thickness,
             self.is_active,
         )
+
+
+    def index(self, surfaces: typ.Iterable['Surface']) -> int:
+        for s, surf in enumerate(surfaces):
+            if surf is self:
+                return s
 
     @property
     def thickness_vector(self):
@@ -93,6 +100,8 @@ class Surface(
         while True:
 
             if i > max_iterations:
+                # warnings.warn('Number of iterations exceeded')
+                # break
                 raise ValueError('Number of iterations exceeded')
 
             a0 = intercept + rays.direction * t0

@@ -26,8 +26,8 @@ class Standard(
     conic: float = 0
     material: MaterialT = None
     aperture: ApertureT = None
-    transform_before: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
-    transform_after: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
+    transform_before: typ.Optional[coordinate.TiltDecenter] = None
+    transform_after: typ.Optional[coordinate.TiltDecenter] = None
 
     @property
     def __init__args(self) -> typ.Dict[str, typ.Any]:
@@ -116,8 +116,13 @@ class Standard(
 
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
 
+        rays = rays.copy()
+
+        print(self)
+
         if not is_first_surface:
-            rays = rays.tilt_decenter(~self.transform_before)
+            if self.transform_before is not None:
+                rays = rays.tilt_decenter(~self.transform_before)
             rays.position = self.calc_intercept(rays)
 
             n1 = rays.index_of_refraction
@@ -145,17 +150,20 @@ class Standard(
             rays.propagation_signum = p
 
         if not is_final_surface:
-            rays = rays.copy()
             rays.position[z] -= self.thickness
-            rays = rays.tilt_decenter(~self.transform_after)
+            if self.transform_after is not None:
+                rays = rays.tilt_decenter(~self.transform_after)
 
         return rays
 
     def apply_pre_transforms(self, value: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        return self.transform_before(value, num_extra_dims=num_extra_dims)
+        if self.transform_before is not None:
+            value = self.transform_before(value, num_extra_dims=num_extra_dims)
+        return value
 
     def apply_post_transforms(self, value: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        value = self.transform_after(value, num_extra_dims=num_extra_dims)
+        if self.transform_after is not None:
+            value = self.transform_after(value, num_extra_dims=num_extra_dims)
         value[kgpy.vector.z] += self.thickness
         return value
 

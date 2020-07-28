@@ -125,30 +125,6 @@ class Rays:
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
-    # @classmethod
-    # def zeros(cls, shape: typ.Tuple[int, ...] = ()):
-    #     vsh = shape + (3, )
-    #     ssh = shape + (1, )
-    #
-    #     direction = np.zeros(vsh) << u.dimensionless_unscaled
-    #     polarization = np.zeros(vsh) << u.dimensionless_unscaled
-    #     normal = np.zeros(vsh) << u.dimensionless_unscaled
-    #
-    #     direction[kgpy.vector.z] = 1
-    #     polarization[kgpy.vector.x] = 1
-    #     normal[kgpy.vector.z] = 1
-    #
-    #     return cls(
-    #         wavelength=np.zeros(ssh) << u.nm,
-    #         position=np.zeros(vsh) << u.mm,
-    #         direction=direction,
-    #         polarization=polarization,
-    #         surface_normal=normal,
-    #         index_of_refraction=np.ones(ssh) << u.dimensionless_unscaled,
-    #         vignetted_mask=np.ones(shape, dtype=np.bool),
-    #         error_mask=np.ones(shape, dtype=np.bool),
-    #     )
-
     def tilt_decenter(self, transform: coordinate.TiltDecenter) -> 'Rays':
         return type(self)(
             wavelength=self.wavelength.copy(),

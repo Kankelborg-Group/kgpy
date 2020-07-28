@@ -16,7 +16,7 @@ ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
 @dataclasses.dataclass
 class DiffractionGrating(Standard[MaterialT, ApertureT]):
 
-    diffraction_order: int = 1
+    diffraction_order: u.Quantity = 1 * u.dimensionless_unscaled
     groove_density: u.Quantity = 0 * (1 / u.mm)
 
     @property
@@ -46,7 +46,8 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
 
         if not is_first_surface:
-            rays = rays.tilt_decenter(~self.transform_before)
+            if self.transform_before is not None:
+                rays = rays.tilt_decenter(~self.transform_before)
             rays.position = self.calc_intercept(rays)
 
             n1 = rays.index_of_refraction
@@ -80,7 +81,8 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
         if not is_final_surface:
             rays = rays.copy()
             rays.position[z] -= self.thickness
-            rays = rays.tilt_decenter(~self.transform_after)
+            if self.transform_after is not None:
+                rays = rays.tilt_decenter(~self.transform_after)
 
         return rays
 

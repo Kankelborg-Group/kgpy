@@ -109,9 +109,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                     # occ_surf = Geom.Geom_RectangularTrimmedSurface(occ_surf, -np.pi / 2, -np.pi/4, False)
                     occ_shapes.append(occ_face)
 
-
-
-
         return occ_shapes
 
     def update(self) -> typ.NoReturn:
@@ -212,6 +209,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def _calc_input_rays(self):
 
+        print('calc input rays')
+
         x_hat = np.array([1, 0])
         y_hat = np.array([0, 1])
 
@@ -271,29 +270,26 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def raytrace_subsystem(
             self,
             rays: Rays,
-            start_surface: typ.Optional[surface.Surface] = None,
-            final_surface: typ.Optional[surface.Surface] = None,
+            start_surface: typ.Optional[surface.Standard] = None,
+            final_surface: typ.Optional[surface.Standard] = None,
     ) -> Rays:
 
         surfaces = list(self)
 
         if start_surface is None:
-            start_surface = surfaces[0]
+            start_surface_index = 0
+        else:
+            start_surface_index = surfaces.index(start_surface)
 
         if final_surface is None:
-            final_surface = surfaces[~0]
+            final_surface_index = len(surfaces) - 1
+        else:
+            final_surface_index = surfaces.index(final_surface)
 
-        start_surface_index = surfaces.index(start_surface)
-        final_surface_index = surfaces.index(final_surface)
-
-        for s in range(start_surface_index, final_surface_index + 1):
-            surf = surfaces[s]
-            if s == start_surface_index:
-                rays = surf.propagate_rays(rays, is_first_surface=True)
-            elif s == final_surface_index:
-                rays = surf.propagate_rays(rays, is_final_surface=True)
-            else:
-                rays = surf.propagate_rays(rays)
+        rays = surfaces[start_surface_index].propagate_rays(rays, is_first_surface=True)
+        for s in range(start_surface_index + 1, final_surface_index):
+            rays = surfaces[s].propagate_rays(rays)
+        rays = surfaces[final_surface_index].propagate_rays(rays, is_final_surface=True)
 
         return rays
 
@@ -303,13 +299,13 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def _calc_all_rays(self) -> typ.List[Rays]:
 
+
         rays = [self.input_rays]
 
-        old_surf = self.object_surface
-
-        for surf in self.surfaces:
-            rays.append(self.raytrace_subsystem(rays[~0], old_surf, surf))
-            old_surf = surf
+        print('calc all rays')
+        surfaces = list(self)
+        for s1, s2 in zip(surfaces[:~0], surfaces[1:]):
+            rays.append(self.raytrace_subsystem(rays[~0], s1, s2))
 
         return rays
 
@@ -326,6 +322,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             use_vignetted=use_vignetted,
             relative_to_centroid=relative_to_centroid,
         )
+
+    def print_surfaces(self) -> typ.NoReturn:
+        for surf in self:
+            print(surf)
 
     def plot_footprint(
             self,
@@ -411,7 +411,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         end_surface_index = surfaces.index(end_surface)
 
         intercepts = []
-        i = slice(start_surface_index, end_surface_index)
+        i = slice(start_surface_index, end_surface_index + 1)
         all_rays = self.all_rays
         for surf, rays in zip(surfaces[i], all_rays[i]):
             surf.plot_2d(ax, components, self)

@@ -44,3 +44,9 @@ class Decenter(kgpy.mixin.Broadcastable):
             value[..., 1] -= y
         return value
 
+    def copy(self):
+        return Decenter(
+            x=self.x,
+            y=self.y,
+        )
+
