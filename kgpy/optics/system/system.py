@@ -334,6 +334,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if ax is None:
             _, ax = plt.subplots()
 
+        ax.invert_xaxis()
+
         if surf is None:
             surf = self.image_surface
 
@@ -349,7 +351,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def plot_projections(
             self,
             start_surface: typ.Optional[surface.Surface] = None,
-            end_surface: typ.Optional[surface.Surface] = None,
+            final_surface: typ.Optional[surface.Surface] = None,
             color_axis: int = 0,
             plot_vignetted: bool = False,
     ) -> plt.Figure:
@@ -372,7 +374,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 ax=axs[ax_index],
                 components=plane,
                 start_surface=start_surface,
-                end_surface=end_surface,
+                final_surface=final_surface,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted
             )
@@ -388,7 +390,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
             start_surface: typ.Optional[surface.Surface] = None,
-            end_surface: typ.Optional[surface.Surface] = None,
+            final_surface: typ.Optional[surface.Surface] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
     ) -> plt.Axes:
@@ -400,11 +402,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if start_surface is None:
             start_surface = surfaces[0]
 
-        if end_surface is None:
-            end_surface = surfaces[~0]
+        if final_surface is None:
+            final_surface = surfaces[~0]
 
         start_surface_index = surfaces.index(start_surface)
-        end_surface_index = surfaces.index(end_surface)
+        end_surface_index = surfaces.index(final_surface)
 
         intercepts = []
         i = slice(start_surface_index, end_surface_index + 1)
@@ -446,6 +448,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 color=color,
                 label=label,
             )
+
+        ax.set_xlim(right=1.1 * ax.get_xlim()[1])
+        handles, labels = ax.get_legend_handles_labels()
+        label_dict = dict(zip(labels, handles))
+        ax.legend(label_dict.values(), label_dict.keys(), loc='upper_right')
 
         return ax
 

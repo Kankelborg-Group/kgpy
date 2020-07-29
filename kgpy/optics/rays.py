@@ -275,6 +275,7 @@ class Rays:
             ax.legend(
                 handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
                 labels=list(self.grid_labels(color_axis).flatten()),
+                loc='upper right',
             )
 
         return ax
@@ -305,7 +306,6 @@ class Rays:
             ncols=self.grid_shape[self.axis.field_y],
             sharex='all',
             sharey='all',
-            figsize=(9, 7),
             squeeze=False,
         )
 
