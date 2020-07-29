@@ -334,8 +334,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if ax is None:
             _, ax = plt.subplots()
 
-        ax.invert_xaxis()
-
         if surf is None:
             surf = self.image_surface
 
@@ -378,6 +376,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted
             )
+            axs[ax_index].get_legend().remove()
 
         handles, labels = axs[xy].get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
