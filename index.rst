@@ -3,7 +3,7 @@ Introduction
 
 .. toctree::
     :maxdepth: 2
-    :caption: Contents:
+    :caption: Packages
 
     kgpy/mixin.rst
 
