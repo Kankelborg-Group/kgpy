@@ -8,7 +8,7 @@ Welcome to the kgpy documentation
 kgpy is a repository for general-purpose libraries that do not fit within the normal Kankelborg Group repositories (that
 generally represent different instruments).
 
-.. automodule:: kgpy.Name
+.. autoclass:: kgpy.Name
    :members:
 
 Indices and tables
