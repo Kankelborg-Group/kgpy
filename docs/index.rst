@@ -11,8 +11,10 @@ generally represent different instruments).
 API Reference
 =============
 
-.. automodule:: kgpy
+.. autoclass:: kgpy.Name
    :members:
+
+kgpy/mixin.rst
 
 Indices and tables
 ==================
