@@ -1,3 +1,5 @@
 kgpy
 ====
 
+.. automodule:: kgpy
+    :members:

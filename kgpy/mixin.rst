@@ -1,5 +1,5 @@
-mixin
+kgpy.mixin
 #####
 
-.. autoclass:: kgpy.mixin.Broadcastable
+.. automodule:: kgpy.mixin
     :members:
