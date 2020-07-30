@@ -49,3 +49,9 @@
 
 # Pip
 *.egg-info/
+
+# Sphinx
+_build
+_static
+_templates
+
