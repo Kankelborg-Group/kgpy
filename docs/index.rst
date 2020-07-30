@@ -1,5 +1,5 @@
 Welcome to the kgpy documentation
-================================
+=================================
 
 .. toctree::
    :maxdepth: 2

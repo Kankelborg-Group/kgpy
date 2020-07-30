@@ -4,8 +4,13 @@ import typing as typ
 
 @dataclasses.dataclass
 class Name:
+    """
+    Representation of a hierarchical namespace.
+    Names are a composition of a parent, which is also a name, and a base which is a simple string.
+    The string representation of a name is <parent>.base, where <parent> is the parent's string expansion.
+    """
 
-    base: str = ''
+    base: str = ''  # Base of the name, this string will appear last in the string representation
     parent: 'typ.Optional[Name]' = None
 
     def copy(self):
