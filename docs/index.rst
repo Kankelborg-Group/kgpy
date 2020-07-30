@@ -6,7 +6,7 @@ Welcome to the kgpy documentation
    :caption: Contents:
 
 kgpy is a repository for general-purpose libraries that do not fit within the normal Kankelborg Group repositories (that
-generall represent different instruments).
+generally represent different instruments).
 
 .. automodule:: kgpy.Name
    :members:
