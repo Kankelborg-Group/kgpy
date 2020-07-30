@@ -7,15 +7,10 @@ Kankelborg Group repositories (that generally represent different instruments).
 .. autosummary::
     kgpy
     kgpy.mixin
+    kgpy.vector
+    kgpy.matrix
     kgpy.optics
 
-.. toctree::
-    :maxdepth: 2
-    :caption: Namespaces
-
-    kgpy/kgpy.rst
-    kgpy/mixin.rst
-    kgpy/optics/optics.rst
 
 
 Indices and tables

@@ -1,3 +1,7 @@
+"""
+Package for easier manipulation of vectors than the usual numpy functions.
+"""
+
 import typing as typ
 import numpy as np
 import astropy.units as u

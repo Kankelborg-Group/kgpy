@@ -1,5 +1,0 @@
-kgpy
-====
-
-.. automodule:: kgpy
-    :members:
