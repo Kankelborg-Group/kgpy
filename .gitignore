@@ -52,6 +52,5 @@
 
 # Sphinx
 _build
-_static
 _templates
 

@@ -3,5 +3,5 @@ version: 2
 conda:
   environment: environment.yml
 
-sphinx:
-  fail_on_warning: true
+#sphinx:
+#  fail_on_warning: true
