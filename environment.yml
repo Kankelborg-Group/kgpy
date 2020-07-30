@@ -10,3 +10,4 @@ dependencies:
   - astropy
   - shapely
   - pythonocc-core
+  - sphinx-autodoc-typehints
