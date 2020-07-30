@@ -27,10 +27,8 @@ jobs:
           conda-channels: anaconda, conda-forge
       - name: Install dependencies
         run: conda install conda-build flake8 pytest
-      - run: pwd
-      - run: ls
       - name: Install project
-        run: conda install .
+        run: conda install -p .
 
 #      - name: Lint with flake8
 #        run: |
