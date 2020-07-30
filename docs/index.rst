@@ -1,5 +1,5 @@
-Welcome to the kgpy documentation
-=================================
+Introduction
+============
 
 .. toctree::
    :maxdepth: 2
@@ -8,7 +8,10 @@ Welcome to the kgpy documentation
 kgpy is a repository for general-purpose libraries that do not fit within the normal Kankelborg Group repositories (that
 generally represent different instruments).
 
-.. autoclass:: kgpy.Name
+API Reference
+=============
+
+.. automodule:: kgpy
    :members:
 
 Indices and tables

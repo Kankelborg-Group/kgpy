@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'ESIS'
+project = 'kgpy'
 copyright = '2020, Roy T. Smart, Charles C. Kankelborg, Jacob D. Parker'
 author = 'Roy T. Smart, Charles C. Kankelborg, Jacob D. Parker'
 
