@@ -2,8 +2,10 @@ Introduction
 ============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
+    :caption: Contents:
+
+    kgpy/mixin.rst
 
 kgpy is a repository for general-purpose libraries that do not fit within the normal Kankelborg Group repositories (that
 generally represent different instruments).
@@ -12,9 +14,9 @@ API Reference
 =============
 
 .. autoclass:: kgpy.Name
-   :members:
+    :members:
 
-kgpy/mixin.rst
+
 
 Indices and tables
 ==================
