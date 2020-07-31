@@ -2,19 +2,21 @@ import numpy
 import matplotlib.pyplot as plt
 import os
 
+__all__ = ['CubeSlicer']
 
-class CubeSlicer(object):
-    def __init__(self, X, y=None, **kwargs):
+
+class CubeSlicer:
+    def __init__(self, cube, **kwargs):
         fig, ax = plt.subplots(1, 1)
         self.fig = fig
         self.ax = ax
         ax.set_title('use scroll wheel to navigate images')
 
-        self.X = X
-        self.sh = X.shape
+        self.cube = cube
+        self.sh = cube.shape
         self.ind = 0
 
-        self.im = ax.imshow(self.X[self.ind,], **kwargs)
+        self.im = ax.imshow(self.cube[self.ind], **kwargs)
         self.update()
 
         self.fig.canvas.mpl_connect('scroll_event', self.onscroll)
@@ -28,12 +30,12 @@ class CubeSlicer(object):
         self.update()
 
     def update(self):
-        self.im.set_data(self.X[self.ind,])
+        self.im.set_data(self.cube[self.ind,])
         self.ax.set_ylabel('slice %s' % self.ind)
         self.im.axes.figure.canvas.draw()
 
     def set_data(self, X):
-        self.X = X
+        self.cube = X
         self.ind = 0
         self.update()
 

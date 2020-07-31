@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
 
 __all__ = ['ImageSlicer']
@@ -13,6 +13,7 @@ class ImageSlicer:
         self.ax = ax
         ax.set_title('use scroll wheel to navigate images')
 
+        x, y = np.broadcast_arrays(x, y, subok=True)
         self.x = x
         self.y = y
         self.sh = x.shape
@@ -25,9 +26,9 @@ class ImageSlicer:
 
     def onscroll(self, event):
         if event.button == 'up':
-            self.ind = numpy.clip(self.ind + 1, 0, self.sh[0] - 1)
+            self.ind = np.clip(self.ind + 1, 0, self.sh[0] - 1)
         else:
-            self.ind = numpy.clip(self.ind - 1, 0, self.sh[0] - 1)
+            self.ind = np.clip(self.ind - 1, 0, self.sh[0] - 1)
         self.update()
 
     def update(self):
