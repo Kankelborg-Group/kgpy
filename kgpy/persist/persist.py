@@ -22,6 +22,7 @@ def persist(func: tp.Callable, pkg_filter_list: tp.Optional[tp.List] = None, ):
                                                  serialized=True, cached=True)
 
         for arg in args:
+            pass
 
             
 
