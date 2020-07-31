@@ -1,7 +1,7 @@
 from . import A, B
 
 
-class TestPackage:
+class ExamplePackage:
 
     def __init__(self):
 

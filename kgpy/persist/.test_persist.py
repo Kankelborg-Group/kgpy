@@ -2,14 +2,14 @@
 from pathlib import Path
 
 import kgpy
-from .test_package import TestPackage
+from .example_package import ExamplePackage
 from . import persist
 # from kgpy.optics import ZmxSystem/
 
 
 def test_persist():
 
-    f = persist.persist(TestPackage.f)
+    f = persist.persist(ExamplePackage.f)
 
     f(1, 2, a=3)
 
