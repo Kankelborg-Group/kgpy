@@ -2,6 +2,11 @@
 
 This library aims to contain general code that does not belong with a specific Kankelborg Group project.
 
+## Documentation
+
+The [documentation](https://kgpy.readthedocs.io/) is currently hosted by Read the Docs.
+It is automatically compiled every time a commit is pushed to `master`.
+
 ## Installation
 
 This project requires `conda` for all functionality.

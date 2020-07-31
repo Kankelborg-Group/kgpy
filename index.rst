@@ -6,6 +6,7 @@ Kankelborg Group repositories (that generally represent different instruments).
 
 .. autosummary::
     :toctree: Namespaces
+
     kgpy
     kgpy.mixin
     kgpy.vector
