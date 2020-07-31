@@ -5,7 +5,7 @@ kgpy (Kankelborg Group Python) is a repository for general-purpose libraries tha
 Kankelborg Group repositories (that generally represent different instruments).
 
 .. autosummary::
-    :tooctree Namespaces
+    :toctree: Namespaces
     kgpy
     kgpy.mixin
     kgpy.vector
