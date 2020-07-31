@@ -32,6 +32,7 @@ extensions = [
     'sphinx.ext.autosummary',
     # 'sphinx_autodoc_typehints',
 ]
+autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
 autodoc_default_options = ['members']
 
