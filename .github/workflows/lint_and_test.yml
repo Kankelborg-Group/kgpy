@@ -19,18 +19,24 @@ jobs:
     name: ${{ matrix.os}}, Python ${{ matrix.python-version }} lint and test
     steps:
       - uses: actions/checkout@v2
-      - name: Setup conda
-        uses: s-weigand/setup-conda@v1
+#      - name: Cache conda
+#        uses: actions/cache@v1
+#        env:
+#          # Increase this value to reset cache if etc/example-environment.yml has not changed
+#          CACHE_NUMBER: 0
+#        with:
+#          path: ~/conda_pkgs_dir
+#          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('etc/example-environment.yml') }}
+      - uses: goanpeca/setup-miniconda@v1
         with:
-          update-conda: true
+          activate-environment: github_env
+          environment-file: environment.yml
           python-version: ${{ matrix.python-version }}
-          conda-channels: anaconda, conda-forge
+          auto-activate-base: false
       - name: Install base dependencies
         run: conda install conda-build flake8 pytest
-      - name: Create conda environment
-        run: conda env create --name test_env --file environment.yml
       - name: Install project
-        run: conda develop --name test_env .
+        run: conda develop .
 #      - name: Lint with flake8
 #        run: |
 #          # stop the build if there are Python syntax errors or undefined names
@@ -38,6 +44,4 @@ jobs:
 #          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
 #          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - run: which pytest
-      - run: conda init bash
-      - run: conda activate test_env
       - run: pytest
