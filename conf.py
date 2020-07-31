@@ -30,7 +30,7 @@ author = 'Roy T. Smart, Charles C. Kankelborg, Jacob D. Parker, Nelson C. Goldsw
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
-    # 'sphinx_autodoc_typehints',
+    'sphinx_autodoc_typehints',
 ]
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 

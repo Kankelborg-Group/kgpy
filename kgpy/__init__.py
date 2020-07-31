@@ -1,5 +1,5 @@
 """
-kgpy base package
+kgpy root package
 """
 
 __all__ = ['linspace', 'midspace', 'Name', 'Component']
