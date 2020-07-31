@@ -10,7 +10,7 @@ if __name__ == '__main__':
     ny = nx
     nfreq = 64
 
-    img = powerspec.random_image(nx, ny, 0, 100, 1)
+    img = powerspec.random_image(nx, ny, 0, 100, 2)
     k, _, _, _, _ = powerspec.k_arr2d(nx, ny)
 
     spec_img = powerspec.powerspec2d(img, nfreq, retain_dc=False)
@@ -21,6 +21,6 @@ if __name__ == '__main__':
 
     # ToDo, convert this to histogram
 
-    plt.imshow(spec_rot - spec_img)
+    plt.imshow(spec_rot)
     plt.show()
 
