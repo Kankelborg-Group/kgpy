@@ -1,5 +1,5 @@
 """
-kgpy.optics is a package designed to help simulations of optical systems
+kgpy.optics is a package designed for simulating optical systems.
 """
 
 __all__ = ['ZemaxCompatible', 'OCC_Compatible', 'coordinate', 'Rays', 'Material', 'Aperture', 'Surface', 'System']
