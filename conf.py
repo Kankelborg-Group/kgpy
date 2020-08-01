@@ -34,7 +34,7 @@ extensions = [
 ]
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
-autodoc_default_options = ['members']
+# autodoc_default_options = ['members']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
