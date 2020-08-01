@@ -1,6 +1,6 @@
 # kgpy
 
-![kgpy](hhttps://github.com/Kankelborg-Group/kgpy/workflows/kgpy/badge.svg)
+![kgpy](https://github.com/Kankelborg-Group/kgpy/workflows/kgpy/badge.svg)
 
 This library aims to contain general code that does not belong with a specific Kankelborg Group project.
 
