@@ -105,7 +105,7 @@ class ImageTransform:
 
 
 
-def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func:'Function', kwargs = {}) -> float:
+def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func:'typ.Callable', kwargs = {}) -> float:
     """
     Apply a chosen transform to Image 1 and cross-correlate with Image 2 to check coalignment
     Designed as a merit function for scipy.optimize routines
