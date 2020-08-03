@@ -55,9 +55,11 @@ class Standard(
             super().config_broadcast,
             self.radius,
             self.conic,
-            self.transform_before.config_broadcast,
-            self.transform_after.config_broadcast,
         )
+        if self.transform_before is not None:
+            out = np.broadcast(out, self.transform_before.config_broadcast)
+        if self.transform_after is not None:
+            out = np.broadcast(out, self.transform_after.config_broadcast)
         if self.material is not None:
             out = np.broadcast(out, self.material.config_broadcast)
         if self.aperture is not None:
