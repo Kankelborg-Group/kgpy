@@ -15,7 +15,7 @@ import kgpy.linspace
 from kgpy.vector import x, y, z, ix, iy, iz, xy
 import kgpy.optimization.minimization
 import kgpy.optimization.root_finding
-from .. import ZemaxCompatible, Rays, material, surface, aperture
+from .. import ZemaxCompatible, Rays, material, surface, aperture, coordinate
 
 __all__ = ['System']
 
@@ -39,6 +39,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_mask_func: typ.Callable[[u.Quantity, u.Quantity], np.ndarray] = default_field_mask_func
+    baffle_positions: typ.Optional[typ.List[coordinate.Transform]] = None
 
     def __post_init__(self):
         self.update()
@@ -344,6 +345,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             use_vignetted=use_vignetted,
             relative_to_centroid=relative_to_centroid,
         )
+
+    def _calc_baffles(self, baffle_positions):
+
+        pass
 
     def print_surfaces(self) -> typ.NoReturn:
         for surf in self:
