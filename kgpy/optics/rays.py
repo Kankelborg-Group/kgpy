@@ -125,6 +125,10 @@ class Rays:
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
+    def plane_intersection(self, plane_position: u.Quantity, plane_normal: u.Quantity):
+
+        pass
+
     def tilt_decenter(self, transform: coordinate.TiltDecenter) -> 'Rays':
         return type(self)(
             wavelength=self.wavelength.copy(),
