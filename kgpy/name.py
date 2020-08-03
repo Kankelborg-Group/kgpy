@@ -16,9 +16,13 @@ class Name:
     parent: 'typ.Optional[Name]' = None     #: Parent string of the name, this itself also a name
 
     def copy(self):
+        if self.parent is not None:
+            parent = self.parent.copy()
+        else:
+            parent = self.parent
         return type(self)(
             base=self.base,
-            parent=self.parent.copy(),
+            parent=parent,
         )
 
     def __add__(self, other: str) -> 'Name':
