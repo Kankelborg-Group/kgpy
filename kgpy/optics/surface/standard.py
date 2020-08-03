@@ -84,7 +84,7 @@ class Standard(
 
     @property
     def is_sphere(self) -> np.ndarray:
-        return self.conic == 0
+        return (self.conic == 0) & ~np.isinf(self.radius)
 
     @property
     def is_oblate_ellisoid(self) -> np.ndarray:
