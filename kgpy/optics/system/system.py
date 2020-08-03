@@ -482,7 +482,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         ax.set_xlim(right=1.1 * ax.get_xlim()[1])
         handles, labels = ax.get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
-        ax.legend(label_dict.values(), label_dict.keys(), loc='upper_right')
+        ax.legend(label_dict.values(), label_dict.keys(), loc='upper right')
 
         return ax
 
