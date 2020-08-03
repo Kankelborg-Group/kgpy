@@ -46,9 +46,11 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
             self,
             system: typ.Optional['kgpy.optics.System'] = None,
             surface: typ.Optional['kgpy.optics.Surface'] = None,
+            apply_sag: bool = True
     ):
         wire = self.wire
-        wire[kgpy.vector.z] = surface.sag(wire[kgpy.vector.x], wire[kgpy.vector.y])
+        if apply_sag:
+            wire[kgpy.vector.z] = surface.sag(wire[kgpy.vector.x], wire[kgpy.vector.y])
         wire = surface.transform_to_global(wire, system, num_extra_dims=1)
         return wire
 
