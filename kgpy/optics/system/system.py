@@ -236,16 +236,13 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def _calc_input_rays(self):
 
-        x_hat = np.array([1, 0])
-        y_hat = np.array([0, 1])
-
         if np.isinf(self.object_surface.thickness).all():
 
             position_guess = kgpy.vector.from_components(use_z=False) << u.mm
 
             margin = self.pupil_margin
             step_size = 1 * u.nm
-            step = step_size * x_hat + step_size * y_hat
+            step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
                 aper = surf.aperture
@@ -290,7 +287,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             )
 
         else:
+
             raise NotImplementedError
+
+            direction_guess = kgpy.vector.from_components(use_z=False) << u.deg
+
+
 
     def raytrace_subsystem(
             self,
