@@ -1,6 +1,8 @@
 import dataclasses
 import typing as typ
 
+__all__ = ['Name']
+
 
 @dataclasses.dataclass
 class Name:

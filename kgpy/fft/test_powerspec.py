@@ -3,7 +3,9 @@ import scipy.ndimage
 import matplotlib.pyplot as plt
 import matplotlib
 
-from kgpy.fft import powerspec
+import kgpy.fft.freq
+import kgpy.fft.power
+from kgpy.fft import random
 
 if __name__ == '__main__':
     angle = 22

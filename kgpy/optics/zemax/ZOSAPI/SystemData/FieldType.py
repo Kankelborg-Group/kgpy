@@ -1,7 +1,7 @@
 
 from win32com.client import constants
 
-__all__ = ['']
+__all__ = ['FieldType']
 
 class FieldTypeBase:
     
