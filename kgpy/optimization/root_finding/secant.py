@@ -36,8 +36,9 @@ def secant(
         for component_index in range(dx.shape[~0]):
             c = ..., slice(component_index, component_index + 1)
             x0_c, x1_c = x1.copy(), x1.copy()
-            x0_c[c], x1_c[c] = x1[c] - 1 * u.nm, x1[c] + 1 * u.nm
-            j1.append((func(x1_c) - func(x0_c)) / (2 * u.nm))
+            x0_c[c], x1_c[c] = x1[c] - step_size[c], x1[c] + step_size[c]
+            j1.append((func(x1_c) - func(x0_c)) / (2 * step_size[c]))
+
         jac = np.stack(j1, axis=~0)
         inv_jac = np.zeros_like(jac)
         det = np.linalg.det(jac)
