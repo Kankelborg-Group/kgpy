@@ -2,6 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
+import kgpy.vector
 from .. import Rays
 from . import Surface
 
@@ -25,7 +26,7 @@ class ObjectSurface(Surface):
             raise ValueError('Object surface must not be last surface')
 
         if np.isfinite(self.thickness):
-            rays.pz -= self.thickness
+            rays.position[kgpy.vector.z] = rays.position[kgpy.vector.z] - self.thickness
 
         return rays
 
