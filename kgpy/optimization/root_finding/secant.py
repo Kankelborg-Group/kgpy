@@ -40,7 +40,7 @@ def secant(
             j1.append((func(x1_c) - func(x0_c)) / (2 * step_size[c]))
 
         jac = np.stack(j1, axis=~0)
-        inv_jac = np.zeros_like(jac)
+        inv_jac = np.zeros(jac.shape) << 1 / jac.unit
         det = np.linalg.det(jac)
         singular = det == 0
         inv_jac[~singular, :, :] = np.linalg.inv(jac[~singular, :, :])
