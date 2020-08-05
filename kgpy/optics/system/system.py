@@ -40,6 +40,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_mask_func: typ.Callable[[u.Quantity, u.Quantity], np.ndarray] = default_field_mask_func
     baffle_positions: typ.Optional[typ.List[coordinate.Transform]] = None
+    propagate_forward: bool = True
 
     def __post_init__(self):
         self.update()
@@ -202,9 +203,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def field_y(self) -> u.Quantity:
         return kgpy.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
 
-    @property
-    def pupil_x(self) -> u.Quantity:
-        aper = self.stop_surface.aperture
+    def pupil_x(self, surf: surface.Standard) -> u.Quantity:
+        aper = surf.aperture
         return kgpy.linspace(
             start=aper.min[x] + self.pupil_margin,
             stop=aper.max[x] - self.pupil_margin,
@@ -212,9 +212,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             axis=~0,
         )
 
-    @property
-    def pupil_y(self) -> u.Quantity:
-        aper = self.stop_surface.aperture
+    def pupil_y(self, surf: surface.Standard) -> u.Quantity:
+        aper = surf.aperture
         return kgpy.linspace(
             start=aper.min[y] + self.pupil_margin,
             stop=aper.max[y] - self.pupil_margin,
@@ -240,16 +239,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             position_guess = kgpy.vector.from_components(use_z=False) << u.mm
 
-            margin = self.pupil_margin
             step_size = 1 * u.nm
             step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
-                aper = surf.aperture
-                amin, amax = aper.min, aper.max
-                px = kgpy.linspace(amin[x] + margin, amax[x] - margin, self.pupil_samples_normalized[ix], axis=~0)
-                py = kgpy.linspace(amin[y] + margin, amax[y] - margin, self.pupil_samples_normalized[iy], axis=~0)
-                target_position = kgpy.vector.from_components(np.expand_dims(px, ~0), py)
+                px, py = self.pupil_x(surf), self.pupil_y(surf)
+                target_position = kgpy.vector.from_components(px[..., None], py)
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
                     position = kgpy.vector.to_3d(pos)
@@ -262,6 +257,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
+                    if not self.propagate_forward:
+                        rays.propagation_signum = -1
                     rays = self.raytrace_subsystem(rays, final_surface=surf)
                     return (rays.position - target_position)[xy]
 
@@ -276,7 +273,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 if surf == self.stop_surface:
                     break
 
-            return Rays.from_field_angles(
+            input_rays = Rays.from_field_angles(
                 wavelength_grid=self.wavelengths,
                 position=kgpy.vector.to_3d(position_guess),
                 field_grid_x=self.field_x,
@@ -288,11 +285,62 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         else:
 
-            raise NotImplementedError
-
             direction_guess = kgpy.vector.from_components(use_z=False) << u.deg
 
+            step_size = 1e-12 * u.deg
+            step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
 
+            for surf in self.test_stop_surfaces:
+                px, py = self.pupil_x(surf), self.pupil_y(surf)
+                target_position = kgpy.vector.from_components(px[..., None], py)
+
+                def position_error(direc: u.Quantity) -> u.Quantity:
+                    direction = np.zeros(target_position.shape)
+                    direction[z] = 1
+                    direction = kgpy.vector.rotate_x(direction, direc[y])
+                    direction = kgpy.vector.rotate_y(direction, direc[x])
+                    rays = Rays.from_field_positions(
+                        wavelength_grid=self.wavelengths,
+                        direction=direction,
+                        field_grid_x=self.field_x,
+                        field_grid_y=self.field_y,
+                        field_mask_func=self.field_mask_func,
+                        pupil_grid_x=self.pupil_x,
+                        pupil_grid_y=self.pupil_y,
+                    )
+                    if not self.propagate_forward:
+                        rays.propagation_signum = -1
+                    rays = self.raytrace_subsystem(rays, final_surface=surf)
+                    return (rays.position - target_position)[xy]
+
+                direction_guess = kgpy.optimization.root_finding.secant(
+                    func=position_error,
+                    root_guess=direction_guess,
+                    step_size=step,
+                    max_abs_error=1 * u.nm,
+                    max_iterations=100,
+                )
+
+                if surf == self.stop_surface:
+                    break
+
+            direction = kgpy.vector.from_components(az=1)
+            direction = kgpy.vector.rotate_x(direction, direction_guess[y])
+            direction = kgpy.vector.rotate_y(direction, direction_guess[x])
+            input_rays = Rays.from_field_positions(
+                wavelength_grid=self.wavelengths,
+                direction=direction,
+                field_grid_x=self.field_x,
+                field_grid_y=self.field_y,
+                field_mask_func=self.field_mask_func,
+                pupil_grid_x=self.pupil_x,
+                pupil_grid_y=self.pupil_y,
+            )
+
+        if not self.propagate_forward:
+            input_rays.propagation_signum = -1
+
+        return input_rays
 
     def raytrace_subsystem(
             self,
