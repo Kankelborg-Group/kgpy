@@ -105,7 +105,6 @@ class Rays:
         wavelength = np.expand_dims(wavelength_grid, cls.vaxis.perp_axes(cls.vaxis.wavelength))
         field_x = np.expand_dims(field_grid_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
         field_y = np.expand_dims(field_grid_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
-
         wavelength, field_x, field_y = np.broadcast_arrays(wavelength, field_x, field_y, subok=True)
 
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
@@ -124,6 +123,37 @@ class Rays:
             field_mask=mask,
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
+
+    @classmethod
+    def from_field_positions(
+            cls,
+            wavelength_grid: u.Quantity,
+            direction: u.Quantity,
+            field_grid_x: u.Quantity,
+            field_grid_y: u.Quantity,
+            field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None,
+            pupil_grid_x: typ.Optional[u.Quantity] = None,
+            pupil_grid_y: typ.Optional[u.Quantity] = None,
+    ):
+        wavelength = np.expand_dims(wavelength_grid, cls.vaxis.perp_axes(cls.vaxis.wavelength))
+        field_x = np.expand_dims(field_grid_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
+        field_y = np.expand_dims(field_grid_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
+        wavelength, field_x, field_y = np.broadcast_arrays(wavelength, field_x, field_y, subok=True)
+
+        direction, _ = np.broadcast_arrays(direction, wavelength, subok=True)
+
+        position = kgpy.vector.from_components(ax=field_grid_x[..., None], ay=field_grid_y)
+        position, _ = np.broadcast_arrays(position, wavelength, subok=True)
+        mask = field_mask_func(position[x], position[y])
+
+        return cls(
+            wavelength=wavelength,
+            position=position,
+            direction=direction,
+            field_mask=mask,
+            input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
+        )
+
 
     def plane_intersection(self, plane_position: u.Quantity, plane_normal: u.Quantity):
 
