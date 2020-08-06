@@ -306,11 +306,14 @@ class Rays:
                 y=self.position[y][mask],
                 c=self.colormesh(color_axis)[mask].value,
             )
-            ax.legend(
-                handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
-                labels=list(self.grid_labels(color_axis).flatten()),
-                loc='upper right',
-            )
+            try:
+                ax.legend(
+                    handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
+                    labels=list(self.grid_labels(color_axis).flatten()),
+                    loc='upper right',
+                )
+            except ValueError:
+                pass
 
         return ax
 
