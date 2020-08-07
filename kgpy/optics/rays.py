@@ -252,6 +252,11 @@ class Rays:
         edges_x = np.empty(base_shape + (bins[kgpy.vector.ix] + 1,))
         edges_y = np.empty(base_shape + (bins[kgpy.vector.iy] + 1,))
 
+        if not self.shape:
+            position = position[None, ...]
+            mask = mask[None, ...]
+            hist, edges_x, edges_y = hist[None, ...], edges_x[None, ...], edges_y[None, ...]
+
         for c, p_c in enumerate(position):
             for w, p_cw in enumerate(p_c):
                 for i, p_cwi in enumerate(p_cw):
@@ -376,8 +381,10 @@ class Rays:
                 elif j == len(axs_i) - 1:
                     axs_ij.set_ylabel('{0.value:0.2f} {0.unit:latex}'.format(field_y[i]))
                     axs_ij.yaxis.set_label_position('right')
-
-        wavl_str = np.unique(self.wavelength[config_index, wavlen_index]).squeeze()
+        wavelength = self.input_grids[self.axis.wavelength]
+        if wavelength.ndim == 1:
+            wavelength = wavelength[None, ...]
+        wavl_str = wavelength[config_index, wavlen_index]
         wavl_str = '{0.value:0.3f} {0.unit:latex}'.format(wavl_str)
         fig.suptitle('configuration = ' + str(config_index) + ', wavelength = ' + wavl_str)
         fig.colorbar(img, ax=axs, fraction=0.05)
