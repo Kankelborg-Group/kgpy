@@ -1,30 +1,26 @@
-import typing as tp
-import pathlib
-from astropy import units as u
+import dataclasses
+import typing as typ
 
+import kgpy.optics.material.no_material
+from kgpy.component import Component
 from kgpy.optics import system
-from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import util
+from ... import surface
 
-from . import mirror
-
-__all__ = ['add_to_zemax_surface']
+__all__ = ['Material', 'NoMaterial']
 
 
-def add_to_zemax_surface(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        material: 'system.surface.Material',
-        surface_index: int,
-        configuration_shape: tp.Tuple[int],
-        zemax_units: u.Unit,
-):
-    op_material = ZOSAPI.Editors.MCE.MultiConfigOperandType.GLSS
-    
-    if material is None:
-        util.set_str(zemax_system, '', configuration_shape, op_material, surface_index)
-        return
+@dataclasses.dataclass
+class Material(Component['surface.Standard'], system.surface.Material):
+    string: typ.ClassVar[str] = ''
 
-    util.set_str(zemax_system, material.__str__(), configuration_shape, op_material, surface_index)
-    
-    if isinstance(material, system.surface.material.Mirror):
-        mirror.add_to_zemax_surface(zemax_system, material, surface_index, zemax_units)
+    def _update(self) -> typ.NoReturn:
+        super()._update()
+        try:
+            self._composite._lde_row.Material = self.string
+        except AttributeError:
+            pass
+
+
+@dataclasses.dataclass
+class NoMaterial(kgpy.optics.material.no_material.NoMaterial, Material):
+    pass

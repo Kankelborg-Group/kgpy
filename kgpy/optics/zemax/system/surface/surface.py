@@ -1,46 +1,152 @@
-import typing as tp
+import dataclasses
+import abc
+import typing as typ
+import win32com.client
+import numpy as np
 import astropy.units as u
+from kgpy import Name, Component
+import kgpy.optics
+from ... import ZOSAPI
+from .. import system, configuration
 
-from kgpy.optics import system
-from kgpy.optics.zemax import ZOSAPI
-
-from . import standard, coordinate_break
-from .. import util
-
-__all__ = ['add_surfaces_to_zemax_system']
+__all__ = ['Surface']
 
 
-def add_surfaces_to_zemax_system(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        surfaces: 'tp.Iterable[system.Surface]',
-        configuration_shape: tp.Tuple[int],
-        zemax_units: u.Unit,
+@dataclasses.dataclass
+class OperandBase:
 
-):
+    _thickness_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC
+        ),
+        init=False,
+        repr=False,
+    )
+    _is_active_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.IGNR
+        ),
+        init=False,
+        repr=False,
+    )
+    _is_visible_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.SDRW
+        ),
+        init=False,
+        repr=False,
+    )
 
-    op_comment = ZOSAPI.Editors.MCE.MultiConfigOperandType.MCOM
-    op_thickness = ZOSAPI.Editors.MCE.MultiConfigOperandType.THIC
-    op_is_visible = ZOSAPI.Editors.MCE.MultiConfigOperandType.SDRW
 
-    unit_thickness = zemax_units
+@dataclasses.dataclass
+class Surface(Component[system.System], kgpy.optics.Surface, OperandBase, abc.ABC):
 
-    surfaces = list(surfaces)
-    num_surfaces = len(surfaces)
-    while zemax_system.LDE.NumberOfSurfaces < num_surfaces + 1:
-        zemax_system.LDE.AddSurface()
-    
-    for s in range(num_surfaces):
-        
-        surface_index = s + 1
-        surface = surfaces[s]
-        
-        util.set_str(zemax_system, surface.name.__str__(), configuration_shape, op_comment, surface_index)
-        util.set_float(zemax_system, surface.thickness, configuration_shape, op_thickness, unit_thickness,
-                       surface_index)
-        util.set_int(zemax_system, not surface.is_visible, configuration_shape, op_is_visible, surface_index)
-        
-        if isinstance(surface, system.surface.Standard):
-            standard.add_to_zemax_system(zemax_system, surface, surface_index, configuration_shape, zemax_units)
+    def _update(self) -> typ.NoReturn:
+        super()._update()
+        self._update_lde_row()
+        self.name = self.name
+        self.thickness = self.thickness
+        self.is_active = self.is_active
+        self.is_visible = self.is_visible
 
-        elif isinstance(surface, system.surface.CoordinateBreak):
-            coordinate_break.add_to_zemax_system(zemax_system, surface, surface_index, configuration_shape, zemax_units)
+    @property
+    @abc.abstractmethod
+    def _lde_row_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def _lde_row_data(self) -> ZOSAPI.Editors.LDE.ISurface:
+        return win32com.client.CastTo(self._lde_row.SurfaceData, ZOSAPI.Editors.LDE.ISurface.__name__)
+
+    def _update_lde_row(self) -> typ.NoReturn:
+        try:
+            settings = self._lde_row.GetSurfaceTypeSettings(self._lde_row_type)
+            self._lde_row.ChangeType(settings)
+        except AttributeError:
+            pass
+
+    @property
+    def name(self) -> 'name.Name':
+        return self._name
+
+    @name.setter
+    def name(self, value: 'name.Name'):
+        self._name = value
+        try:
+            self._lde_row.Comment = str(value)
+        except AttributeError:
+            pass
+
+    def _thickness_setter(self, value: float):
+        self._lde_row.Thickness = value
+
+    @property
+    def thickness(self) -> u.Quantity:
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, value: u.Quantity):
+        self._thickness = value
+        self._set_with_lens_units(value, self._thickness_setter, self._thickness_op)
+
+    def _is_active_setter(self, value: bool):
+        self._lde_row.IsActive = not value
+
+    @property
+    def is_active(self) -> 'np.ndarray[bool]':
+        return self._is_active
+
+    @is_active.setter
+    def is_active(self, value: 'np.ndarray[bool]'):
+        self._is_active = value
+        self._set(~value, self._is_active_setter, self._is_active_op)
+
+    def _is_visible_setter(self, value: bool):
+        self._lde_row.DrawData.DoNotDrawThisSurface = value
+
+    @property
+    def is_visible(self) -> 'np.ndarray[bool]':
+        return self._is_visible
+
+    @is_visible.setter
+    def is_visible(self, value: 'np.ndarray[bool]'):
+        self._is_visible = value
+        self._set(~value, self._is_visible_setter, self._is_visible_op)
+
+    @property
+    def _lde_index(self) -> int:
+        surfaces = list(self._composite.surfaces)
+        return surfaces.index(self) + 1
+
+    @property
+    def _lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurface]:
+        return self._composite._lde.GetSurfaceAt(self._lde_index)
+
+    @property
+    def _lens_units(self) -> u.Unit:
+        return self._composite._lens_units
+
+    def _set(
+            self,
+            value: typ.Any,
+            setter: typ.Callable[[typ.Any], None],
+            operand: configuration.SurfaceOperand,
+            unit: u.Unit = None,
+    ) -> typ.NoReturn:
+        operand.surface = self
+        try:
+            self._composite._set(value, setter, operand, unit)
+        except AttributeError:
+            pass
+
+    def _set_with_lens_units(
+            self,
+            value: typ.Any,
+            setter: typ.Callable[[typ.Any], None],
+            operand: configuration.SurfaceOperand,
+    ) -> typ.NoReturn:
+        try:
+            self._set(value, setter, operand, self._lens_units)
+        except AttributeError:
+            pass

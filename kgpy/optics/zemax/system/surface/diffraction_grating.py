@@ -1,38 +1,78 @@
-import typing as tp
+import dataclasses
+import typing as typ
+import win32com.client
 from astropy import units as u
-
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import util
+from .. import configuration
+from . import Standard
 
-from . import elliptical_grating
-
-__all__ = ['add_to_zemax_system']
+__all__ = ['DiffractionGrating']
 
 
-def add_to_zemax_system(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        surface: 'system.surface.DiffractionGrating',
-        surface_index: int,
-        configuration_shape: tp.Tuple[int],
-        zemax_units: u.Unit,
-):
-    op_groove_frequency = ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM
-    op_diffraction_order = ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM
+@dataclasses.dataclass
+class InstanceVarBase:
+    _groove_frequency_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM,
+            param_2=1,
+        ),
+        init=None,
+        repr=None,
+    )
+    _diffraction_order_op: configuration.SurfaceOperand = dataclasses.field(
+        default_factory=lambda: configuration.SurfaceOperand(
+            op_factory=lambda: ZOSAPI.Editors.MCE.MultiConfigOperandType.PRAM,
+            param_2=2
+        ),
+        init=None,
+        repr=None,
 
-    ind_groove_frequency = 1
-    ind_diffraction_order = 2
+    )
+    _groove_frequency_unit: typ.ClassVar[u.Unit] = 1 / u.um
+    _diffraction_order_unit: typ.ClassVar[u.Unit] = u.dimensionless_unscaled
 
-    unit_groove_frequency = 1 / u.um
-    unit_diffraction_order = u.dimensionless_unscaled
 
-    zemax_surface = zemax_system.LDE.GetSurfaceAt(surface_index)
-    zemax_surface.ChangeType(zemax_surface.GetSurfaceTypeSettings(ZOSAPI.Editors.LDE.SurfaceType.DiffractionGrating))
+@dataclasses.dataclass
+class DiffractionGrating(system.surface.DiffractionGrating, InstanceVarBase, Standard, ):
 
-    util.set_float(zemax_system, surface.groove_frequency, configuration_shape, op_groove_frequency,
-                   unit_groove_frequency, surface_index, ind_groove_frequency)
-    util.set_float(zemax_system, surface.diffraction_order, configuration_shape, op_diffraction_order, None,
-                   surface_index, ind_diffraction_order)
+    def _update(self) -> typ.NoReturn:
+        super()._update()
+        self.groove_frequency = self.groove_frequency
+        self.diffraction_order = self.diffraction_order
 
-    if isinstance(surface, system.surface.EllipticalGrating1):
-        elliptical_grating.add_to_zemax_system(zemax_system, surface, surface_index, configuration_shape, zemax_units)
+    @property
+    def _lde_row_type(self) -> ZOSAPI.Editors.LDE.SurfaceType:
+        return ZOSAPI.Editors.LDE.SurfaceType.DiffractionGrating
+
+    @property
+    def _lde_row_data(self) -> ZOSAPI.Editors.LDE.ISurfaceDiffractionGrating:
+        return win32com.client.CastTo(self._lde_row.SurfaceData, ZOSAPI.Editors.LDE.ISurfaceDiffractionGrating.__name__)
+
+    @property
+    def _lde_row(self) -> ZOSAPI.Editors.LDE.ILDERow[ZOSAPI.Editors.LDE.ISurfaceDiffractionGrating]:
+        return super()._lde_row
+
+    def _groove_frequency_setter(self, value: float):
+        self._lde_row_data.LinesPerMicroMeter = value
+
+    @property
+    def groove_frequency(self) -> u.Quantity:
+        return self._groove_frequency
+
+    @groove_frequency.setter
+    def groove_frequency(self, value: u.Quantity):
+        self._groove_frequency = value
+        self._set(value, self._groove_frequency_setter, self._groove_frequency_op, self._groove_frequency_unit)
+
+    def _diffraction_order_setter(self, value: float):
+        self._lde_row_data.DiffractionOrder = value
+
+    @property
+    def diffraction_order(self) -> u.Quantity:
+        return self._diffraction_order
+
+    @diffraction_order.setter
+    def diffraction_order(self, value: u.Quantity):
+        self._diffraction_order = value
+        self._set(value, self._diffraction_order_setter, self._diffraction_order_op, self._diffraction_order_unit)

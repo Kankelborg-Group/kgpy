@@ -1,21 +1,30 @@
-import typing as tp
-import pathlib
+import dataclasses
+import typing as typ
 from astropy import units as u
-
 from kgpy.optics import system
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import util
+from . import material
 
-__all__ = ['add_to_zemax_surface']
+__all__ = ['Mirror']
 
 
-def add_to_zemax_surface(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        material: 'system.surface.material.Mirror',
-        surface_index: int,
-        zemax_units: u.Unit,
-):
+@dataclasses.dataclass
+class Mirror(material.Material, system.surface.material.Mirror):
+    string: typ.ClassVar[str] = 'MIRROR'
 
-    zemax_surface = zemax_system.LDE.GetSurfaceAt(surface_index)
-    zemax_surface.DrawData.MirrorThickness = material.thickness.to(zemax_units).value
-    zemax_surface.DrawData.MirrorSubstrate = ZOSAPI.Editors.LDE.SubstrateType.Flat
+    def _update(self) -> typ.NoReturn:
+        super()._update()
+        self.thickness = self.thickness
+
+    @property
+    def thickness(self) -> u.Quantity:
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, value: u.Quantity):
+        self._thickness = value
+        try:
+            self._composite._lde_row.DrawData.MirrorThickness = value.to(self._composite._lens_units).value
+            self._composite._lde_row.DrawData.MirrorSubstrate = ZOSAPI.Editors.LDE.SubstrateType.Flat
+        except AttributeError:
+            pass

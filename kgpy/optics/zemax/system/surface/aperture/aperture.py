@@ -1,55 +1,31 @@
-import typing as tp
-import pathlib
-from astropy import units as u
-
-from kgpy.optics import system
+import abc
+import dataclasses
+import typing as typ
+import win32com.client
+from kgpy.component import Component
 from kgpy.optics.zemax import ZOSAPI
-from kgpy.optics.zemax.system import util
+from .. import standard
 
-from . import rectangular, circular, spider, polygon, regular_polygon
-
-__all__ = ['add_to_zemax_surface']
+__all__ = ['Aperture', 'NoAperture']
 
 
-def add_to_zemax_surface(
-        zemax_system: ZOSAPI.IOpticalSystem,
-        aperture: 'system.surface.Aperture',
-        surface_index: int,
-        configuration_shape: tp.Tuple[int],
-        zemax_units: u.Unit,
-):
-    if aperture is None:
-        type_ind = ZOSAPI.Editors.LDE.SurfaceApertureTypes.none
-        op_type = ZOSAPI.Editors.MCE.MultiConfigOperandType.APTP
-        util.set_int(zemax_system, type_ind, configuration_shape, op_type, surface_index)
-        return
+@dataclasses.dataclass
+class Aperture(Component[standard.Standard]):
 
-    op_decenter_x = ZOSAPI.Editors.MCE.MultiConfigOperandType.APDX
-    op_decenter_y = ZOSAPI.Editors.MCE.MultiConfigOperandType.APDY
-
-    unit_decenter_x = zemax_units
-    unit_decenter_y = zemax_units
-
-    if isinstance(aperture, system.surface.aperture.Decenterable):
-        util.set_float(zemax_system, aperture.decenter.x, configuration_shape, op_decenter_x, unit_decenter_x,
-                       surface_index)
-        util.set_float(zemax_system, aperture.decenter.y, configuration_shape, op_decenter_y, unit_decenter_y,
-                       surface_index)
-
-    if isinstance(aperture, system.surface.aperture.Rectangular):
-        rectangular.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
-
-    elif isinstance(aperture, system.surface.aperture.Circular):
-        circular.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
-
-    elif isinstance(aperture, system.surface.aperture.Spider):
-        spider.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
-
-    elif isinstance(aperture, system.surface.aperture.Polygon):
-        polygon.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
-
-    elif isinstance(aperture, system.surface.aperture.RegularPolygon):
-        regular_polygon.add_to_zemax_surface(zemax_system, aperture, surface_index, configuration_shape, zemax_units)
-        
+    @property
+    @abc.abstractmethod
+    def _lde_row_aperture_data(self) -> ZOSAPI.Editors.LDE.ISurfaceApertureType:
+        return win32com.client.CastTo(
+            self._composite._lde_row.ApertureData.CurrentTypeSettings,
+            ZOSAPI.Editors.LDE.ISurfaceApertureType.__name__
+        )
 
 
+class NoAperture(Aperture):
+
+    @property
+    def _lde_row_aperture_data(self) -> ZOSAPI.Editors.LDE.ISurfaceApertureType:
+        return super()._lde_row_aperture_data
+
+    def _update(self) -> typ.NoReturn:
+        super()._update()

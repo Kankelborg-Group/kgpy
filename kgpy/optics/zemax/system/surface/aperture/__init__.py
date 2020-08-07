@@ -1,1 +1,2 @@
-from .aperture import add_to_zemax_surface
+from .aperture import Aperture, NoAperture
+from .rectangular import Rectangular
