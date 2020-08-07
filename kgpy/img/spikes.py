@@ -7,8 +7,6 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-from kgpy.plot.slice.image_stepper import CubeSlicer
-
 __all__ = ['identify', 'fix', 'identify_and_fix']
 
 
