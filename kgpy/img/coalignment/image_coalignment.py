@@ -4,14 +4,15 @@ import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
 import typing as typ
+import copy
 
-from kso.kso_iii.science.instruments.esis import level_3
+# from kso.kso_iii.science.instruments.esis import level_3
 import scipy.signal
 import scipy.ndimage
 import scipy.optimize
 
 from dataclasses import dataclass
-from kso.kso_iii.science.instruments.esis import ndimage_transforms
+# from kso.kso_iii.science.instruments.esis import ndimage_transforms
 
 @dataclass
 class TransformCube:
@@ -88,31 +89,138 @@ class ImageTransform:
         return obj
 
     def transform_image(self,img) -> np.ndarray:
-        '''Take in img and perform all transformation operations stored in the ImageTransform object.  This should work
-        on an '''
+        '''Take in image and perform all transformation operations stored in the ImageTransform object. '''
 
-        img = img[self.initial_crop]
-        img = np.pad(img,self.initial_pad)
-        img = self.transform_func(img,self.transform,self.origin)
+        img = self.img_pre_process(img)
 
-        big_img = np.empty(self.post_transform_size)
-        big_img[0:img.shape[0], 0:img.shape[1]] = img
-        big_img = np.roll(big_img, self.post_transform_translation, (0, 1))
+        if self.transform_func == modified_affine:
+            img = self.transform_func(img,self.transform,self.origin)
+        else:
+            transformed_coord = self.transform_func(img, self.transform, self.origin)
+            img = scipy.ndimage.map_coordinates(img, transformed_coord)
+            img = img.T
 
-        img = big_img[self.post_transform_crop]
+        img = self.img_post_process(img)
 
         return img
 
+    def img_post_process(self, img):
+        big_img = np.empty(self.post_transform_size)
+        big_img[0:img.shape[0], 0:img.shape[1]] = img
+        big_img = np.roll(big_img, self.post_transform_translation, (0, 1))
+        img = big_img[self.post_transform_crop]
+        return img
+
+    def img_pre_process(self, img):
+        img = img[self.initial_crop]
+        img = np.pad(img, self.initial_pad)
+        return img
+
+    def transform_coordinates(self,coords)-> np.ndarray:
+        '''
+        If you only want the transformed coordinates and not the transformed images to avoid extra interpolation.
+        '''
+
+        coords = self.coord_pre_process(coords)
+
+        dummy_img = np.empty((1,1))
+        if self.transform_func == modified_affine:
+            quad_transform = modified_affine_to_quadratic(self.transform,self.origin)
+            coords = quadratic_transform(dummy_img,quad_transform,self.origin,old_coord=coords)
+        else:
+            coords = self.transform_func(dummy_img,self.transform,self.origin,old_coord=coords)
+
+        coords = self.coord_post_process(coords)
+
+        return coords
+
+    def coord_post_process(self, coords):
+        post_crop = np.array([self.post_transform_crop[1].start, self.post_transform_crop[0].start], dtype=np.float)
+        post_crop[np.isnan(post_crop)] = 0
+        coords = coords + np.array(self.post_transform_translation[::-1]).reshape(2, 1, 1) - post_crop.reshape(2, 1, 1)
+        return coords
+
+    def coord_pre_process(self, coords):
+        crop = np.array([self.initial_crop[1].start, self.initial_crop[0].start], dtype=np.float)
+        crop[np.isnan(crop)] = 0
+        pad = self.initial_pad
+        pad = np.array([pad[1][0], pad[0][0]])
+        coords = coords - crop.reshape(2, 1, 1) + pad.reshape(2, 1, 1)
+        return coords
+
+    def invert_quadratic_transform(self,img) -> np.ndarray:
+        '''
+        Given a transformation object and the originally transformed image the transformation step can be inverted using this routine.
+
+        '''
+
+        img = self.img_pre_process(img)
+        coords = get_img_coords(img)
+        coords = coords - self.origin.reshape(2,1,1) #origin shift included in quadratic transform was influencing the inversion
+
+        prime_coords = quadratic_transform(img,self.transform,self.origin)
+        prime_coords = prime_coords - self.origin.reshape(2,1,1) #origin shift included in quadratic transform was influencing the inversion
+
+        prime_coord_power = np.array(
+            [np.ones_like(prime_coords[0, :]), prime_coords[0, :], prime_coords[1, :], prime_coords[0, :] * prime_coords[1, :], np.square(prime_coords[0, :]),
+             np.square(prime_coords[1, :])])
+        cp_shp = prime_coord_power.shape
+        prime_coord_power = prime_coord_power.reshape(cp_shp[0],cp_shp[1]*cp_shp[2])
+        coords = coords.reshape(2,cp_shp[1]*cp_shp[2])
 
 
-def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func:'typ.Callable', kwargs = {}) -> float:
+        transform = np.linalg.lstsq(prime_coord_power.T,coords.T)
+
+
+
+        return transform[0].T.reshape(12)
+
+
+def test_alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transformation_object: 'ImageTransform') -> float:
     """
     Apply a chosen transform to Image 1 and cross-correlate with Image 2 to check coalignment
     Designed as a merit function for scipy.optimize routines
+
+    If origin isn't specified it is assumed to be (0,0).  If moving_origin is set to True, origin = transform[-2:]
+    so that it can be controlled by scipy.optimize routines.
+    """
+    # temp_transform_object = copy.deepcopy(transformation_object)
+
+    transformation_object.transform = transform
+    im1 = transformation_object.transform_image(im1)
+
+    if im1.std() != 0:
+        im1 = (im1 - im1.mean()) / im1.std()
+    if im2.std() != 0:
+        im2 = (im2 - im2.mean()) / im2.std()
+
+    cc = scipy.signal.correlate(im1,im2, mode='same')
+    cc /= cc.size
+
+    # fit_quality = np.max(cc)
+    center = np.array(cc.shape) // 2
+    fit_quality = cc[center[0],center[1]]
+
+
+    print(fit_quality)
+    return -fit_quality
+
+def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func, origin = np.array([0,0]),
+                      moving_origin = False, kwargs = {}) -> float:
+    """
+    Apply a chosen transform to Image 1 and cross-correlate with Image 2 to check coalignment
+    Designed as a merit function for scipy.optimize routines
+
+    If origin isn't specified it is assumed to be (0,0).  If moving_origin is set to True, origin = transform[-2:]
+    so that it can be controlled by scipy.optimize routines.
     """
 
-    transformed_coord = transform_func(im1, transform[:-2], transform[-2:], **kwargs)
 
+    if moving_origin == True:
+        origin = transform[-2:]
+        transform = transform[:-2]
+
+    transformed_coord = transform_func(im1, transform, origin, **kwargs)
     im1 = scipy.ndimage.map_coordinates(im1,transformed_coord)
     im1 = im1.T
 
@@ -150,39 +258,54 @@ def affine_alignment_quality(transform, im1, im2):
 
 
 def modified_affine(img: np.ndarray, transform: np.ndarray, origin: np.ndarray) -> np.ndarray:
+    '''
+    scale_x, scale_y, shear_x, shear_y, disp_x, disp_y, rot_angle = transform
+    '''
     affine_param = affine_params(origin, *transform)
     img = scipy.ndimage.affine_transform(img, *affine_param)
     return img
 
 
-def quadratic_transform(img: np.ndarray, transform: np.ndarray, origin: np.ndarray, prefilter = True, old_coord = None) -> np.ndarray:
+def quadratic_transform(img: np.ndarray, transform: np.ndarray, origin: np.ndarray, old_coord = None) -> np.ndarray:
     """
-    Apply a quadratic coordinate transformation
+    Apply a quadratic coordinate transformation of the form:
+    x' = transform[0] + transform[1]*x + transform[2]*y + transform[3]*x*y + transform[4]*x^2 + transform[5]*y^2
+    y' = transform[6] + transform[7]*x + transform[8]*y + transform[9]*x*y + transform[10]*x^2 + transform[11]*y^2
+    about the specified origin = (x = origin[0], y = origin[1])
+
+    returns primed coordinates for use with scipy.ndimage.map_coordinates()
     """
 
 
     if old_coord is None:
-        m_shape = img.shape
-        coord = np.meshgrid(np.arange(m_shape[0]), np.arange(m_shape[1]))
-        coord = np.array(coord) - origin.reshape(2,1,1)
+        coord = get_img_coords(img)
+        coord = coord - origin.reshape(2,1,1)
     else:
         coord = old_coord - origin.reshape(2,1,1)
-
 
     coord_power = np.array(
         [np.ones_like(coord[0, :]),coord[0, :], coord[1, :], coord[0, :] * coord[1, :], np.square(coord[0, :]), np.square(coord[1, :])])
 
-
-
     x_prime = coord_power * transform[0:6].reshape(6, 1, 1)
     y_prime = coord_power * transform[6:].reshape(6, 1, 1)
-    prime_coord = np.array([x_prime.sum(axis=0), y_prime.sum(axis=0)])
 
-    prime_coord += origin.reshape(2,1,1)
+    prime_coord = np.array([x_prime.sum(axis=0), y_prime.sum(axis=0)])
+    prime_coord = prime_coord + origin.reshape(2,1,1)
+   
     return prime_coord
 
+
+def get_img_coords(img):
+    m_shape = img.shape
+    coord = np.array(np.meshgrid(np.arange(m_shape[0]), np.arange(m_shape[1])))
+    return coord
+
+
 def affine_params(origin,scale_x, scale_y, shear_x, shear_y,disp_x,disp_y,rot_angle):
-    #implied order for easier inversion displace, rotate, scale, shear
+    '''
+    scale_x, scale_y, shear_x, shear_y, disp_x, disp_y, rot_angle = transform
+    '''
+
     c_theta = np.cos(np.radians(rot_angle))
     s_theta = np.sin(np.radians(rot_angle))
 
@@ -196,7 +319,59 @@ def affine_params(origin,scale_x, scale_y, shear_x, shear_y,disp_x,disp_y,rot_an
 
     return m, offset
 
+def modified_affine_to_quadratic(transform: np.ndarray, origin: np.ndarray) -> np.ndarray:
 
+    '''
+    Since scipy.ndimage.affine_transform goes straight to an image transform instead of through map_coordinates
+    this will convert the transform parameters used in modified affine for use with quadratic transform
+    '''
+
+    affine_m = affine_params(origin, *transform)[0]
+    quad_transform = np.array([-transform[4],affine_m[0, 0], affine_m[0, 1], 0, 0, 0,
+                               -transform[5],affine_m[1, 0], affine_m[1, 1], 0, 0, 0])
+    return quad_transform
+
+def esis_geometric_transform(transform: np.ndarray,coords:np.ndarray):
+
+    '''
+    A coordinate transform to go from detector coordinates to solar coordinates based on ESIS Geometrical Correction
+    started by CCK.
+    '''
+    Delta = transform[0]
+    alpha = np.deg2rad(transform[1])
+    beta = np.deg2rad(transform[2])
+    d = transform[3]
+    delta = transform[4]
+    D = transform[5]
+    eta = np.deg2rad(transform[6])
+    theta = np.deg2rad(transform[7])
+    pomega = np.deg2rad(transform[8])
+    x_0 = transform[9]
+    y_0 = transform[10]
+
+    wave = 629.7
+    wave_0 = 629.7
+
+    m=1
+    M=4
+
+    gamma = -(np.pi/8*(1+2*m)+delta)
+    gamma_rot = np.array([[np.cos(gamma), -np.sin(gamma)], [np.sin(gamma), np.cos(gamma)]])
+    x_i = np.array([np.cos(alpha) / np.cos(beta) * (coords[0, ...]), coords[1, ...]]) + np.array(
+        [(1 + Delta) * D * (wave - wave_0), 0]).reshape(2, 1, 1)
+
+
+    x_d = M * (1 + Delta) * np.array([gamma_rot[0,0]*x_i[0]+gamma_rot[0,1]*x_i[1],gamma_rot[1,0]*x_i[0]+gamma_rot[1,1]*x_i[1]])
+
+    eta_rot = np.array([[np.cos(eta), -np.sin(eta)], [np.sin(eta), np.cos(eta)]])
+    x_t = np.array([eta_rot[0,0]*x_d[0]+eta_rot[0,1]*x_d[1],eta_rot[1,0]*x_d[0]+eta_rot[1,1]*x_d[1]])
+
+    x_k = x_t * (1+ x_d*np.sin(theta)/(d*(1+Delta))) * np.array([(1/np.cos(theta)),1]).reshape(2,1,1)
+
+    pomega_rot = np.array([[np.cos(pomega), -np.sin(pomega)], [np.sin(pomega), np.cos(pomega)]])
+    x_prime = x_t = np.array([pomega_rot[0,0]*x_k[0]+pomega_rot[0,1]*x_t[1],pomega_rot[1,0]*x_t[0]+pomega_rot[1,1]*x_t[1]]) + np.array([x_0, y_0]).reshape(2, 1, 1)
+
+    return x_prime
 
 
 # path = level_3.default_pickle_path
