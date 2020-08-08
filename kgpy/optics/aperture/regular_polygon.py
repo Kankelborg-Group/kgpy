@@ -32,5 +32,10 @@ class RegularPolygon(Polygon):
         return kgpy.vector.from_components_cylindrical(self.radius, angles)
 
     @property
-    def angle_between_vertices(self):
+    def edge_subtent(self):
+        """
+        Calculate the angle subtended by each edge of the polygon by dividing the angle of a circle (360 degrees) by
+        the number of sides in the regular polygon.
+        :return: Angle subtended by each edge
+        """
         return 360 * u.deg / self.num_sides
