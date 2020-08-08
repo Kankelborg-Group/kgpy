@@ -39,3 +39,11 @@ class RegularPolygon(Polygon):
         :return: Angle subtended by each edge
         """
         return 360 * u.deg / self.num_sides
+
+    @property
+    def min_radius(self):
+        """
+        Calculate the distance from the center of the polygon to the center of an edge of a polygon.
+        :return: The minimum radius of the polygon.
+        """
+        return self.radius * np.cos(self.edge_subtent / 2)
