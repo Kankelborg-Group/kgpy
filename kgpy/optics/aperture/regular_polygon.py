@@ -41,9 +41,18 @@ class RegularPolygon(Polygon):
         return 360 * u.deg / self.num_sides
 
     @property
+    def half_edge_subtent(self):
+        """
+        Calculate the angle subtended between a vertex and a point on the center of an edge.
+        This is sometimes a more useful quantity than the subtent of an entire edge.
+        :return:
+        """
+        return self.edge_subtent / 2
+
+    @property
     def min_radius(self):
         """
         Calculate the distance from the center of the polygon to the center of an edge of a polygon.
         :return: The minimum radius of the polygon.
         """
-        return self.radius * np.cos(self.edge_subtent / 2)
+        return self.radius * np.cos(self.half_edge_subtent)
