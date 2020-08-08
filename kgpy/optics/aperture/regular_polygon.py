@@ -30,3 +30,7 @@ class RegularPolygon(Polygon):
     def vertices(self) -> u.Quantity:
         angles = np.linspace(self.offset_angle, 360 * u.deg + self.offset_angle, self.num_sides, endpoint=False)
         return kgpy.vector.from_components_cylindrical(self.radius, angles)
+
+    @property
+    def angle_between_vertices(self):
+        return 360 * u.deg / self.num_sides
