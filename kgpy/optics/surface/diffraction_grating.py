@@ -93,3 +93,10 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
     ) -> u.Quantity:
         a = np.sin(input_angle) + np.sin(output_angle)
         return a / (self.diffraction_order * self.groove_density)
+
+    def diffraction_angle(
+            self,
+            wavelength: u.Quantity,
+            input_angle: u.Quantity,
+    ) -> u.Quantity:
+        return np.arcsin(self.diffraction_order * wavelength * self.groove_density - np.sin(input_angle)) << u.rad

@@ -150,10 +150,6 @@ class Surface(
         if system is not None:
             surfaces = list(system)     # type: typ.List['Surface']
             index = surfaces.index(self)
-            # for s, surf in enumerate(surfaces):
-            #     if surf is self:
-            #         index = s
-            #         break
             surfaces = surfaces[:index]
             surfaces.reverse()
     

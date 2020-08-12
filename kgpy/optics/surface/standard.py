@@ -23,7 +23,7 @@ class Standard(
 ):
 
     radius: u.Quantity = np.inf * u.mm
-    conic: float = 0
+    conic: u.Quantity = 0 * u.dimensionless_unscaled
     material: MaterialT = None
     aperture: ApertureT = None
     transform_before: typ.Optional[coordinate.TiltDecenter] = None

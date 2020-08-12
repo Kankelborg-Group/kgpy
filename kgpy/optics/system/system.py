@@ -418,7 +418,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if surf is None:
             surf = self.image_surface
 
-        rays = self.all_rays[list(self).index(surf)]
+        rays = self.all_rays[list(self).index(surf)].copy()
+        rays.vignetted_mask = self.image_rays.vignetted_mask
 
         rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
@@ -473,6 +474,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             final_surface: typ.Optional[surface.Surface] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
+            plot_rays: bool = True,
     ) -> plt.Axes:
         if ax is None:
             _, ax = plt.subplots()
@@ -493,46 +495,49 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         all_rays = self.all_rays
         for surf, rays in zip(surfaces[i], all_rays[i]):
             surf.plot_2d(ax, components, self)
-            intercept = surf.transform_to_global(rays.position, self, num_extra_dims=5)
-            intercepts.append(intercept)
-        intercepts = u.Quantity(intercepts)
+            if plot_rays:
+                intercept = surf.transform_to_global(rays.position, self, num_extra_dims=5)
+                intercepts.append(intercept)
 
-        img_rays = all_rays[~0]
+        if plot_rays:
+            intercepts = u.Quantity(intercepts)
 
-        color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
+            img_rays = all_rays[~0]
 
-        if plot_vignetted:
-            mask = img_rays.error_mask & img_rays.field_mask
-        else:
-            mask = img_rays.mask
+            color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 
-        grid = img_rays.input_grids[color_axis].flatten()
-        colors = plt.cm.viridis((grid - grid.min()) / (grid.max() - grid.min()))
-        labels = img_rays.grid_labels(color_axis).flatten()
+            if plot_vignetted:
+                mask = img_rays.error_mask & img_rays.field_mask
+            else:
+                mask = img_rays.mask
 
-        intercepts = np.moveaxis(intercepts, color_axis - 1, img_rays.ndim + 1)
-        mask = np.moveaxis(mask, color_axis, img_rays.ndim)
+            grid = img_rays.input_grids[color_axis].flatten()
+            colors = plt.cm.viridis((grid - grid.min()) / (grid.max() - grid.min()))
+            labels = img_rays.grid_labels(color_axis).flatten()
 
-        new_shape = intercepts.shape[0:1] + (-1,) + grid.shape + intercepts.shape[~(img_rays.vaxis.ndim - 2):]
-        intercepts = intercepts.reshape(new_shape)
-        mask = mask.reshape((-1,) + grid.shape + mask.shape[~(img_rays.axis.ndim - 2):])
+            intercepts = np.moveaxis(intercepts, color_axis - 1, img_rays.ndim + 1)
+            mask = np.moveaxis(mask, color_axis, img_rays.ndim)
 
-        intercepts = np.moveaxis(intercepts, ~(img_rays.vaxis.ndim - 1), 0)
-        mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
+            new_shape = intercepts.shape[0:1] + (-1,) + grid.shape + intercepts.shape[~(img_rays.vaxis.ndim - 2):]
+            intercepts = intercepts.reshape(new_shape)
+            mask = mask.reshape((-1,) + grid.shape + mask.shape[~(img_rays.axis.ndim - 2):])
 
-        for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
+            intercepts = np.moveaxis(intercepts, ~(img_rays.vaxis.ndim - 1), 0)
+            mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
 
-            ax.plot(
-                intercept_c[:, mask_c, components[0]],
-                intercept_c[:, mask_c, components[1]],
-                color=color,
-                label=label,
-            )
+            for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
 
-        ax.set_xlim(right=1.1 * ax.get_xlim()[1])
-        handles, labels = ax.get_legend_handles_labels()
-        label_dict = dict(zip(labels, handles))
-        ax.legend(label_dict.values(), label_dict.keys(), loc='upper right')
+                ax.plot(
+                    intercept_c[:, mask_c, components[0]],
+                    intercept_c[:, mask_c, components[1]],
+                    color=color,
+                    label=label,
+                )
+
+            ax.set_xlim(right=1.1 * ax.get_xlim()[1])
+            handles, labels = ax.get_legend_handles_labels()
+            label_dict = dict(zip(labels, handles))
+            ax.legend(label_dict.values(), label_dict.keys(), loc='upper right')
 
         return ax
 
