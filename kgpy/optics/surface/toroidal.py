@@ -52,7 +52,7 @@ class Toroidal(Standard[MaterialT, ApertureT]):
         mask = np.abs(ax) > r
         zy = c * y2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * y2))
         z = r - np.sqrt(np.square(r - zy) - x2)
-        z[mask] = 0
+        z[mask] = (r - np.sqrt(np.square(r - zy) - np.square(r)))[mask]
         return z
 
     def normal(self, ax: u.Quantity, ay: u.Quantity) -> u.Quantity:
