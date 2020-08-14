@@ -11,6 +11,36 @@ def false_position(
         max_abs_error: float = 1e-9,
         max_iterations: int = 100,
 ):
+    """
+    The false position method (often known by its latin name, regula falsi) is a bracketed root-finding method that uses
+    linear interpolation to iteratively approximate the root of a nonlinear function.
+    This implementation is based on the `wikipedia <https://en.wikipedia.org/wiki/Regula_falsi>`_ page.
+
+
+    Parameters
+    ----------
+    func
+        Scalar function to be minimized.
+    bracket_min
+        Minimum value of the range to search for the root.
+    bracket_max
+        Maximum value of the range to search for the root.
+    max_abs_error
+        Maximum absolute error of the objective function at the root.
+    max_iterations
+        Maximum iterations to try before declaring non-convergence.
+
+    Returns
+    -------
+    numpy.ndarray
+        Root of the function
+
+    Raises
+    ------
+    ValueError
+        If the number of iterations is exceeded and ::`max_abs_error` has not been reached.
+    """
+
     t0, t1 = bracket_min, bracket_max
     f0, f1 = func(t0), func(t1)
 
