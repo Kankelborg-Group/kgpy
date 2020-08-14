@@ -21,7 +21,10 @@ class Standard(
     typ.Generic[MaterialT, ApertureT],
     Surface,
 ):
-
+    """
+    Most basic optical surface intended to be instantiated by the user.
+    Allows for refractive or reflective surfaces with planar, spherical or conic figure.
+    """
     radius: u.Quantity = np.inf * u.mm
     conic: u.Quantity = 0 * u.dimensionless_unscaled
     material: MaterialT = None
