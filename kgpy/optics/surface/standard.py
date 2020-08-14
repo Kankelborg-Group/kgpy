@@ -120,12 +120,6 @@ class Standard(
         return n
 
     def _index_of_refraction(self, rays: Rays) -> u.Quantity:
-        """
-        Index of refraction of this surface.
-        Uses the index of refraction of the surface's material if available, otherwise returns 1.
-        :param rays: Input rays to the surface. Needed if the index of refraction is wavelength / polarization dependent.
-        :return: This surface's index of refraction.
-        """
         if self.material is not None:
             return self.material.index_of_refraction(rays.wavelength, rays.polarization)
         else:
@@ -145,14 +139,23 @@ class Standard(
         n2 = self._index_of_refraction(rays)
         return n1 / n2
 
-    def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
+    def propagate_rays(
+            self,
+            rays: Rays,
+            is_first_surface: bool = False,
+            is_final_surface: bool = False,
+    ) -> Rays:
 
         rays = rays.copy()
 
         if not is_first_surface:
             if self.transform_before is not None:
                 rays = rays.tilt_decenter(~self.transform_before)
-            rays.position = self.calc_intercept(rays)
+
+            bracket_max = 2 * np.nanmax(np.abs(rays.position[z]))
+            if np.isfinite(self.radius):
+                bracket_max = np.sqrt(np.square(bracket_max) + 2 * np.square(self.radius))
+            rays.position = self.calc_intercept(rays, -bracket_max, bracket_max)
 
             p = self._propagation_signum(rays)[..., None]
             a = self._calc_input_direction(rays)
