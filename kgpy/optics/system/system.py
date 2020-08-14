@@ -257,8 +257,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
-                    if not self.propagate_forward:
-                        rays.propagation_signum = -1
                     rays = self.raytrace_subsystem(rays, final_surface=surf)
                     return (rays.position - target_position)[xy]
 
@@ -295,7 +293,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 target_position = kgpy.vector.from_components(px[..., None], py)
 
                 def position_error(direc: u.Quantity) -> u.Quantity:
-                    direction = np.zeros(target_position.shape)
+                    direction = np.zeros(self.field_samples_normalized + target_position.shape)
                     direction[z] = 1
                     direction = kgpy.vector.rotate_x(direction, direc[y])
                     direction = kgpy.vector.rotate_y(direction, direc[x])
@@ -305,11 +303,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         field_grid_x=self.field_x,
                         field_grid_y=self.field_y,
                         field_mask_func=self.field_mask_func,
-                        pupil_grid_x=self.pupil_x,
-                        pupil_grid_y=self.pupil_y,
+                        pupil_grid_x=px,
+                        pupil_grid_y=py,
                     )
-                    if not self.propagate_forward:
-                        rays.propagation_signum = -1
                     rays = self.raytrace_subsystem(rays, final_surface=surf)
                     return (rays.position - target_position)[xy]
 
@@ -333,12 +329,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 field_grid_x=self.field_x,
                 field_grid_y=self.field_y,
                 field_mask_func=self.field_mask_func,
-                pupil_grid_x=self.pupil_x,
-                pupil_grid_y=self.pupil_y,
+                pupil_grid_x=self.pupil_x(self.stop_surface),
+                pupil_grid_y=self.pupil_y(self.stop_surface),
             )
-
-        if not self.propagate_forward:
-            input_rays.propagation_signum = -1
 
         return input_rays
 
