@@ -8,7 +8,6 @@ import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
 import matplotlib.colors
-import OCC.Core.TopoDS
 import kgpy.mixin
 import kgpy.vector
 import kgpy.linspace
@@ -51,93 +50,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             name=self.name,
             surfaces=self.surfaces.to_zemax(),
         )
-
-    def to_occ(self) -> typ.List[OCC.Core.TopoDS.TopoDS_Shape]:
-
-        occ_unit = u.mm
-
-        import OCC.Core as occ
-        from OCC.Core import gp, Geom, BRepBuilderAPI, BRepPrimAPI, Standard, BRepLib, Geom2d, BRep, Poly, TColgp, TopLoc
-
-
-        occ_shapes = []
-
-        for surf in self.aperture_surfaces:
-
-            print(surf)
-
-
-            # wire = surf.transform_to_global(surf.aperture.wire, self, num_extra_dims=1)
-            # wire = surf.aperture.global_wire(self, surf,  apply_sag=True)
-            wire = surf.aperture.wire
-            wire = np.broadcast_to(wire, self.shape + wire.shape, subok=True)
-            if surf.is_sphere:
-                wire = wire / surf.radius
-            for c, wire_c in enumerate(wire):
-                occ_arr = TColgp.TColgp_Array1OfPnt2d(0, len(wire_c))
-                # occ_wire = BRepBuilderAPI.BRepBuilderAPI_MakeWire()
-                # occ_poly = OCC.Core.BRepBuilderAPI.BRepBuilderAPI_MakePolygon()
-                # old_occ_point = OCC.Core.gp.gp_Pnt2d(*wire_c[0][xy].value)
-                for p, point in enumerate(wire_c):
-                    occ_point = OCC.Core.gp.gp_Pnt2d(*point[xy].value)
-                    occ_arr.SetValue(p, occ_point)
-                    # occ_wire.Add(BRepBuilderAPI.BRepBuilderAPI_MakeEdge2d(old_occ_point, occ_point).Edge())
-                    old_occ_point = occ_point
-                occ_poly2d = Poly.Poly_Polygon2D(occ_arr)
-                # occ_wire = occ_wire.Wire()
-
-                # occ_wire = occ_poly.Wire()
-                # occ_shapes.append(occ_wire)
-
-
-
-                if surf.is_plane:
-
-                    length = 1 * occ_unit
-                    point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
-                    point_1 = surf.transform_to_global(kgpy.vector.from_components(az=length), self)[c]
-                    normal = (point_1 - point_0) / length
-                    occ_point_0 = gp.gp_Pnt(*point_0.value)
-                    occ_normal = gp.gp_Dir(*normal.value)
-                    occ_ax3 = gp.gp_Ax3(occ_point_0, occ_normal)
-                    occ_surf = Geom.Geom_Plane(occ_ax3)
-                    occ_polysurf = BRep.BRep_PolygonOnSurface(occ_poly2d, occ_surf, TopLoc.TopLoc_Location())
-                    # occ_face = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf, occ_wire).Face()
-                    occ_shapes.append(occ_polysurf.Curve3D())
-
-                elif surf.is_sphere:
-
-                    point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
-                    point_1 = surf.transform_to_global(kgpy.vector.from_components(ax=surf.radius), self)[c]
-                    point_2 = surf.transform_to_global(kgpy.vector.from_components(ay=surf.radius), self)[c]
-                    point_3 = surf.transform_to_global(kgpy.vector.from_components(az=surf.radius), self)[c]
-                    xhat = (point_1 - point_0) / surf.radius
-                    yhat = (point_2 - point_0) / surf.radius
-                    zhat = (point_3 - point_0) / surf.radius
-                    occ_point_3 = gp.gp_Pnt(*point_3.to(occ_unit).value)
-                    occ_xhat = gp.gp_Dir(*xhat.value)
-                    occ_yhat = gp.gp_Dir(*yhat.value)
-                    occ_zhat = gp.gp_Dir(*zhat.value)
-                    # occ_ax2 = gp.gp_Ax2(occ_point_3, occ_xhat, occ_zhat)
-                    occ_ax3 = gp.gp_Ax3(occ_point_3, occ_zhat)
-                    # occ_curve = Geom.Geom_Circle(occ_ax2, surf.radius.to(occ_unit).value)
-                    # occ_curve = Geom.Geom_TrimmedCurve(occ_curve, 3 * np.pi / 4, np.pi,)
-                    # rev_ax = gp.gp_Ax1(occ_point_3, occ_zhat)
-                    # occ_surf = Geom.Geom_SurfaceOfRevolution(occ_curve, rev_ax)
-                    # occ_surf = gp.gp_Sphere(occ_ax3, surf.radius.to(occ_unit).value)
-                    occ_surf = Geom.Geom_SphericalSurface(occ_ax3, surf.radius.to(occ_unit).value)
-                    occ_polysurf = BRep.BRep_PolygonOnSurface(occ_poly2d, occ_surf, TopLoc.TopLoc_Location())
-                    # occ_surf = Geom.Geom_CylindricalSurface(occ_ax3, surf.radius.to(occ_unit).value)
-                    # occ_surf = BRepPrimAPI.BRepPrimAPI_MakeSphere(surf.radius.to(occ_unit).value)
-                    # occ_surf = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf).Face()
-                    # occ_face = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf, occ_polysurf).Face()
-                    # BRepLib.breplib_BuildCurves3d(occ_face)
-
-                    # occ_solid = BRepPrimAPI.BRepPrimAPI_MakePrism(occ_face, gp.gp_Vec(*(10 * zhat).value)).Shape()
-                    # occ_surf = Geom.Geom_RectangularTrimmedSurface(occ_surf, -np.pi / 2, -np.pi/4, False)
-                    occ_shapes.append(occ_polysurf.Surface2())
-
-        return occ_shapes
 
     def update(self) -> typ.NoReturn:
         self._input_rays = None
@@ -233,7 +145,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             self._all_rays = self._calc_all_rays()
         return self._all_rays
 
-    def _calc_input_rays(self):
+    def _calc_input_rays(self) -> Rays:
 
         if np.isinf(self.object_surface.thickness).all():
 
@@ -599,6 +511,94 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                             ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
                                     u.Quantity([z_[-1], z_[0]]), 'k')
 
+    def to_occ(self):
+
+        occ_unit = u.mm
+
+        import OCC.Core.TopoDS
+        import OCC.Core as occ
+        from OCC.Core import gp, Geom, BRepBuilderAPI, BRepPrimAPI, Standard, BRepLib, Geom2d, BRep, Poly, TColgp, TopLoc
+
+
+        occ_shapes = []
+
+        for surf in self.aperture_surfaces:
+
+            print(surf)
+
+
+            # wire = surf.transform_to_global(surf.aperture.wire, self, num_extra_dims=1)
+            # wire = surf.aperture.global_wire(self, surf,  apply_sag=True)
+            wire = surf.aperture.wire
+            wire = np.broadcast_to(wire, self.shape + wire.shape, subok=True)
+            if surf.is_sphere:
+                wire = wire / surf.radius
+            for c, wire_c in enumerate(wire):
+                occ_arr = TColgp.TColgp_Array1OfPnt2d(0, len(wire_c))
+                # occ_wire = BRepBuilderAPI.BRepBuilderAPI_MakeWire()
+                # occ_poly = OCC.Core.BRepBuilderAPI.BRepBuilderAPI_MakePolygon()
+                # old_occ_point = OCC.Core.gp.gp_Pnt2d(*wire_c[0][xy].value)
+                for p, point in enumerate(wire_c):
+                    occ_point = OCC.Core.gp.gp_Pnt2d(*point[xy].value)
+                    occ_arr.SetValue(p, occ_point)
+                    # occ_wire.Add(BRepBuilderAPI.BRepBuilderAPI_MakeEdge2d(old_occ_point, occ_point).Edge())
+                    old_occ_point = occ_point
+                occ_poly2d = Poly.Poly_Polygon2D(occ_arr)
+                # occ_wire = occ_wire.Wire()
+
+                # occ_wire = occ_poly.Wire()
+                # occ_shapes.append(occ_wire)
+
+
+
+                if surf.is_plane:
+
+                    length = 1 * occ_unit
+                    point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
+                    point_1 = surf.transform_to_global(kgpy.vector.from_components(az=length), self)[c]
+                    normal = (point_1 - point_0) / length
+                    occ_point_0 = gp.gp_Pnt(*point_0.value)
+                    occ_normal = gp.gp_Dir(*normal.value)
+                    occ_ax3 = gp.gp_Ax3(occ_point_0, occ_normal)
+                    occ_surf = Geom.Geom_Plane(occ_ax3)
+                    occ_polysurf = BRep.BRep_PolygonOnSurface(occ_poly2d, occ_surf, TopLoc.TopLoc_Location())
+                    # occ_face = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf, occ_wire).Face()
+                    occ_shapes.append(occ_polysurf.Curve3D())
+
+                elif surf.is_sphere:
+
+                    point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
+                    point_1 = surf.transform_to_global(kgpy.vector.from_components(ax=surf.radius), self)[c]
+                    point_2 = surf.transform_to_global(kgpy.vector.from_components(ay=surf.radius), self)[c]
+                    point_3 = surf.transform_to_global(kgpy.vector.from_components(az=surf.radius), self)[c]
+                    xhat = (point_1 - point_0) / surf.radius
+                    yhat = (point_2 - point_0) / surf.radius
+                    zhat = (point_3 - point_0) / surf.radius
+                    occ_point_3 = gp.gp_Pnt(*point_3.to(occ_unit).value)
+                    occ_xhat = gp.gp_Dir(*xhat.value)
+                    occ_yhat = gp.gp_Dir(*yhat.value)
+                    occ_zhat = gp.gp_Dir(*zhat.value)
+                    # occ_ax2 = gp.gp_Ax2(occ_point_3, occ_xhat, occ_zhat)
+                    occ_ax3 = gp.gp_Ax3(occ_point_3, occ_zhat)
+                    # occ_curve = Geom.Geom_Circle(occ_ax2, surf.radius.to(occ_unit).value)
+                    # occ_curve = Geom.Geom_TrimmedCurve(occ_curve, 3 * np.pi / 4, np.pi,)
+                    # rev_ax = gp.gp_Ax1(occ_point_3, occ_zhat)
+                    # occ_surf = Geom.Geom_SurfaceOfRevolution(occ_curve, rev_ax)
+                    # occ_surf = gp.gp_Sphere(occ_ax3, surf.radius.to(occ_unit).value)
+                    occ_surf = Geom.Geom_SphericalSurface(occ_ax3, surf.radius.to(occ_unit).value)
+                    occ_polysurf = BRep.BRep_PolygonOnSurface(occ_poly2d, occ_surf, TopLoc.TopLoc_Location())
+                    # occ_surf = Geom.Geom_CylindricalSurface(occ_ax3, surf.radius.to(occ_unit).value)
+                    # occ_surf = BRepPrimAPI.BRepPrimAPI_MakeSphere(surf.radius.to(occ_unit).value)
+                    # occ_surf = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf).Face()
+                    # occ_face = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf, occ_polysurf).Face()
+                    # BRepLib.breplib_BuildCurves3d(occ_face)
+
+                    # occ_solid = BRepPrimAPI.BRepPrimAPI_MakePrism(occ_face, gp.gp_Vec(*(10 * zhat).value)).Shape()
+                    # occ_surf = Geom.Geom_RectangularTrimmedSurface(occ_surf, -np.pi / 2, -np.pi/4, False)
+                    occ_shapes.append(occ_polysurf.Surface2())
+
+        return occ_shapes
+
     def plot_occ(self):
 
         import OCC.Display.SimpleGui
@@ -611,3 +611,11 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             display.DisplayShape(shape)
 
         start_display()
+
+
+
+
+
+
+
+
