@@ -12,7 +12,7 @@ def false_position(
         bracket_max: u.Quantity,
         max_abs_error: u.Quantity = 1e-9,
         max_iterations: int = 100,
-):
+) -> u.Quantity:
     ...
 
 
@@ -22,7 +22,7 @@ def false_position(
         bracket_max: np.ndarray,
         max_abs_error: float = 1e-9,
         max_iterations: int = 100,
-):
+) -> np.ndarray:
     """
     The false position method (often known by its latin name, regula falsi) is a bracketed root-finding method that uses
     linear interpolation to iteratively approximate the root of a nonlinear function.
