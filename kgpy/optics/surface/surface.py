@@ -105,16 +105,16 @@ class Surface(
         return line(t_intercept)
 
     @abc.abstractmethod
-    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        return x
+    def apply_pre_transforms(self, vector: u.Quantity, inverse: bool = False, num_extra_dims: int = 0) -> u.Quantity:
+        pass
 
     @abc.abstractmethod
-    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
+    def apply_post_transforms(self, vector: u.Quantity, inverse: bool = False, num_extra_dims: int = 0) -> u.Quantity:
         pass
 
     def transform_to_global(
             self, 
-            x: u.Quantity, 
+            vector: u.Quantity,
             system: typ.Optional['kgpy.optics.System'] = None, 
             num_extra_dims: int = 0
     ):
@@ -125,13 +125,13 @@ class Surface(
             surfaces = surfaces[:index]
             surfaces.reverse()
     
-            x = self.apply_pre_transforms(x, num_extra_dims)
+            vector = self.apply_pre_transforms(vector, num_extra_dims=num_extra_dims)
     
             for surf in surfaces:
-                x = surf.apply_pre_transforms(x, num_extra_dims)
-                x = surf.apply_post_transforms(x, num_extra_dims)
+                vector = surf.apply_pre_transforms(vector, num_extra_dims=num_extra_dims)
+                vector = surf.apply_post_transforms(vector, num_extra_dims=num_extra_dims)
     
-        return x
+        return vector
 
     def plot_2d(
             self,
