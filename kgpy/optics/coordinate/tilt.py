@@ -96,3 +96,9 @@ class Tilt(kgpy.mixin.Broadcastable):
         r[..., 2, 2] = 1
         return r
 
+    def copy(self) -> 'Tilt':
+        return type(self)(
+            x=self.x.copy(),
+            y=self.y.copy(),
+            z=self.z.copy(),
+        )

@@ -1,10 +1,11 @@
+import abc
 import dataclasses
 import numpy as np
 import pandas
 
 from .name import Name
 
-__all__ = ['Broadcastable', 'Named', 'PandasDataframable']
+__all__ = ['Broadcastable', 'Named', 'PandasDataframable', 'Copyable']
 
 
 class Broadcastable:
@@ -39,3 +40,10 @@ class PandasDataframable:
     @property
     def dataframe(self) -> pandas.DataFrame:
         return pandas.DataFrame.from_dict(self.__dict__, orient='index')
+
+
+class Copyable(abc.ABC):
+
+    @abc.abstractmethod
+    def copy(self):
+        pass

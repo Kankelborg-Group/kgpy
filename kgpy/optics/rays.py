@@ -160,19 +160,18 @@ class Rays:
         pass
 
     def tilt_decenter(self, transform: coordinate.TiltDecenter) -> 'Rays':
-        return type(self)(
-            wavelength=self.wavelength.copy(),
-            position=transform(self.position, num_extra_dims=5),
-            direction=transform(self.direction, decenter=False, num_extra_dims=5),
-            polarization=self.polarization.copy(),
-            surface_normal=transform(self.surface_normal, decenter=False, num_extra_dims=5),
-            propagation_signum=self.propagation_signum,
-            index_of_refraction=self.index_of_refraction.copy(),
-            field_mask=self.field_mask.copy(),
-            vignetted_mask=self.vignetted_mask.copy(),
-            error_mask=self.error_mask.copy(),
-            input_grids=self.input_grids.copy(),
-        )
+        other = self.copy()
+        other.position = transform(other.position, num_extra_dims=5)
+        other.direction = transform(other.direction, decenter=False, num_extra_dims=5)
+        other.surface_normal = transform(other.surface_normal, decenter=False, num_extra_dims=5)
+        return other
+
+    def apply_transform(self, transform: coordinate.Transform) -> 'Rays':
+        other = self.copy()
+        other.position = transform(other.position, num_extra_dims=5)
+        other.direction = transform(other.direction, translate=False, num_extra_dims=5)
+        other.surface_normal = transform(other.surface_normal, translate=False, num_extra_dims=5)
+        return other
 
     @property
     def grid_shape(self) -> typ.Tuple[int, ...]:

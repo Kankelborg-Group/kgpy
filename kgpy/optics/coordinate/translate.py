@@ -36,11 +36,22 @@ class Translate(Decenter):
             z=self.z + other.z,
         )
 
-    def copy(self):
+    def __call__(self, value: u.Quantity, inverse: bool = False, num_extra_dims: int = 0) -> u.Quantity:
+        value = super().__call__(value=value, inverse=inverse, num_extra_dims=num_extra_dims)
+        sh = list(self.z.shape)
+        sh[~1:~1] = [1] * num_extra_dims
+        z = self.z.reshape(sh)
+        if not inverse:
+            value[..., 2] += z
+        else:
+            value[..., 2] -= z
+        return value
+
+    def copy(self) -> 'Translate':
         return type(self)(
-            self.x.copy(),
-            self.y.copy(),
-            self.z.copy()
+            x=self.x.copy(),
+            y=self.y.copy(),
+            z=self.z.copy()
         )
 
 

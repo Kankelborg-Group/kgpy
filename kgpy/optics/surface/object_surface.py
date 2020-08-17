@@ -1,9 +1,10 @@
 import dataclasses
 import typing as typ
 import numpy as np
+import matplotlib.pyplot as plt
 import astropy.units as u
-import kgpy.vector
-from .. import Rays
+from kgpy.vector import z
+from .. import coordinate, Rays
 from . import Surface
 
 __all__ = ['ObjectSurface']
@@ -12,29 +13,48 @@ __all__ = ['ObjectSurface']
 @dataclasses.dataclass
 class ObjectSurface(Surface):
 
+    rays_input: typ.Optional[Rays] = None
+
     def to_zemax(self):
         raise NotImplementedError
+
+    @property
+    def thickness_eff(self) -> u.Quantity:
+        if not np.isfinite(self.thickness):
+            return 0 * self.thickness
+        return self.thickness
 
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return u.Quantity([0, 0, 1])
 
-    def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False) -> typ.NoReturn:
-        if not is_first_surface:
-            raise ValueError('Object surface must be first surface')
-
-        if is_final_surface:
-            raise ValueError('Object surface must not be last surface')
-
+    @property
+    def _rays_output(self) -> typ.Optional[Rays]:
+        if self.rays_input is None:
+            return None
+        rays = self.rays_input.copy()
         if np.isfinite(self.thickness):
-            rays.position[kgpy.vector.z] = rays.position[kgpy.vector.z] - self.thickness
-
+            rays.position[z] -= self.thickness
         return rays
 
     def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
-        raise NotImplementedError
+        return 0 * u.mm
 
-    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        return x
+    @property
+    def pre_transform(self) -> coordinate.Transform:
+        return coordinate.Transform()
 
-    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        return x
+    @property
+    def post_transform(self) -> coordinate.Transform:
+        return coordinate.Transform()
+
+    def copy(self) -> 'ObjectSurface':
+        rays = self.rays_input
+        if rays is not None:
+            rays = rays.copy()
+        return ObjectSurface(
+            name=self.name.copy(),
+            thickness=self.thickness.copy(),
+            is_active=self.is_active.copy(),
+            is_visible=self.is_visible.copy(),
+            rays_input=rays,
+        )

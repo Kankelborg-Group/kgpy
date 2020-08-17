@@ -39,7 +39,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_mask_func: typ.Callable[[u.Quantity, u.Quantity], np.ndarray] = default_field_mask_func
     baffle_positions: typ.Optional[typ.List[coordinate.Transform]] = None
-    propagate_forward: bool = True
 
     def __post_init__(self):
         self.update()
@@ -52,8 +51,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         )
 
     def update(self) -> typ.NoReturn:
-        self._input_rays = None
-        self._all_rays = None
+        self._rays_input_cache = None
+        self._raytrace_cache = None
 
     @property
     def standard_surfaces(self) -> typ.Iterator[surface.Standard]:
@@ -91,8 +90,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def image_surface(self) -> surface.Surface:
-        s = list(self)
-        return s[~0]
+        return list(self)[~0]
 
     @property
     def config_broadcast(self):
@@ -104,8 +102,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         return all_surface_battrs
 
     def __iter__(self) -> typ.Iterator[surface.Surface]:
-        yield from self.object_surface
-        yield from self.surfaces
+        old_surf = self.object_surface
+        yield from old_surf
+        for surf in self.surfaces:
+            surf.previous_surface = old_surf
+            yield surf
+            old_surf = surf
 
     @property
     def field_x(self) -> u.Quantity:
@@ -133,19 +135,37 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             axis=~0,
         )
 
-    @property
-    def input_rays(self):
-        if self._input_rays is None:
-            self._input_rays = self._calc_input_rays()
-        return self._input_rays
+    def raytrace(self, rays: Rays) -> typ.List[surface.Surface]:
+        # surfaces_orig = list(self)
+        # surfaces = []
+        # for s in surfaces_orig:
+        #     surfaces.append(s.copy())
+        surfaces = list(self)
+        surfaces[0].rays_input = rays
+        return surfaces
 
     @property
-    def all_rays(self):
-        if self._all_rays is None:
-            self._all_rays = self._calc_all_rays()
-        return self._all_rays
+    def surfaces_raytraced(self) -> typ.List[surface.Surface]:
+        if self._raytrace_cache is None:
+            self._raytrace_cache = self._surfaces_raytraced
+        return self._raytrace_cache
 
-    def _calc_input_rays(self) -> Rays:
+    @property
+    def _surfaces_raytraced(self) -> typ.List[surface.Surface]:
+        return self.raytrace(self.rays_input)
+
+    @property
+    def rays_output(self):
+        return self.surfaces_raytraced[~0].rays_output
+
+    @property
+    def rays_input(self):
+        if self._rays_input_cache is None:
+            self._rays_input_cache = self._rays_input
+        return self._rays_input_cache
+
+    @property
+    def _rays_input(self) -> Rays:
 
         if np.isinf(self.object_surface.thickness).all():
 
@@ -155,6 +175,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
+                surf_index = list(self).index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
                 target_position = kgpy.vector.from_components(px[..., None], py)
 
@@ -169,7 +190,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
-                    rays = self.raytrace_subsystem(rays, final_surface=surf)
+                    rays = self.raytrace(rays)[surf_index].rays_output
                     return (rays.position - target_position)[xy]
 
                 position_guess = kgpy.optimization.root_finding.secant(
@@ -201,6 +222,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
+                surf_index = list(self).index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
                 target_position = kgpy.vector.from_components(px[..., None], py)
 
@@ -218,7 +240,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=px,
                         pupil_grid_y=py,
                     )
-                    rays = self.raytrace_subsystem(rays, final_surface=surf)
+                    rays = self.raytrace(rays)[surf_index].rays_output
                     return (rays.position - target_position)[xy]
 
                 direction_guess = kgpy.optimization.root_finding.secant(
@@ -246,46 +268,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             )
 
         return input_rays
-
-    def raytrace_subsystem(
-            self,
-            rays: Rays,
-            start_surface: typ.Optional[surface.Standard] = None,
-            final_surface: typ.Optional[surface.Standard] = None,
-    ) -> Rays:
-
-        surfaces = list(self)
-
-        if start_surface is None:
-            start_surface_index = 0
-        else:
-            start_surface_index = surfaces.index(start_surface)
-
-        if final_surface is None:
-            final_surface_index = len(surfaces) - 1
-        else:
-            final_surface_index = surfaces.index(final_surface)
-
-        rays = surfaces[start_surface_index].propagate_rays(rays, is_first_surface=True)
-        for s in range(start_surface_index + 1, final_surface_index):
-            rays = surfaces[s].propagate_rays(rays)
-        rays = surfaces[final_surface_index].propagate_rays(rays, is_final_surface=True)
-
-        return rays
-
-    @property
-    def image_rays(self) -> Rays:
-        return self.all_rays[~0]
-
-    def _calc_all_rays(self) -> typ.List[Rays]:
-
-        rays = [self.input_rays]
-
-        surfaces = list(self)
-        for s1, s2 in zip(surfaces[:~0], surfaces[1:]):
-            rays.append(self.raytrace_subsystem(rays[~0], s1, s2))
-
-        return rays
 
     def psf(
             self,
@@ -323,8 +305,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if surf is None:
             surf = self.image_surface
 
-        rays = self.all_rays[list(self).index(surf)].copy()
-        rays.vignetted_mask = self.image_rays.vignetted_mask
+        surf_index = list(self).index(surf)
+        rays = self.surfaces_raytraced[surf_index].rays_output.copy()
+        rays.vignetted_mask = self.rays_output.vignetted_mask
 
         rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
@@ -384,7 +367,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if ax is None:
             _, ax = plt.subplots()
 
-        surfaces = list(self)  # type: typ.List[surface.Surface]
+        surfaces = self.surfaces_raytraced
 
         if start_surface is None:
             start_surface = surfaces[0]
@@ -395,19 +378,38 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         start_surface_index = surfaces.index(start_surface)
         end_surface_index = surfaces.index(final_surface)
 
+        return self.plot_surfaces(
+            ax=ax,
+            components=components,
+            surfaces=surfaces[start_surface_index:end_surface_index + 1],
+            color_axis=color_axis,
+            plot_vignetted=plot_vignetted,
+            plot_rays=plot_rays,
+        )
+
+    def plot_surfaces(
+            self,
+            ax: typ.Optional[plt.Axes] = None,
+            components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
+            surfaces: typ.Optional[typ.List[surface.Surface]] = None,
+            color_axis: int = Rays.axis.wavelength,
+            plot_vignetted: bool = False,
+            plot_rays: bool = True,
+    ) -> plt.Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+
         intercepts = []
-        i = slice(start_surface_index, end_surface_index + 1)
-        all_rays = self.all_rays
-        for surf, rays in zip(surfaces[i], all_rays[i]):
-            surf.plot_2d(ax, components, self)
+        for surf in surfaces:
+            surf.plot_2d(ax=ax, components=components)
             if plot_rays:
-                intercept = surf.transform_to_global(rays.position, self, num_extra_dims=5)
+                intercept = surf.transform_to_global(surf.rays_output.position, num_extra_dims=5)
                 intercepts.append(intercept)
 
         if plot_rays:
             intercepts = u.Quantity(intercepts)
 
-            img_rays = all_rays[~0]
+            img_rays = self.rays_output
 
             color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 
@@ -445,71 +447,6 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             ax.legend(label_dict.values(), label_dict.keys(), loc='upper right')
 
         return ax
-
-    def plot_3d(self, rays: Rays, delete_vignetted=True, config_index: int = 0):
-        with astropy.visualization.quantity_support():
-
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d', proj_type='ortho')
-
-            x, mask = rays.position, rays.mask
-            xsl = [slice(None)] * len(x.shape)
-            for surf in self.surfaces:
-                s = self.surfaces.index(surf)
-                xsl[rays.axis.surf] = s
-                a = self.local_to_global(surf, x[xsl], configuration_axis=0)
-                x[xsl] = a[config_index]
-
-            new_order = [
-                rays.axis.config,
-                rays.axis.wavl,
-                rays.axis.field_x,
-                rays.axis.field_y,
-                rays.axis.pupil_x,
-                rays.axis.pupil_y,
-                rays.axis.surf,
-                ~0,
-            ]
-
-            new_surf_axis = ~list(reversed(new_order)).index(rays.axis.surf)
-
-            x = np.transpose(x, new_order)
-            mask = np.transpose(mask, new_order)
-
-            rebin_factor = 1
-            sl = (
-                0, 0, slice(None, None, rebin_factor), slice(None, None, rebin_factor), slice(None, None, rebin_factor),
-                slice(None, None, rebin_factor))
-            x = x[sl]
-            mask = mask[sl]
-
-            sh = (-1, x.shape[new_surf_axis])
-            x = np.reshape(x, sh + (3,))
-            mask = np.reshape(mask, sh)
-
-            for r, m in zip(x, mask):
-                if delete_vignetted:
-                    if m[~0]:
-                        ax.plot(*r.T)
-                else:
-                    ax.plot(*r[m].T)
-
-            for surf in self.surfaces:
-                if isinstance(surf, surface.Standard):
-                    if surf.aperture is not None:
-
-                        psh = list(surf.aperture.wire.shape)
-                        psh[~0] = 3
-                        polys = np.zeros(psh) * u.mm
-                        polys[..., 0:2] = surf.aperture.wire
-
-                        polys = self.local_to_global(surf, polys, configuration_axis=None)[0]
-
-                        for poly in polys:
-                            x_, y_, z_ = poly.T
-                            ax.plot(x_, y_, z_, 'k')
-                            ax.plot(u.Quantity([x_[-1], x_[0]]), u.Quantity([y_[-1], y_[0]]),
-                                    u.Quantity([z_[-1], z_[0]]), 'k')
 
     def to_occ(self):
 

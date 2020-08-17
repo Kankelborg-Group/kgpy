@@ -6,7 +6,6 @@ from astropy import units as u
 import astropy.visualization
 import kgpy.vector
 import kgpy.optics
-import kgpy.optics.surface
 from . import Material
 
 
@@ -25,11 +24,15 @@ class Mirror(Material):
     def propagation_signum(self) -> float:
         return -1.
 
+    def copy(self) -> 'Mirror':
+        return Mirror(
+            thickness=self.thickness.copy(),
+        )
+
     def plot_2d(
             self,
             ax: plt.Axes,
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
-            system: typ.Optional['kgpy.optics.System'] = None,
             surface: typ.Optional['kgpy.optics.surface.Standard'] = None,
     ):
         with astropy.visualization.quantity_support():
@@ -37,7 +40,7 @@ class Mirror(Material):
             c1, c2 = components
             wire = surface.aperture.wire.copy()
             wire[kgpy.vector.z] = self.thickness
-            wire = surface.transform_to_global(wire, system, num_extra_dims=1)
+            wire = surface.transform_to_global(wire, num_extra_dims=1)
             # wire = wire.reshape(wire.shape[:~2] + (wire.shape[~2] * wire.shape[~1], wire.shape[~0]))
             ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
 
@@ -49,7 +52,7 @@ class Mirror(Material):
                 back_vertices[kgpy.vector.z] = self.thickness
 
                 vertices = np.stack([front_vertices, back_vertices], axis=~1)
-                vertices = surface.transform_to_global(vertices, system, num_extra_dims=2)
+                vertices = surface.transform_to_global(vertices, num_extra_dims=2)
                 vertices = vertices.reshape((-1, ) + vertices.shape[~1:])
 
                 ax.plot(vertices[..., c1].T, vertices[..., c2].T, color='black')

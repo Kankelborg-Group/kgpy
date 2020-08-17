@@ -40,19 +40,27 @@ class CoordinateBreak(surface.Surface):
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return u.Quantity([0, 0, 1])
 
-    def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
-        if not is_first_surface:
-            rays = rays.tilt_decenter(~self.transform)
+    @property
+    def _rays_output(self) -> typ.Optional[Rays]:
+        if self.rays_input is None:
+            return None
+        rays = self.rays_input.copy()
+        rays.position[z] -= self.previous_surface.thickness_eff
+        return rays.tilt_decenter(~self.transform)
 
-        if not is_final_surface:
-            rays = rays.copy()
-            rays.position[z] -= self.thickness
+    @property
+    def pre_transform(self) -> coordinate.Transform:
+        return coordinate.Transform.from_tilt_decenter(self.transform)
 
-        return rays
+    @property
+    def post_transform(self) -> coordinate.Transform:
+        return coordinate.Transform(translate=coordinate.Translate(z=self.thickness))
 
-    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        return self.transform(x, num_extra_dims=num_extra_dims)
-
-    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        x[kgpy.vector.z] += self.thickness
-        return x
+    def copy(self) -> 'CoordinateBreak':
+        return CoordinateBreak(
+            name=self.name.copy(),
+            thickness=self.thickness.copy(),
+            is_active=self.is_active.copy(),
+            is_visible=self.is_visible.copy(),
+            transform=self.transform.copy(),
+        )

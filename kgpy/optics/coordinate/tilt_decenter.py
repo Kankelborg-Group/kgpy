@@ -64,3 +64,10 @@ class TiltDecenter(zemax_compatible.InitArgs, kgpy.mixin.Broadcastable):
             if decenter:
                 value = self.decenter(value, inverse, num_extra_dims)
         return value
+
+    def copy(self) -> 'TiltDecenter':
+        return TiltDecenter(
+            tilt=self.tilt.copy(),
+            decenter=self.decenter.copy(),
+            tilt_first=self.tilt_first,
+        )

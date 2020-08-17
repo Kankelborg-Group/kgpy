@@ -11,7 +11,12 @@ __all__ = ['Material']
 
 
 @dataclasses.dataclass
-class Material(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
+class Material(
+    ZemaxCompatible,
+    kgpy.mixin.Copyable,
+    kgpy.mixin.Broadcastable,
+    abc.ABC
+):
 
     @abc.abstractmethod
     def index_of_refraction(self, wavelength: u.Quantity, polarization: typ.Optional[u.Quantity]) -> u.Quantity:
@@ -26,7 +31,6 @@ class Material(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
             self,
             ax: plt.Axes,
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
-            system: typ.Optional['kgpy.optics.System'] = None,
             surface: typ.Optional['kgpy.optics.surface.Standard'] = None,
     ):
         pass
