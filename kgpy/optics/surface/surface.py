@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.mixin
 import kgpy.vector
+from kgpy.vector import x, y, z
+import kgpy.optimization.root_finding
 import kgpy.optics
 from .. import Rays, zemax_compatible
 
@@ -48,7 +50,6 @@ class Surface(
             self.is_active,
         )
 
-
     def index(self, surfaces: typ.Iterable['Surface']) -> int:
         for s, surf in enumerate(surfaces):
             if surf is self:
@@ -83,54 +84,25 @@ class Surface(
     def calc_intercept(
             self,
             rays: Rays,
-            step_size: u.Quantity = 1 << u.m,
+            bracket_min: u.Quantity,
+            bracket_max: u.Quantity,
             max_error: u.Quantity = .1 << u.nm,
-            max_iterations: int = 100,
-    ) -> u.Quantity:
+    ):
+        def line(t: u.Quantity) -> u.Quantity:
+            return rays.position + rays.direction * t[..., None]
 
-        intercept = rays.position.copy()
+        def func(t: u.Quantity) -> u.Quantity:
+            a = line(t)
+            return a[z] - self.sag(a[x], a[y])
 
-        t0 = -step_size
-        t1 = step_size
+        t_intercept = kgpy.optimization.root_finding.false_position(
+            func=func,
+            bracket_min=bracket_min,
+            bracket_max=bracket_max,
+            max_abs_error=max_error,
+        )
 
-        t0 = np.broadcast_to(t0, rays.wavelength.shape, subok=True)
-        t1 = np.broadcast_to(t1, rays.wavelength.shape, subok=True)
-
-        i = 0
-        while True:
-
-            if i > max_iterations:
-                # warnings.warn('Number of iterations exceeded')
-                # break
-                raise ValueError('Number of iterations exceeded')
-
-            a0 = intercept + rays.direction * t0
-            a1 = intercept + rays.direction * t1
-            f0 = a0[kgpy.vector.z] - self.sag(a0[kgpy.vector.x], a0[kgpy.vector.y])
-            f1 = a1[kgpy.vector.z] - self.sag(a1[kgpy.vector.x], a1[kgpy.vector.y])
-
-            current_error = np.nanmax(np.abs(f1))
-            if current_error < max_error:
-                break
-
-            f0 = np.expand_dims(f0, ~0)
-            f1 = np.expand_dims(f1, ~0)
-
-            m = (f1 - f0) == 0
-
-            t2 = (t0 * f1 - t1 * f0) / (f1 - f0)
-            t1 = np.broadcast_to(t1, t2.shape, subok=True)
-            t2[m] = t1[m]
-
-            t0 = t1
-            t1 = t2
-
-            i += 1
-
-        t = t1
-        intercept = intercept + rays.direction * t
-
-        return intercept
+        return line(t_intercept)
 
     @abc.abstractmethod
     def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:

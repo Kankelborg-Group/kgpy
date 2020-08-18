@@ -43,48 +43,17 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
     def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
         return u.Quantity([0 << 1 / u.mm, self.groove_density, 0 << 1 / u.mm])
 
-    def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
+    def _calc_input_vector(self, rays: Rays) -> u.Quantity:
+        n1 = rays.index_of_refraction
+        n2 = self._index_of_refraction(rays)
+        a = n1 * rays.direction / n2
+        return a + self.diffraction_order * rays.wavelength * self.groove_normal(rays.position[x], rays.position[y])
 
-        if not is_first_surface:
-            if self.transform_before is not None:
-                rays = rays.tilt_decenter(~self.transform_before)
-            rays.position = self.calc_intercept(rays)
+    def _calc_input_direction(self, rays: Rays) -> u.Quantity:
+        return kgpy.vector.normalize(self._calc_input_vector(rays))
 
-            n1 = rays.index_of_refraction
-            if self.material is not None:
-                n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
-                p = rays.propagation_signum * self.material.propagation_signum
-            else:
-                n2 = 1 << u.dimensionless_unscaled
-                p = rays.propagation_signum
-
-            a = n1 * rays.direction / n2
-            a += self.diffraction_order * rays.wavelength * self.groove_normal(rays.position[x], rays.position[y])
-            r = kgpy.vector.length(a)
-            a = kgpy.vector.normalize(a)
-
-            n = self.normal(rays.position[x], rays.position[y])
-            c = -kgpy.vector.dot(a, n)
-
-            # p = -self.material.propagation_signum
-
-            b = r * a + (r * c - p * np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
-
-            rays.direction = kgpy.vector.normalize(b)
-            rays.surface_normal = n
-            if self.aperture is not None:
-                if self.aperture.is_active:
-                    rays.vignetted_mask &= self.aperture.is_unvignetted(rays.position)
-            rays.index_of_refraction[...] = n2
-            rays.propagation_signum = p
-
-        if not is_final_surface:
-            rays = rays.copy()
-            rays.position[z] -= self.thickness
-            if self.transform_after is not None:
-                rays = rays.tilt_decenter(~self.transform_after)
-
-        return rays
+    def _calc_index_ratio(self, rays: Rays) -> u.Quantity:
+        return kgpy.vector.length(self._calc_input_vector(rays))
 
     def wavelength_from_angles(
             self,

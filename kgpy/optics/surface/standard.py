@@ -21,7 +21,10 @@ class Standard(
     typ.Generic[MaterialT, ApertureT],
     Surface,
 ):
-
+    """
+    Most basic optical surface intended to be instantiated by the user.
+    Allows for refractive or reflective surfaces with planar, spherical or conic figure.
+    """
     radius: u.Quantity = np.inf * u.mm
     conic: u.Quantity = 0 * u.dimensionless_unscaled
     material: MaterialT = None
@@ -116,6 +119,32 @@ class Standard(
         n = kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
         return n
 
+    def _index_of_refraction(self, rays: Rays) -> u.Quantity:
+        """
+        Index of refraction of this surface.
+        Uses the index of refraction of the surface's material if available, otherwise returns 1.
+        :param rays: Input rays to the surface. Needed if the index of refraction is wavelength / polarization dependent.
+        :return: This surface's index of refraction.
+        """
+        if self.material is not None:
+            return self.material.index_of_refraction(rays.wavelength, rays.polarization)
+        else:
+            return 1 << u.dimensionless_unscaled
+
+    def _propagation_signum(self, rays: Rays) -> u.Quantity:
+        p = np.sign(rays.direction[z])
+        if self.material is not None:
+            p = p * self.material.propagation_signum
+        return p
+
+    def _calc_input_direction(self, rays: Rays) -> u.Quantity:
+        return rays.direction
+
+    def _calc_index_ratio(self, rays: Rays) -> u.Quantity:
+        n1 = rays.index_of_refraction
+        n2 = self._index_of_refraction(rays)
+        return n1 / n2
+
     def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
 
         rays = rays.copy()
@@ -125,16 +154,9 @@ class Standard(
                 rays = rays.tilt_decenter(~self.transform_before)
             rays.position = self.calc_intercept(rays)
 
-            n1 = rays.index_of_refraction
-            if self.material is not None:
-                n2 = self.material.index_of_refraction(rays.wavelength, rays.polarization)
-                p = rays.propagation_signum * self.material.propagation_signum
-            else:
-                n2 = 1 << u.dimensionless_unscaled
-                p = rays.propagation_signum
-
-            a = rays.direction
-            r = n1 / n2
+            p = self._propagation_signum(rays)[..., None]
+            a = self._calc_input_direction(rays)
+            r = self._calc_index_ratio(rays)
 
             n = self.normal(rays.position[x], rays.position[y])
             c = -kgpy.vector.dot(a, n)
@@ -146,7 +168,7 @@ class Standard(
             if self.aperture is not None:
                 if self.aperture.is_active:
                     rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
-            rays.index_of_refraction[...] = n2
+            rays.index_of_refraction[...] = self._index_of_refraction(rays)
             rays.propagation_signum = p
 
         if not is_final_surface:

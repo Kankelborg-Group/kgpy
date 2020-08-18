@@ -136,13 +136,13 @@ class Rays:
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ):
         wavelength = np.expand_dims(wavelength_grid, cls.vaxis.perp_axes(cls.vaxis.wavelength))
-        field_x = np.expand_dims(field_grid_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
-        field_y = np.expand_dims(field_grid_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
-        wavelength, field_x, field_y = np.broadcast_arrays(wavelength, field_x, field_y, subok=True)
+        pupil_x = np.expand_dims(pupil_grid_x, cls.vaxis.perp_axes(cls.vaxis.pupil_x))
+        pupil_y = np.expand_dims(pupil_grid_y, cls.vaxis.perp_axes(cls.vaxis.pupil_y))
+        wavelength, pupil_x, pupil_y = np.broadcast_arrays(wavelength, pupil_x, pupil_y, subok=True)
 
         direction, _ = np.broadcast_arrays(direction, wavelength, subok=True)
 
-        position = kgpy.vector.from_components(ax=field_grid_x[..., None], ay=field_grid_y)
+        position = kgpy.vector.from_components(ax=field_grid_x[..., None, None, None], ay=field_grid_y[..., None, None])
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
         mask = field_mask_func(position[x], position[y])
 
