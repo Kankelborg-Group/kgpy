@@ -14,7 +14,12 @@ __all__ = ['Aperture']
 
 
 @dataclasses.dataclass
-class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
+class Aperture(
+    ZemaxCompatible,
+    kgpy.mixin.Copyable,
+    kgpy.mixin.Broadcastable,
+    abc.ABC
+):
     num_samples: int = 1000
     is_active: bool = True
     is_test_stop: bool = True
@@ -44,24 +49,23 @@ class Aperture(ZemaxCompatible, kgpy.mixin.Broadcastable, abc.ABC):
 
     def global_wire(
             self,
-            system: typ.Optional['kgpy.optics.System'] = None,
             surface: typ.Optional['kgpy.optics.Surface'] = None,
             apply_sag: bool = True
     ):
         wire = self.wire
         if apply_sag:
             wire[kgpy.vector.z] = surface.sag(wire[kgpy.vector.x], wire[kgpy.vector.y])
-        wire = surface.transform_to_global(wire, system, num_extra_dims=1)
+        if surface is not None:
+            wire = surface.transform_to_global(wire, num_extra_dims=1)
         return wire
 
     def plot_2d(
             self,
             ax: plt.Axes,
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
-            system: typ.Optional['kgpy.optics.System'] = None,
             surface: typ.Optional['kgpy.optics.Surface'] = None,
     ):
         with astropy.visualization.quantity_support():
             c1, c2 = components
-            wire = self.global_wire(system, surface)
+            wire = self.global_wire(surface)
             ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)

@@ -1,43 +1,48 @@
-import dataclasses
 import typing as typ
+import dataclasses
 import numpy as np
 import astropy.units as u
-from . import Transform, TransformList, Decenter, TiltXYZ
+from . import Transform, TransformList, TiltXYZ, Translate, TiltDecenter
 
-__all__ = ['TiltDecenter']
+__all__ = ['TiltTranslate']
 
 
 @dataclasses.dataclass
-class TiltDecenter(Transform):
+class TiltTranslate(Transform):
     tilt: typ.Optional[TiltXYZ] = None
-    decenter: typ.Optional[Decenter] = None
+    translate: typ.Optional[Translate] = None
     tilt_first: bool = False
 
     @classmethod
-    def promote(cls, value: 'TiltDecenter'):
-        return cls(value.tilt, value.decenter, value.tilt_first)
+    def from_tilt_decenter(
+            cls,
+            tilt_decenter: TiltDecenter = None,
+            z=0 * u.mm,
+    ):
+        return cls(
+            tilt=tilt_decenter.tilt.copy(),
+            translate=Translate(
+                x=tilt_decenter.decenter.x.copy(),
+                y=tilt_decenter.decenter.y.copy(),
+                z=z,
+            )
+        )
+
+    @classmethod
+    def promote(cls, value: 'TiltTranslate'):
+        return cls(value.tilt, value.translate, value.tilt_first)
 
     @property
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
             self.tilt.config_broadcast,
-            self.decenter.config_broadcast,
+            self.translate.config_broadcast,
         )
 
     @property
-    def __init__args(self) -> typ.Dict[str, typ.Any]:
-        args = super().__init__args
-        args.update({
-            'tilt': self.tilt_first,
-            'decenter': self.decenter,
-            'tilt_first': self.tilt_first,
-        })
-        return args
-
-    @property
     def _transform(self) -> 'TransformList':
-        transform = TransformList([self.decenter, self.tilt])
+        transform = TransformList([self.translate, self.tilt])
         if self.tilt_first:
             transform.reverse()
         return transform
@@ -54,15 +59,16 @@ class TiltDecenter(Transform):
     ) -> u.Quantity:
         return self._transform(value, use_rotations, use_translations, num_extra_dims)
 
-    def copy(self) -> 'TiltDecenter':
+    def copy(self) -> 'TiltTranslate':
         tilt = self.tilt
         if tilt is not None:
             tilt = tilt.copy()
-        decenter = self.decenter
-        if decenter is not None:
-            decenter = decenter.copy()
-        return TiltDecenter(
+        translate = self.translate
+        if translate is not None:
+            translate = translate.copy()
+        return TiltTranslate(
             tilt=tilt,
-            decenter=decenter,
+            translate=translate,
             tilt_first=self.tilt_first,
         )
+

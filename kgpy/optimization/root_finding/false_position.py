@@ -1,7 +1,19 @@
 import typing as typ
 import numpy as np
+import astropy.units as u
 
 __all__ = ['false_position']
+
+
+@typ.overload
+def false_position(
+        func: typ.Callable[[u.Quantity], u.Quantity],
+        bracket_min: u.Quantity,
+        bracket_max: u.Quantity,
+        max_abs_error: u.Quantity = 1e-9,
+        max_iterations: int = 100,
+) -> u.Quantity:
+    ...
 
 
 def false_position(
@@ -10,7 +22,7 @@ def false_position(
         bracket_max: np.ndarray,
         max_abs_error: float = 1e-9,
         max_iterations: int = 100,
-):
+) -> np.ndarray:
     """
     The false position method (often known by its latin name, regula falsi) is a bracketed root-finding method that uses
     linear interpolation to iteratively approximate the root of a nonlinear function.

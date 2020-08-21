@@ -7,13 +7,13 @@ from kgpy.vector import x, y, z
 from .. import Rays, coordinate
 from . import surface
 
-__all__ = ['CoordinateBreak']
+__all__ = ['CoordinateTransform']
 
 
 @dataclasses.dataclass
-class CoordinateBreak(surface.Surface):
+class CoordinateTransform(surface.Surface):
 
-    transform: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
+    transform: typ.Optional[coordinate.Transform] = None
 
     @property
     def __init__args(self) -> typ.Dict[str, typ.Any]:
@@ -30,7 +30,7 @@ class CoordinateBreak(surface.Surface):
             self.transform.config_broadcast,
         )
 
-    def to_zemax(self) -> 'CoordinateBreak':
+    def to_zemax(self) -> 'CoordinateTransform':
         from kgpy.optics import zemax
         return zemax.system.surface.CoordinateBreak(**self.__init__args)
 
@@ -40,19 +40,23 @@ class CoordinateBreak(surface.Surface):
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return u.Quantity([0, 0, 1])
 
-    def propagate_rays(self, rays: Rays, is_first_surface: bool = False, is_final_surface: bool = False, ) -> Rays:
-        if not is_first_surface:
-            rays = rays.tilt_decenter(~self.transform)
+    @property
+    def _rays_output(self) -> typ.Optional[Rays]:
+        return self.rays_input
 
-        if not is_final_surface:
-            rays = rays.copy()
-            rays.position[z] -= self.thickness
+    @property
+    def pre_transform(self) -> coordinate.TransformList:
+        return coordinate.TransformList([self.transform])
 
-        return rays
+    @property
+    def post_transform(self) -> coordinate.TransformList:
+        return coordinate.TransformList([coordinate.Translate(z=self.thickness)])
 
-    def apply_pre_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        return self.transform(x, num_extra_dims=num_extra_dims)
-
-    def apply_post_transforms(self, x: u.Quantity, num_extra_dims: int = 0) -> u.Quantity:
-        x[kgpy.vector.z] += self.thickness
-        return x
+    def copy(self) -> 'CoordinateTransform':
+        return CoordinateTransform(
+            name=self.name.copy(),
+            thickness=self.thickness.copy(),
+            is_active=self.is_active.copy(),
+            is_visible=self.is_visible.copy(),
+            transform=self.transform.copy(),
+        )

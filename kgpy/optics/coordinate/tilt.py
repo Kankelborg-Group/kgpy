@@ -1,25 +1,110 @@
-import dataclasses
 import typing as typ
+import abc
+import dataclasses
 import numpy as np
 from astropy import units as u
-
 import kgpy.matrix
 import kgpy.mixin
 from kgpy import vector
+from . import Transform, TransformList
 
-__all__ = ['Tilt']
+__all__ = ['TiltX', 'TiltY', 'TiltZ', 'TiltXYZ']
 
 
 @dataclasses.dataclass
-class Tilt(kgpy.mixin.Broadcastable):
+class TiltAboutAxis(Transform, abc.ABC):
+    angle: u.Quantity = 0 * u.deg
+
+    @property
+    def config_broadcast(self):
+        return np.broadcast(super().config_broadcast, self.angle)
+
+    def __eq__(self, other: 'TiltAboutAxis') -> bool:
+        return np.array(self.angle == other.angle).all()
+
+    def __invert__(self) -> 'TiltAboutAxis':
+        return type(self)(angle=-self.angle)
+
+    @property
+    @abc.abstractmethod
+    def rotation_matrix(self) -> np.ndarray:
+        pass
+
+    def __call__(
+            self,
+            value: u.Quantity,
+            use_rotations: bool = True,
+            use_translations: bool = True,
+            num_extra_dims: int = 0,
+    ) -> u.Quantity:
+        if use_rotations:
+            r = self.rotation_matrix
+            sh = list(r.shape)
+            sh[~1:~1] = [1] * num_extra_dims
+            r = r.reshape(sh)
+            value = kgpy.vector.matmul(r, value)
+        else:
+            value = value.copy()
+        return value
+
+    def copy(self) -> 'TiltAboutAxis':
+        return type(self)(
+            angle=self.angle.copy(),
+        )
+
+    @property
+    def intrinsic(self) -> 'Transform':
+        return self.copy()
+
+
+class TiltX(TiltAboutAxis):
+
+    @property
+    def rotation_matrix(self) -> np.ndarray:
+        r = np.zeros(self.shape + (3, 3))
+        cos_x, sin_x = np.cos(-self.angle), np.sin(-self.angle)
+        r[..., 0, 0] = 1
+        r[..., 1, 1] = cos_x
+        r[..., 1, 2] = sin_x
+        r[..., 2, 1] = -sin_x
+        r[..., 2, 2] = cos_x
+        return r
+
+
+class TiltY(TiltAboutAxis):
+
+    @property
+    def rotation_matrix(self) -> np.ndarray:
+        r = np.zeros(self.shape + (3, 3))
+        cos_y, sin_y = np.cos(-self.angle), np.sin(-self.angle)
+        r[..., 0, 0] = cos_y
+        r[..., 0, 2] = -sin_y
+        r[..., 1, 1] = 1
+        r[..., 2, 0] = sin_y
+        r[..., 2, 2] = cos_y
+        return r
+
+
+class TiltZ(TiltAboutAxis):
+
+    @property
+    def rotation_matrix(self) -> np.ndarray:
+        r = np.zeros(self.shape + (3, 3))
+        cos_z, sin_z = np.cos(-self.angle), np.sin(-self.angle)
+        r[..., 0, 0] = cos_z
+        r[..., 0, 1] = sin_z
+        r[..., 1, 0] = -sin_z
+        r[..., 1, 1] = cos_z
+        r[..., 2, 2] = 1
+        return r
+
+
+@dataclasses.dataclass
+class TiltXYZ(Transform):
 
     x: u.Quantity = 0 * u.deg
     y: u.Quantity = 0 * u.deg
     z: u.Quantity = 0 * u.deg
-
-    @classmethod
-    def promote(cls, value: 'Tilt'):
-        return cls(value.x, value.y, value.z)
 
     @property
     def config_broadcast(self):
@@ -30,69 +115,32 @@ class Tilt(kgpy.mixin.Broadcastable):
             self.z,
         )
 
-    def __eq__(self, other: 'Tilt'):
+    def __eq__(self, other: 'TiltXYZ'):
         out = True
         out &= np.array(self.x == other.x).all()
         out &= np.array(self.y == other.y).all()
         out &= np.array(self.z == other.z).all()
         return out
 
-    def __invert__(self):
-        return type(self)(
-            -self.x,
-            -self.y,
-            -self.z,
+    @property
+    def _transform(self) -> TransformList:
+        return TransformList([TiltX(self.x), TiltY(self.y), TiltZ(self.z)])
+
+    def __invert__(self) -> 'TransformList':
+        return self._transform.__invert__()
+
+    def __call__(
+            self,
+            value: u.Quantity,
+            use_rotations: bool = True,
+            use_translations: bool = True,
+            num_extra_dims: int = 0,
+    ) -> np.ndarray:
+        return self._transform(value, use_rotations, use_translations, num_extra_dims)
+
+    def copy(self) -> 'TiltXYZ':
+        return TiltXYZ(
+            x=self.x.copy(),
+            y=self.y.copy(),
+            z=self.z.copy(),
         )
-
-    def __call__(self, value: u.Quantity, inverse: bool = False, num_extra_dims: int = 0) -> np.ndarray:
-        rot = self.rotation(inverse)
-        sh = list(rot.shape)
-        sh[~1:~1] = [1] * num_extra_dims
-        rot = rot.reshape(sh)
-        return kgpy.vector.matmul(rot, value)
-
-    def rotation(self, inverse: bool = False) -> np.ndarray:
-        x = self.rotation_x(inverse)
-        y = self.rotation_y(inverse)
-        z = self.rotation_z(inverse)
-        if not inverse:
-            return kgpy.matrix.mul(kgpy.matrix.mul(x, y), z)
-        else:
-            return kgpy.matrix.mul(kgpy.matrix.mul(z, y), x)
-
-    def rotation_x(self, inverse: bool = False) -> np.ndarray:
-        r = np.zeros(self.shape + (3, 3))
-        x = self.x.copy()
-        if inverse:
-            x *= -1
-        r[..., 0, 0] = 1
-        r[..., 1, 1] = np.cos(x)
-        r[..., 1, 2] = np.sin(x)
-        r[..., 2, 1] = -np.sin(x)
-        r[..., 2, 2] = np.cos(x)
-        return r
-
-    def rotation_y(self, inverse: bool = False) -> np.ndarray:
-        r = np.zeros(self.shape + (3, 3))
-        y = self.y.copy()
-        if inverse:
-            y *= -1
-        r[..., 0, 0] = np.cos(y)
-        r[..., 0, 2] = -np.sin(y)
-        r[..., 1, 1] = 1
-        r[..., 2, 0] = np.sin(y)
-        r[..., 2, 2] = np.cos(y)
-        return r
-
-    def rotation_z(self, inverse: bool = False) -> np.ndarray:
-        r = np.zeros(self.shape + (3, 3))
-        z = self.z.copy()
-        if inverse:
-            z *= -1
-        r[..., 0, 0] = np.cos(z)
-        r[..., 0, 1] = np.sin(z)
-        r[..., 1, 0] = -np.sin(z)
-        r[..., 1, 1] = np.cos(z)
-        r[..., 2, 2] = 1
-        return r
-

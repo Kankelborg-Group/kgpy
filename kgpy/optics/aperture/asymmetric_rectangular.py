@@ -32,3 +32,16 @@ class AsymmetricRectangular(Polygon):
         v_y = np.stack([self.width_y_pos, self.width_y_pos, self.width_y_neg, self.width_y_neg])
         return kgpy.vector.from_components(v_x, v_y)
 
+    def copy(self) -> 'AsymmetricRectangular':
+        return AsymmetricRectangular(
+            num_samples=self.num_samples,
+            is_active=self.is_active,
+            is_test_stop=self.is_test_stop,
+            is_obscuration=self.is_obscuration,
+            decenter=self.decenter.copy(),
+            width_x_neg=self.width_x_neg.copy(),
+            width_x_pos=self.width_x_pos.copy(),
+            width_y_neg=self.width_y_neg.copy(),
+            width_y_pos=self.width_y_pos.copy(),
+        )
+

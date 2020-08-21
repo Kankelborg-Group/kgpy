@@ -52,3 +52,13 @@ class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
         z = np.broadcast_to(0, x.shape)
 
         return np.stack([x, y, z], axis=~0)
+
+    def copy(self) -> 'Circular':
+        return Circular(
+            num_samples=self.num_samples,
+            is_active=self.is_active,
+            is_test_stop=self.is_test_stop,
+            is_obscuration=self.is_obscuration,
+            decenter=self.decenter.copy(),
+            radius=self.radius.copy(),
+        )

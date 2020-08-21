@@ -47,7 +47,9 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
         n1 = rays.index_of_refraction
         n2 = self._index_of_refraction(rays)
         a = n1 * rays.direction / n2
-        return a + self.diffraction_order * rays.wavelength * self.groove_normal(rays.position[x], rays.position[y])
+        normal = self.groove_normal(rays.position[x], rays.position[y])
+        # return a + self._propagation_signum(rays)[..., None] * self.diffraction_order * rays.wavelength * normal
+        return a + self.diffraction_order * rays.wavelength * normal
 
     def _calc_input_direction(self, rays: Rays) -> u.Quantity:
         return kgpy.vector.normalize(self._calc_input_vector(rays))
@@ -69,3 +71,20 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
             input_angle: u.Quantity,
     ) -> u.Quantity:
         return np.arcsin(self.diffraction_order * wavelength * self.groove_density - np.sin(input_angle)) << u.rad
+
+    def copy(self) -> 'DiffractionGrating':
+        return DiffractionGrating(
+            name=self.name.copy(),
+            thickness=self.thickness.copy(),
+            is_active=self.is_active.copy(),
+            is_visible=self.is_visible.copy(),
+            radius=self.radius.copy(),
+            conic=self.conic.copy(),
+            material=self.material.copy(),
+            aperture=self.aperture.copy(),
+            transform_before=self.transform_before.copy(),
+            transform_after=self.transform_after.copy(),
+            intercept_error=self.intercept_error.copy(),
+            diffraction_order=self.diffraction_order.copy(),
+            groove_density=self.groove_density.copy(),
+        )
