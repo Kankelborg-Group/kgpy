@@ -56,3 +56,11 @@ class ObjectSurface(Surface):
             is_visible=self.is_visible.copy(),
             rays_input=rays,
         )
+
+    def plot_2d(
+            self,
+            ax: plt.Axes,
+            transform: typ.Optional[coordinate.Transform] = None,
+            components: typ.Tuple[int, int] = (0, 1),
+    ) -> plt.Axes:
+        pass

@@ -194,13 +194,13 @@ class Standard(
     def plot_2d(
             self,
             ax: plt.Axes,
+            transform: typ.Optional[coordinate.Transform] = None,
             components: typ.Tuple[int, int] = (0, 1),
-            transform_to_global: bool = False,
     ):
         if self.aperture is not None:
-            self.aperture.plot_2d(ax, components, self)
+            self.aperture.plot_2d(ax, self.sag, transform, components)
         if self.material is not None:
-            self.material.plot_2d(ax, components, self)
+            self.material.plot_2d(ax, self.aperture, self.sag, transform, components)
 
     def copy(self) -> 'Standard':
         return Standard(

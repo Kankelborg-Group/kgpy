@@ -4,15 +4,14 @@ import typing as typ
 import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.mixin
-import kgpy.optics
-from .. import ZemaxCompatible, Rays
+import kgpy.vector
+from .. import coordinate, Rays, Aperture
 
 __all__ = ['Material']
 
 
 @dataclasses.dataclass
 class Material(
-    ZemaxCompatible,
     kgpy.mixin.Copyable,
     kgpy.mixin.Broadcastable,
     abc.ABC
@@ -25,7 +24,9 @@ class Material(
     def plot_2d(
             self,
             ax: plt.Axes,
+            aperture: Aperture,
+            sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
+            transform: typ.Optional[coordinate.Transform] = None,
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
-            surface: typ.Optional['kgpy.optics.surface.Standard'] = None,
     ):
         pass

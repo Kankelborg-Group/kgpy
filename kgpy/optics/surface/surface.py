@@ -114,17 +114,18 @@ class Surface(
         transform += self.transform_from_previous_surface
         return transform
 
-    def transform_to_global(
-            self, 
-            value: u.Quantity,
-            num_extra_dims: int = 0
-    ):
-        return self.global_transform(value, num_extra_dims=num_extra_dims)
-
+    @abc.abstractmethod
     def plot_2d(
             self,
             ax: plt.Axes,
+            transform: typ.Optional[coordinate.Transform] = None,
             components: typ.Tuple[int, int] = (0, 1),
-            transform_to_global: bool = False,
-    ):
+    ) -> plt.Axes:
         pass
+
+    def plot_2d_global(
+            self,
+            ax: plt.Axes,
+            components: typ.Tuple[int, int] = (0, 1),
+    ) -> plt.Axes:
+        return self.plot_2d(ax=ax, transform=self.global_transform, components=components)

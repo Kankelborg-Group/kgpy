@@ -13,9 +13,6 @@ class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
 
     radius: u.Quantity = 0 * u.mm
 
-    def to_zemax(self) -> 'Circular':
-        raise NotImplementedError
-
     @property
     def config_broadcast(self):
         return np.broadcast(

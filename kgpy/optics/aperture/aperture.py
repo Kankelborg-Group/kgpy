@@ -7,15 +7,14 @@ import astropy.units as u
 import astropy.visualization
 import kgpy.mixin
 import kgpy.vector
-import kgpy.optics
-from .. import ZemaxCompatible, OCC_Compatible
+from kgpy.vector import x, y, z
+from .. import coordinate
 
 __all__ = ['Aperture']
 
 
 @dataclasses.dataclass
 class Aperture(
-    ZemaxCompatible,
     kgpy.mixin.Copyable,
     kgpy.mixin.Broadcastable,
     abc.ABC
@@ -23,10 +22,6 @@ class Aperture(
     num_samples: int = 1000
     is_active: bool = True
     is_test_stop: bool = True
-
-    def to_zemax(self) -> 'Aperture':
-        from kgpy.optics import zemax
-        return zemax.system.surface.aperture.Aperture()
 
     @abc.abstractmethod
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
@@ -47,25 +42,18 @@ class Aperture(
     def wire(self) -> u.Quantity:
         pass
 
-    def global_wire(
-            self,
-            surface: typ.Optional['kgpy.optics.Surface'] = None,
-            apply_sag: bool = True
-    ):
-        wire = self.wire
-        if apply_sag:
-            wire[kgpy.vector.z] = surface.sag(wire[kgpy.vector.x], wire[kgpy.vector.y])
-        if surface is not None:
-            wire = surface.transform_to_global(wire, num_extra_dims=1)
-        return wire
-
     def plot_2d(
             self,
             ax: plt.Axes,
+            sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
+            transform: typ.Optional[coordinate.Transform] = None,
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
-            surface: typ.Optional['kgpy.optics.Surface'] = None,
     ):
         with astropy.visualization.quantity_support():
             c1, c2 = components
-            wire = self.global_wire(surface)
+            wire = self.wire
+            if sag is not None:
+                wire[z] = wire[z] + sag(wire[x], wire[y])
+            if transform is not None:
+                wire = transform(wire, num_extra_dims=1)
             ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)

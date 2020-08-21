@@ -1,6 +1,7 @@
 import dataclasses
 import typing as typ
 import numpy as np
+import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.vector
 from kgpy.vector import x, y, z
@@ -60,3 +61,11 @@ class CoordinateTransform(surface.Surface):
             is_visible=self.is_visible.copy(),
             transform=self.transform.copy(),
         )
+
+    def plot_2d(
+            self,
+            ax: plt.Axes,
+            transform: typ.Optional[coordinate.Transform] = None,
+            components: typ.Tuple[int, int] = (0, 1),
+    ) -> plt.Axes:
+        pass

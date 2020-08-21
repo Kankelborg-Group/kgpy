@@ -409,12 +409,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             _, ax = plt.subplots()
 
         for surf in surfaces:
-            surf.plot_2d(ax=ax, components=components)
+            surf.plot_2d_global(ax=ax, components=components)
 
         if plot_rays:
             intercepts = []
             for surf in surfaces:
-                intercept = surf.transform_to_global(surf.rays_output.position, num_extra_dims=5)
+                intercept = surf.global_transform(surf.rays_output.position, num_extra_dims=5)
                 intercepts.append(intercept)
             intercepts = u.Quantity(intercepts)
 
