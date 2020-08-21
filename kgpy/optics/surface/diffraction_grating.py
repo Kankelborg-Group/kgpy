@@ -48,7 +48,8 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
         n2 = self._index_of_refraction(rays)
         a = n1 * rays.direction / n2
         normal = self.groove_normal(rays.position[x], rays.position[y])
-        return a + self._propagation_signum(rays)[..., None] * self.diffraction_order * rays.wavelength * normal
+        # return a + self._propagation_signum(rays)[..., None] * self.diffraction_order * rays.wavelength * normal
+        return a + self.diffraction_order * rays.wavelength * normal
 
     def _calc_input_direction(self, rays: Rays) -> u.Quantity:
         return kgpy.vector.normalize(self._calc_input_vector(rays))

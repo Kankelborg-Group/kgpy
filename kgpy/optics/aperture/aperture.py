@@ -55,7 +55,8 @@ class Aperture(
         wire = self.wire
         if apply_sag:
             wire[kgpy.vector.z] = surface.sag(wire[kgpy.vector.x], wire[kgpy.vector.y])
-        wire = surface.transform_to_global(wire, num_extra_dims=1)
+        if surface is not None:
+            wire = surface.transform_to_global(wire, num_extra_dims=1)
         return wire
 
     def plot_2d(

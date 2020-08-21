@@ -7,13 +7,13 @@ from kgpy.vector import x, y, z
 from .. import Rays, coordinate
 from . import surface
 
-__all__ = ['CoordinateBreak']
+__all__ = ['CoordinateTransform']
 
 
 @dataclasses.dataclass
-class CoordinateBreak(surface.Surface):
+class CoordinateTransform(surface.Surface):
 
-    transform: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
+    transform: typ.Optional[coordinate.Transform] = None
 
     @property
     def __init__args(self) -> typ.Dict[str, typ.Any]:
@@ -30,7 +30,7 @@ class CoordinateBreak(surface.Surface):
             self.transform.config_broadcast,
         )
 
-    def to_zemax(self) -> 'CoordinateBreak':
+    def to_zemax(self) -> 'CoordinateTransform':
         from kgpy.optics import zemax
         return zemax.system.surface.CoordinateBreak(**self.__init__args)
 
@@ -42,22 +42,18 @@ class CoordinateBreak(surface.Surface):
 
     @property
     def _rays_output(self) -> typ.Optional[Rays]:
-        if self.rays_input is None:
-            return None
-        rays = self.rays_input.copy()
-        rays.position[z] -= self.previous_surface.thickness_eff
-        return rays.tilt_decenter(~self.transform)
+        return self.rays_input
 
     @property
-    def pre_transform(self) -> coordinate.Transform:
-        return coordinate.Transform.from_tilt_decenter(self.transform)
+    def pre_transform(self) -> coordinate.TransformList:
+        return coordinate.TransformList([self.transform])
 
     @property
-    def post_transform(self) -> coordinate.Transform:
-        return coordinate.Transform(translate=coordinate.Translate(z=self.thickness))
+    def post_transform(self) -> coordinate.TransformList:
+        return coordinate.TransformList([coordinate.Translate(z=self.thickness)])
 
-    def copy(self) -> 'CoordinateBreak':
-        return CoordinateBreak(
+    def copy(self) -> 'CoordinateTransform':
+        return CoordinateTransform(
             name=self.name.copy(),
             thickness=self.thickness.copy(),
             is_active=self.is_active.copy(),

@@ -38,7 +38,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_mask_func: typ.Callable[[u.Quantity, u.Quantity], np.ndarray] = default_field_mask_func
-    baffle_positions: typ.Optional[typ.List[coordinate.Transform]] = None
+    baffle_positions: typ.Optional[typ.List[coordinate.TiltTranslate]] = None
 
     def __post_init__(self):
         self.update()
@@ -142,6 +142,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         #     surfaces.append(s.copy())
         surfaces = list(self)
         surfaces[0].rays_input = rays
+        surfaces[0].update()
         return surfaces
 
     @property
@@ -218,7 +219,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             direction_guess = kgpy.vector.from_components(use_z=False) << u.deg
 
-            step_size = 1e-12 * u.deg
+            step_size = 1e-10 * u.deg
+
             step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
@@ -240,7 +242,12 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=px,
                         pupil_grid_y=py,
                     )
-                    rays = self.raytrace(rays)[surf_index].rays_output
+                    surfaces_rays = self.raytrace(rays)
+                    # fig, axs = plt.subplots(nrows=2, sharex='all')
+                    # self.plot_surfaces(ax=axs[0], surfaces=surfaces_rays, components=(iz, iy), plot_vignetted=True)
+                    # self.plot_surfaces(ax=axs[1], surfaces=surfaces_rays, components=(iz, ix), plot_vignetted=True)
+                    # plt.show()
+                    rays = surfaces_rays[surf_index].rays_output
                     return (rays.position - target_position)[xy]
 
                 direction_guess = kgpy.optimization.root_finding.secant(
@@ -322,6 +329,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             final_surface: typ.Optional[surface.Surface] = None,
             color_axis: int = 0,
             plot_vignetted: bool = False,
+            plot_rays: bool = True,
     ) -> plt.Figure:
         fig, axs = plt.subplots(2, 2, sharex='col', sharey='row')
 
@@ -344,7 +352,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 start_surface=start_surface,
                 final_surface=final_surface,
                 color_axis=color_axis,
-                plot_vignetted=plot_vignetted
+                plot_vignetted=plot_vignetted,
+                plot_rays=plot_rays,
             )
             axs[ax_index].get_legend().remove()
 
@@ -387,8 +396,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             plot_rays=plot_rays,
         )
 
+    @staticmethod
     def plot_surfaces(
-            self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
             surfaces: typ.Optional[typ.List[surface.Surface]] = None,
@@ -399,17 +408,17 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if ax is None:
             _, ax = plt.subplots()
 
-        intercepts = []
         for surf in surfaces:
             surf.plot_2d(ax=ax, components=components)
-            if plot_rays:
-                intercept = surf.transform_to_global(surf.rays_output.position, num_extra_dims=5)
-                intercepts.append(intercept)
 
         if plot_rays:
+            intercepts = []
+            for surf in surfaces:
+                intercept = surf.transform_to_global(surf.rays_output.position, num_extra_dims=5)
+                intercepts.append(intercept)
             intercepts = u.Quantity(intercepts)
 
-            img_rays = self.rays_output
+            img_rays = surfaces[~0].rays_output
 
             color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 

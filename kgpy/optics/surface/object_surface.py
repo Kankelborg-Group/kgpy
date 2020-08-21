@@ -13,7 +13,7 @@ __all__ = ['ObjectSurface']
 @dataclasses.dataclass
 class ObjectSurface(Surface):
 
-    rays_input: typ.Optional[Rays] = None
+    rays_input: typ.Optional[Rays] = dataclasses.field(default=None, repr=False)
 
     def to_zemax(self):
         raise NotImplementedError
@@ -29,23 +29,21 @@ class ObjectSurface(Surface):
 
     @property
     def _rays_output(self) -> typ.Optional[Rays]:
-        if self.rays_input is None:
-            return None
-        rays = self.rays_input.copy()
-        if np.isfinite(self.thickness):
-            rays.position[z] -= self.thickness
+        rays = self.rays_input
+        if rays is not None:
+            rays = rays.copy()
         return rays
 
     def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return 0 * u.mm
 
     @property
-    def pre_transform(self) -> coordinate.Transform:
-        return coordinate.Transform()
+    def pre_transform(self) -> coordinate.TransformList:
+        return coordinate.TransformList()
 
     @property
-    def post_transform(self) -> coordinate.Transform:
-        return coordinate.Transform()
+    def post_transform(self) -> coordinate.TransformList:
+        return coordinate.TransformList([coordinate.Translate(z=self.thickness_eff)])
 
     def copy(self) -> 'ObjectSurface':
         rays = self.rays_input

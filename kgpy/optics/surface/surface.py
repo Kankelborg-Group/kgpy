@@ -28,7 +28,7 @@ class Surface(
     have all the same properties and behaviors.
     """
 
-    previous_surface: typ.Optional['Surface'] = dataclasses.field(default=None, compare=False, init=False)
+    previous_surface: typ.Optional['Surface'] = dataclasses.field(default=None, compare=False, init=False, repr=False)
     thickness: u.Quantity = 0 * u.mm
     is_active: 'np.ndarray[bool]' = np.array(True)
     is_visible: 'np.ndarray[bool]' = np.array(True)
@@ -57,15 +57,6 @@ class Surface(
             self.is_active,
         )
 
-    @property
-    def thickness_eff(self) -> u.Quantity:
-        return self.thickness
-
-    # def index(self, surfaces: typ.Iterable['Surface']) -> int:
-    #     for s, surf in enumerate(surfaces):
-    #         if surf is self:
-    #             return s
-
     def __iter__(self):
         yield self
 
@@ -81,7 +72,9 @@ class Surface(
     def rays_input(self) -> typ.Optional[Rays]:
         rays = None
         if self.previous_surface is not None:
-            rays = self.previous_surface.rays_output.apply_transform(self.previous_surface.post_transform)
+            rays = self.previous_surface.rays_output
+            if rays is not None:
+                rays = rays.apply_transform(~self.transform_from_previous_surface)
         return rays
 
     @property
@@ -97,27 +90,41 @@ class Surface(
 
     @property
     @abc.abstractmethod
-    def pre_transform(self) -> coordinate.Transform:
+    def pre_transform(self) -> coordinate.TransformList:
         pass
 
     @property
     @abc.abstractmethod
-    def post_transform(self) -> coordinate.Transform:
+    def post_transform(self) -> coordinate.TransformList:
         pass
+
+    @property
+    def transform_from_previous_surface(self) -> coordinate.TransformList:
+        transform = coordinate.TransformList()
+        if self.previous_surface is not None:
+            transform += self.previous_surface.post_transform
+        transform += self.pre_transform
+        return transform
+
+    @property
+    def global_transform(self) -> coordinate.TransformList:
+        transform = coordinate.TransformList()
+        if self.previous_surface is not None:
+            transform += self.previous_surface.global_transform
+        transform += self.transform_from_previous_surface
+        return transform
 
     def transform_to_global(
             self, 
-            vector: u.Quantity,
+            value: u.Quantity,
             num_extra_dims: int = 0
     ):
-        if self.previous_surface is not None:
-            vector = self.previous_surface.transform_to_global(vector, num_extra_dims=num_extra_dims)
-            vector = self.previous_surface.post_transform(vector, num_extra_dims=num_extra_dims)
-        return self.pre_transform(vector, num_extra_dims=num_extra_dims)
+        return self.global_transform(value, num_extra_dims=num_extra_dims)
 
     def plot_2d(
             self,
             ax: plt.Axes,
             components: typ.Tuple[int, int] = (0, 1),
+            transform_to_global: bool = False,
     ):
         pass

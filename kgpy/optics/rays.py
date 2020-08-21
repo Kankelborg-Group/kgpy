@@ -67,7 +67,6 @@ class Rays:
     direction: u.Quantity
     polarization: u.Quantity = None
     surface_normal: u.Quantity = None
-    propagation_signum: float = 1
     index_of_refraction: u.Quantity = None
     field_mask: np.ndarray = None
     vignetted_mask: np.ndarray = None
@@ -154,23 +153,14 @@ class Rays:
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
-
     def plane_intersection(self, plane_position: u.Quantity, plane_normal: u.Quantity):
-
         pass
-
-    def tilt_decenter(self, transform: coordinate.TiltDecenter) -> 'Rays':
-        other = self.copy()
-        other.position = transform(other.position, num_extra_dims=5)
-        other.direction = transform(other.direction, decenter=False, num_extra_dims=5)
-        other.surface_normal = transform(other.surface_normal, decenter=False, num_extra_dims=5)
-        return other
 
     def apply_transform(self, transform: coordinate.Transform) -> 'Rays':
         other = self.copy()
         other.position = transform(other.position, num_extra_dims=5)
-        other.direction = transform(other.direction, translate=False, num_extra_dims=5)
-        other.surface_normal = transform(other.surface_normal, translate=False, num_extra_dims=5)
+        other.direction = transform(other.direction, use_translations=False, num_extra_dims=5)
+        other.surface_normal = transform(other.surface_normal, use_translations=False, num_extra_dims=5)
         return other
 
     @property
@@ -208,7 +198,6 @@ class Rays:
             direction=self.direction.copy(),
             surface_normal=self.surface_normal.copy(),
             polarization=self.polarization.copy(),
-            propagation_signum=self.propagation_signum,
             index_of_refraction=self.index_of_refraction.copy(),
             input_grids=self.input_grids.copy(),
             field_mask=self.field_mask.copy(),

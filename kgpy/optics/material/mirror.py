@@ -6,6 +6,7 @@ from astropy import units as u
 import astropy.visualization
 import kgpy.vector
 import kgpy.optics
+from .. import Rays
 from . import Material
 
 
@@ -17,12 +18,8 @@ class Mirror(Material):
         from kgpy.optics import zemax
         return zemax.system.surface.material.Mirror(thickness=self.thickness)
 
-    def index_of_refraction(self, wavelength: u.Quantity, polarization: typ.Optional[u.Quantity]) -> u.Quantity:
-        return 1 * u.dimensionless_unscaled
-
-    @property
-    def propagation_signum(self) -> float:
-        return -1.
+    def index_of_refraction(self, rays: Rays) -> u.Quantity:
+        return -np.sign(rays.index_of_refraction) * u.dimensionless_unscaled
 
     def copy(self) -> 'Mirror':
         return Mirror(

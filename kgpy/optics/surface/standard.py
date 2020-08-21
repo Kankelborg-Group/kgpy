@@ -28,8 +28,8 @@ class Standard(
     conic: u.Quantity = 0 * u.dimensionless_unscaled
     material: MaterialT = None
     aperture: ApertureT = None
-    transform_before: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
-    transform_after: coordinate.TiltDecenter = dataclasses.field(default_factory=lambda: coordinate.TiltDecenter())
+    transform_before: typ.Optional[coordinate.Transform] = None
+    transform_after: typ.Optional[coordinate.Transform] = None
     intercept_error: u.Quantity = 0.1 * u.nm
 
     @property
@@ -93,9 +93,7 @@ class Standard(
         n = kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
         return n
 
-    @property
-    def ray_input_intercept(self) -> u.Quantity:
-        rays = self.rays_input
+    def ray_intercept(self, rays: Rays) -> u.Quantity:
 
         def line(t: u.Quantity) -> u.Quantity:
             return rays.position + rays.direction * t[..., None]
@@ -104,7 +102,7 @@ class Standard(
             a = line(t)
             return a[z] - self.sag(a[x], a[y])
 
-        bracket_max = 2 * np.nanmax(np.abs(self.rays_input.position[z]))
+        bracket_max = 2 * np.nanmax(np.abs(self.rays_input.position[z])) + 1 * u.mm
         if np.isfinite(self.radius):
             bracket_max = np.sqrt(np.square(bracket_max) + 2 * np.square(self.radius))
         t_intercept = kgpy.optimization.root_finding.false_position(
@@ -117,9 +115,9 @@ class Standard(
 
     def _index_of_refraction(self, rays: Rays) -> u.Quantity:
         if self.material is not None:
-            return self.material.index_of_refraction(rays.wavelength, rays.polarization)
+            return self.material.index_of_refraction(rays)
         else:
-            return 1 << u.dimensionless_unscaled
+            return np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
 
     def _propagation_signum(self, rays: Rays) -> u.Quantity:
         p = np.sign(rays.direction[z])
@@ -142,21 +140,15 @@ class Standard(
             return None
         rays = self.rays_input.copy()
 
-        rays.position[z] -= self.previous_surface.thickness_eff
+        rays.position = self.ray_intercept(rays)
 
-        if self.transform_before is not None:
-            rays = rays.tilt_decenter(~self.transform_before)
-
-        rays.position = self.ray_input_intercept
-
-        p = self._propagation_signum(rays)[..., None]
         a = self._calc_input_direction(rays)
         r = self._calc_index_ratio(rays)
 
         n = self.normal(rays.position[x], rays.position[y])
         c = -kgpy.vector.dot(a, n)
 
-        b = r * a + (r * c - p * np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
+        b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
 
         rays.direction = kgpy.vector.normalize(b)
         rays.surface_normal = n
@@ -164,28 +156,16 @@ class Standard(
             if self.aperture.is_active:
                 rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
         rays.index_of_refraction[...] = self._index_of_refraction(rays)
-        rays.propagation_signum = p
-
-        if self.transform_after is not None:
-            rays = rays.tilt_decenter(~self.transform_after)
 
         return rays
 
     @property
-    def pre_transform(self) -> coordinate.Transform:
-        if self.transform_before is None:
-            return coordinate.Transform()
-        else:
-            return coordinate.Transform.from_tilt_decenter(self.transform_before)
+    def pre_transform(self) -> coordinate.TransformList:
+        return coordinate.TransformList([self.transform_before])
 
     @property
-    def post_transform(self) -> coordinate.Transform:
-        if self.transform_after is None:
-            transform = coordinate.Transform()
-        else:
-            transform = coordinate.Transform.from_tilt_decenter(self.transform_after)
-        transform.z = self.thickness_eff
-        return transform
+    def post_transform(self) -> coordinate.TransformList:
+        return coordinate.TransformList([self.transform_after, coordinate.Translate(z=self.thickness)])
 
     @property
     def is_plane(self):
@@ -215,6 +195,7 @@ class Standard(
             self,
             ax: plt.Axes,
             components: typ.Tuple[int, int] = (0, 1),
+            transform_to_global: bool = False,
     ):
         if self.aperture is not None:
             self.aperture.plot_2d(ax, components, self)

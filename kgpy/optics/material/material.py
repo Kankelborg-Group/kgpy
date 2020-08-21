@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.mixin
 import kgpy.optics
-from .. import ZemaxCompatible
+from .. import ZemaxCompatible, Rays
 
 __all__ = ['Material']
 
@@ -19,12 +19,7 @@ class Material(
 ):
 
     @abc.abstractmethod
-    def index_of_refraction(self, wavelength: u.Quantity, polarization: typ.Optional[u.Quantity]) -> u.Quantity:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def propagation_signum(self) -> float:
+    def index_of_refraction(self, rays: Rays) -> u.Quantity:
         pass
 
     def plot_2d(
