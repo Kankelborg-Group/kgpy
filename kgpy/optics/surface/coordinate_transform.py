@@ -17,23 +17,11 @@ class CoordinateTransform(surface.Surface):
     transform: typ.Optional[coordinate.Transform] = None
 
     @property
-    def __init__args(self) -> typ.Dict[str, typ.Any]:
-        args = super().__init__args
-        args.update({
-            'transform': self.transform
-        })
-        return args
-
-    @property
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
             self.transform.config_broadcast,
         )
-
-    def to_zemax(self) -> 'CoordinateTransform':
-        from kgpy.optics import zemax
-        return zemax.system.surface.CoordinateBreak(**self.__init__args)
 
     def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return 0 * u.mm
@@ -43,7 +31,7 @@ class CoordinateTransform(surface.Surface):
 
     @property
     def _rays_output(self) -> typ.Optional[Rays]:
-        return self.rays_input
+        return self.rays_input.copy()
 
     @property
     def pre_transform(self) -> coordinate.TransformList:

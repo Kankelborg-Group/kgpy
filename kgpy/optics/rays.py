@@ -141,7 +141,7 @@ class Rays:
 
         direction, _ = np.broadcast_arrays(direction, wavelength, subok=True)
 
-        position = kgpy.vector.from_components(ax=field_grid_x[..., None, None, None], ay=field_grid_y[..., None, None])
+        position = kgpy.vector.from_components(x=field_grid_x[..., None, None, None], y=field_grid_y[..., None, None])
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
         mask = field_mask_func(position[x], position[y])
 

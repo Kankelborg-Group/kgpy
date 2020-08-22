@@ -173,7 +173,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             position_guess = kgpy.vector.from_components(use_z=False) << u.mm
 
             step_size = 1 * u.nm
-            step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
+            step = kgpy.vector.from_components(x=step_size, y=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
                 surf_index = list(self).index(surf)
@@ -221,7 +221,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             step_size = 1e-10 * u.deg
 
-            step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
+            step = kgpy.vector.from_components(x=step_size, y=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
                 surf_index = list(self).index(surf)
@@ -261,7 +261,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 if surf == self.stop_surface:
                     break
 
-            direction = kgpy.vector.from_components(az=1)
+            direction = kgpy.vector.from_components(z=1)
             direction = kgpy.vector.rotate_x(direction, direction_guess[y])
             direction = kgpy.vector.rotate_y(direction, direction_guess[x])
             input_rays = Rays.from_field_positions(
@@ -414,7 +414,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         if plot_rays:
             intercepts = []
             for surf in surfaces:
-                intercept = surf.global_transform(surf.rays_output.position, num_extra_dims=5)
+                intercept = surf.local_to_global_transform(surf.rays_output.position, num_extra_dims=5)
                 intercepts.append(intercept)
             intercepts = u.Quantity(intercepts)
 
@@ -501,7 +501,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
                     length = 1 * occ_unit
                     point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
-                    point_1 = surf.transform_to_global(kgpy.vector.from_components(az=length), self)[c]
+                    point_1 = surf.transform_to_global(kgpy.vector.from_components(z=length), self)[c]
                     normal = (point_1 - point_0) / length
                     occ_point_0 = gp.gp_Pnt(*point_0.value)
                     occ_normal = gp.gp_Dir(*normal.value)
@@ -514,9 +514,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 elif surf.is_sphere:
 
                     point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
-                    point_1 = surf.transform_to_global(kgpy.vector.from_components(ax=surf.radius), self)[c]
-                    point_2 = surf.transform_to_global(kgpy.vector.from_components(ay=surf.radius), self)[c]
-                    point_3 = surf.transform_to_global(kgpy.vector.from_components(az=surf.radius), self)[c]
+                    point_1 = surf.transform_to_global(kgpy.vector.from_components(x=surf.radius), self)[c]
+                    point_2 = surf.transform_to_global(kgpy.vector.from_components(y=surf.radius), self)[c]
+                    point_3 = surf.transform_to_global(kgpy.vector.from_components(z=surf.radius), self)[c]
                     xhat = (point_1 - point_0) / surf.radius
                     yhat = (point_2 - point_0) / surf.radius
                     zhat = (point_3 - point_0) / surf.radius

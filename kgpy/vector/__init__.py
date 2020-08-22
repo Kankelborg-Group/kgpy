@@ -60,25 +60,25 @@ def normalize(a: np.ndarray, keepdims: bool = True) -> np.ndarray:
 
 
 @typ.overload
-def from_components(ax: u.Quantity = 0, ay: u.Quantity = 0, az: u.Quantity = 0, use_z: bool = True) -> u.Quantity:
+def from_components(x: u.Quantity = 0, y: u.Quantity = 0, z: u.Quantity = 0, use_z: bool = True) -> u.Quantity:
     ...
 
 
-def from_components(ax: np.ndarray = 0, ay: np.ndarray = 0, az: np.ndarray = 0, use_z: bool = True) -> np.ndarray:
-    ax, ay, az = np.broadcast_arrays(ax, ay, az, subok=True)
+def from_components(x: np.ndarray = 0, y: np.ndarray = 0, z: np.ndarray = 0, use_z: bool = True) -> np.ndarray:
+    x, y, z = np.broadcast_arrays(x, y, z, subok=True)
     if use_z:
-        return np.stack([ax, ay, az], axis=~0)
+        return np.stack([x, y, z], axis=~0)
     else:
-        return np.stack([ax, ay], axis=~0)
+        return np.stack([x, y], axis=~0)
 
 
 @typ.overload
-def from_components_cylindrical(ar: u.Quantity = 0, ap: u.Quantity = 0, az: u.Quantity = 0) -> u.Quantity:
+def from_components_cylindrical(r: u.Quantity = 0, phi: u.Quantity = 0, z: u.Quantity = 0) -> u.Quantity:
     ...
 
 
-def from_components_cylindrical(ar: np.ndarray = 0, ap: np.ndarray = 0, az: np.ndarray = 0) -> np.ndarray:
-    return from_components(ar * np.cos(ap), ar * np.sin(ap), az)
+def from_components_cylindrical(r: np.ndarray = 0, phi: np.ndarray = 0, z: np.ndarray = 0) -> np.ndarray:
+    return from_components(r * np.cos(phi), r * np.sin(phi), z)
 
 
 def rotate_x(vector: np.ndarray, angle: u.Quantity, inverse: bool = False) -> np.ndarray:

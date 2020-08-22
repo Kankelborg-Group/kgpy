@@ -1,7 +1,10 @@
 import typing as typ
 import dataclasses
 import collections
+import numpy as np
 import astropy.units as u
+import kgpy.vector
+import kgpy.matrix
 from . import Transform
 
 __all__ = ['TransformList']
@@ -12,8 +15,27 @@ TransformT = typ.TypeVar('TransformT', bound=Transform)
 class TransformList(
     Transform,
     collections.UserList,
-    typ.Generic[TransformT],
 ):
+
+    @property
+    def extrinsic_transforms(self):
+        return reversed(self)
+
+    @property
+    def rotation_eff(self) -> u.Quantity:
+        rotation = super().rotation_eff
+        for transform in self.extrinsic_transforms:
+            if transform is not None:
+                rotation = kgpy.matrix.mul(transform.rotation_eff, rotation)
+        return rotation
+
+    @property
+    def translation_eff(self) -> u.Quantity:
+        translation = super().translation_eff
+        for transform in self.extrinsic_transforms:
+            if transform is not None:
+                translation = kgpy.vector.matmul(transform.rotation_eff, translation) + transform.translation_eff
+        return translation
 
     def __invert__(self) -> 'TransformList':
         other = type(self)()
@@ -23,19 +45,6 @@ class TransformList(
             other.append(transform)
         other.reverse()
         return other
-
-    def __call__(
-            self,
-            value: u.Quantity,
-            use_rotations: bool = True,
-            use_translations: bool = True,
-            num_extra_dims: int = 0,
-    ) -> u.Quantity:
-        value = value.copy()
-        for transform in reversed(self):
-            if transform is not None:
-                value = transform(value, use_rotations, use_translations, num_extra_dims)
-        return value
 
     def copy(self) -> 'TransformList':
         other = type(self)()

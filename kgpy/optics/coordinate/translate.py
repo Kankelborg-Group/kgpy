@@ -1,6 +1,7 @@
 import dataclasses
 import numpy as np
 from astropy import units as u
+import kgpy.vector
 from . import Decenter
 
 __all__ = ['Translate']
@@ -10,10 +11,6 @@ __all__ = ['Translate']
 class Translate(Decenter):
 
     z: u.Quantity = 0 * u.mm
-
-    @classmethod
-    def promote(cls, value: 'Translate'):
-        return cls(value.x, value.y, value.z)
 
     @property
     def config_broadcast(self):
@@ -36,19 +33,10 @@ class Translate(Decenter):
             z=self.z + other.z,
         )
 
-    def __call__(
-            self,
-            value: u.Quantity,
-            use_rotations: bool = True,
-            use_translations: bool = True,
-            num_extra_dims: int = 0,
-    ) -> u.Quantity:
-        value = super().__call__(value, use_rotations, use_translations, num_extra_dims)
-        if use_translations:
-            sh = list(self.z.shape)
-            sh[~1:~1] = [1] * num_extra_dims
-            z = self.z.reshape(sh)
-            value[..., 2] += z
+    @property
+    def translation_eff(self) -> u.Quantity:
+        value = super().translation_eff
+        value[kgpy.vector.z] = self.z
         return value
 
     def copy(self) -> 'Translate':

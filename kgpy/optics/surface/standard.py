@@ -33,26 +33,6 @@ class Standard(
     intercept_error: u.Quantity = 0.1 * u.nm
 
     @property
-    def __init__args(self) -> typ.Dict[str, typ.Any]:
-        args = super().__init__args
-        args.update({
-            'radius': self.radius,
-            'conic': self.conic,
-            'material': self.material.to_zemax(),
-            'aperture': self.aperture.to_zemax(),
-            'transform_before': self.transform_before,
-            'transform_after': self.transform_after,
-        })
-        return args
-
-    def to_zemax(self) -> 'Standard':
-        from kgpy.optics import zemax
-        return zemax.system.surface.Standard(**self.__init__args)
-
-    def to_occ(self):
-        pass
-
-    @property
     def config_broadcast(self):
         out = np.broadcast(
             super().config_broadcast,
@@ -118,12 +98,6 @@ class Standard(
             return self.material.index_of_refraction(rays)
         else:
             return np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
-
-    def _propagation_signum(self, rays: Rays) -> u.Quantity:
-        p = np.sign(rays.direction[z])
-        if self.material is not None:
-            p = p * self.material.propagation_signum
-        return p
 
     def _calc_input_direction(self, rays: Rays) -> u.Quantity:
         return rays.direction

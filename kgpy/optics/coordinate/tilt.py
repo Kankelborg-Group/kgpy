@@ -26,42 +26,20 @@ class TiltAboutAxis(Transform, abc.ABC):
         return type(self)(angle=-self.angle)
 
     @property
-    @abc.abstractmethod
-    def rotation_matrix(self) -> np.ndarray:
-        pass
-
-    def __call__(
-            self,
-            value: u.Quantity,
-            use_rotations: bool = True,
-            use_translations: bool = True,
-            num_extra_dims: int = 0,
-    ) -> u.Quantity:
-        if use_rotations:
-            r = self.rotation_matrix
-            sh = list(r.shape)
-            sh[~1:~1] = [1] * num_extra_dims
-            r = r.reshape(sh)
-            value = kgpy.vector.matmul(r, value)
-        else:
-            value = value.copy()
-        return value
+    def translation_eff(self) -> u.Quantity:
+        return super().translation_eff
 
     def copy(self) -> 'TiltAboutAxis':
         return type(self)(
             angle=self.angle.copy(),
         )
 
-    @property
-    def intrinsic(self) -> 'Transform':
-        return self.copy()
-
 
 class TiltX(TiltAboutAxis):
 
     @property
-    def rotation_matrix(self) -> np.ndarray:
-        r = np.zeros(self.shape + (3, 3))
+    def rotation_eff(self) -> u.Quantity:
+        r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
         cos_x, sin_x = np.cos(-self.angle), np.sin(-self.angle)
         r[..., 0, 0] = 1
         r[..., 1, 1] = cos_x
@@ -74,8 +52,8 @@ class TiltX(TiltAboutAxis):
 class TiltY(TiltAboutAxis):
 
     @property
-    def rotation_matrix(self) -> np.ndarray:
-        r = np.zeros(self.shape + (3, 3))
+    def rotation_eff(self) -> u.Quantity:
+        r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
         cos_y, sin_y = np.cos(-self.angle), np.sin(-self.angle)
         r[..., 0, 0] = cos_y
         r[..., 0, 2] = -sin_y
@@ -88,8 +66,8 @@ class TiltY(TiltAboutAxis):
 class TiltZ(TiltAboutAxis):
 
     @property
-    def rotation_matrix(self) -> np.ndarray:
-        r = np.zeros(self.shape + (3, 3))
+    def rotation_eff(self) -> u.Quantity:
+        r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
         cos_z, sin_z = np.cos(-self.angle), np.sin(-self.angle)
         r[..., 0, 0] = cos_z
         r[..., 0, 1] = sin_z

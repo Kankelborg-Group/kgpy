@@ -47,4 +47,4 @@ class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
         term3 = self.coeff_cubic * sx * sx2
         groove_density = term0 + term1 + term2 + term3
         # groove_density = 1 / terms
-        return kgpy.vector.from_components(ax=groove_density)
+        return kgpy.vector.from_components(x=groove_density)
