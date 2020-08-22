@@ -1,7 +1,7 @@
 import dataclasses
 import numpy as np
 from astropy import units as u
-import kgpy.vector
+from kgpy import vector
 from . import Decenter
 
 __all__ = ['Translate']
@@ -36,7 +36,7 @@ class Translate(Decenter):
     @property
     def translation_eff(self) -> u.Quantity:
         value = super().translation_eff
-        value[kgpy.vector.z] = self.z
+        value[vector.z] = self.z
         return value
 
     def copy(self) -> 'Translate':

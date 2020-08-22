@@ -3,8 +3,7 @@ import dataclasses
 import collections
 import numpy as np
 import astropy.units as u
-import kgpy.vector
-import kgpy.matrix
+from kgpy import vector, matrix
 from . import Transform
 
 __all__ = ['TransformList']
@@ -26,7 +25,7 @@ class TransformList(
         rotation = super().rotation_eff
         for transform in self.extrinsic_transforms:
             if transform is not None:
-                rotation = kgpy.matrix.mul(transform.rotation_eff, rotation)
+                rotation = matrix.mul(transform.rotation_eff, rotation)
         return rotation
 
     @property
@@ -34,7 +33,7 @@ class TransformList(
         translation = super().translation_eff
         for transform in self.extrinsic_transforms:
             if transform is not None:
-                translation = kgpy.vector.matmul(transform.rotation_eff, translation) + transform.translation_eff
+                translation = vector.matmul(transform.rotation_eff, translation) + transform.translation_eff
         return translation
 
     def __invert__(self) -> 'TransformList':

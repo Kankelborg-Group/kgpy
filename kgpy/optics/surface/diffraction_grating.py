@@ -2,7 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-import kgpy.vector
+from kgpy import vector
 from kgpy.vector import x, y, z
 from .. import Rays, material, aperture
 from . import Standard
@@ -28,7 +28,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
         )
 
     def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
-        return u.Quantity([0 << 1 / u.mm, self.groove_density, 0 << 1 / u.mm])
+        return vector.from_components(y=self.groove_density)
 
     def _calc_input_vector(self, rays: Rays) -> u.Quantity:
         n1 = rays.index_of_refraction
@@ -38,10 +38,10 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
         return a + self.diffraction_order * rays.wavelength * normal
 
     def _calc_input_direction(self, rays: Rays) -> u.Quantity:
-        return kgpy.vector.normalize(self._calc_input_vector(rays))
+        return vector.normalize(self._calc_input_vector(rays))
 
     def _calc_index_ratio(self, rays: Rays) -> u.Quantity:
-        return kgpy.vector.length(self._calc_input_vector(rays))
+        return vector.length(self._calc_input_vector(rays))
 
     def wavelength_from_angles(
             self,

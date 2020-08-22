@@ -3,18 +3,17 @@ import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-import kgpy.vector
-from kgpy.vector import x, y, z
-from .. import Rays, coordinate
-from . import surface
+import kgpy.transform
+from .. import Rays
+from . import Surface
 
 __all__ = ['CoordinateTransform']
 
 
 @dataclasses.dataclass
-class CoordinateTransform(surface.Surface):
+class CoordinateTransform(Surface):
 
-    transform: typ.Optional[coordinate.Transform] = None
+    transform: typ.Optional[kgpy.transform.rigid.Transform] = None
 
     @property
     def config_broadcast(self):
@@ -34,12 +33,14 @@ class CoordinateTransform(surface.Surface):
         return self.rays_input.copy()
 
     @property
-    def pre_transform(self) -> coordinate.TransformList:
-        return coordinate.TransformList([self.transform])
+    def pre_transform(self) -> kgpy.transform.rigid.TransformList:
+        return kgpy.transform.rigid.TransformList()
+        # return kgpy.transform.rigid.TransformList([self.transform])
 
     @property
-    def post_transform(self) -> coordinate.TransformList:
-        return coordinate.TransformList([coordinate.Translate(z=self.thickness)])
+    def post_transform(self) -> kgpy.transform.rigid.TransformList:
+        return kgpy.transform.rigid.TransformList([self.transform, kgpy.transform.rigid.Translate(z=self.thickness)])
+        # return coordinate.TransformList([coordinate.Translate(z=self.thickness)])
 
     def copy(self) -> 'CoordinateTransform':
         return CoordinateTransform(
@@ -53,7 +54,7 @@ class CoordinateTransform(surface.Surface):
     def plot_2d(
             self,
             ax: plt.Axes,
-            transform: typ.Optional[coordinate.Transform] = None,
+            rigid_transform: typ.Optional[kgpy.transform.rigid.Transform] = None,
             components: typ.Tuple[int, int] = (0, 1),
     ) -> plt.Axes:
         pass

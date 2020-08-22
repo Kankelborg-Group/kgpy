@@ -3,10 +3,9 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
-import kgpy.vector
+from kgpy import vector, transform, optimization
 from kgpy.vector import x, y, z
-import kgpy.optics
-from .. import Rays, coordinate, material as material_, aperture as aperture_
+from .. import Rays, material as material_, aperture as aperture_
 from . import Surface
 
 __all__ = ['Standard']
@@ -28,8 +27,8 @@ class Standard(
     conic: u.Quantity = 0 * u.dimensionless_unscaled
     material: MaterialT = None
     aperture: ApertureT = None
-    transform_before: typ.Optional[coordinate.Transform] = None
-    transform_after: typ.Optional[coordinate.Transform] = None
+    transform_before: typ.Optional[transform.rigid.Transform] = None
+    transform_after: typ.Optional[transform.rigid.Transform] = None
     intercept_error: u.Quantity = 0.1 * u.nm
 
     @property
@@ -70,7 +69,7 @@ class Standard(
         mask = (x2 + y2) >= np.square(self.radius)
         dzdx[mask] = 0
         dzdy[mask] = 0
-        n = kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
+        n = vector.normalize(vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
         return n
 
     def ray_intercept(self, rays: Rays) -> u.Quantity:
@@ -85,7 +84,7 @@ class Standard(
         bracket_max = 2 * np.nanmax(np.abs(self.rays_input.position[z])) + 1 * u.mm
         if np.isfinite(self.radius):
             bracket_max = np.sqrt(np.square(bracket_max) + 2 * np.square(self.radius))
-        t_intercept = kgpy.optimization.root_finding.false_position(
+        t_intercept = optimization.root_finding.false_position(
             func=func,
             bracket_min=-bracket_max,
             bracket_max=bracket_max,
@@ -120,11 +119,11 @@ class Standard(
         r = self._calc_index_ratio(rays)
 
         n = self.normal(rays.position[x], rays.position[y])
-        c = -kgpy.vector.dot(a, n)
+        c = -vector.dot(a, n)
 
         b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
 
-        rays.direction = kgpy.vector.normalize(b)
+        rays.direction = vector.normalize(b)
         rays.surface_normal = n
         if self.aperture is not None:
             if self.aperture.is_active:
@@ -134,12 +133,12 @@ class Standard(
         return rays
 
     @property
-    def pre_transform(self) -> coordinate.TransformList:
-        return coordinate.TransformList([self.transform_before])
+    def pre_transform(self) -> transform.rigid.TransformList:
+        return transform.rigid.TransformList([self.transform_before])
 
     @property
-    def post_transform(self) -> coordinate.TransformList:
-        return coordinate.TransformList([self.transform_after, coordinate.Translate(z=self.thickness)])
+    def post_transform(self) -> transform.rigid.TransformList:
+        return transform.rigid.TransformList([self.transform_after, transform.rigid.Translate(z=self.thickness)])
 
     @property
     def is_plane(self):
@@ -168,13 +167,13 @@ class Standard(
     def plot_2d(
             self,
             ax: plt.Axes,
-            transform: typ.Optional[coordinate.Transform] = None,
+            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
             components: typ.Tuple[int, int] = (0, 1),
     ):
         if self.aperture is not None:
-            self.aperture.plot_2d(ax, self.sag, transform, components)
+            self.aperture.plot_2d(ax, self.sag, rigid_transform, components)
         if self.material is not None:
-            self.material.plot_2d(ax, self.aperture, self.sag, transform, components)
+            self.material.plot_2d(ax, self.aperture, self.sag, rigid_transform, components)
 
     def copy(self) -> 'Standard':
         return Standard(

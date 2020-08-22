@@ -3,17 +3,16 @@ import dataclasses
 import typing as typ
 import matplotlib.pyplot as plt
 import astropy.units as u
-import kgpy.mixin
-import kgpy.vector
-from .. import coordinate, Rays, Aperture
+from kgpy import mixin, vector, transform
+from .. import Rays, Aperture
 
 __all__ = ['Material']
 
 
 @dataclasses.dataclass
 class Material(
-    kgpy.mixin.Copyable,
-    kgpy.mixin.Broadcastable,
+    mixin.Copyable,
+    mixin.Broadcastable,
     abc.ABC
 ):
 
@@ -26,7 +25,7 @@ class Material(
             ax: plt.Axes,
             aperture: Aperture,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
-            transform: typ.Optional[coordinate.Transform] = None,
-            components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
+            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
+            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
     ):
         pass

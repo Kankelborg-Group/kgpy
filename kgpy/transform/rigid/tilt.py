@@ -3,12 +3,9 @@ import abc
 import dataclasses
 import numpy as np
 from astropy import units as u
-import kgpy.matrix
-import kgpy.mixin
-from kgpy import vector
-from . import Transform, TransformList
+from . import Transform
 
-__all__ = ['TiltX', 'TiltY', 'TiltZ', 'TiltXYZ']
+__all__ = ['TiltX', 'TiltY', 'TiltZ']
 
 
 @dataclasses.dataclass
@@ -75,50 +72,3 @@ class TiltZ(TiltAboutAxis):
         r[..., 1, 1] = cos_z
         r[..., 2, 2] = 1
         return r
-
-
-@dataclasses.dataclass
-class TiltXYZ(Transform):
-
-    x: u.Quantity = 0 * u.deg
-    y: u.Quantity = 0 * u.deg
-    z: u.Quantity = 0 * u.deg
-
-    @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.x,
-            self.y,
-            self.z,
-        )
-
-    def __eq__(self, other: 'TiltXYZ'):
-        out = True
-        out &= np.array(self.x == other.x).all()
-        out &= np.array(self.y == other.y).all()
-        out &= np.array(self.z == other.z).all()
-        return out
-
-    @property
-    def _transform(self) -> TransformList:
-        return TransformList([TiltX(self.x), TiltY(self.y), TiltZ(self.z)])
-
-    def __invert__(self) -> 'TransformList':
-        return self._transform.__invert__()
-
-    def __call__(
-            self,
-            value: u.Quantity,
-            use_rotations: bool = True,
-            use_translations: bool = True,
-            num_extra_dims: int = 0,
-    ) -> np.ndarray:
-        return self._transform(value, use_rotations, use_translations, num_extra_dims)
-
-    def copy(self) -> 'TiltXYZ':
-        return TiltXYZ(
-            x=self.x.copy(),
-            y=self.y.copy(),
-            z=self.z.copy(),
-        )

@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 import astropy.units as u
 import astropy.visualization
-import kgpy.vector
+from kgpy import vector, transform
 from kgpy.vector import x, y, z, ix, iy, iz
-from . import coordinate
 
 __all__ = ['Rays']
 
@@ -110,8 +109,10 @@ class Rays:
 
         direction = np.zeros(position.shape)
         direction[z] = 1
-        direction = kgpy.vector.rotate_x(direction, field_y[..., 0])
-        direction = kgpy.vector.rotate_y(direction, field_x[..., 0])
+        direction = transform.rigid.TiltX(field_y[..., 0])(direction)
+        direction = transform.rigid.TiltY(field_x[..., 0])(direction)
+        # direction = kgpy.vector.rotate_x(direction, field_y[..., 0])
+        # direction = kgpy.vector.rotate_y(direction, field_x[..., 0])
 
         mask = field_mask_func(np.arcsin(direction[x]) << u.rad, np.arcsin(direction[y]) << u.rad)
 
@@ -141,7 +142,7 @@ class Rays:
 
         direction, _ = np.broadcast_arrays(direction, wavelength, subok=True)
 
-        position = kgpy.vector.from_components(x=field_grid_x[..., None, None, None], y=field_grid_y[..., None, None])
+        position = vector.from_components(x=field_grid_x[..., None, None, None], y=field_grid_y[..., None, None])
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
         mask = field_mask_func(position[x], position[y])
 
@@ -156,11 +157,11 @@ class Rays:
     def plane_intersection(self, plane_position: u.Quantity, plane_normal: u.Quantity):
         pass
 
-    def apply_transform(self, transform: coordinate.Transform) -> 'Rays':
+    def apply_transform(self, t: transform.rigid.Transform) -> 'Rays':
         other = self.copy()
-        other.position = transform(other.position, num_extra_dims=5)
-        other.direction = transform(other.direction, use_translations=False, num_extra_dims=5)
-        other.surface_normal = transform(other.surface_normal, use_translations=False, num_extra_dims=5)
+        other.position = t(other.position, num_extra_dims=5)
+        other.direction = t(other.direction, translate=False, num_extra_dims=5)
+        other.surface_normal = t(other.surface_normal, translate=False, num_extra_dims=5)
         return other
 
     @property
@@ -222,9 +223,9 @@ class Rays:
             mask = self.error_mask & self.field_mask
 
         position = self.position.copy()
-        if relative_to_centroid[kgpy.vector.ix]:
+        if relative_to_centroid[vector.ix]:
             position[x] -= np.mean(position[x].value, axis=self.axis.pupil_x, keepdims=True) << position.unit
-        if relative_to_centroid[kgpy.vector.iy]:
+        if relative_to_centroid[vector.iy]:
             position[y] -= np.mean(position[y].value, axis=self.axis.pupil_y, keepdims=True) << position.unit
 
         if limits is None:
@@ -237,8 +238,8 @@ class Rays:
 
         base_shape = self.shape + self.grid_shape[self.axis.wavelength:self.axis.field_y + 1]
         hist = np.empty(base_shape + tuple(bins))
-        edges_x = np.empty(base_shape + (bins[kgpy.vector.ix] + 1,))
-        edges_y = np.empty(base_shape + (bins[kgpy.vector.iy] + 1,))
+        edges_x = np.empty(base_shape + (bins[vector.ix] + 1,))
+        edges_y = np.empty(base_shape + (bins[vector.iy] + 1,))
 
         if not self.shape:
             position = position[None, ...]

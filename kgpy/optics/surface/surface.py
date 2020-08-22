@@ -6,10 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.mixin
-import kgpy.vector
-from kgpy.vector import x, y, z
+from kgpy import transform
 import kgpy.optimization.root_finding
-from .. import coordinate, Rays
+from .. import Rays
 
 __all__ = ['Surface']
 
@@ -62,9 +61,7 @@ class Surface(
         if self.previous_surface is not None:
             rays = self.previous_surface.rays_output
             if rays is not None:
-                transform = ~self.local_to_previous_transform
-                # transform.reverse()
-                rays = rays.apply_transform(transform)
+                rays = rays.apply_transform(~self.local_to_previous_transform)
         return rays
 
     @property
@@ -80,35 +77,35 @@ class Surface(
 
     @property
     @abc.abstractmethod
-    def pre_transform(self) -> coordinate.TransformList:
+    def pre_transform(self) -> transform.rigid.TransformList:
         pass
 
     @property
     @abc.abstractmethod
-    def post_transform(self) -> coordinate.TransformList:
+    def post_transform(self) -> transform.rigid.TransformList:
         pass
 
     @property
-    def local_to_previous_transform(self) -> coordinate.TransformList:
-        transform = coordinate.TransformList()
+    def local_to_previous_transform(self) -> transform.rigid.TransformList:
+        t = transform.rigid.TransformList()
         if self.previous_surface is not None:
-            transform += self.previous_surface.post_transform
-        transform += self.pre_transform
-        return transform
+            t += self.previous_surface.post_transform
+        t += self.pre_transform
+        return t
 
     @property
-    def local_to_global_transform(self) -> coordinate.TransformList:
-        transform = coordinate.TransformList()
+    def local_to_global_transform(self) -> transform.rigid.TransformList:
+        t = transform.rigid.TransformList()
         if self.previous_surface is not None:
-            transform += self.previous_surface.local_to_global_transform
-        transform += self.local_to_previous_transform
-        return transform
+            t += self.previous_surface.local_to_global_transform
+        t += self.local_to_previous_transform
+        return t
 
     @abc.abstractmethod
     def plot_2d(
             self,
             ax: plt.Axes,
-            transform: typ.Optional[coordinate.Transform] = None,
+            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
             components: typ.Tuple[int, int] = (0, 1),
     ) -> plt.Axes:
         pass
@@ -118,4 +115,4 @@ class Surface(
             ax: plt.Axes,
             components: typ.Tuple[int, int] = (0, 1),
     ) -> plt.Axes:
-        return self.plot_2d(ax=ax, transform=self.local_to_global_transform, components=components)
+        return self.plot_2d(ax=ax, rigid_transform=self.local_to_global_transform, components=components)

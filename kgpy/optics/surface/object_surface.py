@@ -3,8 +3,8 @@ import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-from kgpy.vector import z
-from .. import coordinate, Rays
+from kgpy import transform
+from .. import Rays
 from . import Surface
 
 __all__ = ['ObjectSurface']
@@ -38,12 +38,12 @@ class ObjectSurface(Surface):
         return 0 * u.mm
 
     @property
-    def pre_transform(self) -> coordinate.TransformList:
-        return coordinate.TransformList()
+    def pre_transform(self) -> transform.rigid.TransformList:
+        return transform.rigid.TransformList()
 
     @property
-    def post_transform(self) -> coordinate.TransformList:
-        return coordinate.TransformList([coordinate.Translate(z=self.thickness_eff)])
+    def post_transform(self) -> transform.rigid.TransformList:
+        return transform.rigid.TransformList([transform.rigid.Translate(z=self.thickness_eff)])
 
     def copy(self) -> 'ObjectSurface':
         rays = self.rays_input
@@ -60,7 +60,7 @@ class ObjectSurface(Surface):
     def plot_2d(
             self,
             ax: plt.Axes,
-            transform: typ.Optional[coordinate.Transform] = None,
+            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
             components: typ.Tuple[int, int] = (0, 1),
     ) -> plt.Axes:
         pass

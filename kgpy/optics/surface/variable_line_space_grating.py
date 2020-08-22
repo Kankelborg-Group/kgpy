@@ -2,7 +2,7 @@ import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
-import kgpy.vector
+from kgpy import vector
 from .. import material, aperture
 from . import DiffractionGrating
 
@@ -18,16 +18,6 @@ class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
     coeff_linear: u.Quantity = 0 / (u.mm ** 2)
     coeff_quadratic: u.Quantity = 0 / (u.mm ** 3)
     coeff_cubic: u.Quantity = 0 / (u.mm ** 4)
-
-    @property
-    def __init__args(self) -> typ.Dict[str, typ.Any]:
-        args = super().__init__args
-        args.update({
-            'coeff_linear': self.coeff_linear,
-            'coeff_quadratic': self.coeff_quadratic,
-            'coeff_cubic': self.coeff_cubic,
-        })
-        return args
 
     @property
     def config_broadcast(self):
@@ -47,4 +37,4 @@ class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
         term3 = self.coeff_cubic * sx * sx2
         groove_density = term0 + term1 + term2 + term3
         # groove_density = 1 / terms
-        return kgpy.vector.from_components(x=groove_density)
+        return vector.from_components(x=groove_density)

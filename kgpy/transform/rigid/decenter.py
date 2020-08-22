@@ -2,7 +2,7 @@ import typing as typ
 import dataclasses
 import numpy as np
 from astropy import units as u
-import kgpy.vector
+from kgpy import vector
 from . import Transform
 
 __all__ = ['Decenter']
@@ -34,7 +34,7 @@ class Decenter(Transform):
 
     @property
     def translation_eff(self) -> u.Quantity:
-        return kgpy.vector.from_components(x=self.x, y=self.y)
+        return vector.from_components(x=self.x, y=self.y)
 
     def copy(self):
         return Decenter(

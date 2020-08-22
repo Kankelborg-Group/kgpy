@@ -5,18 +5,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.visualization
-import kgpy.mixin
-import kgpy.vector
+from kgpy import mixin, vector, transform
 from kgpy.vector import x, y, z
-from .. import coordinate
 
 __all__ = ['Aperture']
 
 
 @dataclasses.dataclass
 class Aperture(
-    kgpy.mixin.Copyable,
-    kgpy.mixin.Broadcastable,
+    mixin.Copyable,
+    mixin.Broadcastable,
     abc.ABC
 ):
     num_samples: int = 1000
@@ -46,8 +44,8 @@ class Aperture(
             self,
             ax: plt.Axes,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
-            transform: typ.Optional[coordinate.Transform] = None,
-            components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
+            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
+            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
     ):
         with astropy.visualization.quantity_support():
             c1, c2 = components
@@ -55,5 +53,5 @@ class Aperture(
             if sag is not None:
                 wire[z] = wire[z] + sag(wire[x], wire[y])
             if transform is not None:
-                wire = transform(wire, num_extra_dims=1)
+                wire = rigid_transform(wire, num_extra_dims=1)
             ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
