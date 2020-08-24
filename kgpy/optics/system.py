@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 from kgpy import mixin, linspace, vector, optimization, transform
 from kgpy.vector import x, y, z, ix, iy, iz, xy
-from .. import Rays, surface
+from . import Rays, surface
 
 __all__ = ['System']
 
