@@ -281,7 +281,7 @@ class System(
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
     ) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        return self.image_rays.pupil_hist2d(
+        return self.rays_output.pupil_hist2d(
             bins=bins,
             limits=limits,
             use_vignetted=use_vignetted,
