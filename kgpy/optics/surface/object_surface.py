@@ -15,14 +15,11 @@ class ObjectSurface(Surface):
 
     rays_input: typ.Optional[Rays] = dataclasses.field(default=None, repr=False)
 
-    def to_zemax(self):
-        raise NotImplementedError
-
     @property
     def thickness_eff(self) -> u.Quantity:
-        if not np.isfinite(self.thickness):
-            return 0 * self.thickness
-        return self.thickness
+        if np.isfinite(self.thickness):
+            return self.thickness
+        return 0 * u.mm
 
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return u.Quantity([0, 0, 1])
@@ -43,7 +40,7 @@ class ObjectSurface(Surface):
 
     @property
     def post_transform(self) -> transform.rigid.TransformList:
-        return transform.rigid.TransformList([transform.rigid.Translate(z=self.thickness_eff)])
+        return transform.rigid.TransformList([transform.rigid.Translate.from_components(z=self.thickness_eff)])
 
     def copy(self) -> 'ObjectSurface':
         rays = self.rays_input

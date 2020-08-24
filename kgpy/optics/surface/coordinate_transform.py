@@ -40,7 +40,7 @@ class CoordinateTransform(Surface):
     @property
     def post_transform(self) -> kgpy.transform.rigid.TransformList:
         # return kgpy.transform.rigid.TransformList([self.transform, kgpy.transform.rigid.Translate(z=self.thickness)])
-        return kgpy.transform.rigid.TransformList([kgpy.transform.rigid.Translate(z=self.thickness)])
+        return kgpy.transform.rigid.TransformList([kgpy.transform.rigid.Translate.from_components(z=self.thickness)])
 
     def copy(self) -> 'CoordinateTransform':
         return CoordinateTransform(

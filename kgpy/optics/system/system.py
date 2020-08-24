@@ -165,7 +165,7 @@ class System(
 
             position_guess = vector.from_components(use_z=False) << u.mm
 
-            step_size = 1 * u.nm
+            step_size = .1 * u.nm
             step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
@@ -184,7 +184,12 @@ class System(
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
-                    rays = self.raytrace(rays)[surf_index].rays_output
+                    surfaces_rays = self.raytrace(rays)
+                    # fig, axs = plt.subplots(nrows=2, sharex='all')
+                    # self.plot_surfaces(ax=axs[0], surfaces=surfaces_rays, components=(iz, iy), plot_vignetted=True)
+                    # self.plot_surfaces(ax=axs[1], surfaces=surfaces_rays, components=(iz, ix), plot_vignetted=True)
+                    # plt.show()
+                    rays = surfaces_rays[surf_index].rays_output
                     return (rays.position - target_position)[xy]
 
                 position_guess = optimization.root_finding.secant(
@@ -224,8 +229,8 @@ class System(
                 def position_error(direc: u.Quantity) -> u.Quantity:
                     direction = np.zeros(self.field_samples_normalized + target_position.shape)
                     direction[z] = 1
-                    direction = vector.rotate_x(direction, direc[y])
-                    direction = vector.rotate_y(direction, direc[x])
+                    direction = transform.rigid.TiltX(direc[y])(direction)
+                    direction = transform.rigid.TiltY(direc[x])(direction)
                     rays = Rays.from_field_positions(
                         wavelength_grid=self.wavelengths,
                         direction=direction,
@@ -255,9 +260,8 @@ class System(
                     break
 
             direction = vector.from_components(z=1 << u.dimensionless_unscaled)
-            # todo: why does this need to be negative?????
-            direction = transform.rigid.TiltX(-direction_guess[y])(direction, translate=False)
-            direction = transform.rigid.TiltY(-direction_guess[x])(direction, translate=False)
+            direction = transform.rigid.TiltX(direction_guess[y])(direction)
+            direction = transform.rigid.TiltY(direction_guess[x])(direction)
             input_rays = Rays.from_field_positions(
                 wavelength_grid=self.wavelengths,
                 direction=direction,
@@ -349,7 +353,8 @@ class System(
                 plot_vignetted=plot_vignetted,
                 plot_rays=plot_rays,
             )
-            axs[ax_index].get_legend().remove()
+            if plot_rays:
+                axs[ax_index].get_legend().remove()
 
         handles, labels = axs[xy].get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
@@ -408,7 +413,7 @@ class System(
         if plot_rays:
             intercepts = []
             for surf in surfaces:
-                if isinstance(surf, surface.Standard):
+                if not isinstance(surf, surface.CoordinateTransform):
                     intercept = surf.local_to_global_transform(surf.rays_output.position, num_extra_dims=5)
                     intercepts.append(intercept)
             intercepts = u.Quantity(intercepts)

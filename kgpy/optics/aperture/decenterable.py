@@ -8,7 +8,7 @@ __all__ = ['Decenterable']
 @dataclasses.dataclass
 class Decenterable(mixin.Broadcastable):
 
-    decenter: transform.rigid.Decenter = dataclasses.field(default_factory=lambda: transform.rigid.Decenter())
+    decenter: transform.rigid.Translate = dataclasses.field(default_factory=lambda: transform.rigid.Translate())
 
     @property
     def config_broadcast(self):

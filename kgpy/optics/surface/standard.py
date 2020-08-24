@@ -138,7 +138,10 @@ class Standard(
 
     @property
     def post_transform(self) -> transform.rigid.TransformList:
-        return transform.rigid.TransformList([self.transform_after, transform.rigid.Translate(z=self.thickness)])
+        return transform.rigid.TransformList([
+            self.transform_after,
+            transform.rigid.Translate.from_components(z=self.thickness)
+        ])
 
     @property
     def is_plane(self):

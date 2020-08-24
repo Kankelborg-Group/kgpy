@@ -40,9 +40,7 @@ class TransformList(
             if transform is not None:
                 if transform.rotation_eff is not None:
                     rotation = matrix.mul(transform.rotation_eff, rotation)
-                    print(transform.rotation_eff)
                     # rotation = matrix.mul(rotation, transform.rotation_eff, )
-        print()
         return rotation
 
     @property
