@@ -28,7 +28,7 @@ class System(
     mixin.Named,
     typ.Generic[SurfacesT]
 ):
-    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
+    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=surface.ObjectSurface)
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
     stop_surface: typ.Optional[surface.Standard] = None
     wavelengths: typ.Optional[u.Quantity] = None
@@ -254,9 +254,10 @@ class System(
                 if surf == self.stop_surface:
                     break
 
-            direction = vector.from_components(z=1)
-            direction = transform.rigid.TiltX(direction_guess[y])(direction, translate=False)
-            direction = transform.rigid.TiltY(direction_guess[x])(direction, translate=False)
+            direction = vector.from_components(z=1 << u.dimensionless_unscaled)
+            # todo: why does this need to be negative?????
+            direction = transform.rigid.TiltX(-direction_guess[y])(direction, translate=False)
+            direction = transform.rigid.TiltY(-direction_guess[x])(direction, translate=False)
             input_rays = Rays.from_field_positions(
                 wavelength_grid=self.wavelengths,
                 direction=direction,
@@ -381,9 +382,9 @@ class System(
         end_surface_index = surfaces.index(final_surface)
 
         return self.plot_surfaces(
+            surfaces=surfaces[start_surface_index:end_surface_index + 1],
             ax=ax,
             components=components,
-            surfaces=surfaces[start_surface_index:end_surface_index + 1],
             color_axis=color_axis,
             plot_vignetted=plot_vignetted,
             plot_rays=plot_rays,
@@ -391,9 +392,9 @@ class System(
 
     @staticmethod
     def plot_surfaces(
+            surfaces: typ.Optional[typ.List[surface.Surface]],
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            surfaces: typ.Optional[typ.List[surface.Surface]] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
             plot_rays: bool = True,

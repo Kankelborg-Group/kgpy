@@ -12,29 +12,39 @@ class Transform(GeneralTransform):
 
     @property
     @abc.abstractmethod
-    def rotation_eff(self) -> u.Quantity:
-        return np.identity(3) << u.dimensionless_unscaled
+    def rotation_eff(self) -> typ.Optional[u.Quantity]:
+        return None
 
     @property
     @abc.abstractmethod
-    def translation_eff(self) -> u.Quantity:
-        return vector.from_components() << u.mm
+    def translation_eff(self) -> typ.Optional[u.Quantity]:
+        return None
 
     def __call__(
             self,
-            value: u.Quantity,
+            value: typ.Optional[u.Quantity] = None,
             rotate: bool = True,
             translate: bool = True,
             num_extra_dims: int = 0,
     ) -> u.Quantity:
-        if rotate:
-            sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None), slice(None)])
-            value = vector.matmul(self.rotation_eff[sl], value)
+        if value is not None:
+            if rotate:
+                if self.rotation_eff is not None:
+                    sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None), slice(None)])
+                    value = vector.matmul(self.rotation_eff[sl], value)
         if translate:
-            sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None)])
-            value = value + self.translation_eff[sl]
+            if self.translation_eff is not None:
+                sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None)])
+                if value is None:
+                    value = self.translation_eff[sl]
+                else:
+                    value = value + self.translation_eff[sl]
         return value
 
     @abc.abstractmethod
     def __invert__(self) -> 'Transform':
         pass
+
+    @property
+    def inverse(self) -> 'Transform':
+        return self.__invert__()

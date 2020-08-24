@@ -34,13 +34,13 @@ class CoordinateTransform(Surface):
 
     @property
     def pre_transform(self) -> kgpy.transform.rigid.TransformList:
-        return kgpy.transform.rigid.TransformList()
-        # return kgpy.transform.rigid.TransformList([self.transform])
+        # return kgpy.transform.rigid.TransformList()
+        return kgpy.transform.rigid.TransformList([self.transform])
 
     @property
     def post_transform(self) -> kgpy.transform.rigid.TransformList:
-        return kgpy.transform.rigid.TransformList([self.transform, kgpy.transform.rigid.Translate(z=self.thickness)])
-        # return coordinate.TransformList([coordinate.Translate(z=self.thickness)])
+        # return kgpy.transform.rigid.TransformList([self.transform, kgpy.transform.rigid.Translate(z=self.thickness)])
+        return kgpy.transform.rigid.TransformList([kgpy.transform.rigid.Translate(z=self.thickness)])
 
     def copy(self) -> 'CoordinateTransform':
         return CoordinateTransform(

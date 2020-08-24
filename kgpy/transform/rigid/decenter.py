@@ -29,8 +29,8 @@ class Decenter(Transform):
         )
 
     @property
-    def rotation_eff(self) -> u.Quantity:
-        return super().rotation_eff
+    def rotation_eff(self) -> None:
+        return None
 
     @property
     def translation_eff(self) -> u.Quantity:

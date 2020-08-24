@@ -23,8 +23,8 @@ class TiltAboutAxis(Transform, abc.ABC):
         return type(self)(angle=-self.angle)
 
     @property
-    def translation_eff(self) -> u.Quantity:
-        return super().translation_eff
+    def translation_eff(self) -> None:
+        return None
 
     def copy(self) -> 'TiltAboutAxis':
         return type(self)(

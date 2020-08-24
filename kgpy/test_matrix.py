@@ -1,27 +1,19 @@
 import pytest
 import astropy.units as u
 from . import matrix
+from .matrix import xx, xy, yx, yy
 
-xx = [[1, 0],
-      [0, 0]] * u.dimensionless_unscaled
+magic1 = [[1, 2, 3],
+          [4, 5, 6],
+          [7, 8, 9]] * u.dimensionless_unscaled
 
-xy = [[0, 1],
-      [0, 0]] * u.dimensionless_unscaled
+magic2 = [[10, 11, 12],
+          [13, 14, 15],
+          [16, 17, 18]] * u.dimensionless_unscaled
 
-yx = [[0, 0],
-      [1, 0]] * u.dimensionless_unscaled
-
-yy = [[0, 0],
-      [0, 1]] * u.dimensionless_unscaled
-
-magic1 = [[1, 2],
-          [3, 4]] * u.dimensionless_unscaled
-
-magic2 = [[5, 6],
-          [7, 8]] * u.dimensionless_unscaled
-
-magic3 = [[9, 10],
-          [11, 12]] * u.dimensionless_unscaled
+magic3 = [[19, 20, 21],
+          [22, 23, 24],
+          [25, 26, 27]] * u.dimensionless_unscaled
 
 test_matrices = [magic1, magic2, magic3]
 

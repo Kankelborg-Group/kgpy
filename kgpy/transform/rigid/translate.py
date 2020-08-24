@@ -1,49 +1,38 @@
 import dataclasses
 import numpy as np
 from astropy import units as u
-from kgpy import vector
-from . import Decenter
+import kgpy.vector
+from . import Transform
 
 __all__ = ['Translate']
 
 
 @dataclasses.dataclass
-class Translate(Decenter):
+class Translate(Transform):
 
-    z: u.Quantity = 0 * u.mm
+    vector: u.Quantity = dataclasses.field(default_factory=kgpy.vector.from_components)
 
     @property
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
-            self.z,
+            self.vector,
         )
 
     def __invert__(self) -> 'Translate':
-        return Translate(
-            -self.x,
-            -self.y,
-            -self.z,
-        )
+        return Translate(-self.vector)
 
-    def __add__(self, other: 'Translate'):
-        return Translate(
-            x=self.x + other.x,
-            y=self.y + other.y,
-            z=self.z + other.z,
-        )
+    @property
+    def rotation_eff(self) -> None:
+        return None
 
     @property
     def translation_eff(self) -> u.Quantity:
-        value = super().translation_eff
-        value[vector.z] = self.z
-        return value
+        return self.vector
 
     def copy(self) -> 'Translate':
         return Translate(
-            x=self.x.copy(),
-            y=self.y.copy(),
-            z=self.z.copy()
+            vector=self.vector.copy()
         )
 
 
