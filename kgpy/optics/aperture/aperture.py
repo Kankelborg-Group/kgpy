@@ -13,8 +13,8 @@ __all__ = ['Aperture']
 
 @dataclasses.dataclass
 class Aperture(
-    mixin.Copyable,
     mixin.Broadcastable,
+    mixin.Copyable,
     abc.ABC
 ):
     num_samples: int = 1000
@@ -55,3 +55,10 @@ class Aperture(
             if rigid_transform is not None:
                 wire = rigid_transform(wire, num_extra_dims=1)
             ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
+
+    def copy(self) -> 'Aperture':
+        other = super().copy()
+        other.num_samples = self.num_samples
+        other.is_active = self.is_active
+        other.is_test_stop = self.is_test_stop
+        return other

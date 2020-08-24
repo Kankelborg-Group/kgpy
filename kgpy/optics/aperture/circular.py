@@ -3,13 +3,17 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import kgpy.vector
-from . import Aperture, decenterable, obscurable
+from . import Aperture, Decenterable, Obscurable
 
 __all__ = ['Circular']
 
 
 @dataclasses.dataclass
-class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
+class Circular(
+    Aperture,
+    Decenterable,
+    Obscurable,
+):
 
     radius: u.Quantity = 0 * u.mm
 
@@ -51,11 +55,6 @@ class Circular(decenterable.Decenterable, obscurable.Obscurable, Aperture):
         return np.stack([x, y, z], axis=~0)
 
     def copy(self) -> 'Circular':
-        return Circular(
-            num_samples=self.num_samples,
-            is_active=self.is_active,
-            is_test_stop=self.is_test_stop,
-            is_obscuration=self.is_obscuration,
-            decenter=self.decenter.copy(),
-            radius=self.radius.copy(),
-        )
+        other = super().copy()      # type: Circular
+        other.radius = self.radius.copy()
+        return other

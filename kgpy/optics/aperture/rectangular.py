@@ -73,12 +73,7 @@ class Rectangular(polygon.Polygon):
     #     return kgpy.vector.from_components(x, y)
 
     def copy(self) -> 'Rectangular':
-        return Rectangular(
-            num_samples=self.num_samples,
-            is_active=self.is_active,
-            is_test_stop=self.is_test_stop,
-            is_obscuration=self.is_obscuration,
-            decenter=self.decenter.copy(),
-            half_width_x=self.half_width_x.copy(),
-            half_width_y=self.half_width_y.copy(),
-        )
+        other = super().copy()      # type: Rectangular
+        other.half_width_x = self.half_width_x.copy()
+        other.half_width_y = self.half_width_y.copy()
+        return other

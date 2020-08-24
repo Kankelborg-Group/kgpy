@@ -45,5 +45,5 @@ class PandasDataframable:
 class Copyable(abc.ABC):
 
     @abc.abstractmethod
-    def copy(self):
-        pass
+    def copy(self) -> 'Copyable':
+        return type(self)()
