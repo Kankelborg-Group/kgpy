@@ -34,22 +34,16 @@ class CoordinateTransform(Surface):
 
     @property
     def pre_transform(self) -> kgpy.transform.rigid.TransformList:
-        # return kgpy.transform.rigid.TransformList()
         return kgpy.transform.rigid.TransformList([self.transform])
 
     @property
     def post_transform(self) -> kgpy.transform.rigid.TransformList:
-        # return kgpy.transform.rigid.TransformList([self.transform, kgpy.transform.rigid.Translate(z=self.thickness)])
         return kgpy.transform.rigid.TransformList([kgpy.transform.rigid.Translate.from_components(z=self.thickness)])
 
     def copy(self) -> 'CoordinateTransform':
-        return CoordinateTransform(
-            name=self.name.copy(),
-            thickness=self.thickness.copy(),
-            is_active=self.is_active.copy(),
-            is_visible=self.is_visible.copy(),
-            transform=self.transform.copy(),
-        )
+        other = super().copy()      # type: CoordinateTransform
+        other.transform = self.transform.copy()
+        return other
 
     def plot_2d(
             self,

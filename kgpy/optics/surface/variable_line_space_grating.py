@@ -38,3 +38,10 @@ class VariableLineSpaceGrating(DiffractionGrating[MaterialT, ApertureT]):
         groove_density = term0 + term1 + term2 + term3
         # groove_density = 1 / terms
         return vector.from_components(x=groove_density)
+
+    def copy(self) -> 'VariableLineSpaceGrating':
+        other = super().copy()      # type: VariableLineSpaceGrating
+        other.coeff_linear = self.coeff_linear.copy()
+        other.coeff_quadratic = self.coeff_quadratic.copy()
+        other.coeff_cubic = self.coeff_cubic.copy()
+        return other

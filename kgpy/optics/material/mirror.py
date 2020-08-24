@@ -18,9 +18,8 @@ class Mirror(Material):
         return -np.sign(rays.index_of_refraction) * u.dimensionless_unscaled
 
     def copy(self) -> 'Mirror':
-        return Mirror(
-            thickness=self.thickness.copy(),
-        )
+        other = super().copy()      # type: Mirror
+        other.thickness = self.thickness
 
     def plot_2d(
             self,

@@ -5,9 +5,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-import kgpy.mixin
-from kgpy import transform
-import kgpy.optimization.root_finding
+from kgpy import transform, mixin
 from .. import Rays
 
 __all__ = ['Surface']
@@ -15,9 +13,9 @@ __all__ = ['Surface']
 
 @dataclasses.dataclass
 class Surface(
-    kgpy.mixin.Copyable,
-    kgpy.mixin.Broadcastable,
-    kgpy.mixin.Named,
+    mixin.Broadcastable,
+    mixin.Named,
+    mixin.Copyable,
     abc.ABC
 ):
     """
@@ -116,3 +114,10 @@ class Surface(
             components: typ.Tuple[int, int] = (0, 1),
     ) -> plt.Axes:
         return self.plot_2d(ax=ax, rigid_transform=self.local_to_global_transform, components=components)
+
+    def copy(self) -> 'Copyable':
+        other = super().copy()      # type: Surface
+        other.thickness = self.thickness.copy()
+        other.is_active = self.is_active
+        other.is_visible = self.is_visible
+        return other

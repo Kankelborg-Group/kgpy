@@ -59,18 +59,7 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
         return np.arcsin(self.diffraction_order * wavelength * self.groove_density - np.sin(input_angle)) << u.rad
 
     def copy(self) -> 'DiffractionGrating':
-        return DiffractionGrating(
-            name=self.name.copy(),
-            thickness=self.thickness.copy(),
-            is_active=self.is_active.copy(),
-            is_visible=self.is_visible.copy(),
-            radius=self.radius.copy(),
-            conic=self.conic.copy(),
-            material=self.material.copy(),
-            aperture=self.aperture.copy(),
-            transform_before=self.transform_before.copy(),
-            transform_after=self.transform_after.copy(),
-            intercept_error=self.intercept_error.copy(),
-            diffraction_order=self.diffraction_order.copy(),
-            groove_density=self.groove_density.copy(),
-        )
+        other = super().copy()      # type: DiffractionGrating
+        other.diffraction_order = self.diffraction_order.copy()
+        other.groove_density = self.groove_density.copy()
+        return other

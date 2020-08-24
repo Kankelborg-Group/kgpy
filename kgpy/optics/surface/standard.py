@@ -179,16 +179,12 @@ class Standard(
             self.material.plot_2d(ax, self.aperture, self.sag, rigid_transform, components)
 
     def copy(self) -> 'Standard':
-        return Standard(
-            name=self.name.copy(),
-            thickness=self.thickness.copy(),
-            is_active=self.is_active.copy(),
-            is_visible=self.is_visible.copy(),
-            radius=self.radius.copy(),
-            conic=self.conic.copy(),
-            material=self.material.copy(),
-            aperture=self.aperture.copy(),
-            transform_before=self.transform_before.copy(),
-            transform_after=self.transform_after.copy(),
-            intercept_error=self.intercept_error.copy(),
-        )
+        other = super().copy()  # type: Standard
+        other.radius = self.radius.copy()
+        other.conic = self.conic.copy()
+        other.material = self.material.copy()
+        other.aperture = self.aperture.copy()
+        other.transform_before = self.transform_before.copy()
+        other.transform_after = self.transform_after.copy()
+        other.intercept_error = self.intercept_error.copy()
+        return other

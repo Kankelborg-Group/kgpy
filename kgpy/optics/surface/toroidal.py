@@ -61,17 +61,6 @@ class Toroidal(Standard[MaterialT, ApertureT]):
         return vector.normalize(vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
 
     def copy(self) -> 'Toroidal':
-        return Toroidal(
-            name=self.name.copy(),
-            thickness=self.thickness.copy(),
-            is_active=self.is_active.copy(),
-            is_visible=self.is_visible.copy(),
-            radius=self.radius.copy(),
-            conic=self.conic.copy(),
-            material=self.material.copy(),
-            aperture=self.aperture.copy(),
-            transform_before=self.transform_before.copy(),
-            transform_after=self.transform_after.copy(),
-            intercept_error=self.intercept_error.copy(),
-            radius_of_rotation=self.radius_of_rotation.copy(),
-        )
+        other = super().copy()      # type: Toroidal
+        other.radius_of_rotation = self.radius_of_rotation.copy()
+        return other

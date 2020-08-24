@@ -43,16 +43,12 @@ class ObjectSurface(Surface):
         return transform.rigid.TransformList([transform.rigid.Translate.from_components(z=self.thickness_eff)])
 
     def copy(self) -> 'ObjectSurface':
-        rays = self.rays_input
-        if rays is not None:
-            rays = rays.copy()
-        return ObjectSurface(
-            name=self.name.copy(),
-            thickness=self.thickness.copy(),
-            is_active=self.is_active.copy(),
-            is_visible=self.is_visible.copy(),
-            rays_input=rays,
-        )
+        other = super().copy()      # type: ObjectSurface
+        if self.rays_input is None:
+            other.rays = self.rays_input
+        else:
+            other.rays = self.rays_input.copy()
+        return other
 
     def plot_2d(
             self,

@@ -11,8 +11,8 @@ __all__ = ['Material']
 
 @dataclasses.dataclass
 class Material(
-    mixin.Copyable,
     mixin.Broadcastable,
+    mixin.Copyable,
     abc.ABC
 ):
 
