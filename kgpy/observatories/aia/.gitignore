@@ -1,0 +1,11 @@
+test_jsoc/*
+sample/*
+
+data/*
+!data/304/
+
+data/304/*
+#!data/304/lev15/    Uncomment when ready to push 2Gb of 304 images to repo
+
+
+*.pickle
