@@ -2,11 +2,44 @@ import abc
 import dataclasses
 import numpy as np
 import pandas
+import pathlib
+import pickle
+import typing as typ
 
 from .name import Name
 
-__all__ = ['Broadcastable', 'Named', 'PandasDataframable', 'Copyable']
+__all__ = ['Broadcastable', 'Named', 'PandasDataframable', 'Copyable', 'Pickleable']
 
+class Pickleable(abc.ABC):
+    """
+    Class for adding 'to_pickle' and 'from_pickle' methods for objects will long creation times.
+    """
+
+    @staticmethod
+    @abc.abstractmethod
+    def default_pickle_path() -> pathlib.Path:
+        pass
+
+    def to_pickle(self, path: typ.Optional[pathlib.Path] = None):
+        if path is None:
+            path = self.default_pickle_path()
+
+        file = open(str(path), 'wb')
+        pickle.dump(self, file)
+        file.close()
+
+        return
+
+    @classmethod
+    def from_pickle(cls, path: typ.Optional[pathlib.Path] = None):
+        if path is None:
+            path = cls.default_pickle_path()
+
+        file = open(str(path), 'rb')
+        self = pickle.load(file)
+        file.close()
+
+        return self
 
 class Broadcastable:
     """
