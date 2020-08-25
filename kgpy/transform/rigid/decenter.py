@@ -2,7 +2,7 @@ import typing as typ
 import dataclasses
 import numpy as np
 from astropy import units as u
-import kgpy.optics
+from kgpy import vector
 from . import Transform
 
 __all__ = ['Decenter']
@@ -13,10 +13,6 @@ class Decenter(Transform):
 
     x: u.Quantity = 0 * u.mm
     y: u.Quantity = 0 * u.mm
-
-    @classmethod
-    def promote(cls, value: 'Decenter'):
-        return cls(value.x, value.y)
 
     @property
     def config_broadcast(self):
@@ -32,22 +28,13 @@ class Decenter(Transform):
             -self.y,
         )
 
-    def __call__(
-            self,
-            value: u.Quantity,
-            use_rotations: bool = True,
-            use_translations: bool = True,
-            num_extra_dims: int = 0,
-    ) -> u.Quantity:
-        value = value.copy()
-        if use_translations:
-            sh = list(self.x.shape)
-            sh[~1:~1] = [1] * num_extra_dims
-            x = self.x.reshape(sh)
-            y = self.y.reshape(sh)
-            value[..., 0] += x
-            value[..., 1] += y
-        return value
+    @property
+    def rotation_eff(self) -> None:
+        return None
+
+    @property
+    def translation_eff(self) -> u.Quantity:
+        return vector.from_components(x=self.x, y=self.y)
 
     def copy(self):
         return Decenter(

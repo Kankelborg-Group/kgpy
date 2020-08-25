@@ -1,27 +1,19 @@
 import dataclasses
 import typing as typ
 import numpy as np
+import matplotlib.pyplot as plt
 import astropy.units as u
-import kgpy.vector
-from kgpy.vector import x, y, z
-from .. import Rays, coordinate
-from . import surface
+import kgpy.transform
+from .. import Rays
+from . import Surface
 
 __all__ = ['CoordinateTransform']
 
 
 @dataclasses.dataclass
-class CoordinateTransform(surface.Surface):
+class CoordinateTransform(Surface):
 
-    transform: typ.Optional[coordinate.Transform] = None
-
-    @property
-    def __init__args(self) -> typ.Dict[str, typ.Any]:
-        args = super().__init__args
-        args.update({
-            'transform': self.transform
-        })
-        return args
+    transform: typ.Optional[kgpy.transform.rigid.Transform] = None
 
     @property
     def config_broadcast(self):
@@ -29,10 +21,6 @@ class CoordinateTransform(surface.Surface):
             super().config_broadcast,
             self.transform.config_broadcast,
         )
-
-    def to_zemax(self) -> 'CoordinateTransform':
-        from kgpy.optics import zemax
-        return zemax.system.surface.CoordinateBreak(**self.__init__args)
 
     def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return 0 * u.mm
@@ -42,15 +30,17 @@ class CoordinateTransform(surface.Surface):
 
     @property
     def _rays_output(self) -> typ.Optional[Rays]:
-        return self.rays_input
+        return self.rays_input.copy()
 
     @property
-    def pre_transform(self) -> coordinate.TransformList:
-        return coordinate.TransformList([self.transform])
+    def pre_transform(self) -> kgpy.transform.rigid.TransformList:
+        # return kgpy.transform.rigid.TransformList()
+        return kgpy.transform.rigid.TransformList([self.transform])
 
     @property
-    def post_transform(self) -> coordinate.TransformList:
-        return coordinate.TransformList([coordinate.Translate(z=self.thickness)])
+    def post_transform(self) -> kgpy.transform.rigid.TransformList:
+        # return kgpy.transform.rigid.TransformList([self.transform, kgpy.transform.rigid.Translate(z=self.thickness)])
+        return kgpy.transform.rigid.TransformList([kgpy.transform.rigid.Translate.from_components(z=self.thickness)])
 
     def copy(self) -> 'CoordinateTransform':
         return CoordinateTransform(
@@ -60,3 +50,11 @@ class CoordinateTransform(surface.Surface):
             is_visible=self.is_visible.copy(),
             transform=self.transform.copy(),
         )
+
+    def plot_2d(
+            self,
+            ax: plt.Axes,
+            rigid_transform: typ.Optional[kgpy.transform.rigid.Transform] = None,
+            components: typ.Tuple[int, int] = (0, 1),
+    ) -> plt.Axes:
+        pass

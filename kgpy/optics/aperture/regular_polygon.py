@@ -16,9 +16,6 @@ class RegularPolygon(Polygon):
     num_sides: int = 8
     offset_angle: u.Quantity = 0 * u.deg
 
-    def to_zemax(self) -> 'RegularPolygon':
-        raise NotImplementedError
-
     @property
     def config_broadcast(self):
         return np.broadcast(
@@ -56,3 +53,10 @@ class RegularPolygon(Polygon):
         :return: The minimum radius of the polygon.
         """
         return self.radius * np.cos(self.half_edge_subtent)
+
+    def copy(self) -> 'RegularPolygon':
+        other = super().copy()      # type: RegularPolygon
+        other.radius = self.radius.copy()
+        other.num_sides = self.num_sides
+        other.offset_angle = self.offset_angle.copy()
+        return other

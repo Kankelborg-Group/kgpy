@@ -31,3 +31,10 @@ class IsoscelesTrapezoid(Polygon):
             self.outer_radius,
             self.wedge_half_angle,
         )
+
+    def copy(self) -> 'IsoscelesTrapezoid':
+        other = super().copy()      # type: IsoscelesTrapezoid
+        other.inner_radius = self.inner_radius.copy()
+        other.outer_radius = self.outer_radius.copy()
+        other.wedge_half_angle = self.wedge_half_angle.copy()
+        return other

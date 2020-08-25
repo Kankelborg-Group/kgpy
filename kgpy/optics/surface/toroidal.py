@@ -2,7 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-import kgpy.vector
+from kgpy import vector
 from .. import material, aperture
 from . import Standard
 
@@ -16,18 +16,6 @@ ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
 class Toroidal(Standard[MaterialT, ApertureT]):
 
     radius_of_rotation: u.Quantity = 0 * u.mm
-
-    @property
-    def __init__args(self) -> typ.Dict[str, typ.Any]:
-        args = super().__init__args
-        args.update({
-            'radius_of_rotation': self.radius_of_rotation,
-        })
-        return args
-
-    def to_zemax(self) -> 'Toroidal':
-        from kgpy.optics import zemax
-        return zemax.system.surface.Toroidal(**self.__init__args)
 
     @property
     def config_broadcast(self):
@@ -70,7 +58,7 @@ class Toroidal(Standard[MaterialT, ApertureT]):
         mask = np.abs(ax) > r
         dzdx[mask] = 0
         dzdy[mask] = 0
-        return kgpy.vector.normalize(kgpy.vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
+        return vector.normalize(vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
 
     def copy(self) -> 'Toroidal':
         return Toroidal(

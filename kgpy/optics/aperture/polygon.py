@@ -4,9 +4,6 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import shapely.geometry
-import OCC.Core.gp
-import OCC.Core.TopoDS
-import OCC.Core.BRepBuilderAPI
 import kgpy.vector
 from kgpy.vector import x, y, z
 from . import Aperture, obscurable, decenterable
@@ -16,17 +13,6 @@ __all__ = ['Polygon']
 
 @dataclasses.dataclass
 class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.ABC):
-
-    def to_zemax(self) -> 'Polygon':
-        raise NotImplementedError
-
-    def to_occ(self) -> OCC.Core.TopoDS.TopoDS_Wire:
-        poly = OCC.Core.BRepBuilderAPI.BRepBuilderAPI_MakePolygon()
-        for vertex in self.vertices:
-            p = OCC.Core.gp.gp_Pnt(vertex[x].value, vertex[y].value, vertex[z].value)
-            poly.Add(p)
-        poly.Close()
-        return poly.Wire()
 
     @property
     def shapely_poly(self) -> shapely.geometry.Polygon:

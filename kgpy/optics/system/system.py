@@ -8,17 +8,13 @@ import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
 import matplotlib.colors
-import kgpy.mixin
-import kgpy.vector
-import kgpy.linspace
+from kgpy import mixin, linspace, vector, optimization, transform
 from kgpy.vector import x, y, z, ix, iy, iz, xy
-import kgpy.optimization.minimization
-import kgpy.optimization.root_finding
-from .. import ZemaxCompatible, Rays, material, surface, aperture, coordinate
+from .. import Rays, surface
 
 __all__ = ['System']
 
-SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surface], ZemaxCompatible])
+SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surface]])
 
 
 def default_field_mask_func(fx: u.Quantity, fy: u.Quantity) -> np.ndarray:
@@ -27,8 +23,12 @@ def default_field_mask_func(fx: u.Quantity, fy: u.Quantity) -> np.ndarray:
 
 
 @dataclasses.dataclass
-class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Generic[SurfacesT]):
-    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=lambda: surface.ObjectSurface())
+class System(
+    mixin.Broadcastable,
+    mixin.Named,
+    typ.Generic[SurfacesT]
+):
+    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=surface.ObjectSurface)
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
     stop_surface: typ.Optional[surface.Standard] = None
     wavelengths: typ.Optional[u.Quantity] = None
@@ -38,17 +38,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     field_mask_func: typ.Callable[[u.Quantity, u.Quantity], np.ndarray] = default_field_mask_func
-    baffle_positions: typ.Optional[typ.List[coordinate.TiltTranslate]] = None
+    baffle_positions: typ.Optional[typ.List[transform.rigid.Transform]] = None
 
     def __post_init__(self):
         self.update()
-
-    def to_zemax(self) -> 'System':
-        from kgpy.optics import zemax
-        return zemax.System(
-            name=self.name,
-            surfaces=self.surfaces.to_zemax(),
-        )
 
     def update(self) -> typ.NoReturn:
         self._rays_input_cache = None
@@ -111,15 +104,15 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @property
     def field_x(self) -> u.Quantity:
-        return kgpy.linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
+        return linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
 
     @property
     def field_y(self) -> u.Quantity:
-        return kgpy.linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
+        return linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
 
     def pupil_x(self, surf: surface.Standard) -> u.Quantity:
         aper = surf.aperture
-        return kgpy.linspace(
+        return linspace(
             start=aper.min[x] + self.pupil_margin,
             stop=aper.max[x] - self.pupil_margin,
             num=self.pupil_samples_normalized[ix],
@@ -128,7 +121,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     def pupil_y(self, surf: surface.Standard) -> u.Quantity:
         aper = surf.aperture
-        return kgpy.linspace(
+        return linspace(
             start=aper.min[y] + self.pupil_margin,
             stop=aper.max[y] - self.pupil_margin,
             num=self.pupil_samples_normalized[iy],
@@ -170,18 +163,18 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         if np.isinf(self.object_surface.thickness).all():
 
-            position_guess = kgpy.vector.from_components(use_z=False) << u.mm
+            position_guess = vector.from_components(use_z=False) << u.mm
 
-            step_size = 1 * u.nm
-            step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
+            step_size = .1 * u.nm
+            step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
                 surf_index = list(self).index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
-                target_position = kgpy.vector.from_components(px[..., None], py)
+                target_position = vector.from_components(px[..., None], py)
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
-                    position = kgpy.vector.to_3d(pos)
+                    position = vector.to_3d(pos)
                     rays = Rays.from_field_angles(
                         wavelength_grid=self.wavelengths,
                         position=position,
@@ -191,10 +184,15 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
-                    rays = self.raytrace(rays)[surf_index].rays_output
+                    surfaces_rays = self.raytrace(rays)
+                    # fig, axs = plt.subplots(nrows=2, sharex='all')
+                    # self.plot_surfaces(ax=axs[0], surfaces=surfaces_rays, components=(iz, iy), plot_vignetted=True)
+                    # self.plot_surfaces(ax=axs[1], surfaces=surfaces_rays, components=(iz, ix), plot_vignetted=True)
+                    # plt.show()
+                    rays = surfaces_rays[surf_index].rays_output
                     return (rays.position - target_position)[xy]
 
-                position_guess = kgpy.optimization.root_finding.secant(
+                position_guess = optimization.root_finding.secant(
                     func=position_error,
                     root_guess=position_guess,
                     step_size=step,
@@ -207,7 +205,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
             input_rays = Rays.from_field_angles(
                 wavelength_grid=self.wavelengths,
-                position=kgpy.vector.to_3d(position_guess),
+                position=vector.to_3d(position_guess),
                 field_grid_x=self.field_x,
                 field_grid_y=self.field_y,
                 field_mask_func=self.field_mask_func,
@@ -217,22 +215,22 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         else:
 
-            direction_guess = kgpy.vector.from_components(use_z=False) << u.deg
+            direction_guess = vector.from_components(use_z=False) << u.deg
 
             step_size = 1e-10 * u.deg
 
-            step = kgpy.vector.from_components(ax=step_size, ay=step_size, use_z=False)
+            step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
             for surf in self.test_stop_surfaces:
                 surf_index = list(self).index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
-                target_position = kgpy.vector.from_components(px[..., None], py)
+                target_position = vector.from_components(px[..., None], py)
 
                 def position_error(direc: u.Quantity) -> u.Quantity:
                     direction = np.zeros(self.field_samples_normalized + target_position.shape)
                     direction[z] = 1
-                    direction = kgpy.vector.rotate_x(direction, direc[y])
-                    direction = kgpy.vector.rotate_y(direction, direc[x])
+                    direction = transform.rigid.TiltX(direc[y])(direction)
+                    direction = transform.rigid.TiltY(direc[x])(direction)
                     rays = Rays.from_field_positions(
                         wavelength_grid=self.wavelengths,
                         direction=direction,
@@ -250,7 +248,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                     rays = surfaces_rays[surf_index].rays_output
                     return (rays.position - target_position)[xy]
 
-                direction_guess = kgpy.optimization.root_finding.secant(
+                direction_guess = optimization.root_finding.secant(
                     func=position_error,
                     root_guess=direction_guess,
                     step_size=step,
@@ -261,9 +259,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 if surf == self.stop_surface:
                     break
 
-            direction = kgpy.vector.from_components(az=1)
-            direction = kgpy.vector.rotate_x(direction, direction_guess[y])
-            direction = kgpy.vector.rotate_y(direction, direction_guess[x])
+            direction = vector.from_components(z=1 << u.dimensionless_unscaled)
+            direction = transform.rigid.TiltX(direction_guess[y])(direction)
+            direction = transform.rigid.TiltY(direction_guess[x])(direction)
             input_rays = Rays.from_field_positions(
                 wavelength_grid=self.wavelengths,
                 direction=direction,
@@ -341,9 +339,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
         ax_indices = [xy, yz, xz]
         planes = [
-            (kgpy.vector.ix, kgpy.vector.iy),
-            (kgpy.vector.iz, kgpy.vector.iy),
-            (kgpy.vector.iz, kgpy.vector.ix),
+            (vector.ix, vector.iy),
+            (vector.iz, vector.iy),
+            (vector.iz, vector.ix),
         ]
         for ax_index, plane in zip(ax_indices, planes):
             self.plot_2d(
@@ -355,7 +353,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 plot_vignetted=plot_vignetted,
                 plot_rays=plot_rays,
             )
-            axs[ax_index].get_legend().remove()
+            if plot_rays:
+                axs[ax_index].get_legend().remove()
 
         handles, labels = axs[xy].get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
@@ -366,7 +365,7 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
     def plot_2d(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
+            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
             start_surface: typ.Optional[surface.Surface] = None,
             final_surface: typ.Optional[surface.Surface] = None,
             color_axis: int = Rays.axis.wavelength,
@@ -388,9 +387,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
         end_surface_index = surfaces.index(final_surface)
 
         return self.plot_surfaces(
+            surfaces=surfaces[start_surface_index:end_surface_index + 1],
             ax=ax,
             components=components,
-            surfaces=surfaces[start_surface_index:end_surface_index + 1],
             color_axis=color_axis,
             plot_vignetted=plot_vignetted,
             plot_rays=plot_rays,
@@ -398,9 +397,9 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
     @staticmethod
     def plot_surfaces(
+            surfaces: typ.Optional[typ.List[surface.Surface]],
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (kgpy.vector.ix, kgpy.vector.iy),
-            surfaces: typ.Optional[typ.List[surface.Surface]] = None,
+            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
             plot_rays: bool = True,
@@ -409,13 +408,14 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
             _, ax = plt.subplots()
 
         for surf in surfaces:
-            surf.plot_2d(ax=ax, components=components)
+            surf.plot_2d_global(ax=ax, components=components)
 
         if plot_rays:
             intercepts = []
             for surf in surfaces:
-                intercept = surf.transform_to_global(surf.rays_output.position, num_extra_dims=5)
-                intercepts.append(intercept)
+                if not isinstance(surf, surface.CoordinateTransform):
+                    intercept = surf.local_to_global_transform(surf.rays_output.position, num_extra_dims=5)
+                    intercepts.append(intercept)
             intercepts = u.Quantity(intercepts)
 
             img_rays = surfaces[~0].rays_output
@@ -500,8 +500,8 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
                 if surf.is_plane:
 
                     length = 1 * occ_unit
-                    point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
-                    point_1 = surf.transform_to_global(kgpy.vector.from_components(az=length), self)[c]
+                    point_0 = surf.local_to_global_transform(vector.from_components() << occ_unit, self)[c]
+                    point_1 = surf.local_to_global_transform(vector.from_components(z=length), self)[c]
                     normal = (point_1 - point_0) / length
                     occ_point_0 = gp.gp_Pnt(*point_0.value)
                     occ_normal = gp.gp_Dir(*normal.value)
@@ -513,10 +513,10 @@ class System(ZemaxCompatible, kgpy.mixin.Broadcastable, kgpy.mixin.Named, typ.Ge
 
                 elif surf.is_sphere:
 
-                    point_0 = surf.transform_to_global(kgpy.vector.from_components() << occ_unit, self)[c]
-                    point_1 = surf.transform_to_global(kgpy.vector.from_components(ax=surf.radius), self)[c]
-                    point_2 = surf.transform_to_global(kgpy.vector.from_components(ay=surf.radius), self)[c]
-                    point_3 = surf.transform_to_global(kgpy.vector.from_components(az=surf.radius), self)[c]
+                    point_0 = surf.local_to_global_transform(vector.from_components() << occ_unit, self)[c]
+                    point_1 = surf.local_to_global_transform(vector.from_components(x=surf.radius), self)[c]
+                    point_2 = surf.local_to_global_transform(vector.from_components(y=surf.radius), self)[c]
+                    point_3 = surf.local_to_global_transform(vector.from_components(z=surf.radius), self)[c]
                     xhat = (point_1 - point_0) / surf.radius
                     yhat = (point_2 - point_0) / surf.radius
                     zhat = (point_3 - point_0) / surf.radius

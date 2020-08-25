@@ -33,15 +33,10 @@ class AsymmetricRectangular(Polygon):
         return kgpy.vector.from_components(v_x, v_y)
 
     def copy(self) -> 'AsymmetricRectangular':
-        return AsymmetricRectangular(
-            num_samples=self.num_samples,
-            is_active=self.is_active,
-            is_test_stop=self.is_test_stop,
-            is_obscuration=self.is_obscuration,
-            decenter=self.decenter.copy(),
-            width_x_neg=self.width_x_neg.copy(),
-            width_x_pos=self.width_x_pos.copy(),
-            width_y_neg=self.width_y_neg.copy(),
-            width_y_pos=self.width_y_pos.copy(),
-        )
+        other = super().copy()  # type: AsymmetricRectangular
+        other.width_x_neg = self.width_x_neg.copy()
+        other.width_x_pos = self.width_x_pos.copy()
+        other.width_y_neg = self.width_y_neg.copy()
+        other.width_y_pos = self.width_y_pos.copy()
+        return other
 

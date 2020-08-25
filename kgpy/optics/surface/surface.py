@@ -6,18 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.mixin
-import kgpy.vector
-from kgpy.vector import x, y, z
+from kgpy import transform
 import kgpy.optimization.root_finding
-from .. import coordinate, Rays, zemax_compatible
+from .. import Rays
 
 __all__ = ['Surface']
 
 
 @dataclasses.dataclass
 class Surface(
-    zemax_compatible.ZemaxCompatible,
-    zemax_compatible.InitArgs,
     kgpy.mixin.Copyable,
     kgpy.mixin.Broadcastable,
     kgpy.mixin.Named,
@@ -38,16 +35,6 @@ class Surface(
 
     def update(self) -> typ.NoReturn:
         self._rays_output_cache = None
-
-    @property
-    def __init__args(self) -> typ.Dict[str, typ.Any]:
-        args = super().__init__args
-        args.update({
-            'thickness': self.thickness,
-            'is_active': self.is_active,
-            'is_visible': self.is_visible,
-        })
-        return args
 
     @property
     def config_broadcast(self):
@@ -74,7 +61,7 @@ class Surface(
         if self.previous_surface is not None:
             rays = self.previous_surface.rays_output
             if rays is not None:
-                rays = rays.apply_transform(~self.transform_from_previous_surface)
+                rays = rays.apply_transform(~self.local_to_previous_transform)
         return rays
 
     @property
@@ -90,41 +77,42 @@ class Surface(
 
     @property
     @abc.abstractmethod
-    def pre_transform(self) -> coordinate.TransformList:
+    def pre_transform(self) -> transform.rigid.TransformList:
         pass
 
     @property
     @abc.abstractmethod
-    def post_transform(self) -> coordinate.TransformList:
+    def post_transform(self) -> transform.rigid.TransformList:
         pass
 
     @property
-    def transform_from_previous_surface(self) -> coordinate.TransformList:
-        transform = coordinate.TransformList()
+    def local_to_previous_transform(self) -> transform.rigid.TransformList:
+        t = transform.rigid.TransformList()
         if self.previous_surface is not None:
-            transform += self.previous_surface.post_transform
-        transform += self.pre_transform
-        return transform
+            t += self.previous_surface.post_transform
+        t += self.pre_transform
+        return t
 
     @property
-    def global_transform(self) -> coordinate.TransformList:
-        transform = coordinate.TransformList()
+    def local_to_global_transform(self) -> transform.rigid.TransformList:
+        t = transform.rigid.TransformList()
         if self.previous_surface is not None:
-            transform += self.previous_surface.global_transform
-        transform += self.transform_from_previous_surface
-        return transform
+            t += self.previous_surface.local_to_global_transform
+        t += self.local_to_previous_transform
+        return t
 
-    def transform_to_global(
-            self, 
-            value: u.Quantity,
-            num_extra_dims: int = 0
-    ):
-        return self.global_transform(value, num_extra_dims=num_extra_dims)
-
+    @abc.abstractmethod
     def plot_2d(
             self,
             ax: plt.Axes,
+            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
             components: typ.Tuple[int, int] = (0, 1),
-            transform_to_global: bool = False,
-    ):
+    ) -> plt.Axes:
         pass
+
+    def plot_2d_global(
+            self,
+            ax: plt.Axes,
+            components: typ.Tuple[int, int] = (0, 1),
+    ) -> plt.Axes:
+        return self.plot_2d(ax=ax, rigid_transform=self.local_to_global_transform, components=components)

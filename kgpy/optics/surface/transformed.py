@@ -1,7 +1,7 @@
 import dataclasses
 import typing as typ
 import kgpy.mixin
-from .. import coordinate
+import kgpy.transform
 from . import Surface, CoordinateTransform
 
 __all__ = ['Transformed']
@@ -15,7 +15,9 @@ class Transformed(
     typ.Generic[SurfacesT],
 ):
     surfaces: SurfacesT = dataclasses.field(default_factory=lambda: [])
-    transform: coordinate.Transform = dataclasses.field(default_factory=lambda: coordinate.TransformList())
+    transform: kgpy.transform.rigid.Transform = dataclasses.field(
+        default_factory=lambda: kgpy.transform.rigid.TransformList()
+    )
     is_last_surface: bool = False
 
     def __iter__(self) -> typ.Iterator[Surface]:

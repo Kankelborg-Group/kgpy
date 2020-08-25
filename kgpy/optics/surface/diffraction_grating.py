@@ -2,7 +2,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-import kgpy.vector
+from kgpy import vector
 from kgpy.vector import x, y, z
 from .. import Rays, material, aperture
 from . import Standard
@@ -20,19 +20,6 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
     groove_density: u.Quantity = 0 * (1 / u.mm)
 
     @property
-    def __init__args(self) -> typ.Dict[str, typ.Any]:
-        args = super().__init__args
-        args.update({
-            'diffraction_order': self.diffraction_order,
-            'groove_density': self.groove_density,
-        })
-        return args
-
-    def to_zemax(self) -> 'Standard':
-        from kgpy.optics import zemax
-        return zemax.system.surface.Standard(**self.__init__args)
-
-    @property
     def config_broadcast(self):
         return np.broadcast(
             super().config_broadcast,
@@ -41,21 +28,20 @@ class DiffractionGrating(Standard[MaterialT, ApertureT]):
         )
 
     def groove_normal(self, sx: u.Quantity, sy: u.Quantity) -> u.Quantity:
-        return u.Quantity([0 << 1 / u.mm, self.groove_density, 0 << 1 / u.mm])
+        return vector.from_components(y=self.groove_density)
 
     def _calc_input_vector(self, rays: Rays) -> u.Quantity:
         n1 = rays.index_of_refraction
         n2 = self._index_of_refraction(rays)
         a = n1 * rays.direction / n2
         normal = self.groove_normal(rays.position[x], rays.position[y])
-        # return a + self._propagation_signum(rays)[..., None] * self.diffraction_order * rays.wavelength * normal
         return a + self.diffraction_order * rays.wavelength * normal
 
     def _calc_input_direction(self, rays: Rays) -> u.Quantity:
-        return kgpy.vector.normalize(self._calc_input_vector(rays))
+        return vector.normalize(self._calc_input_vector(rays))
 
     def _calc_index_ratio(self, rays: Rays) -> u.Quantity:
-        return kgpy.vector.length(self._calc_input_vector(rays))
+        return vector.length(self._calc_input_vector(rays))
 
     def wavelength_from_angles(
             self,
