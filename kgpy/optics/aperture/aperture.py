@@ -18,8 +18,6 @@ class Aperture(
     abc.ABC
 ):
     num_samples: int = 1000
-    is_active: bool = True
-    is_test_stop: bool = True
 
     @abc.abstractmethod
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
@@ -57,8 +55,6 @@ class Aperture(
             ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
 
     def copy(self) -> 'Aperture':
-        other = super().copy()
+        other = super().copy()      # type: Aperture
         other.num_samples = self.num_samples
-        other.is_active = self.is_active
-        other.is_test_stop = self.is_test_stop
         return other

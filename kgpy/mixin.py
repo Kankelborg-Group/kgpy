@@ -24,19 +24,10 @@ class Broadcastable:
         return self.config_broadcast.shape
 
 
-@dataclasses.dataclass
-class Named:
-    """ 
-    This class is useful if you want name to be the first argument in the constructor method signature.
-    """
-    name: Name = dataclasses.field(default_factory=lambda: Name())
-
-
 class PandasDataframable:
     """
     This mixin class naively converts a child class to a :py:class:`pandas.Dataframe`.
     """
-
     @property
     def dataframe(self) -> pandas.DataFrame:
         return pandas.DataFrame.from_dict(self.__dict__, orient='index')
@@ -47,3 +38,13 @@ class Copyable(abc.ABC):
     @abc.abstractmethod
     def copy(self) -> 'Copyable':
         return type(self)()
+
+
+@dataclasses.dataclass
+class Named(Copyable):
+    name: Name = dataclasses.field(default_factory=lambda: Name())
+
+    def copy(self) -> 'Named':
+        other = super().copy()     # type: Named
+        other.name = self.name.copy()
+        return other

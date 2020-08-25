@@ -3,20 +3,20 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
-from kgpy import vector, transform, optimization
+from kgpy import vector, transform, optimization, optics
 from kgpy.vector import x, y, z
-from .. import Rays, material as material_, aperture as aperture_
 from . import Surface
 
 __all__ = ['Standard']
 
-MaterialT = typ.TypeVar('MaterialT', bound=typ.Optional[material_.Material])
-ApertureT = typ.TypeVar('ApertureT', bound=typ.Optional[aperture_.Aperture])
+MaterialT = typ.TypeVar('MaterialT', bound=optics.Material)
+ApertureT = typ.TypeVar('ApertureT', bound=optics.Aperture)
+ApertureMechT = typ.TypeVar('ApertureMechT', bound=optics.Aperture)
 
 
 @dataclasses.dataclass
 class Standard(
-    typ.Generic[MaterialT, ApertureT],
+    typ.Generic[MaterialT, ApertureT, ApertureMechT],
     Surface,
 ):
     """
@@ -25,10 +25,12 @@ class Standard(
     """
     radius: u.Quantity = np.inf * u.mm
     conic: u.Quantity = 0 * u.dimensionless_unscaled
-    material: MaterialT = None
-    aperture: ApertureT = None
+    material: typ.Optional[MaterialT] = None
+    aperture: typ.Optional[ApertureT] = None
+    aperture_mechanical: typ.Optional[ApertureMechT] = None
     transform_before: typ.Optional[transform.rigid.Transform] = None
     transform_after: typ.Optional[transform.rigid.Transform] = None
+    is_visible: bool = True
     intercept_error: u.Quantity = 0.1 * u.nm
 
     @property
@@ -72,7 +74,7 @@ class Standard(
         n = vector.normalize(vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
         return n
 
-    def ray_intercept(self, rays: Rays) -> u.Quantity:
+    def ray_intercept(self, rays: optics.Rays) -> u.Quantity:
 
         def line(t: u.Quantity) -> u.Quantity:
             return rays.position + rays.direction * t[..., None]
@@ -92,22 +94,22 @@ class Standard(
         )
         return line(t_intercept)
 
-    def _index_of_refraction(self, rays: Rays) -> u.Quantity:
+    def _index_of_refraction(self, rays: optics.Rays) -> u.Quantity:
         if self.material is not None:
             return self.material.index_of_refraction(rays)
         else:
             return np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
 
-    def _calc_input_direction(self, rays: Rays) -> u.Quantity:
+    def _calc_input_direction(self, rays: optics.Rays) -> u.Quantity:
         return rays.direction
 
-    def _calc_index_ratio(self, rays: Rays) -> u.Quantity:
+    def _calc_index_ratio(self, rays: optics.Rays) -> u.Quantity:
         n1 = rays.index_of_refraction
         n2 = self._index_of_refraction(rays)
         return n1 / n2
 
     @property
-    def _rays_output(self) -> typ.Optional[Rays]:
+    def _rays_output(self) -> typ.Optional[optics.Rays]:
 
         if self.rays_input is None:
             return None
@@ -126,8 +128,7 @@ class Standard(
         rays.direction = vector.normalize(b)
         rays.surface_normal = n
         if self.aperture is not None:
-            if self.aperture.is_active:
-                rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
+            rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
         rays.index_of_refraction[...] = self._index_of_refraction(rays)
 
         return rays
@@ -173,10 +174,16 @@ class Standard(
             rigid_transform: typ.Optional[transform.rigid.Transform] = None,
             components: typ.Tuple[int, int] = (0, 1),
     ):
+        aperture_material = None
         if self.aperture is not None:
             self.aperture.plot_2d(ax, self.sag, rigid_transform, components)
+            aperture_material = self.aperture
+        if self.aperture_mechanical is not None:
+            self.aperture.plot_2d(ax, self.sag, rigid_transform, components)
+            aperture_material = self.aperture_mechanical
         if self.material is not None:
-            self.material.plot_2d(ax, self.aperture, self.sag, rigid_transform, components)
+            if aperture_material is not None:
+                self.material.plot_2d(ax, aperture_material, self.sag, rigid_transform, components)
 
     def copy(self) -> 'Standard':
         other = super().copy()  # type: Standard
@@ -184,7 +191,9 @@ class Standard(
         other.conic = self.conic.copy()
         other.material = self.material.copy()
         other.aperture = self.aperture.copy()
+        other.aperture_mechanical = self.aperture.copy()
         other.transform_before = self.transform_before.copy()
         other.transform_after = self.transform_after.copy()
+        other.is_visible = self.is_visible
         other.intercept_error = self.intercept_error.copy()
         return other

@@ -34,7 +34,7 @@ class Mirror(Material):
             c1, c2 = components
             wire = aperture.wire.copy()
             wire[z] = self.thickness
-            if transform is not None:
+            if rigid_transform is not None:
                 wire = rigid_transform(wire, num_extra_dims=1)
             ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
 
@@ -47,7 +47,7 @@ class Mirror(Material):
                 back_vertices[z] = self.thickness
 
                 vertices = np.stack([front_vertices, back_vertices], axis=~1)
-                if transform is not None:
+                if rigid_transform is not None:
                     vertices = rigid_transform(vertices, num_extra_dims=2)
                 vertices = vertices.reshape((-1, ) + vertices.shape[~1:])
 

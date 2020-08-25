@@ -58,14 +58,13 @@ class System(
     def aperture_surfaces(self) -> typ.Iterator[surface.Standard]:
         for s in self.standard_surfaces:
             if s.aperture is not None:
-                if s.aperture.is_active:
-                    yield s
+                yield s
 
     @property
     def test_stop_surfaces(self) -> typ.Iterator[surface.Standard]:
         for s in self.aperture_surfaces:
-            if s.aperture.is_test_stop:
-                yield s
+            # if s.aperture.is_test_stop:
+            yield s
 
     @staticmethod
     def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:

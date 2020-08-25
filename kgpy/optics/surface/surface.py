@@ -25,8 +25,7 @@ class Surface(
 
     previous_surface: typ.Optional['Surface'] = dataclasses.field(default=None, compare=False, init=False, repr=False)
     thickness: u.Quantity = 0 * u.mm
-    is_active: 'np.ndarray[bool]' = np.array(True)
-    is_visible: 'np.ndarray[bool]' = np.array(True)
+    is_active: bool = True
 
     def __post_init__(self) -> typ.NoReturn:
         self.update()
@@ -119,5 +118,4 @@ class Surface(
         other = super().copy()      # type: Surface
         other.thickness = self.thickness.copy()
         other.is_active = self.is_active
-        other.is_visible = self.is_visible
         return other

@@ -1,14 +1,18 @@
 import typing as typ
 import dataclasses
-from .. import material, aperture
+from kgpy import optics
 from . import Toroidal, VariableLineSpaceGrating
 
 __all__ = ['ToroidalVariableLineSpaceGrating']
 
-MaterialT = typ.TypeVar('MaterialT', bound=material.Material)
-ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
+MaterialT = typ.TypeVar('MaterialT', bound=optics.Material)
+ApertureT = typ.TypeVar('ApertureT', bound=optics.Aperture)
+ApertureMechT = typ.TypeVar('ApertureMechT', bound=optics.Aperture)
 
 
 @dataclasses.dataclass
-class ToroidalVariableLineSpaceGrating(VariableLineSpaceGrating[MaterialT, ApertureT], Toroidal[MaterialT, ApertureT]):
+class ToroidalVariableLineSpaceGrating(
+    VariableLineSpaceGrating[MaterialT, ApertureT, ApertureMechT],
+    Toroidal[MaterialT, ApertureT, ApertureMechT]
+):
     pass

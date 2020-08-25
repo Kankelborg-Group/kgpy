@@ -2,18 +2,18 @@ import dataclasses
 import typing as typ
 import numpy as np
 import astropy.units as u
-from kgpy import vector
-from .. import material, aperture
+from kgpy import vector, optics
 from . import Standard
 
 __all__ = ['Toroidal']
 
-MaterialT = typ.TypeVar('MaterialT', bound=material.Material)
-ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
+MaterialT = typ.TypeVar('MaterialT', bound=optics.Material)
+ApertureT = typ.TypeVar('ApertureT', bound=optics.Aperture)
+ApertureMechT = typ.TypeVar('ApertureMechT', bound=optics.Aperture)
 
 
 @dataclasses.dataclass
-class Toroidal(Standard[MaterialT, ApertureT]):
+class Toroidal(Standard[MaterialT, ApertureT, ApertureMechT]):
 
     radius_of_rotation: u.Quantity = 0 * u.mm
 
