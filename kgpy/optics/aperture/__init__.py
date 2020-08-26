@@ -1,10 +1,16 @@
+"""
+Package to represent the aperture of optical surfaces.
+"""
+
+__all__ = ['Aperture', 'Decenterable', 'Obscurable', 'Circular', 'Polygon', 'Rectangular', 'RegularPolygon',
+           'IsoscelesTrapezoid', 'AsymmetricRectangular']
+
 from .aperture import Aperture
 from .decenterable import Decenterable
 from .obscurable import Obscurable
 from .circular import Circular
 from .polygon import Polygon
 from .rectangular import Rectangular
-from .spider import Spider
 from .regular_polygon import RegularPolygon
 from .general_polygon import GeneralPolygon
 from .isosceles_trapezoid import IsoscelesTrapezoid
