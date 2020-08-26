@@ -23,6 +23,8 @@ class Standard(
     Most basic optical surface intended to be instantiated by the user.
     Allows for refractive or reflective surfaces with planar, spherical or conic figure.
     """
+    is_paraxial: bool = False
+    is_visible: bool = True
     radius: u.Quantity = np.inf * u.mm
     conic: u.Quantity = 0 * u.dimensionless_unscaled
     material: typ.Optional[MaterialT] = None
@@ -30,7 +32,6 @@ class Standard(
     aperture_mechanical: typ.Optional[ApertureMechT] = None
     transform_before: typ.Optional[transform.rigid.Transform] = None
     transform_after: typ.Optional[transform.rigid.Transform] = None
-    is_visible: bool = True
     intercept_error: u.Quantity = 0.1 * u.nm
 
     @property
@@ -55,6 +56,8 @@ class Standard(
         return np.where(np.isinf(self.radius), 0, 1 / self.radius)
 
     def sag(self, ax: u.Quantity, ay: u.Quantity) -> u.Quantity:
+        if self.is_paraxial:
+            return 0 * u.mm
         r2 = np.square(ax) + np.square(ay)
         c = self.curvature
         sz = c * r2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * r2))
@@ -63,6 +66,8 @@ class Standard(
         return sz
 
     def normal(self, ax: u.Quantity, ay: u.Quantity) -> u.Quantity:
+        if self.is_paraxial:
+            return vector.z_hat
         x2, y2 = np.square(ax), np.square(ay)
         c = self.curvature
         c2 = np.square(c)
@@ -100,36 +105,37 @@ class Standard(
         else:
             return np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
 
-    def _calc_input_direction(self, rays: optics.Rays) -> u.Quantity:
+    def _direction_input(self, rays: optics.Rays) -> u.Quantity:
         return rays.direction
 
-    def _calc_index_ratio(self, rays: optics.Rays) -> u.Quantity:
-        n1 = rays.index_of_refraction
-        n2 = self._index_of_refraction(rays)
-        return n1 / n2
+    def _index_of_refraction_input(self, rays: optics.Rays) -> u.Quantity:
+        return rays.index_of_refraction
 
     @property
     def _rays_output(self) -> typ.Optional[optics.Rays]:
-
         if self.rays_input is None:
             return None
         rays = self.rays_input.copy()
 
         rays.position = self.ray_intercept(rays)
+        rays.surface_normal = self.normal(rays.position[x], rays.position[y])
 
-        a = self._calc_input_direction(rays)
-        r = self._calc_index_ratio(rays)
+        a = self._direction_input(rays)
 
-        n = self.normal(rays.position[x], rays.position[y])
-        c = -vector.dot(a, n)
+        r = self._index_of_refraction_input(rays)
+        rays.index_of_refraction = self._index_of_refraction(rays)
+        r = r / rays.index_of_refraction
 
-        b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * n
+        if self.is_paraxial:
+            pass
 
-        rays.direction = vector.normalize(b)
-        rays.surface_normal = n
+        else:
+            c = -vector.dot(a, rays.surface_normal)
+            b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * rays.surface_normal
+            rays.direction = vector.normalize(b)
+
         if self.aperture is not None:
             rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
-        rays.index_of_refraction[...] = self._index_of_refraction(rays)
 
         return rays
 
@@ -187,6 +193,7 @@ class Standard(
 
     def copy(self) -> 'Standard':
         other = super().copy()  # type: Standard
+        other.is_visible = self.is_visible
         other.radius = self.radius.copy()
         other.conic = self.conic.copy()
         other.material = self.material.copy()
@@ -194,6 +201,5 @@ class Standard(
         other.aperture_mechanical = self.aperture.copy()
         other.transform_before = self.transform_before.copy()
         other.transform_after = self.transform_after.copy()
-        other.is_visible = self.is_visible
         other.intercept_error = self.intercept_error.copy()
         return other
