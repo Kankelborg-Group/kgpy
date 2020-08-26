@@ -179,7 +179,7 @@ class Standard(
             self.aperture.plot_2d(ax, self.sag, rigid_transform, components)
             aperture_material = self.aperture
         if self.aperture_mechanical is not None:
-            self.aperture.plot_2d(ax, self.sag, rigid_transform, components)
+            self.aperture_mechanical.plot_2d(ax, self.sag, rigid_transform, components)
             aperture_material = self.aperture_mechanical
         if self.material is not None:
             if aperture_material is not None:

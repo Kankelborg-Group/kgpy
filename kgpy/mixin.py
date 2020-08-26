@@ -5,7 +5,7 @@ import pandas
 
 from .name import Name
 
-__all__ = ['Broadcastable', 'Named', 'PandasDataframable', 'Copyable']
+__all__ = ['Broadcastable', 'Named', 'Dataframable', 'Copyable']
 
 
 class Broadcastable:
@@ -24,13 +24,13 @@ class Broadcastable:
         return self.config_broadcast.shape
 
 
-class PandasDataframable:
+class Dataframable:
     """
     This mixin class naively converts a child class to a :py:class:`pandas.Dataframe`.
     """
     @property
     def dataframe(self) -> pandas.DataFrame:
-        return pandas.DataFrame.from_dict(self.__dict__, orient='index')
+        return pandas.DataFrame()
 
 
 class Copyable(abc.ABC):
@@ -41,10 +41,18 @@ class Copyable(abc.ABC):
 
 
 @dataclasses.dataclass
-class Named(Copyable):
+class Named(Copyable, Dataframable):
     name: Name = dataclasses.field(default_factory=lambda: Name())
 
     def copy(self) -> 'Named':
         other = super().copy()     # type: Named
         other.name = self.name.copy()
         return other
+
+    @property
+    def dataframe(self) -> pandas.DataFrame:
+        return super().dataframe + pandas.DataFrame.from_dict(
+            data={},
+            orient='index',
+            columns=[str(self.name)]
+        )

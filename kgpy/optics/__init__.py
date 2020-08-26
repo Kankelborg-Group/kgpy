@@ -11,3 +11,4 @@ from .aperture import Aperture
 from .material import Material
 from .surface import Surface
 from .system import System
+from . import component

@@ -83,6 +83,10 @@ class Surface(
         pass
 
     @property
+    def transform_total(self) -> transform.rigid.TransformList:
+        return self.pre_transform + self.post_transform
+
+    @property
     def local_to_previous_transform(self) -> transform.rigid.TransformList:
         t = transform.rigid.TransformList()
         if self.previous_surface is not None:
