@@ -6,6 +6,3 @@ from .toroidal import Toroidal
 from .diffraction_grating import DiffractionGrating
 from .variable_line_space_grating import VariableLineSpaceGrating
 from .toroidal_variable_line_space_grating import ToroidalVariableLineSpaceGrating
-from .elliptical_grating import EllipticalGrating1
-from .transformed import Transformed
-from .substrate import Substrate
