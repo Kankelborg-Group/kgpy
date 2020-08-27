@@ -111,8 +111,6 @@ class Rays:
         direction[z] = 1
         direction = transform.rigid.TiltX(field_y[..., 0])(direction)
         direction = transform.rigid.TiltY(field_x[..., 0])(direction)
-        # direction = kgpy.vector.rotate_x(direction, field_y[..., 0])
-        # direction = kgpy.vector.rotate_y(direction, field_x[..., 0])
 
         mask = field_mask_func(np.arcsin(direction[x]) << u.rad, np.arcsin(direction[y]) << u.rad)
 

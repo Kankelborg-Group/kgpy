@@ -3,8 +3,7 @@ import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-from kgpy import transform
-from .. import Rays
+from kgpy import transform, optics
 from . import Surface
 
 __all__ = ['ObjectSurface']
@@ -12,8 +11,6 @@ __all__ = ['ObjectSurface']
 
 @dataclasses.dataclass
 class ObjectSurface(Surface):
-
-    rays_input: typ.Optional[Rays] = dataclasses.field(default=None, repr=False)
 
     @property
     def thickness_eff(self) -> u.Quantity:
@@ -24,12 +21,8 @@ class ObjectSurface(Surface):
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return u.Quantity([0, 0, 1])
 
-    @property
-    def _rays_output(self) -> typ.Optional[Rays]:
-        rays = self.rays_input
-        if rays is not None:
-            rays = rays.copy()
-        return rays
+    def propagate_rays(self, rays: optics.Rays) -> optics.Rays:
+        return rays.copy()
 
     def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return 0 * u.mm

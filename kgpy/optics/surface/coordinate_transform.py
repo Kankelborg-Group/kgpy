@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.transform
-from .. import Rays
+from kgpy import optics
 from . import Surface
 
 __all__ = ['CoordinateTransform']
@@ -28,9 +28,8 @@ class CoordinateTransform(Surface):
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         return u.Quantity([0, 0, 1])
 
-    @property
-    def _rays_output(self) -> typ.Optional[Rays]:
-        return self.rays_input.copy()
+    def propagate_rays(self, rays: optics.Rays) -> optics.Rays:
+        return rays.copy()
 
     @property
     def pre_transform(self) -> kgpy.transform.rigid.TransformList:

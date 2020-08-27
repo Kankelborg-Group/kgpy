@@ -88,7 +88,7 @@ class Standard(
             a = line(t)
             return a[z] - self.sag(a[x], a[y])
 
-        bracket_max = 2 * np.nanmax(np.abs(self.rays_input.position[z])) + 1 * u.mm
+        bracket_max = 2 * np.nanmax(np.abs(rays.position[z])) + 1 * u.mm
         if np.isfinite(self.radius):
             bracket_max = np.sqrt(np.square(bracket_max) + 2 * np.square(self.radius))
         t_intercept = optimization.root_finding.false_position(
@@ -111,11 +111,8 @@ class Standard(
     def _index_of_refraction_input(self, rays: optics.Rays) -> u.Quantity:
         return rays.index_of_refraction
 
-    @property
-    def _rays_output(self) -> typ.Optional[optics.Rays]:
-        if self.rays_input is None:
-            return None
-        rays = self.rays_input.copy()
+    def propagate_rays(self, rays: optics.Rays) -> optics.Rays:
+        rays = rays.copy()
 
         rays.position = self.ray_intercept(rays)
         rays.surface_normal = self.normal(rays.position[x], rays.position[y])
