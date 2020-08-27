@@ -10,6 +10,7 @@ from .name import Name
 
 __all__ = ['Broadcastable', 'Named', 'Dataframable', 'Copyable', 'Pickleable']
 
+
 class Pickleable(abc.ABC):
     """
     Class for adding 'to_pickle' and 'from_pickle' methods for objects will long creation times.
@@ -40,6 +41,7 @@ class Pickleable(abc.ABC):
         file.close()
 
         return self
+
 
 class Broadcastable:
     """
