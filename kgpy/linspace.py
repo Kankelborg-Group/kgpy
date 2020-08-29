@@ -14,7 +14,7 @@ def linspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np
     """
     A modified version of :code:`numpy.linspace()` that returns a value in the center of the range between `start`
     and `stop` if `num == 1` unlike `numpy.linspace` which would just return `start`.
-    This function is often helful when creating a grid.
+    This function is often helfpul when creating a grid.
     Sometimes you want to test with only a single element, but you want that element to be in the center of the range
     and not off to one side.
 
