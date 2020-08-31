@@ -3,7 +3,8 @@ import numpy as np
 def rebin(arr: np.ndarray,scale_dims: tuple):
 
     """
-    Increases the size of an array in each i dimension by repeating each value scale_dims[i] times along that axis
+    Increases the size of an array by scale_dims in each i dimension by repeating each value scale_dims[i] times along
+     that axis
     """
     new_arr = np.broadcast_to(arr,scale_dims+arr.shape)
     start_axes = np.arange(arr.ndim)
