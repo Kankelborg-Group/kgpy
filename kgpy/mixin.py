@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas
 import pathlib
 import pickle
@@ -8,7 +9,7 @@ import typing as typ
 
 from .name import Name
 
-__all__ = ['Broadcastable', 'Named', 'Dataframable', 'Copyable', 'Pickleable']
+__all__ = ['Broadcastable', 'Named', 'Dataframable', 'Copyable', 'Pickleable', 'Plottable']
 
 
 class Pickleable(abc.ABC):
@@ -51,12 +52,12 @@ class Broadcastable:
     """
 
     @property
-    def config_broadcast(self):
+    def broadcasted(self):
         return np.broadcast()
 
     @property
     def shape(self):
-        return self.config_broadcast.shape
+        return self.broadcasted.shape
 
 
 class Dataframable:
@@ -91,3 +92,15 @@ class Named(Copyable, Dataframable):
             orient='index',
             columns=[str(self.name)]
         )
+
+
+class Plottable:
+
+    def plot(
+            self,
+            ax: typ.Optional[plt.Axes] = None,
+    ):
+        if ax is None:
+            fig, ax = plt.subplots()
+
+        return ax

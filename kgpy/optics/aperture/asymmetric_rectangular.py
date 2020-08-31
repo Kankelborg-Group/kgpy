@@ -17,14 +17,13 @@ class AsymmetricRectangular(Polygon):
     width_y_pos: u.Quantity = 0 * u.mm
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.width_x_neg,
-            self.width_x_pos,
-            self.width_y_neg,
-            self.width_y_pos,
-        )
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.width_x_neg)
+        out = np.broadcast(out, self.width_x_pos)
+        out = np.broadcast(out, self.width_y_neg)
+        out = np.broadcast(out, self.width_y_pos)
+        return out
 
     @property
     def vertices(self) -> u.Quantity:

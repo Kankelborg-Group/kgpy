@@ -3,12 +3,10 @@ import dataclasses
 import collections
 import numpy as np
 import astropy.units as u
-from kgpy import vector, matrix
+from kgpy import vector, matrix, mixin
 from . import Transform
 
-__all__ = ['TransformList']
-
-TransformT = typ.TypeVar('TransformT', bound=Transform)
+__all__ = ['TransformList', 'Transformable']
 
 
 class TransformList(
@@ -70,3 +68,14 @@ class TransformList(
         other.intrinsic = self.intrinsic
         return other
 
+
+@dataclasses.dataclass
+class Transformable(
+    mixin.Copyable,
+):
+    transform: TransformList = dataclasses.field(default_factory=TransformList)
+
+    def copy(self) -> 'Transformable':
+        other = super().copy()  # type: Transformable
+        other.transform = self.transform.copy()
+        return other

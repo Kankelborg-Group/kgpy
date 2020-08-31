@@ -3,7 +3,7 @@ import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-from kgpy import vector, optics
+from kgpy import vector, transform
 from . import Rays
 
 __all__ = ['RaysList']
@@ -13,24 +13,24 @@ class RaysList(
     collections.UserList,
     typ.List[Rays],
 ):
-    def plot_2d(
+    def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            index_first: int = 0,
-            index_last: int = ~0,
+            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         if ax is None:
             _, ax = plt.subplots()
 
-        index_last = index_last % len(self)
+        if rigid_transform is None:
+            rigid_transform = transform.rigid.TransformList()
 
         intercepts = []
-        for i, rays in enumerate(self):
-            if index_first <= i <= index_last:
-                intercepts.append(rays.position)
+        for rays in self:
+            rays_transform = rigid_transform + rays.transform
+            intercepts.append(rays_transform(rays.position, num_extra_dims=5))
         intercepts = u.Quantity(intercepts)
 
         img_rays = self[~0]
@@ -38,9 +38,10 @@ class RaysList(
         color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 
         if plot_vignetted:
-            mask = img_rays.error_mask & img_rays.field_mask
+            mask = img_rays.error_mask
         else:
             mask = img_rays.mask
+        mask = np.broadcast_to(mask, img_rays.grid_shape)
 
         grid = img_rays.input_grids[color_axis].flatten()
         colors = plt.cm.viridis((grid - grid.min()) / (grid.max() - grid.min()))

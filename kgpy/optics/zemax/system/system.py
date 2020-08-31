@@ -172,8 +172,8 @@ def calc_zemax_system(system: 'optics.System') -> typ.Tuple[ZOSAPI.IOpticalSyste
     # zemax_system.SystemData.Units = ZOSAPI.SystemData.ZemaxSystemUnits.Millimeters
     zemax_lens_units = u.mm
 
-    configuration_size = system.config_broadcast.size
-    configuration_shape = system.config_broadcast.shape
+    configuration_size = system.broadcasted.size
+    configuration_shape = system.broadcasted.shape
 
     while zemax_system.MCE.NumberOfConfigurations < configuration_size:
         zemax_system.MCE.AddConfiguration(False)

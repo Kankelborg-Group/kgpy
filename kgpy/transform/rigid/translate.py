@@ -18,9 +18,9 @@ class Translate(Transform):
         return cls(vector=kgpy.vector.from_components(x, y, z))
 
     @property
-    def config_broadcast(self):
+    def broadcasted(self):
         return np.broadcast(
-            super().config_broadcast,
+            super().broadcasted,
             self.vector,
         )
 
@@ -53,6 +53,12 @@ class Translate(Transform):
 
     def __eq__(self, other: 'Translate') -> bool:
         return np.array(self.vector == other.vector).all()
+
+    def __add__(self, other: 'Translate') -> 'Translate':
+        return type(self)(self.vector + other.vector)
+
+    def __sub__(self, other: 'Translate') -> 'Translate':
+        return type(self)(self.vector - other.vector)
 
     @property
     def rotation_eff(self) -> None:

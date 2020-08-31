@@ -10,11 +10,9 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 from kgpy import mixin, linspace, vector, optimization, transform
 from kgpy.vector import x, y, z, ix, iy, iz, xy
-from . import Rays, RaysList, surface
+from . import Rays, RaysList, Surface, SurfaceList
 
 __all__ = ['System']
-
-SurfacesT = typ.TypeVar('SurfacesT', bound=typ.Union[typ.Iterable[surface.Surface]])
 
 
 def default_field_mask_func(fx: u.Quantity, fy: u.Quantity) -> np.ndarray:
@@ -24,21 +22,17 @@ def default_field_mask_func(fx: u.Quantity, fy: u.Quantity) -> np.ndarray:
 
 @dataclasses.dataclass
 class System(
+    transform.rigid.Transformable,
     mixin.Broadcastable,
     mixin.Named,
-    typ.Generic[SurfacesT]
 ):
-    object_surface: surface.ObjectSurface = dataclasses.field(default_factory=surface.ObjectSurface)
-    surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
-    stop_surface: typ.Optional[surface.Standard] = None
+    object_surface: Surface = dataclasses.field(default_factory=Surface)
+    surfaces: SurfaceList = dataclasses.field(default_factory=SurfaceList)
     wavelengths: typ.Optional[u.Quantity] = None
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     pupil_margin: u.Quantity = 1 * u.um
-    field_min: typ.Optional[u.Quantity] = None
-    field_max: typ.Optional[u.Quantity] = None
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
-    field_mask_func: typ.Callable[[u.Quantity, u.Quantity], np.ndarray] = default_field_mask_func
-    baffle_positions: typ.Optional[typ.List[transform.rigid.Transform]] = None
+    # baffle_positions: typ.Optional[typ.List[transform.rigid.Transform]] = None
 
     def __post_init__(self):
         self.update()
@@ -48,27 +42,14 @@ class System(
         self._raytrace_cache = None
 
     @property
-    def surfaces_all(self) -> surface.SurfaceList:
-        return surface.SurfaceList([self.object_surface]) + self.surfaces
+    def surfaces_all(self) -> SurfaceList:
+        return SurfaceList([self.object_surface]) + self.surfaces
 
     @property
-    def standard_surfaces(self) -> typ.Iterator[surface.Standard]:
+    def aperture_surfaces(self) -> typ.Iterator[Surface]:
         for s in self.surfaces:
-            if isinstance(s, surface.Standard):
-                if s.is_active:
-                    yield s
-
-    @property
-    def aperture_surfaces(self) -> typ.Iterator[surface.Standard]:
-        for s in self.standard_surfaces:
             if s.aperture is not None:
                 yield s
-
-    @property
-    def test_stop_surfaces(self) -> typ.Iterator[surface.Standard]:
-        for s in self.aperture_surfaces:
-            # if s.aperture.is_test_stop:
-            yield s
 
     @staticmethod
     def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
@@ -85,17 +66,12 @@ class System(
         return self._normalize_2d_samples(self.field_samples)
 
     @property
-    def image_surface(self) -> surface.Surface:
-        return self.surfaces[~0]
+    def field_min(self) -> u.Quantity:
+        return self.object_surface.aperture.min
 
     @property
-    def config_broadcast(self):
-        all_surface_battrs = None
-        for s in self.surfaces:
-            all_surface_battrs = np.broadcast(all_surface_battrs, s.config_broadcast)
-            all_surface_battrs = np.broadcast_to(np.array(1), all_surface_battrs.shape)
-
-        return all_surface_battrs
+    def field_max(self) -> u.Quantity:
+        return self.object_surface.aperture.max
 
     @property
     def field_x(self) -> u.Quantity:
@@ -105,7 +81,7 @@ class System(
     def field_y(self) -> u.Quantity:
         return linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
 
-    def pupil_x(self, surf: surface.Standard) -> u.Quantity:
+    def pupil_x(self, surf: Surface) -> u.Quantity:
         aper = surf.aperture
         return linspace(
             start=aper.min[x] + self.pupil_margin,
@@ -114,7 +90,7 @@ class System(
             axis=~0,
         )
 
-    def pupil_y(self, surf: surface.Standard) -> u.Quantity:
+    def pupil_y(self, surf: Surface) -> u.Quantity:
         aper = surf.aperture
         return linspace(
             start=aper.min[y] + self.pupil_margin,
@@ -134,10 +110,6 @@ class System(
         return self.surfaces_all.raytrace(self.rays_input)
 
     @property
-    def raytrace_global(self) -> RaysList:
-        return self.surfaces_all.rays_list_to_global(self.raytrace)
-
-    @property
     def rays_output(self) -> Rays:
         return self.raytrace[~0]
 
@@ -150,14 +122,14 @@ class System(
     @property
     def _rays_input(self) -> Rays:
 
-        if np.isinf(self.object_surface.thickness).all():
+        if self.field_min.unit.is_equivalent(u.rad):
 
             position_guess = vector.from_components(use_z=False) << u.mm
 
             step_size = .1 * u.nm
             step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
-            for surf in self.test_stop_surfaces:
+            for surf in self.aperture_surfaces:
                 surf_index = self.surfaces_all.index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
                 target_position = vector.from_components(px[..., None], py)
@@ -169,16 +141,23 @@ class System(
                         position=position,
                         field_grid_x=self.field_x,
                         field_grid_y=self.field_y,
-                        field_mask_func=self.field_mask_func,
                         pupil_grid_x=self.pupil_x,
                         pupil_grid_y=self.pupil_y,
                     )
-                    surfaces_rays = self.surfaces_all.raytrace(rays)
+                    rays.transform = self.object_surface.transform
+                    raytrace = self.surfaces_all.raytrace(rays)
+
+                    # sl = slice(None)
+                    #
                     # fig, axs = plt.subplots(nrows=2, sharex='all')
-                    # self.plot_surfaces(ax=axs[0], surfaces=surfaces_rays, components=(iz, iy), plot_vignetted=True)
-                    # self.plot_surfaces(ax=axs[1], surfaces=surfaces_rays, components=(iz, ix), plot_vignetted=True)
+                    # self.surfaces_all[sl].plot_2d(ax=axs[0], components=(iz, iy))
+                    # raytrace[sl].plot_2d(ax=axs[0], components=(iz, iy), plot_vignetted=True)
+                    #
+                    # self.surfaces_all[sl].plot_2d(ax=axs[1], components=(iz, ix))
+                    # raytrace[sl].plot_2d(ax=axs[1], components=(iz, ix), plot_vignetted=True)
                     # plt.show()
-                    rays = surfaces_rays[surf_index]
+
+                    rays = raytrace[surf_index]
                     return (rays.position - target_position)[xy]
 
                 position_guess = optimization.root_finding.secant(
@@ -189,7 +168,7 @@ class System(
                     max_iterations=100,
                 )
 
-                if surf == self.stop_surface:
+                if surf.is_stop:
                     break
 
             input_rays = Rays.from_field_angles(
@@ -197,10 +176,10 @@ class System(
                 position=vector.to_3d(position_guess),
                 field_grid_x=self.field_x,
                 field_grid_y=self.field_y,
-                field_mask_func=self.field_mask_func,
-                pupil_grid_x=self.pupil_x,
-                pupil_grid_y=self.pupil_y,
+                pupil_grid_x=self.pupil_x(surf),
+                pupil_grid_y=self.pupil_y(surf),
             )
+            input_rays.transform = self.object_surface.transform
 
         else:
 
@@ -210,7 +189,7 @@ class System(
 
             step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
-            for surf in self.test_stop_surfaces:
+            for surf in self.aperture_surfaces:
                 surf_index = self.surfaces_all.index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
                 target_position = vector.from_components(px[..., None], py)
@@ -225,16 +204,17 @@ class System(
                         direction=direction,
                         field_grid_x=self.field_x,
                         field_grid_y=self.field_y,
-                        field_mask_func=self.field_mask_func,
+                        # field_mask_func=self.object_surface.aperture.is_unvignetted,
                         pupil_grid_x=px,
                         pupil_grid_y=py,
                     )
-                    surfaces_rays = self.surfaces_all.raytrace(rays)
+                    rays.transform = self.object_surface.transform
+                    raytrace = self.surfaces_all.raytrace(rays)
                     # fig, axs = plt.subplots(nrows=2, sharex='all')
-                    # self.plot_surfaces(ax=axs[0], surfaces=surfaces_rays, components=(iz, iy), plot_vignetted=True)
-                    # self.plot_surfaces(ax=axs[1], surfaces=surfaces_rays, components=(iz, ix), plot_vignetted=True)
+                    # self.plot_surfaces(ax=axs[0], surfaces=raytrace, components=(iz, iy), plot_vignetted=True)
+                    # self.plot_surfaces(ax=axs[1], surfaces=raytrace, components=(iz, ix), plot_vignetted=True)
                     # plt.show()
-                    rays = surfaces_rays[surf_index]
+                    rays = raytrace[surf_index]
                     return (rays.position - target_position)[xy]
 
                 direction_guess = optimization.root_finding.secant(
@@ -245,7 +225,7 @@ class System(
                     max_iterations=100,
                 )
 
-                if surf == self.stop_surface:
+                if surf.is_stop:
                     break
 
             direction = vector.from_components(z=1 << u.dimensionless_unscaled)
@@ -256,10 +236,10 @@ class System(
                 direction=direction,
                 field_grid_x=self.field_x,
                 field_grid_y=self.field_y,
-                field_mask_func=self.field_mask_func,
-                pupil_grid_x=self.pupil_x(self.stop_surface),
-                pupil_grid_y=self.pupil_y(self.stop_surface),
+                pupil_grid_x=self.pupil_x(surf),
+                pupil_grid_y=self.pupil_y(surf),
             )
+            input_rays.transform = self.object_surface.transform
 
         return input_rays
 
@@ -277,17 +257,23 @@ class System(
             relative_to_centroid=relative_to_centroid,
         )
 
-    def _calc_baffles(self, baffle_positions):
-        pass
-
     def print_surfaces(self) -> typ.NoReturn:
-        for surf in self:
+        for surf in self.surfaces_all:
             print(surf)
+
+    @property
+    def broadcasted(self):
+        all_surface_battrs = None
+        for s in self.surfaces:
+            all_surface_battrs = np.broadcast(all_surface_battrs, s.broadcasted)
+            all_surface_battrs = np.broadcast_to(np.array(1), all_surface_battrs.shape)
+
+        return all_surface_battrs
 
     def plot_footprint(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            surf: typ.Optional[surface.Standard] = None,
+            surf: typ.Optional[Surface] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_apertures: bool = True,
             plot_vignetted: bool = False,
@@ -296,7 +282,7 @@ class System(
             _, ax = plt.subplots()
 
         if surf is None:
-            surf = self.image_surface
+            surf = self.surfaces[~0]
 
         surf_index = self.surfaces_all.index(surf)
         rays = self.raytrace[surf_index].copy()
@@ -305,14 +291,14 @@ class System(
         rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
         if plot_apertures:
-            surf.plot_2d(ax)
+            surf.plot(ax=ax)
 
         return ax
 
     def plot_projections(
             self,
-            surface_first: typ.Optional[surface.Surface] = None,
-            surface_last: typ.Optional[surface.Surface] = None,
+            surface_first: typ.Optional[Surface] = None,
+            surface_last: typ.Optional[Surface] = None,
             color_axis: int = 0,
             plot_vignetted: bool = False,
             plot_rays: bool = True,
@@ -332,7 +318,7 @@ class System(
             (vector.iz, vector.ix),
         ]
         for ax_index, plane in zip(ax_indices, planes):
-            self.plot_2d(
+            self.plot(
                 ax=axs[ax_index],
                 components=plane,
                 surface_first=surface_first,
@@ -350,41 +336,44 @@ class System(
 
         return fig
 
-    def plot_2d(
+    def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            surface_first: typ.Optional[surface.Surface] = None,
-            surface_last: typ.Optional[surface.Surface] = None,
+            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            surface_first: typ.Optional[Surface] = None,
+            surface_last: typ.Optional[Surface] = None,
             plot_rays: bool = True,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         if ax is None:
-            _, ax = plt.subplots()
+            fig, ax = plt.subplots()
 
         if surface_first is None:
-            surface_first = self.surfaces[0]
+            surface_first = self.surfaces_all[0]
         if surface_last is None:
-            surface_last = self.surfaces[~0]
+            surface_last = self.surfaces_all[~0]
         surface_index_first = self.surfaces_all.index(surface_first)
         surface_index_last = self.surfaces_all.index(surface_last)
 
+        surf_slice = slice(surface_index_first, surface_index_last + 1)
+
         if plot_rays:
-            self.raytrace_global.plot_2d(
+            raytrace_slice = self.raytrace[surf_slice]      # type: RaysList
+            raytrace_slice.plot(
                 ax=ax,
                 components=components,
-                index_first=surface_index_first,
-                index_last=surface_index_last,
+                rigid_transform=rigid_transform,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
             )
 
-        self.surfaces_all.plot_2d(
+        surfaces_slice = self.surfaces_all[surf_slice]  # type: SurfaceList
+        surfaces_slice.plot(
             ax=ax,
             components=components,
-            index_first=surface_index_first,
-            index_last=surface_index_last
+            rigid_transform=rigid_transform,
         )
 
         return ax

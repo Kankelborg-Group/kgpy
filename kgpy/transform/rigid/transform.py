@@ -1,14 +1,13 @@
 import typing as typ
 import abc
-import numpy as np
 import astropy.units as u
 from kgpy import vector
-from .. import Transform as GeneralTransform
+from .. import Transform as BaseTransform
 
 __all__ = ['Transform']
 
 
-class Transform(GeneralTransform):
+class Transform(BaseTransform):
 
     @property
     @abc.abstractmethod

@@ -17,12 +17,11 @@ class Spider(decenterable.Decenterable, Aperture):
     radius: u.Quantity = 0 * u.mm
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.arm_half_width,
-            self.num_arms,
-        )
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.arm_half_width)
+        out = np.broadcast(out, self.radius)
+        return out
 
     @property
     def wire(self) -> u.Quantity:

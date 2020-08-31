@@ -1,10 +1,13 @@
 import dataclasses
+import copy
 import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
 import astropy.units as u
 import astropy.visualization
+
+import kgpy.transform.rigid.transform_list
 from kgpy import vector, transform
 from kgpy.vector import x, y, z, ix, iy, iz
 
@@ -56,37 +59,41 @@ class VAxis(Axis, CAxis):
 
 
 @dataclasses.dataclass
-class Rays:
+class Rays(kgpy.transform.rigid.Transformable):
 
     axis = Axis()
     vaxis = VAxis()
 
-    wavelength: u.Quantity
-    position: u.Quantity
-    direction: u.Quantity
-    polarization: u.Quantity = None
-    surface_normal: u.Quantity = None
-    index_of_refraction: u.Quantity = None
-    field_mask: np.ndarray = None
-    vignetted_mask: np.ndarray = None
-    error_mask: np.ndarray = None
+    wavelength: u.Quantity = dataclasses.field(default_factory=lambda: [[0]] * u.nm)
+    position: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 0]] * u.mm)
+    direction: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 1]] * u.dimensionless_unscaled)
+    polarization: u.Quantity = dataclasses.field(default_factory=lambda: [[1, 0]] * u.dimensionless_unscaled)
+    surface_normal: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, -1]] * u.dimensionless_unscaled)
+    index_of_refraction: u.Quantity = dataclasses.field(default_factory=lambda: [[1]] * u.dimensionless_unscaled)
+    paraxial: bool = False
+    vignetted_mask: np.ndarray = np.array([True])
+    error_mask: np.ndarray = np.array([True])
     input_grids: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
         default_factory=lambda: [None, None, None, None, None],
     )
 
-    def __post_init__(self):
-        if self.polarization is None:
-            self.polarization = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
-            self.polarization[z] = 1
-        if self.surface_normal is None:
-            self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
-            self.surface_normal[z] = 1
-        if self.index_of_refraction is None:
-            self.index_of_refraction = np.ones(self.scalar_grid_shape) << u.dimensionless_unscaled
-        if self.vignetted_mask is None:
-            self.vignetted_mask = np.ones(self.grid_shape, dtype=np.bool)
-        if self.error_mask is None:
-            self.error_mask = np.ones(self.grid_shape, dtype=np.bool)
+    # def __post_init__(self):
+    #     if self.polarization is None:
+    #         self.polarization = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
+    #         self.polarization[z] = 1
+    #     if self.surface_normal is None:
+    #         self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
+    #         self.surface_normal[z] = 1
+    #     if self.index_of_refraction is None:
+    #         self.index_of_refraction = np.ones(self.scalar_grid_shape) << u.dimensionless_unscaled
+    #     if self.vignetted_mask is None:
+    #         self.vignetted_mask = np.ones(self.grid_shape, dtype=np.bool)
+    #     if self.error_mask is None:
+    #         self.error_mask = np.ones(self.grid_shape, dtype=np.bool)
+
+    @property
+    def field_angles(self) -> u.Quantity:
+        return np.arcsin(self.direction)[vector.xy] << u.rad
 
     @classmethod
     def from_field_angles(
@@ -95,7 +102,6 @@ class Rays:
             position: u.Quantity,
             field_grid_x: u.Quantity,
             field_grid_y: u.Quantity,
-            field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None,
             pupil_grid_x: typ.Optional[u.Quantity] = None,
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ) -> 'Rays':
@@ -112,13 +118,10 @@ class Rays:
         direction = transform.rigid.TiltX(field_y[..., 0])(direction)
         direction = transform.rigid.TiltY(field_x[..., 0])(direction)
 
-        mask = field_mask_func(np.arcsin(direction[x]) << u.rad, np.arcsin(direction[y]) << u.rad)
-
         return cls(
             wavelength=wavelength,
             position=position,
             direction=direction,
-            field_mask=mask,
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
@@ -129,7 +132,6 @@ class Rays:
             direction: u.Quantity,
             field_grid_x: u.Quantity,
             field_grid_y: u.Quantity,
-            field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None,
             pupil_grid_x: typ.Optional[u.Quantity] = None,
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ):
@@ -142,24 +144,29 @@ class Rays:
 
         position = vector.from_components(x=field_grid_x[..., None, None, None], y=field_grid_y[..., None, None])
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
-        mask = field_mask_func(position[x], position[y])
 
         return cls(
             wavelength=wavelength,
             position=position,
             direction=direction,
-            field_mask=mask,
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
     def plane_intersection(self, plane_position: u.Quantity, plane_normal: u.Quantity):
         pass
 
-    def apply_transform(self, t: transform.rigid.Transform) -> 'Rays':
+    def apply_transform_list(self, transform_list: transform.rigid.TransformList) -> 'Rays':
         other = self.copy()
-        other.position = t(other.position, num_extra_dims=5)
-        other.direction = t(other.direction, translate=False, num_extra_dims=5)
-        other.surface_normal = t(other.surface_normal, translate=False, num_extra_dims=5)
+        other.position = transform_list(other.position, num_extra_dims=5)
+        other.direction = transform_list(other.direction, translate=False, num_extra_dims=5)
+        other.surface_normal = transform_list(other.surface_normal, translate=False, num_extra_dims=5)
+        other.transform += transform_list.inverse
+        return other
+
+    @property
+    def transformed(self) -> 'Rays':
+        other = self.apply_transform_list(self.transform)
+        other.transform = transform.rigid.TransformList()
         return other
 
     @property
@@ -188,21 +195,22 @@ class Rays:
 
     @property
     def mask(self) -> np.ndarray:
-        return self.vignetted_mask & self.error_mask & self.field_mask
+        return self.vignetted_mask & self.error_mask
 
     def copy(self) -> 'Rays':
-        return Rays(
-            wavelength=self.wavelength.copy(),
-            position=self.position.copy(),
-            direction=self.direction.copy(),
-            surface_normal=self.surface_normal.copy(),
-            polarization=self.polarization.copy(),
-            index_of_refraction=self.index_of_refraction.copy(),
-            input_grids=self.input_grids.copy(),
-            field_mask=self.field_mask.copy(),
-            vignetted_mask=self.vignetted_mask.copy(),
-            error_mask=self.error_mask.copy(),
-        )
+        other = super().copy()     # type: Rays
+        other.wavelength = self.wavelength.copy()
+        other.position = self.position.copy()
+        other.direction = self.direction.copy()
+        other.polarization = self.polarization.copy()
+        other.surface_normal = self.surface_normal.copy()
+        other.index_of_refraction = self.index_of_refraction.copy()
+        other.paraxial = self.paraxial
+        other.vignetted_mask = self.vignetted_mask.copy()
+        other.error_mask = self.error_mask.copy()
+        other.input_grids = self.input_grids
+        # other.input_grids = copy.deepcopy(self.input_grids)
+        return other
 
     def pupil_hist2d(
             self,
@@ -218,7 +226,7 @@ class Rays:
         if not use_vignetted:
             mask = self.mask
         else:
-            mask = self.error_mask & self.field_mask
+            mask = self.error_mask
 
         position = self.position.copy()
         if relative_to_centroid[vector.ix]:
@@ -288,7 +296,7 @@ class Rays:
             _, ax = plt.subplots()
 
         if plot_vignetted:
-            mask = self.error_mask & self.field_mask
+            mask = self.error_mask
         else:
             mask = self.mask
 

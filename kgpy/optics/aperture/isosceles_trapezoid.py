@@ -24,13 +24,12 @@ class IsoscelesTrapezoid(Polygon):
         return kgpy.vector.from_components(v_x, v_y)
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.inner_radius,
-            self.outer_radius,
-            self.wedge_half_angle,
-        )
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.inner_radius)
+        out = np.broadcast(out, self.outer_radius)
+        out = np.broadcast(out, self.wedge_half_angle)
+        return out
 
     def copy(self) -> 'IsoscelesTrapezoid':
         other = super().copy()      # type: IsoscelesTrapezoid
