@@ -14,8 +14,8 @@ class Standard(Sag):
     conic: u.Quantity = 0 * u.dimensionless_unscaled
 
     @property
-    def curvature(self):
-        return np.where(np.isinf(self.radius), 0, 1 / self.radius)
+    def curvature(self) -> u.Quantity:
+        return np.where(np.isinf(self.radius), 0 / u.mm, 1 / self.radius)
 
     def __call__(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         r2 = np.square(x) + np.square(y)

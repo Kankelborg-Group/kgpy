@@ -46,6 +46,12 @@ class PistonComponent(Component[SurfaceT]):
         other.piston = self.piston.copy()
         return other
 
+    @property
+    def dataframe(self) -> pandas.DataFrame:
+        dataframe = super().dataframe
+        dataframe['piston'] = [format.quantity(self.piston)]
+        return dataframe
+
 
 @dataclasses.dataclass
 class TranslationComponent(Component[SurfaceT]):
@@ -81,9 +87,7 @@ class CylindricalComponent(PistonComponent[SurfaceT]):
 
     @property
     def dataframe(self) -> pandas.DataFrame:
-        return super().dataframe.append(pandas.DataFrame.from_dict(
-            data={
-                'cylindrical radius': format.quantity(self.cylindrical_radius),
-                'cylindrical azimuth': format.quantity(self.cylindrical_azimuth),
-            },
-        ))
+        dataframe = super().dataframe
+        dataframe['cylindrical radius'] = [format.quantity(self.cylindrical_radius)]
+        dataframe['cylindrical azimuth'] = [format.quantity(self.cylindrical_azimuth)]
+        return dataframe

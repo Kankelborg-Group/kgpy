@@ -70,30 +70,16 @@ class Rays(kgpy.transform.rigid.Transformable):
     polarization: u.Quantity = dataclasses.field(default_factory=lambda: [[1, 0]] * u.dimensionless_unscaled)
     surface_normal: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, -1]] * u.dimensionless_unscaled)
     index_of_refraction: u.Quantity = dataclasses.field(default_factory=lambda: [[1]] * u.dimensionless_unscaled)
-    paraxial: bool = False
     vignetted_mask: np.ndarray = np.array([True])
     error_mask: np.ndarray = np.array([True])
     input_grids: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
         default_factory=lambda: [None, None, None, None, None],
     )
 
-    # def __post_init__(self):
-    #     if self.polarization is None:
-    #         self.polarization = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
-    #         self.polarization[z] = 1
-    #     if self.surface_normal is None:
-    #         self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
-    #         self.surface_normal[z] = 1
-    #     if self.index_of_refraction is None:
-    #         self.index_of_refraction = np.ones(self.scalar_grid_shape) << u.dimensionless_unscaled
-    #     if self.vignetted_mask is None:
-    #         self.vignetted_mask = np.ones(self.grid_shape, dtype=np.bool)
-    #     if self.error_mask is None:
-    #         self.error_mask = np.ones(self.grid_shape, dtype=np.bool)
-
     @property
     def field_angles(self) -> u.Quantity:
-        return np.arcsin(self.direction)[vector.xy] << u.rad
+        angles = np.arcsin(self.direction)[vector.xy] << u.rad
+        return angles[..., ::-1]
 
     @classmethod
     def from_field_angles(
@@ -205,7 +191,6 @@ class Rays(kgpy.transform.rigid.Transformable):
         other.polarization = self.polarization.copy()
         other.surface_normal = self.surface_normal.copy()
         other.index_of_refraction = self.index_of_refraction.copy()
-        other.paraxial = self.paraxial
         other.vignetted_mask = self.vignetted_mask.copy()
         other.error_mask = self.error_mask.copy()
         other.input_grids = self.input_grids
@@ -299,6 +284,7 @@ class Rays(kgpy.transform.rigid.Transformable):
             mask = self.error_mask
         else:
             mask = self.mask
+        mask = np.broadcast_to(mask, self.position[x].shape)
 
         with astropy.visualization.quantity_support():
             scatter = ax.scatter(

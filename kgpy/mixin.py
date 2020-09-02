@@ -65,6 +65,7 @@ class Dataframable:
     This mixin class naively converts a child class to a :py:class:`pandas.Dataframe`.
     """
     @property
+    @abc.abstractmethod
     def dataframe(self) -> pandas.DataFrame:
         return pandas.DataFrame()
 
@@ -87,11 +88,9 @@ class Named(Copyable, Dataframable):
 
     @property
     def dataframe(self) -> pandas.DataFrame:
-        return super().dataframe + pandas.DataFrame.from_dict(
-            data={},
-            orient='index',
-            columns=[str(self.name)]
-        )
+        dataframe = super().dataframe
+        dataframe['name'] = [str(self.name)]
+        return dataframe
 
 
 class Plottable:

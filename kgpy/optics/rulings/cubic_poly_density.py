@@ -14,7 +14,7 @@ class CubicPolyDensity(ConstantDensity):
     ruling_density_quadratic: u.Quantity = 0 / (u.mm ** 3)
     ruling_density_cubic: u.Quantity = 0 / (u.mm ** 4)
 
-    def groove_normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         x2 = np.square(x)
         term0 = self.ruling_density
         term1 = self.ruling_density_linear * x

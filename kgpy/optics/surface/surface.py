@@ -73,11 +73,6 @@ class Surface(
 
         rays.position = self.ray_intercept(rays, intercept_error=intercept_error)
 
-        if self.sag is not None:
-            rays.surface_normal = self.sag.normal(rays.position[vector.x], rays.position[vector.y])
-        else:
-            rays.surface_normal = [[0, 0, -1]] * u.dimensionless_unscaled
-
         if self.rulings is not None:
             a = self.rulings.effective_input_direction(rays, material=self.material)
             n1 = self.rulings.effective_input_index(rays, material=self.material)
@@ -86,19 +81,21 @@ class Surface(
             n1 = rays.index_of_refraction
 
         if self.material is not None:
-            rays.index_of_refraction = self.material.index_of_refraction(rays)
+            n2 = self.material.index_of_refraction(rays)
         else:
-            rays.index_of_refraction = np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
+            n2 = np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
 
-        r = n1 / rays.index_of_refraction
+        r = n1 / n2
+        rays.index_of_refraction = n2
 
-        if rays.paraxial:
-            pass
-
+        if self.sag is not None:
+            rays.surface_normal = self.sag.normal(rays.position[vector.x], rays.position[vector.y])
         else:
-            c = -vector.dot(a, rays.surface_normal)
-            b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * rays.surface_normal
-            rays.direction = vector.normalize(b)
+            rays.surface_normal = -vector.z_hat[None, ...] * u.dimensionless_unscaled
+
+        c = -vector.dot(a, rays.surface_normal)
+        b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * rays.surface_normal
+        rays.direction = vector.normalize(b)
 
         if self.aperture is not None:
             if self.aperture.wire.unit.is_equivalent(u.rad):

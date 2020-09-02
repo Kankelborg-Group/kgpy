@@ -38,7 +38,6 @@ class TransformList(
             if transform is not None:
                 if transform.rotation_eff is not None:
                     rotation = matrix.mul(transform.rotation_eff, rotation)
-                    # rotation = matrix.mul(rotation, transform.rotation_eff, )
         return rotation
 
     @property
@@ -46,7 +45,6 @@ class TransformList(
         translation = None
         for transform in self.transforms:
             if transform is not None:
-                # translation = vector.matmul(transform.rotation_eff, translation) + transform.translation_eff
                 translation = transform(translation)
         return translation
 

@@ -32,6 +32,7 @@ class System(
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
     pupil_margin: u.Quantity = 1 * u.um
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
+    field_margin: u.Quantity = 1 * u.nrad
     # baffle_positions: typ.Optional[typ.List[transform.rigid.Transform]] = None
 
     def __post_init__(self):
@@ -75,11 +76,21 @@ class System(
 
     @property
     def field_x(self) -> u.Quantity:
-        return linspace(self.field_min[x], self.field_max[x], self.field_samples_normalized[ix], axis=~0)
+        return linspace(
+            start=self.field_min[x] + self.field_margin,
+            stop=self.field_max[x] - self.field_margin,
+            num=self.field_samples_normalized[ix],
+            axis=~0,
+        )
 
     @property
     def field_y(self) -> u.Quantity:
-        return linspace(self.field_min[y], self.field_max[y], self.field_samples_normalized[iy], axis=~0)
+        return linspace(
+            start=self.field_min[y] + self.field_margin,
+            stop=self.field_max[y] - self.field_margin,
+            num=self.field_samples_normalized[iy],
+            axis=~0
+        )
 
     def pupil_x(self, surf: Surface) -> u.Quantity:
         aper = surf.aperture
@@ -126,10 +137,14 @@ class System(
 
             position_guess = vector.from_components(use_z=False) << u.mm
 
-            step_size = .1 * u.nm
+            step_size = .1 * u.mm
             step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
             for surf in self.aperture_surfaces:
+
+                if not surf.is_stop:
+                    continue
+
                 surf_index = self.surfaces_all.index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
                 target_position = vector.from_components(px[..., None], py)
@@ -204,7 +219,6 @@ class System(
                         direction=direction,
                         field_grid_x=self.field_x,
                         field_grid_y=self.field_y,
-                        # field_mask_func=self.object_surface.aperture.is_unvignetted,
                         pupil_grid_x=px,
                         pupil_grid_y=py,
                     )
