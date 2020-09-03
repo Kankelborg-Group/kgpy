@@ -98,7 +98,7 @@ class Surface(
         rays.direction = vector.normalize(b)
 
         if self.aperture is not None:
-            if self.aperture.wire.unit.is_equivalent(u.rad):
+            if self.aperture.max.unit.is_equivalent(u.rad):
                 rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.field_angles)
             else:
                 rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
