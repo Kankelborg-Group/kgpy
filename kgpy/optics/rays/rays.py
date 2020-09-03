@@ -183,6 +183,13 @@ class Rays(kgpy.transform.rigid.Transformable):
     def mask(self) -> np.ndarray:
         return self.vignetted_mask & self.error_mask
 
+    @property
+    def position_relative(self) -> u.Quantity:
+        axes = (self.vaxis.pupil_x, self.vaxis.pupil_y)
+        mask = np.broadcast_to(self.mask[..., None], self.position.shape)
+        avg = np.ma.average(a=self.position.value, weights=mask, axis=axes, ) << self.position.unit
+        return self.position - avg[..., None, None, :]
+
     def copy(self) -> 'Rays':
         other = super().copy()     # type: Rays
         other.wavelength = self.wavelength.copy()
@@ -196,6 +203,12 @@ class Rays(kgpy.transform.rigid.Transformable):
         other.input_grids = self.input_grids
         # other.input_grids = copy.deepcopy(self.input_grids)
         return other
+
+    def spot_size(self, use_vignetted: bool = False):
+
+        position = self.position.copy()
+        position[x] -= np.mean(position[x], axis=(self.axis.pupil_x, self.axis.pupil_y))[..., None, None]
+        position[y] -= np.mean(position[y], axis=(self.axis.pupil_x, self.axis.pupil_y))[..., None, None]
 
     def pupil_hist2d(
             self,
@@ -214,10 +227,11 @@ class Rays(kgpy.transform.rigid.Transformable):
             mask = self.error_mask
 
         position = self.position.copy()
+        position_rel = self.position_relative
         if relative_to_centroid[vector.ix]:
-            position[x] -= np.mean(position[x].value, axis=self.axis.pupil_x, keepdims=True) << position.unit
+            position[x] = position_rel[x]
         if relative_to_centroid[vector.iy]:
-            position[y] -= np.mean(position[y].value, axis=self.axis.pupil_y, keepdims=True) << position.unit
+            position[y] = position_rel[y]
 
         if limits is None:
             px = position[x][mask]
