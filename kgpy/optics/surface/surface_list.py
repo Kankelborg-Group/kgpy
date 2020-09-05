@@ -14,10 +14,10 @@ class SurfaceList(
     typ.List[Surface],
 ):
 
-    def raytrace(self, rays: optics.Rays) -> optics.RaysList:
+    def raytrace(self, rays: optics.Rays, intercept_error: u.Quantity = 0.1 * u.nm) -> optics.RaysList:
         rays_list = optics.RaysList()
         for surf in self:
-            rays = surf.propagate_rays(rays)
+            rays = surf.propagate_rays(rays, intercept_error=intercept_error)
             rays_list.append(rays)
         return rays_list
 
