@@ -13,15 +13,9 @@ def secant(
         max_abs_error: float = 1e-9,
         max_iterations: int = 100,
 ):
+    x0, x1 = root_guess, root_guess + step_size
 
-    x0, x1 = root_guess - step_size, root_guess + step_size
-
-    i = 0
-    while True:
-
-        if i > max_iterations:
-            raise ValueError('Max iterations exceeded')
-        i += 1
+    for i in range(max_iterations):
 
         f1 = func(x1)
         dx = x1 - x0
@@ -30,14 +24,14 @@ def secant(
         f1_mag = kgpy.vector.length(f1, keepdims=False)
         converged = f1_mag < max_abs_error
         if converged.all():
-            break
+            return x1
 
         j1 = []
         for component_index in range(dx.shape[~0]):
             c = ..., slice(component_index, component_index + 1)
-            x0_c, x1_c = x1.copy(), x1.copy()
-            x0_c[c], x1_c[c] = x1[c] - step_size[c], x1[c] + step_size[c]
-            j1.append((func(x1_c) - func(x0_c)) / (2 * step_size[c]))
+            x1_c = x1.copy()
+            x1_c[c] -= step_size[c]
+            j1.append((f1 - func(x1_c)) / step_size[c])
 
         jac = np.stack(j1, axis=~0)
         inv_jac = np.zeros(jac.shape) << 1 / jac.unit
@@ -54,6 +48,6 @@ def secant(
         x0 = x1
         x1 = x2
 
-    return x1
+    raise ValueError('Max iterations exceeded')
 
 
