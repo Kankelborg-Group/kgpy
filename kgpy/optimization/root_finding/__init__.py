@@ -1,5 +1,7 @@
+"""
+A package for finding the roots of both scalar-valued and vector-valued functions/
+"""
 
-__all__ = ['secant', 'false_position']
+__all__ = ['scalar', 'vector']
 
-from .secant import secant
-from .false_position import false_position
+from . import scalar, vector
