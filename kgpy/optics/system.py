@@ -43,6 +43,10 @@ class System(
         self._raytrace_cache = None
 
     @property
+    def stop(self) -> Surface:
+        return [s for s in self.surfaces if s.is_stop][0]
+
+    @property
     def surfaces_all(self) -> SurfaceList:
         return SurfaceList([self.object_surface]) + self.surfaces
 
@@ -113,7 +117,7 @@ class System(
     @property
     def raytrace(self) -> RaysList:
         if self._raytrace_cache is None:
-            self._raytrace_cache = self._raytrace
+            self._update_raytrace_caches()
         return self._raytrace_cache
 
     @property
@@ -126,136 +130,94 @@ class System(
 
     @property
     def rays_input(self):
-        if self._rays_input_cache is None:
-            self._rays_input_cache = self._rays_input
-        return self._rays_input_cache
+        return self.raytrace[0]
 
-    @property
-    def _rays_input(self) -> Rays:
+    def _update_raytrace_caches(self) -> typ.NoReturn:
 
         if self.field_min.unit.is_equivalent(u.rad):
 
-            position_guess = vector.from_components(use_z=False) << u.mm
+            if self._rays_input_cache is None:
+                position_guess = vector.from_components(use_z=False) << u.mm
+            else:
+                position_guess = self._rays_input_cache.position
 
             step_size = .1 * u.mm
             step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
-            for surf in self.aperture_surfaces:
+            surf = self.stop
+            stop_index = self.surfaces_all.index(surf)
+            px, py = self.pupil_x(surf), self.pupil_y(surf)
+            target_position = vector.from_components(px[..., None], py)
 
-                if not surf.is_stop:
-                    continue
-
-                surf_index = self.surfaces_all.index(surf)
-                px, py = self.pupil_x(surf), self.pupil_y(surf)
-                target_position = vector.from_components(px[..., None], py)
-
-                def position_error(pos: u.Quantity) -> u.Quantity:
-                    position = vector.to_3d(pos)
-                    rays = Rays.from_field_angles(
-                        wavelength_grid=self.wavelengths,
-                        position=position,
-                        field_grid_x=self.field_x,
-                        field_grid_y=self.field_y,
-                        pupil_grid_x=self.pupil_x,
-                        pupil_grid_y=self.pupil_y,
-                    )
-                    rays.transform = self.object_surface.transform
-                    raytrace = self.surfaces_all.raytrace(rays)
-
-                    # sl = slice(None)
-                    #
-                    # fig, axs = plt.subplots(nrows=2, sharex='all')
-                    # self.surfaces_all[sl].plot_2d(ax=axs[0], components=(iz, iy))
-                    # raytrace[sl].plot_2d(ax=axs[0], components=(iz, iy), plot_vignetted=True)
-                    #
-                    # self.surfaces_all[sl].plot_2d(ax=axs[1], components=(iz, ix))
-                    # raytrace[sl].plot_2d(ax=axs[1], components=(iz, ix), plot_vignetted=True)
-                    # plt.show()
-
-                    rays = raytrace[surf_index]
-                    return (rays.position - target_position)[xy]
-
-                position_guess = optimization.root_finding.secant(
-                    func=position_error,
-                    root_guess=position_guess,
-                    step_size=step,
-                    max_abs_error=1 * u.nm,
-                    max_iterations=100,
+            def position_error(pos: u.Quantity) -> u.Quantity:
+                position = vector.to_3d(pos)
+                rays_in = Rays.from_field_angles(
+                    wavelength_grid=self.wavelengths,
+                    position=position,
+                    field_grid_x=self.field_x,
+                    field_grid_y=self.field_y,
+                    pupil_grid_x=self.pupil_x,
+                    pupil_grid_y=self.pupil_y,
                 )
+                rays_in.transform = self.object_surface.transform
+                raytrace = self.surfaces_all.raytrace(rays_in)
 
-                if surf.is_stop:
-                    break
+                self._rays_input_cache = rays_in
+                self._raytrace_cache = raytrace
 
-            input_rays = Rays.from_field_angles(
-                wavelength_grid=self.wavelengths,
-                position=vector.to_3d(position_guess),
-                field_grid_x=self.field_x,
-                field_grid_y=self.field_y,
-                pupil_grid_x=self.pupil_x(surf),
-                pupil_grid_y=self.pupil_y(surf),
+                return (raytrace[stop_index].position - target_position)[xy]
+
+            optimization.root_finding.secant(
+                func=position_error,
+                root_guess=position_guess,
+                step_size=step,
+                max_abs_error=1 * u.nm,
+                max_iterations=100,
             )
-            input_rays.transform = self.object_surface.transform
 
         else:
 
-            direction_guess = vector.from_components(use_z=False) << u.deg
+            if self._rays_input_cache is None:
+                direction_guess = vector.from_components(use_z=False) << u.deg
+            else:
+                direction_guess = self._rays_input_cache.direction
 
             step_size = 1e-10 * u.deg
-
             step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
-            for surf in self.aperture_surfaces:
-                surf_index = self.surfaces_all.index(surf)
-                px, py = self.pupil_x(surf), self.pupil_y(surf)
-                target_position = vector.from_components(px[..., None], py)
+            surf = self.stop
+            stop_index = self.surfaces_all.index(surf)
+            px, py = self.pupil_x(surf), self.pupil_y(surf)
+            target_position = vector.from_components(px[..., None], py)
 
-                def position_error(direc: u.Quantity) -> u.Quantity:
-                    direction = np.zeros(self.field_samples_normalized + target_position.shape)
-                    direction[z] = 1
-                    direction = transform.rigid.TiltX(direc[y])(direction)
-                    direction = transform.rigid.TiltY(direc[x])(direction)
-                    rays = Rays.from_field_positions(
-                        wavelength_grid=self.wavelengths,
-                        direction=direction,
-                        field_grid_x=self.field_x,
-                        field_grid_y=self.field_y,
-                        pupil_grid_x=px,
-                        pupil_grid_y=py,
-                    )
-                    rays.transform = self.object_surface.transform
-                    raytrace = self.surfaces_all.raytrace(rays)
-                    # fig, axs = plt.subplots(nrows=2, sharex='all')
-                    # self.plot_surfaces(ax=axs[0], surfaces=raytrace, components=(iz, iy), plot_vignetted=True)
-                    # self.plot_surfaces(ax=axs[1], surfaces=raytrace, components=(iz, ix), plot_vignetted=True)
-                    # plt.show()
-                    rays = raytrace[surf_index]
-                    return (rays.position - target_position)[xy]
-
-                direction_guess = optimization.root_finding.secant(
-                    func=position_error,
-                    root_guess=direction_guess,
-                    step_size=step,
-                    max_abs_error=1 * u.nm,
-                    max_iterations=100,
+            def position_error(direc: u.Quantity) -> u.Quantity:
+                direction = np.zeros(self.field_samples_normalized + target_position.shape)
+                direction[z] = 1
+                direction = transform.rigid.TiltX(direc[y])(direction)
+                direction = transform.rigid.TiltY(direc[x])(direction)
+                rays_in = Rays.from_field_positions(
+                    wavelength_grid=self.wavelengths,
+                    direction=direction,
+                    field_grid_x=self.field_x,
+                    field_grid_y=self.field_y,
+                    pupil_grid_x=px,
+                    pupil_grid_y=py,
                 )
+                rays_in.transform = self.object_surface.transform
+                raytrace = self.surfaces_all.raytrace(rays_in)
 
-                if surf.is_stop:
-                    break
+                self._rays_input_cache = rays_in
+                self._raytrace_cache = raytrace
 
-            direction = vector.from_components(z=1 << u.dimensionless_unscaled)
-            direction = transform.rigid.TiltX(direction_guess[y])(direction)
-            direction = transform.rigid.TiltY(direction_guess[x])(direction)
-            input_rays = Rays.from_field_positions(
-                wavelength_grid=self.wavelengths,
-                direction=direction,
-                field_grid_x=self.field_x,
-                field_grid_y=self.field_y,
-                pupil_grid_x=self.pupil_x(surf),
-                pupil_grid_y=self.pupil_y(surf),
+                return (raytrace[stop_index].position - target_position)[xy]
+
+            optimization.root_finding.secant(
+                func=position_error,
+                root_guess=direction_guess,
+                step_size=step,
+                max_abs_error=1 * u.nm,
+                max_iterations=100,
             )
-            input_rays.transform = self.object_surface.transform
-
-        return input_rays
 
     def psf(
             self,
