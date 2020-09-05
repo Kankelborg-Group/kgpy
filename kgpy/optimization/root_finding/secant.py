@@ -12,6 +12,7 @@ def secant(
         step_size: np.ndarray = np.array(1),
         max_abs_error: float = 1e-9,
         max_iterations: int = 100,
+        broydens_good_method: bool = False
 ):
     x0, x1 = root_guess, root_guess + step_size
 
@@ -26,18 +27,23 @@ def secant(
         if converged.all():
             return x1
 
-        j1 = []
-        for component_index in range(dx.shape[~0]):
-            c = ..., slice(component_index, component_index + 1)
-            x1_c = x1.copy()
-            x1_c[c] -= step_size[c]
-            j1.append((f1 - func(x1_c)) / step_size[c])
+        if (i == 0) or not broydens_good_method:
 
-        jac = np.stack(j1, axis=~0)
-        inv_jac = np.zeros(jac.shape) << 1 / jac.unit
-        det = np.linalg.det(jac)
-        singular = det == 0
-        inv_jac[~singular, :, :] = np.linalg.inv(jac[~singular, :, :])
+            j1 = []
+            for component_index in range(dx.shape[~0]):
+                c = ..., slice(component_index, component_index + 1)
+                x1_c = x1.copy()
+                x1_c[c] -= step_size[c]
+                j1.append((f1 - func(x1_c)) / step_size[c])
+
+            jac = np.stack(j1, axis=~0)
+            inv_jac = np.zeros(jac.shape) << 1 / jac.unit
+            det = np.linalg.det(jac)
+            singular = det == 0
+            inv_jac[~singular, :, :] = np.linalg.inv(jac[~singular, :, :])
+
+        else:
+            raise NotImplementedError
 
         x2 = x1 - kgpy.vector.matmul(inv_jac, f1)
 
