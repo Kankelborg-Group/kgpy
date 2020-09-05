@@ -57,7 +57,7 @@ class Surface(
         bracket_max = 2 * np.nanmax(np.abs(rays.position[vector.z])) + 1 * u.mm
         # if np.isfinite(self.radius):
         #     bracket_max = np.sqrt(np.square(bracket_max) + 2 * np.square(self.radius))
-        t_intercept = optimization.root_finding.false_position(
+        t_intercept = optimization.root_finding.scalar.false_position(
             func=func,
             bracket_min=-bracket_max,
             bracket_max=bracket_max,

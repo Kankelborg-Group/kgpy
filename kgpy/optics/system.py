@@ -167,7 +167,7 @@ class System(
 
                 return (raytrace[stop_index].position - target_position)[xy]
 
-            optimization.root_finding.secant(
+            optimization.root_finding.vector.secant(
                 func=position_error,
                 root_guess=position_guess,
                 step_size=step,
@@ -211,7 +211,7 @@ class System(
 
                 return (raytrace[stop_index].position - target_position)[xy]
 
-            optimization.root_finding.secant(
+            optimization.root_finding.vector.secant(
                 func=position_error,
                 root_guess=direction_guess,
                 step_size=step,
