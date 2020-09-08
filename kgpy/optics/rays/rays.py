@@ -6,10 +6,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 import astropy.units as u
 import astropy.visualization
-
+import astropy.modeling
 import kgpy.transform.rigid.transform_list
-from kgpy import vector, transform
+from kgpy import vector, transform, format as fmt
 from kgpy.vector import x, y, z, ix, iy, iz
+from .. import Distortion
 
 __all__ = ['Rays']
 
@@ -60,7 +61,6 @@ class VAxis(Axis, CAxis):
 
 @dataclasses.dataclass
 class Rays(kgpy.transform.rigid.Transformable):
-
     axis = Axis()
     vaxis = VAxis()
 
@@ -138,9 +138,6 @@ class Rays(kgpy.transform.rigid.Transformable):
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
-    def plane_intersection(self, plane_position: u.Quantity, plane_normal: u.Quantity):
-        pass
-
     def apply_transform_list(self, transform_list: transform.rigid.TransformList) -> 'Rays':
         other = self.copy()
         other.position = transform_list(other.position, num_extra_dims=5)
@@ -165,11 +162,11 @@ class Rays(kgpy.transform.rigid.Transformable):
 
     @property
     def vector_grid_shape(self) -> typ.Tuple[int, ...]:
-        return self.grid_shape + (3, )
+        return self.grid_shape + (3,)
 
     @property
     def scalar_grid_shape(self) -> typ.Tuple[int, ...]:
-        return self.grid_shape + (1, )
+        return self.grid_shape + (1,)
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
@@ -179,19 +176,71 @@ class Rays(kgpy.transform.rigid.Transformable):
     def ndim(self):
         return len(self.shape)
 
+    def _input_grid(self, axis: int) -> u.Quantity:
+        grid = self.input_grids[axis]
+        return np.broadcast_to(grid, self.shape + grid.shape[~0:], subok=True)
+
+    @property
+    def input_wavelength(self) -> u.Quantity:
+        return self._input_grid(self.axis.wavelength)
+
+    @property
+    def input_field_x(self) -> u.Quantity:
+        return self._input_grid(self.axis.field_x)
+
+    @property
+    def input_field_y(self) -> u.Quantity:
+        return self._input_grid(self.axis.field_y)
+
+    @property
+    def input_pupil_x(self) -> u.Quantity:
+        return self._input_grid(self.axis.pupil_x)
+
+    @property
+    def input_pupil_y(self) -> u.Quantity:
+        return self._input_grid(self.axis.pupil_y)
+
     @property
     def mask(self) -> np.ndarray:
         return self.vignetted_mask & self.error_mask
 
     @property
-    def position_relative(self) -> u.Quantity:
+    def field_mesh_input(self) -> u.Quantity:
+        fx, fy = self.input_grids[self.axis.field_x], self.input_grids[self.axis.field_y]
+        return vector.from_components(x=fx[..., :, None], y=fy[..., None, :], use_z=False)
+
+    @property
+    def position_pupil_avg(self) -> u.Quantity:
         axes = (self.vaxis.pupil_x, self.vaxis.pupil_y)
         mask = np.broadcast_to(self.mask[..., None], self.position.shape)
         avg = np.ma.average(a=self.position.value, weights=mask, axis=axes, ) << self.position.unit
-        return self.position - avg[..., None, None, :]
+        return np.expand_dims(avg, axis=axes)
+
+    @property
+    def position_pupil_relative(self) -> u.Quantity:
+        return self.position - self.position_pupil_avg
+
+    def distortion(self, polynomial_degree: int = 1) -> Distortion:
+        wavelength = self.input_wavelength[..., :, None, None]
+        mesh_input = vector.from_components(
+            x=self.input_field_x[..., None, :, None],
+            y=self.input_field_y[..., None, None, :],
+            use_z=False,
+        )
+        mesh_output = self.position_pupil_avg[..., 0, 0, :][vector.xy]
+        mask = self.mask
+        mask = mask.any((self.axis.pupil_x, self.axis.pupil_y))
+
+        return Distortion(
+            wavelength=wavelength,
+            spatial_mesh_input=mesh_input,
+            spatial_mesh_output=mesh_output,
+            mask=mask,
+            polynomial_degree=polynomial_degree
+        )
 
     def copy(self) -> 'Rays':
-        other = super().copy()     # type: Rays
+        other = super().copy()  # type: Rays
         other.wavelength = self.wavelength.copy()
         other.position = self.position.copy()
         other.direction = self.direction.copy()
@@ -227,7 +276,7 @@ class Rays(kgpy.transform.rigid.Transformable):
             mask = self.error_mask
 
         position = self.position.copy()
-        position_rel = self.position_relative
+        position_rel = self.position_pupil_relative
         if relative_to_centroid[vector.ix]:
             position[x] = position_rel[x]
         if relative_to_centroid[vector.iy]:
@@ -385,5 +434,3 @@ class Rays(kgpy.transform.rigid.Transformable):
         fig.colorbar(img, ax=axs, fraction=0.05)
 
         return fig
-
-

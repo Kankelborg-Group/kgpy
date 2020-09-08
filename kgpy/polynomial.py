@@ -17,8 +17,8 @@ class Polynomial3D(mixin.Dataframable):
 
     def __call__(self, x: u.Quantity, y: u.Quantity, z: u.Quantity):
         result = 0
-        for c, v in zip(self.coefficients, self._vandermonde(x, y, z)):
-            result += c * v
+        for c, v in zip(self.coefficients, self._vandermonde(x, y, z, degree=self.degree)):
+            result += c * v[..., None]
         return result
 
     @classmethod
@@ -31,9 +31,23 @@ class Polynomial3D(mixin.Dataframable):
             mask: np.ndarray,
             degree: int = 1,
     ) -> 'Polynomial3D':
-        sh = data.shape[:~1]
 
-        x, y, z, _, mask = np.broadcast_arrays(x, y, z, data[vector.x], mask, subok=True)
+        num_components_out = data.shape[~0:]
+        grid_shape = np.broadcast(x, y, z, data[vector.x], mask).shape
+        vgrid_shape = grid_shape + num_components_out
+        shape = grid_shape[:~2]
+
+        x = np.broadcast_to(x, grid_shape, subok=True)
+        y = np.broadcast_to(y, grid_shape, subok=True)
+        z = np.broadcast_to(z, grid_shape, subok=True)
+        data = np.broadcast_to(data, vgrid_shape, subok=True)
+        mask = np.broadcast_to(mask, grid_shape, subok=True)
+
+        x = x.reshape(shape + (-1, ))
+        y = y.reshape(shape + (-1, ))
+        z = z.reshape(shape + (-1, ))
+        data = data.reshape(shape + (-1, ) + num_components_out)
+        mask = mask.reshape(shape + (-1, ))
 
         x = x.reshape((-1, ) + x.shape[~0:])
         y = y.reshape((-1, ) + y.shape[~0:])
@@ -54,7 +68,7 @@ class Polynomial3D(mixin.Dataframable):
             coefficients.append([c / unit for c, unit in zip(coeffs, vander_unit)])
 
         coefficients = [u.Quantity(c) for c in zip(*coefficients)]
-        coefficients = [c.reshape(sh + c.shape[~0:]) for c in coefficients]
+        coefficients = [c.reshape(shape + c.shape[~0:])[..., None, None, None, :] for c in coefficients]
 
         return Polynomial3D(
             degree=degree,
@@ -91,6 +105,7 @@ class Polynomial3D(mixin.Dataframable):
     def dataframe(self) -> pandas.DataFrame:
         dataframe = super().dataframe
         for coeff, name in zip(self.coefficients, self.coefficient_names):
+            coeff = coeff[..., 0, 0, 0, :]
             if (np.abs(coeff.value) > 0.1).any():
                 sci_notation = False
             else:

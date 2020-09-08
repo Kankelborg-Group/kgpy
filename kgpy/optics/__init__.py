@@ -3,6 +3,7 @@ kgpy.optics is a package designed for simulating optical systems.
 """
 
 __all__ = [
+    'Distortion',
     'Rays', 'RaysList',
     'sag', 'Sag',
     'aperture', 'Aperture',
@@ -13,6 +14,7 @@ __all__ = [
     'System',
 ]
 
+from .distortion import Distortion
 from .rays import Rays, RaysList
 from . import sag
 from .sag import Sag
