@@ -68,6 +68,6 @@ class RaysList(
         ax.set_xlim(right=1.1 * ax.get_xlim()[1])
         handles, labels = ax.get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
-        ax.legend(label_dict.values(), label_dict.keys(), loc='upper right')
+        ax.legend(label_dict.values(), label_dict.keys())
 
         return ax

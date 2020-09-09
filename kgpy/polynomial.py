@@ -113,7 +113,8 @@ class Polynomial3D(mixin.Dataframable):
             if np.isscalar(coeff):
                 dataframe[name] = [fmt.quantity(coeff, scientific_notation=sci_notation)]
             else:
-                dataframe[name] = [fmt.quantity(c, scientific_notation=sci_notation) for c in coeff]
+                dataframe[name] = [fmt.quantity(c, scientific_notation=sci_notation) for c in coeff.T.flatten()]
         if self.component_names_output is not None:
             dataframe.index = self.component_names_output
+
         return dataframe

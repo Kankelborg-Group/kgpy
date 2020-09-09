@@ -176,6 +176,10 @@ class Rays(kgpy.transform.rigid.Transformable):
     def ndim(self):
         return len(self.shape)
 
+    @property
+    def num_wavlength(self):
+        return self.grid_shape[self.axis.wavelength]
+
     def _input_grid(self, axis: int) -> u.Quantity:
         grid = self.input_grids[axis]
         return np.broadcast_to(grid, self.shape + grid.shape[~0:], subok=True)
@@ -253,11 +257,51 @@ class Rays(kgpy.transform.rigid.Transformable):
         # other.input_grids = copy.deepcopy(self.input_grids)
         return other
 
-    def spot_size(self, use_vignetted: bool = False):
+    @property
+    def spot_size(self):
+        position = self.position_pupil_relative
+        r = vector.length(position[vector.xy], keepdims=False)
+        sz = r.std((self.axis.pupil_x, self.axis.pupil_y))
+        mask = self.mask.any((self.axis.pupil_x, self.axis.pupil_y))
+        sz[~mask] = 0
+        return sz
 
-        position = self.position.copy()
-        position[x] -= np.mean(position[x], axis=(self.axis.pupil_x, self.axis.pupil_y))[..., None, None]
-        position[y] -= np.mean(position[y], axis=(self.axis.pupil_x, self.axis.pupil_y))[..., None, None]
+    def plot_spot_size_vs_field(
+            self,
+            axs: typ.Optional[typ.MutableSequence[plt.Axes]] = None,
+            config_index: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
+    ) -> typ.MutableSequence[plt.Axes]:
+        if axs is None:
+            fig, axs = plt.subplots(ncols=self.num_wavlength)
+        else:
+            fig = axs[0].figure
+
+        wavelength = self.input_wavelength
+        field_x, field_y = self.input_field_x, self.input_field_y
+        sizes = self.spot_size
+        if config_index is not None:
+            field_x, field_y = field_x[config_index], field_y[config_index]
+            wavelength = wavelength[config_index]
+            sizes = sizes[config_index]
+
+        vmin, vmax = sizes[sizes > 0].min(), sizes[sizes > 0].max()
+
+        for ax, wavl, sz in zip(axs, wavelength, sizes):
+            ax.set_title(fmt.quantity(wavl))
+            img = ax.imshow(
+                X=sz.T.value,
+                vmin=vmin.value,
+                vmax=vmax.value,
+                origin='lower',
+                extent=[field_x[0].value, field_x[~0].value, field_y[0].value, field_y[~0].value],
+            )
+            ax.set_xlabel('input $x$ ' + '(' + "{0:latex}".format(field_x.unit) + ')')
+
+        axs[0].set_ylabel('input $y$ ' + '(' + "{0:latex}".format(field_y.unit) + ')')
+
+        fig.colorbar(img, ax=axs, label='rms spot size (' + '{0:latex}'.format(sizes.unit) + ')')
+
+        return axs
 
     def pupil_hist2d(
             self,
@@ -373,7 +417,7 @@ class Rays(kgpy.transform.rigid.Transformable):
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
             limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
             use_vignetted: bool = False,
-            relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
+            relative_to_centroid: typ.Tuple[bool, bool] = (True, True),
             norm: typ.Optional[matplotlib.colors.Normalize] = None,
     ) -> plt.Figure:
 
@@ -415,7 +459,7 @@ class Rays(kgpy.transform.rigid.Transformable):
                     norm=norm,
                 )
                 if i == 0:
-                    axs_ij.set_xlabel('{0.value:0.2f} {0.unit:latex}'.format(field_x[j]))
+                    axs_ij.set_xlabel('{0.value:0.0f} {0.unit:latex}'.format(field_x[j]))
                     axs_ij.xaxis.set_label_position('top')
                 elif i == len(axs) - 1:
                     axs_ij.set_xlabel(edges_x.unit)
@@ -423,7 +467,7 @@ class Rays(kgpy.transform.rigid.Transformable):
                 if j == 0:
                     axs_ij.set_ylabel(edges_y.unit)
                 elif j == len(axs_i) - 1:
-                    axs_ij.set_ylabel('{0.value:0.2f} {0.unit:latex}'.format(field_y[i]))
+                    axs_ij.set_ylabel('{0.value:0.0f} {0.unit:latex}'.format(field_y[i]))
                     axs_ij.yaxis.set_label_position('right')
         wavelength = self.input_grids[self.axis.wavelength]
         if wavelength.ndim == 1:

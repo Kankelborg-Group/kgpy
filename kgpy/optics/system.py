@@ -156,8 +156,8 @@ class System(
                     position=position,
                     field_grid_x=self.field_x,
                     field_grid_y=self.field_y,
-                    pupil_grid_x=self.pupil_x,
-                    pupil_grid_y=self.pupil_y,
+                    pupil_grid_x=px,
+                    pupil_grid_y=py
                 )
                 rays_in.transform = self.object_surface.transform
                 raytrace = self.surfaces_all.raytrace(rays_in)
