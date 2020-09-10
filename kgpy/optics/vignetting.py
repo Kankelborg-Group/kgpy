@@ -69,6 +69,7 @@ class Vignetting:
             data=self.residual(other=other, inverse=inverse),
             axs=axs,
             config_index=config_index,
+            data_name='residual',
             use_titles=use_titles,
             use_xlabels=use_xlabels,
         )
@@ -93,6 +94,7 @@ class Vignetting:
             data=data,
             axs=axs,
             config_index=config_index,
+            data_name='relative illumination',
             use_titles=use_titles,
             use_xlabels=use_xlabels,
         )
@@ -104,6 +106,7 @@ class Vignetting:
             data: u.Quantity,
             axs: typ.Optional[typ.MutableSequence[plt.Axes]] = None,
             config_index: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
+            data_name: str = '',
             use_titles: bool = True,
             use_xlabels: bool = True,
     ) -> typ.MutableSequence[plt.Axes]:
@@ -145,6 +148,6 @@ class Vignetting:
 
         axs[0].set_ylabel('input $y$ ' + '(' + "{0:latex}".format(spatial_mesh.unit) + ')')
 
-        fig.colorbar(img, ax=axs, label='residual (' + '{0:latex}'.format(data.unit) + ')')
+        fig.colorbar(img, ax=axs, label=data_name + ' (' + '{0:latex}'.format(data.unit) + ')')
 
         return axs
