@@ -10,7 +10,7 @@ import astropy.modeling
 import kgpy.transform.rigid.transform_list
 from kgpy import vector, transform, format as fmt
 from kgpy.vector import x, y, z, ix, iy, iz
-from .. import Distortion
+from .. import Distortion, Vignetting
 
 __all__ = ['Rays']
 
@@ -225,22 +225,30 @@ class Rays(kgpy.transform.rigid.Transformable):
         return self.position - self.position_pupil_avg
 
     def distortion(self, polynomial_degree: int = 1) -> Distortion:
-        wavelength = self.input_wavelength[..., :, None, None]
-        mesh_input = vector.from_components(
-            x=self.input_field_x[..., None, :, None],
-            y=self.input_field_y[..., None, None, :],
-            use_z=False,
-        )
-        mesh_output = self.position_pupil_avg[..., 0, 0, :][vector.xy]
-        mask = self.mask
-        mask = mask.any((self.axis.pupil_x, self.axis.pupil_y))
-
         return Distortion(
-            wavelength=wavelength,
-            spatial_mesh_input=mesh_input,
-            spatial_mesh_output=mesh_output,
-            mask=mask,
+            wavelength=self.input_wavelength[..., :, None, None],
+            spatial_mesh_input=vector.from_components(
+                x=self.input_field_x[..., None, :, None],
+                y=self.input_field_y[..., None, None, :],
+                use_z=False,
+            ),
+            spatial_mesh_output=self.position_pupil_avg[..., 0, 0, :][vector.xy],
+            mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y)),
             polynomial_degree=polynomial_degree
+        )
+
+    def vignetting(self, polynomial_degree: int = 1):
+        counts = self.mask.sum((self.axis.pupil_x, self.axis.pupil_y))
+        return Vignetting(
+            wavelength=self.input_wavelength[..., :, None, None],
+            spatial_mesh=vector.from_components(
+                x=self.input_field_x[..., None, :, None],
+                y=self.input_field_y[..., None, None, :],
+                use_z=False,
+            ),
+            unvignetted_percent=100 * counts / counts.max() * u.percent,
+            mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y)),
+            polynomial_degree=polynomial_degree,
         )
 
     def copy(self) -> 'Rays':
@@ -258,11 +266,13 @@ class Rays(kgpy.transform.rigid.Transformable):
         return other
 
     @property
-    def spot_size(self):
+    def spot_size_rms(self):
         position = self.position_pupil_relative
         r = vector.length(position[vector.xy], keepdims=False)
-        sz = r.std((self.axis.pupil_x, self.axis.pupil_y))
-        mask = self.mask.any((self.axis.pupil_x, self.axis.pupil_y))
+        r2 = np.square(r)
+        pupil_axes = self.axis.pupil_x, self.axis.pupil_y
+        sz = np.sqrt(np.ma.average(r2.value, axis=pupil_axes, weights=self.mask) << r2.unit)
+        mask = self.mask.any(pupil_axes)
         sz[~mask] = 0
         return sz
 
@@ -278,13 +288,13 @@ class Rays(kgpy.transform.rigid.Transformable):
 
         wavelength = self.input_wavelength
         field_x, field_y = self.input_field_x, self.input_field_y
-        sizes = self.spot_size
+        sizes = self.spot_size_rms
         if config_index is not None:
             field_x, field_y = field_x[config_index], field_y[config_index]
             wavelength = wavelength[config_index]
             sizes = sizes[config_index]
 
-        vmin, vmax = sizes[sizes > 0].min(), sizes[sizes > 0].max()
+        vmin, vmax = sizes.min(), sizes.max()
 
         for ax, wavl, sz in zip(axs, wavelength, sizes):
             ax.set_title(fmt.quantity(wavl))
@@ -299,7 +309,7 @@ class Rays(kgpy.transform.rigid.Transformable):
 
         axs[0].set_ylabel('input $y$ ' + '(' + "{0:latex}".format(field_y.unit) + ')')
 
-        fig.colorbar(img, ax=axs, label='rms spot size (' + '{0:latex}'.format(sizes.unit) + ')')
+        fig.colorbar(img, ax=axs, label='RMS spot radius (' + '{0:latex}'.format(sizes.unit) + ')')
 
         return axs
 
