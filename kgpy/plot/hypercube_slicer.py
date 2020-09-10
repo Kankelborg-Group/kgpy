@@ -397,6 +397,7 @@ class TestHypercube:
                 wcs = astropy.wcs.WCS(hdu.header)
                 wcs = wcs.swapaxes(2, 1)
                 wcs = wcs.swapaxes(1, 0)
+                print(wcs)
                 wcs_list.append(wcs)
 
             hypercube = np.array(cube_list)
