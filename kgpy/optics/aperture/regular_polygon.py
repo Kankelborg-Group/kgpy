@@ -17,11 +17,10 @@ class RegularPolygon(Polygon):
     offset_angle: u.Quantity = 0 * u.deg
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.radius,
-        )
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.radius)
+        return out
 
     @property
     def vertices(self) -> u.Quantity:

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.visualization
 from kgpy import mixin, vector, transform
-from kgpy.vector import x, y, z
+from .. import Sag
 
 __all__ = ['Aperture']
 
@@ -38,21 +38,26 @@ class Aperture(
     def wire(self) -> u.Quantity:
         pass
 
-    def plot_2d(
+    def plot(
             self,
-            ax: plt.Axes,
-            sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
-            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
+            ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-    ):
+            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            sag: typ.Optional[Sag] = None,
+    ) -> plt.Axes:
+        if ax is None:
+            fig, ax = plt.subplots()
+
         with astropy.visualization.quantity_support():
             c1, c2 = components
             wire = self.wire
-            if sag is not None:
-                wire[z] = wire[z] + sag(wire[x], wire[y])
-            if rigid_transform is not None:
-                wire = rigid_transform(wire, num_extra_dims=1)
-            ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
+            if wire.unit.is_equivalent(u.mm):
+                if sag is not None:
+                    wire[vector.z] = wire[vector.z] + sag(wire[vector.x], wire[vector.y])
+                if rigid_transform is not None:
+                    wire = rigid_transform(wire, num_extra_dims=1)
+                ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
+        return ax
 
     def copy(self) -> 'Aperture':
         other = super().copy()      # type: Aperture

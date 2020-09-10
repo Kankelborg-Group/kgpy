@@ -13,8 +13,8 @@ class TiltAboutAxis(Transform, abc.ABC):
     angle: u.Quantity = 0 * u.deg
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(super().config_broadcast, self.angle)
+    def broadcasted(self):
+        return np.broadcast(super().broadcasted, self.angle)
 
     def __eq__(self, other: 'TiltAboutAxis') -> bool:
         return np.array(self.angle == other.angle).all()

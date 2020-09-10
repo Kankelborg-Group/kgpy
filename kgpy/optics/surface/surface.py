@@ -1,125 +1,142 @@
+import typing as typ
 import abc
 import dataclasses
-import typing as typ
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-from kgpy import transform, mixin
-from .. import Rays
+from kgpy import mixin, vector, transform, optimization
+from .. import Rays, Sag, Rulings, Aperture, Material
 
 __all__ = ['Surface']
+
+SagT = typ.TypeVar('SagT', bound=Sag)
+MaterialT = typ.TypeVar('MaterialT', bound=Material)
+ApertureT = typ.TypeVar('ApertureT', bound=Aperture)
+ApertureMechT = typ.TypeVar('ApertureMechT', bound=Aperture)
+RulingsT = typ.TypeVar('RulingsT', bound=Rulings)
 
 
 @dataclasses.dataclass
 class Surface(
     mixin.Broadcastable,
+    transform.rigid.Transformable,
     mixin.Named,
-    mixin.Copyable,
-    abc.ABC
+    abc.ABC,
+    typ.Generic[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT],
 ):
     """
-    This class represents a single optical surface. This class should be a drop-in replacement for a Zemax surface, and
-    have all the same properties and behaviors.
+    Interface for representing an optical surface.
     """
-
-    previous_surface: typ.Optional['Surface'] = dataclasses.field(default=None, compare=False, init=False, repr=False)
-    thickness: u.Quantity = 0 * u.mm
+    is_stop: bool = False
     is_active: bool = True
+    is_visible: bool = True
+    sag: typ.Optional[SagT] = None
+    material: typ.Optional[MaterialT] = None
+    aperture: typ.Optional[ApertureT] = None
+    aperture_mechanical: typ.Optional[ApertureMechT] = None
+    rulings: typ.Optional[RulingsT] = None
 
-    def __post_init__(self) -> typ.NoReturn:
-        self.update()
+    def ray_intercept(
+            self,
+            rays: Rays,
+            intercept_error: u.Quantity = 0.1 * u.nm
+    ) -> u.Quantity:
 
-    def update(self) -> typ.NoReturn:
-        self._rays_output_cache = None
+        def line(t: u.Quantity) -> u.Quantity:
+            return rays.position + rays.direction * t[..., None]
 
-    @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.thickness,
-            self.is_active,
+        def func(t: u.Quantity) -> u.Quantity:
+            a = line(t)
+            if self.sag is not None:
+                sag = self.sag(a[vector.x], a[vector.y])
+            else:
+                sag = 0 * u.mm
+            return a[vector.z] - sag
+
+        bracket_max = 2 * np.nanmax(np.abs(rays.position[vector.z])) + 1 * u.mm
+        # if np.isfinite(self.radius):
+        #     bracket_max = np.sqrt(np.square(bracket_max) + 2 * np.square(self.radius))
+        t_intercept = optimization.root_finding.scalar.false_position(
+            func=func,
+            bracket_min=-bracket_max,
+            bracket_max=bracket_max,
+            max_abs_error=intercept_error,
         )
+        return line(t_intercept)
 
-    def __iter__(self):
-        yield self
+    def propagate_rays(self, rays: Rays, intercept_error: u.Quantity = 0.1 * u.nm) -> Rays:
+        from_prev_to_self = rays.transform.inverse + self.transform
+        from_self_to_prev = from_prev_to_self.inverse
+        rays = rays.apply_transform_list(from_self_to_prev)
+        rays.transform = self.transform
 
-    @abc.abstractmethod
-    def sag(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
-        pass
+        rays.position = self.ray_intercept(rays, intercept_error=intercept_error)
 
-    @abc.abstractmethod
-    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
-        pass
+        if self.rulings is not None:
+            a = self.rulings.effective_input_direction(rays, material=self.material)
+            n1 = self.rulings.effective_input_index(rays, material=self.material)
+        else:
+            a = rays.direction
+            n1 = rays.index_of_refraction
 
-    @property
-    def rays_input(self) -> typ.Optional[Rays]:
-        rays = None
-        if self.previous_surface is not None:
-            rays = self.previous_surface.rays_output
-            if rays is not None:
-                rays = rays.apply_transform(~self.local_to_previous_transform)
+        if self.material is not None:
+            n2 = self.material.index_of_refraction(rays)
+        else:
+            n2 = np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
+
+        r = n1 / n2
+        rays.index_of_refraction = n2
+
+        if self.sag is not None:
+            rays.surface_normal = self.sag.normal(rays.position[vector.x], rays.position[vector.y])
+        else:
+            rays.surface_normal = -vector.z_hat[None, ...] * u.dimensionless_unscaled
+
+        c = -vector.dot(a, rays.surface_normal)
+        b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * rays.surface_normal
+        rays.direction = vector.normalize(b)
+
+        if self.aperture is not None:
+            if self.aperture.max.unit.is_equivalent(u.rad):
+                rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.field_angles)
+            else:
+                rays.vignetted_mask = rays.vignetted_mask & self.aperture.is_unvignetted(rays.position)
+
         return rays
 
-    @property
-    @abc.abstractmethod
-    def _rays_output(self) -> typ.Optional[Rays]:
-        pass
-
-    @property
-    def rays_output(self) -> typ.Optional[Rays]:
-        if self._rays_output_cache is None:
-            self._rays_output_cache = self._rays_output
-        return self._rays_output_cache
-
-    @property
-    @abc.abstractmethod
-    def pre_transform(self) -> transform.rigid.TransformList:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def post_transform(self) -> transform.rigid.TransformList:
-        pass
-
-    @property
-    def transform_total(self) -> transform.rigid.TransformList:
-        return self.pre_transform + self.post_transform
-
-    @property
-    def local_to_previous_transform(self) -> transform.rigid.TransformList:
-        t = transform.rigid.TransformList()
-        if self.previous_surface is not None:
-            t += self.previous_surface.post_transform
-        t += self.pre_transform
-        return t
-
-    @property
-    def local_to_global_transform(self) -> transform.rigid.TransformList:
-        t = transform.rigid.TransformList()
-        if self.previous_surface is not None:
-            t += self.previous_surface.local_to_global_transform
-        t += self.local_to_previous_transform
-        return t
-
-    @abc.abstractmethod
-    def plot_2d(
+    def plot(
             self,
-            ax: plt.Axes,
-            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
+            ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (0, 1),
+            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
     ) -> plt.Axes:
-        pass
+        if ax is None:
+            fig, ax = plt.subplots()
 
-    def plot_2d_global(
-            self,
-            ax: plt.Axes,
-            components: typ.Tuple[int, int] = (0, 1),
-    ) -> plt.Axes:
-        return self.plot_2d(ax=ax, rigid_transform=self.local_to_global_transform, components=components)
+        if self.is_visible:
 
-    def copy(self) -> 'Copyable':
-        other = super().copy()      # type: Surface
-        other.thickness = self.thickness.copy()
+            if self.aperture is not None:
+                self.aperture.plot(ax, components, rigid_transform, self.sag, )
+            if self.aperture_mechanical is not None:
+                self.aperture_mechanical.plot(ax, components, rigid_transform, self.sag, )
+
+            if self.material is not None:
+                if self.aperture_mechanical is not None:
+                    self.material.plot(ax, components, rigid_transform, self.sag, self.aperture_mechanical)
+                elif self.aperture is not None:
+                    self.material.plot(ax, components, rigid_transform, self.sag, self.aperture)
+
+        return ax
+
+    def copy(self) -> 'Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]':
+        other = super().copy()      # type: Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]
+        other.is_stop = self.is_stop
         other.is_active = self.is_active
+        other.is_visible = self.is_visible
+        other.sag = self.sag.copy()
+        other.material = self.material.copy()
+        other.aperture = self.aperture.copy()
+        other.aperture_mechanical = self.aperture.copy()
+        other.rulings = self.rulings.copy()
         return other

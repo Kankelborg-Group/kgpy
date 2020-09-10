@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas
 import pathlib
 import pickle
@@ -8,7 +9,8 @@ import typing as typ
 
 from .name import Name
 
-__all__ = ['Broadcastable', 'Named', 'Dataframable', 'Copyable', 'Pickleable']
+__all__ = ['Broadcastable', 'Named', 'Dataframable', 'Copyable', 'Pickleable', 'Plottable']
+
 
 class Pickleable(abc.ABC):
     """
@@ -41,6 +43,7 @@ class Pickleable(abc.ABC):
 
         return self
 
+
 class Broadcastable:
     """
     Class to help with determining the shape of the optical configuration.
@@ -49,12 +52,12 @@ class Broadcastable:
     """
 
     @property
-    def config_broadcast(self):
+    def broadcasted(self):
         return np.broadcast()
 
     @property
     def shape(self):
-        return self.config_broadcast.shape
+        return self.broadcasted.shape
 
 
 class Dataframable:
@@ -62,6 +65,7 @@ class Dataframable:
     This mixin class naively converts a child class to a :py:class:`pandas.Dataframe`.
     """
     @property
+    @abc.abstractmethod
     def dataframe(self) -> pandas.DataFrame:
         return pandas.DataFrame()
 
@@ -84,8 +88,18 @@ class Named(Copyable, Dataframable):
 
     @property
     def dataframe(self) -> pandas.DataFrame:
-        return super().dataframe + pandas.DataFrame.from_dict(
-            data={},
-            orient='index',
-            columns=[str(self.name)]
-        )
+        dataframe = super().dataframe
+        dataframe['name'] = [str(self.name)]
+        return dataframe
+
+
+class Plottable:
+
+    def plot(
+            self,
+            ax: typ.Optional[plt.Axes] = None,
+    ):
+        if ax is None:
+            fig, ax = plt.subplots()
+
+        return ax

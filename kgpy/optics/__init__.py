@@ -2,13 +2,30 @@
 kgpy.optics is a package designed for simulating optical systems.
 """
 
-__all__ = ['ZemaxCompatible', 'OCC_Compatible', 'Rays', 'Material', 'Aperture', 'Surface', 'System']
+__all__ = [
+    'Distortion',
+    'Rays', 'RaysList',
+    'sag', 'Sag',
+    'aperture', 'Aperture',
+    'material', 'Material',
+    'rulings', 'Rulings',
+    'surface', 'Surface', 'SurfaceList',
+    'component', 'Component',
+    'System',
+]
 
-from .zemax_compatible import ZemaxCompatible
-from .occ_compatible import OCC_Compatible
-from .rays import Rays
+from .distortion import Distortion
+from .rays import Rays, RaysList
+from . import sag
+from .sag import Sag
+from . import aperture
 from .aperture import Aperture
+from . import material
 from .material import Material
-from .surface import Surface
-from .system import System
+from . import rulings
+from .rulings import Rulings
+from . import surface
+from .surface import Surface, SurfaceList
 from . import component
+from .component import Component
+from .system import System

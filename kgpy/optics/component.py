@@ -3,12 +3,12 @@ import abc
 import dataclasses
 import astropy.units as u
 import pandas
-from kgpy import mixin, format, transform, optics
+from kgpy import mixin, format, vector, transform
+from . import Surface
 
-__all__ = ['Component', 'DummyComponent', 'StandardComponent', 'RelativeComponent', 'CylindricalComponent']
+__all__ = ['Component', 'PistonComponent', 'TranslationComponent', 'CylindricalComponent']
 
-SurfaceT = typ.TypeVar('SurfaceT', bound=optics.Surface)
-StandardT = typ.TypeVar('StandardT', bound=optics.surface.Standard)
+SurfaceT = typ.TypeVar('SurfaceT', bound=Surface)
 
 
 @dataclasses.dataclass
@@ -17,63 +17,22 @@ class Component(
     abc.ABC,
     typ.Generic[SurfaceT],
 ):
+
     @property
     @abc.abstractmethod
-    def _surface_type(self) -> typ.Type[SurfaceT]:
-        pass
-
-    @property
-    def surface(self) -> SurfaceT:
-        surface = self._surface_type()
-        surface.name = self.name
-        return surface
-
-
-@dataclasses.dataclass
-class DummyComponent(Component):
-    thickness: u.Quantity = 100 * u.mm
-
-    @property
-    def _surface_type(self) -> typ.Type[optics.surface.CoordinateTransform]:
-        return optics.surface.CoordinateTransform
-
-    @property
-    def surface(self) -> optics.surface.CoordinateTransform:
-        surface = super().surface
-        surface.thickness = self.thickness
-        return surface
-
-    def copy(self) -> 'DummyComponent':
-        other = super().copy()  # type: DummyComponent
-        other.thickness = self.thickness.copy()
-        return other
-
-
-@dataclasses.dataclass
-class StandardComponent(Component[StandardT]):
-
-    @property
-    def _surface_type(self) -> typ.Type[StandardT]:
-        return optics.surface.Standard
-
-
-@dataclasses.dataclass
-class RelativeComponent(StandardComponent[StandardT]):
-
-    @property
     def transform(self) -> transform.rigid.TransformList:
         return transform.rigid.TransformList()
 
     @property
-    def surface(self) -> StandardT:
-        surface = super().surface   # type: StandardT
-        surface.transform_before = self.transform
-        surface.transform_after = self.transform.inverse
+    def surface(self) -> SurfaceT:
+        surface = Surface()
+        surface.name = self.name
+        surface.transform = self.transform
         return surface
 
 
 @dataclasses.dataclass
-class PistonComponent(RelativeComponent[StandardT]):
+class PistonComponent(Component[SurfaceT]):
     piston: u.Quantity = 0 * u.mm
 
     @property
@@ -87,9 +46,29 @@ class PistonComponent(RelativeComponent[StandardT]):
         other.piston = self.piston.copy()
         return other
 
+    @property
+    def dataframe(self) -> pandas.DataFrame:
+        dataframe = super().dataframe
+        dataframe['piston'] = [format.quantity(self.piston)]
+        return dataframe
+
 
 @dataclasses.dataclass
-class CylindricalComponent(PistonComponent[StandardT]):
+class TranslationComponent(Component[SurfaceT]):
+    translation: transform.rigid.Translate = dataclasses.field(default_factory=transform.rigid.Translate)
+
+    @property
+    def transform(self) -> transform.rigid.TransformList:
+        return super().transform + transform.rigid.TransformList([self.translation])
+
+    def copy(self) -> 'TranslationComponent':
+        other = super().copy()      # type: TranslationComponent
+        other.translation = self.translation.copy()
+        return other
+
+
+@dataclasses.dataclass
+class CylindricalComponent(PistonComponent[SurfaceT]):
     cylindrical_radius: u.Quantity = 0 * u.mm
     cylindrical_azimuth: u.Quantity = 0 * u.deg
 
@@ -108,9 +87,7 @@ class CylindricalComponent(PistonComponent[StandardT]):
 
     @property
     def dataframe(self) -> pandas.DataFrame:
-        return super().dataframe.append(pandas.DataFrame.from_dict(
-            data={
-                'cylindrical radius': format.quantity(self.cylindrical_radius),
-                'cylindrical azimuth': format.quantity(self.cylindrical_azimuth),
-            },
-        ))
+        dataframe = super().dataframe
+        dataframe['cylindrical radius'] = [format.quantity(self.cylindrical_radius)]
+        dataframe['cylindrical azimuth'] = [format.quantity(self.cylindrical_azimuth)]
+        return dataframe

@@ -1,12 +1,16 @@
 import dataclasses
+import copy
 import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
 import astropy.units as u
 import astropy.visualization
-from kgpy import vector, transform
+import astropy.modeling
+import kgpy.transform.rigid.transform_list
+from kgpy import vector, transform, format as fmt
 from kgpy.vector import x, y, z, ix, iy, iz
+from .. import Distortion
 
 __all__ = ['Rays']
 
@@ -56,37 +60,26 @@ class VAxis(Axis, CAxis):
 
 
 @dataclasses.dataclass
-class Rays:
-
+class Rays(kgpy.transform.rigid.Transformable):
     axis = Axis()
     vaxis = VAxis()
 
-    wavelength: u.Quantity
-    position: u.Quantity
-    direction: u.Quantity
-    polarization: u.Quantity = None
-    surface_normal: u.Quantity = None
-    index_of_refraction: u.Quantity = None
-    field_mask: np.ndarray = None
-    vignetted_mask: np.ndarray = None
-    error_mask: np.ndarray = None
+    wavelength: u.Quantity = dataclasses.field(default_factory=lambda: [[0]] * u.nm)
+    position: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 0]] * u.mm)
+    direction: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 1]] * u.dimensionless_unscaled)
+    polarization: u.Quantity = dataclasses.field(default_factory=lambda: [[1, 0]] * u.dimensionless_unscaled)
+    surface_normal: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, -1]] * u.dimensionless_unscaled)
+    index_of_refraction: u.Quantity = dataclasses.field(default_factory=lambda: [[1]] * u.dimensionless_unscaled)
+    vignetted_mask: np.ndarray = np.array([True])
+    error_mask: np.ndarray = np.array([True])
     input_grids: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
         default_factory=lambda: [None, None, None, None, None],
     )
 
-    def __post_init__(self):
-        if self.polarization is None:
-            self.polarization = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
-            self.polarization[z] = 1
-        if self.surface_normal is None:
-            self.surface_normal = np.zeros(self.vector_grid_shape) << u.dimensionless_unscaled
-            self.surface_normal[z] = 1
-        if self.index_of_refraction is None:
-            self.index_of_refraction = np.ones(self.scalar_grid_shape) << u.dimensionless_unscaled
-        if self.vignetted_mask is None:
-            self.vignetted_mask = np.ones(self.grid_shape, dtype=np.bool)
-        if self.error_mask is None:
-            self.error_mask = np.ones(self.grid_shape, dtype=np.bool)
+    @property
+    def field_angles(self) -> u.Quantity:
+        angles = np.arcsin(self.direction)[vector.xy] << u.rad
+        return angles[..., ::-1]
 
     @classmethod
     def from_field_angles(
@@ -95,7 +88,6 @@ class Rays:
             position: u.Quantity,
             field_grid_x: u.Quantity,
             field_grid_y: u.Quantity,
-            field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None,
             pupil_grid_x: typ.Optional[u.Quantity] = None,
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ) -> 'Rays':
@@ -111,16 +103,11 @@ class Rays:
         direction[z] = 1
         direction = transform.rigid.TiltX(field_y[..., 0])(direction)
         direction = transform.rigid.TiltY(field_x[..., 0])(direction)
-        # direction = kgpy.vector.rotate_x(direction, field_y[..., 0])
-        # direction = kgpy.vector.rotate_y(direction, field_x[..., 0])
-
-        mask = field_mask_func(np.arcsin(direction[x]) << u.rad, np.arcsin(direction[y]) << u.rad)
 
         return cls(
             wavelength=wavelength,
             position=position,
             direction=direction,
-            field_mask=mask,
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
@@ -131,7 +118,6 @@ class Rays:
             direction: u.Quantity,
             field_grid_x: u.Quantity,
             field_grid_y: u.Quantity,
-            field_mask_func: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], np.ndarray]] = None,
             pupil_grid_x: typ.Optional[u.Quantity] = None,
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ):
@@ -144,24 +130,26 @@ class Rays:
 
         position = vector.from_components(x=field_grid_x[..., None, None, None], y=field_grid_y[..., None, None])
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
-        mask = field_mask_func(position[x], position[y])
 
         return cls(
             wavelength=wavelength,
             position=position,
             direction=direction,
-            field_mask=mask,
             input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
         )
 
-    def plane_intersection(self, plane_position: u.Quantity, plane_normal: u.Quantity):
-        pass
-
-    def apply_transform(self, t: transform.rigid.Transform) -> 'Rays':
+    def apply_transform_list(self, transform_list: transform.rigid.TransformList) -> 'Rays':
         other = self.copy()
-        other.position = t(other.position, num_extra_dims=5)
-        other.direction = t(other.direction, translate=False, num_extra_dims=5)
-        other.surface_normal = t(other.surface_normal, translate=False, num_extra_dims=5)
+        other.position = transform_list(other.position, num_extra_dims=5)
+        other.direction = transform_list(other.direction, translate=False, num_extra_dims=5)
+        other.surface_normal = transform_list(other.surface_normal, translate=False, num_extra_dims=5)
+        other.transform += transform_list.inverse
+        return other
+
+    @property
+    def transformed(self) -> 'Rays':
+        other = self.apply_transform_list(self.transform)
+        other.transform = transform.rigid.TransformList()
         return other
 
     @property
@@ -174,11 +162,11 @@ class Rays:
 
     @property
     def vector_grid_shape(self) -> typ.Tuple[int, ...]:
-        return self.grid_shape + (3, )
+        return self.grid_shape + (3,)
 
     @property
     def scalar_grid_shape(self) -> typ.Tuple[int, ...]:
-        return self.grid_shape + (1, )
+        return self.grid_shape + (1,)
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
@@ -189,22 +177,131 @@ class Rays:
         return len(self.shape)
 
     @property
+    def num_wavlength(self):
+        return self.grid_shape[self.axis.wavelength]
+
+    def _input_grid(self, axis: int) -> u.Quantity:
+        grid = self.input_grids[axis]
+        return np.broadcast_to(grid, self.shape + grid.shape[~0:], subok=True)
+
+    @property
+    def input_wavelength(self) -> u.Quantity:
+        return self._input_grid(self.axis.wavelength)
+
+    @property
+    def input_field_x(self) -> u.Quantity:
+        return self._input_grid(self.axis.field_x)
+
+    @property
+    def input_field_y(self) -> u.Quantity:
+        return self._input_grid(self.axis.field_y)
+
+    @property
+    def input_pupil_x(self) -> u.Quantity:
+        return self._input_grid(self.axis.pupil_x)
+
+    @property
+    def input_pupil_y(self) -> u.Quantity:
+        return self._input_grid(self.axis.pupil_y)
+
+    @property
     def mask(self) -> np.ndarray:
-        return self.vignetted_mask & self.error_mask & self.field_mask
+        return self.vignetted_mask & self.error_mask
+
+    @property
+    def field_mesh_input(self) -> u.Quantity:
+        fx, fy = self.input_grids[self.axis.field_x], self.input_grids[self.axis.field_y]
+        return vector.from_components(x=fx[..., :, None], y=fy[..., None, :], use_z=False)
+
+    @property
+    def position_pupil_avg(self) -> u.Quantity:
+        axes = (self.vaxis.pupil_x, self.vaxis.pupil_y)
+        mask = np.broadcast_to(self.mask[..., None], self.position.shape)
+        avg = np.ma.average(a=self.position.value, weights=mask, axis=axes, ) << self.position.unit
+        return np.expand_dims(avg, axis=axes)
+
+    @property
+    def position_pupil_relative(self) -> u.Quantity:
+        return self.position - self.position_pupil_avg
+
+    def distortion(self, polynomial_degree: int = 1) -> Distortion:
+        wavelength = self.input_wavelength[..., :, None, None]
+        mesh_input = vector.from_components(
+            x=self.input_field_x[..., None, :, None],
+            y=self.input_field_y[..., None, None, :],
+            use_z=False,
+        )
+        mesh_output = self.position_pupil_avg[..., 0, 0, :][vector.xy]
+        mask = self.mask
+        mask = mask.any((self.axis.pupil_x, self.axis.pupil_y))
+
+        return Distortion(
+            wavelength=wavelength,
+            spatial_mesh_input=mesh_input,
+            spatial_mesh_output=mesh_output,
+            mask=mask,
+            polynomial_degree=polynomial_degree
+        )
 
     def copy(self) -> 'Rays':
-        return Rays(
-            wavelength=self.wavelength.copy(),
-            position=self.position.copy(),
-            direction=self.direction.copy(),
-            surface_normal=self.surface_normal.copy(),
-            polarization=self.polarization.copy(),
-            index_of_refraction=self.index_of_refraction.copy(),
-            input_grids=self.input_grids.copy(),
-            field_mask=self.field_mask.copy(),
-            vignetted_mask=self.vignetted_mask.copy(),
-            error_mask=self.error_mask.copy(),
-        )
+        other = super().copy()  # type: Rays
+        other.wavelength = self.wavelength.copy()
+        other.position = self.position.copy()
+        other.direction = self.direction.copy()
+        other.polarization = self.polarization.copy()
+        other.surface_normal = self.surface_normal.copy()
+        other.index_of_refraction = self.index_of_refraction.copy()
+        other.vignetted_mask = self.vignetted_mask.copy()
+        other.error_mask = self.error_mask.copy()
+        other.input_grids = self.input_grids
+        # other.input_grids = copy.deepcopy(self.input_grids)
+        return other
+
+    @property
+    def spot_size(self):
+        position = self.position_pupil_relative
+        r = vector.length(position[vector.xy], keepdims=False)
+        sz = r.std((self.axis.pupil_x, self.axis.pupil_y))
+        mask = self.mask.any((self.axis.pupil_x, self.axis.pupil_y))
+        sz[~mask] = 0
+        return sz
+
+    def plot_spot_size_vs_field(
+            self,
+            axs: typ.Optional[typ.MutableSequence[plt.Axes]] = None,
+            config_index: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
+    ) -> typ.MutableSequence[plt.Axes]:
+        if axs is None:
+            fig, axs = plt.subplots(ncols=self.num_wavlength)
+        else:
+            fig = axs[0].figure
+
+        wavelength = self.input_wavelength
+        field_x, field_y = self.input_field_x, self.input_field_y
+        sizes = self.spot_size
+        if config_index is not None:
+            field_x, field_y = field_x[config_index], field_y[config_index]
+            wavelength = wavelength[config_index]
+            sizes = sizes[config_index]
+
+        vmin, vmax = sizes[sizes > 0].min(), sizes[sizes > 0].max()
+
+        for ax, wavl, sz in zip(axs, wavelength, sizes):
+            ax.set_title(fmt.quantity(wavl))
+            img = ax.imshow(
+                X=sz.T.value,
+                vmin=vmin.value,
+                vmax=vmax.value,
+                origin='lower',
+                extent=[field_x[0].value, field_x[~0].value, field_y[0].value, field_y[~0].value],
+            )
+            ax.set_xlabel('input $x$ ' + '(' + "{0:latex}".format(field_x.unit) + ')')
+
+        axs[0].set_ylabel('input $y$ ' + '(' + "{0:latex}".format(field_y.unit) + ')')
+
+        fig.colorbar(img, ax=axs, label='rms spot size (' + '{0:latex}'.format(sizes.unit) + ')')
+
+        return axs
 
     def pupil_hist2d(
             self,
@@ -220,13 +317,14 @@ class Rays:
         if not use_vignetted:
             mask = self.mask
         else:
-            mask = self.error_mask & self.field_mask
+            mask = self.error_mask
 
         position = self.position.copy()
+        position_rel = self.position_pupil_relative
         if relative_to_centroid[vector.ix]:
-            position[x] -= np.mean(position[x].value, axis=self.axis.pupil_x, keepdims=True) << position.unit
+            position[x] = position_rel[x]
         if relative_to_centroid[vector.iy]:
-            position[y] -= np.mean(position[y].value, axis=self.axis.pupil_y, keepdims=True) << position.unit
+            position[y] = position_rel[y]
 
         if limits is None:
             px = position[x][mask]
@@ -290,9 +388,10 @@ class Rays:
             _, ax = plt.subplots()
 
         if plot_vignetted:
-            mask = self.error_mask & self.field_mask
+            mask = self.error_mask
         else:
             mask = self.mask
+        mask = np.broadcast_to(mask, self.position[x].shape)
 
         with astropy.visualization.quantity_support():
             scatter = ax.scatter(
@@ -318,7 +417,7 @@ class Rays:
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
             limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
             use_vignetted: bool = False,
-            relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
+            relative_to_centroid: typ.Tuple[bool, bool] = (True, True),
             norm: typ.Optional[matplotlib.colors.Normalize] = None,
     ) -> plt.Figure:
 
@@ -360,7 +459,7 @@ class Rays:
                     norm=norm,
                 )
                 if i == 0:
-                    axs_ij.set_xlabel('{0.value:0.2f} {0.unit:latex}'.format(field_x[j]))
+                    axs_ij.set_xlabel('{0.value:0.0f} {0.unit:latex}'.format(field_x[j]))
                     axs_ij.xaxis.set_label_position('top')
                 elif i == len(axs) - 1:
                     axs_ij.set_xlabel(edges_x.unit)
@@ -368,7 +467,7 @@ class Rays:
                 if j == 0:
                     axs_ij.set_ylabel(edges_y.unit)
                 elif j == len(axs_i) - 1:
-                    axs_ij.set_ylabel('{0.value:0.2f} {0.unit:latex}'.format(field_y[i]))
+                    axs_ij.set_ylabel('{0.value:0.0f} {0.unit:latex}'.format(field_y[i]))
                     axs_ij.yaxis.set_label_position('right')
         wavelength = self.input_grids[self.axis.wavelength]
         if wavelength.ndim == 1:
@@ -379,5 +478,3 @@ class Rays:
         fig.colorbar(img, ax=axs, fraction=0.05)
 
         return fig
-
-

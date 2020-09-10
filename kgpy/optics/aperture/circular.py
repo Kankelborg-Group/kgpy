@@ -18,11 +18,10 @@ class Circular(
     radius: u.Quantity = 0 * u.mm
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.radius,
-        )
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.radius)
+        return out
 
     @property
     def min(self) -> u.Quantity:
@@ -36,7 +35,7 @@ class Circular(
         x = points[..., 0]
         y = points[..., 1]
         r = np.sqrt(np.square(x) + np.square(y))
-        is_inside = r < self.radius
+        is_inside = r <= self.radius
         if not self.is_obscuration:
             return is_inside
         else:

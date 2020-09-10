@@ -21,35 +21,40 @@ class Mirror(Material):
         other = super().copy()      # type: Mirror
         other.thickness = self.thickness
 
-    def plot_2d(
+    def plot(
             self,
-            ax: plt.Axes,
-            aperture: Aperture,
-            sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
-            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
+            ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-    ):
-        with astropy.visualization.quantity_support():
+            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
+            aperture: typ.Optional[Aperture] = None,
+    ) -> plt.Axes:
+        super().plot(ax=ax, components=components, rigid_transform=rigid_transform, sag=sag, aperture=aperture)
 
-            c1, c2 = components
-            wire = aperture.wire.copy()
-            wire[z] = self.thickness
-            if rigid_transform is not None:
-                wire = rigid_transform(wire, num_extra_dims=1)
-            ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
+        if aperture is not None:
+            with astropy.visualization.quantity_support():
 
-            # todo: generalize this for all aperture type
-            if isinstance(aperture, optics.aperture.Polygon):
-
-                front_vertices = aperture.vertices.copy()
-                back_vertices = aperture.vertices.copy()
-                front_vertices[z] = sag(front_vertices[x], front_vertices[y])
-                back_vertices[z] = self.thickness
-
-                vertices = np.stack([front_vertices, back_vertices], axis=~1)
+                c1, c2 = components
+                wire = aperture.wire.copy()
+                wire[z] = self.thickness
                 if rigid_transform is not None:
-                    vertices = rigid_transform(vertices, num_extra_dims=2)
-                vertices = vertices.reshape((-1, ) + vertices.shape[~1:])
+                    wire = rigid_transform(wire, num_extra_dims=1)
+                ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
 
-                ax.plot(vertices[..., c1].T, vertices[..., c2].T, color='black')
+                # todo: utilize polymorphsim here
+                if isinstance(aperture, optics.aperture.Polygon):
+
+                    front_vertices = aperture.vertices.copy()
+                    back_vertices = aperture.vertices.copy()
+                    front_vertices[z] = sag(front_vertices[x], front_vertices[y])
+                    back_vertices[z] = self.thickness
+
+                    vertices = np.stack([front_vertices, back_vertices], axis=~1)
+                    if rigid_transform is not None:
+                        vertices = rigid_transform(vertices, num_extra_dims=2)
+                    vertices = vertices.reshape((-1, ) + vertices.shape[~1:])
+
+                    ax.plot(vertices[..., c1].T, vertices[..., c2].T, color='black')
+
+        return ax
 

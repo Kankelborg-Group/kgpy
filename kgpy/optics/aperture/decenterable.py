@@ -14,11 +14,10 @@ class Decenterable(
     decenter: transform.rigid.Translate = dataclasses.field(default_factory=lambda: transform.rigid.Translate())
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.decenter,
-        )
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.decenter.broadcasted)
+        return out
 
     def copy(self) -> 'Decenterable':
         other = super().copy()

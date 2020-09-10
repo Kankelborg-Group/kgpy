@@ -3,12 +3,10 @@ import dataclasses
 import collections
 import numpy as np
 import astropy.units as u
-from kgpy import vector, matrix
+from kgpy import vector, matrix, mixin
 from . import Transform
 
-__all__ = ['TransformList']
-
-TransformT = typ.TypeVar('TransformT', bound=Transform)
+__all__ = ['TransformList', 'Transformable']
 
 
 class TransformList(
@@ -40,7 +38,6 @@ class TransformList(
             if transform is not None:
                 if transform.rotation_eff is not None:
                     rotation = matrix.mul(transform.rotation_eff, rotation)
-                    # rotation = matrix.mul(rotation, transform.rotation_eff, )
         return rotation
 
     @property
@@ -48,7 +45,6 @@ class TransformList(
         translation = None
         for transform in self.transforms:
             if transform is not None:
-                # translation = vector.matmul(transform.rotation_eff, translation) + transform.translation_eff
                 translation = transform(translation)
         return translation
 
@@ -70,3 +66,14 @@ class TransformList(
         other.intrinsic = self.intrinsic
         return other
 
+
+@dataclasses.dataclass
+class Transformable(
+    mixin.Copyable,
+):
+    transform: TransformList = dataclasses.field(default_factory=TransformList)
+
+    def copy(self) -> 'Transformable':
+        other = super().copy()  # type: Transformable
+        other.transform = self.transform.copy()
+        return other

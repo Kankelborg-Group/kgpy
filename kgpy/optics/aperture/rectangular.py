@@ -15,12 +15,11 @@ class Rectangular(polygon.Polygon):
     half_width_y: u.Quantity = 0 * u.mm
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.half_width_x,
-            self.half_width_y,
-        )
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.half_width_x)
+        out = np.broadcast(out, self.half_width_y)
+        return out
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
         x = points[kgpy.vector.x]

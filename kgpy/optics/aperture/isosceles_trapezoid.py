@@ -10,31 +10,36 @@ __all__ = ['IsoscelesTrapezoid']
 
 @dataclasses.dataclass
 class IsoscelesTrapezoid(Polygon):
-    inner_radius: u.Quantity = 0 * u.mm
-    outer_radius: u.Quantity = 0 * u.mm
+    apex_offset: u.Quantity = 0 * u.mm
+    half_width_left: u.Quantity = 0 * u.mm
+    half_width_right: u.Quantity = 0 * u.mm
     wedge_half_angle: u.Quantity = 0 * u.deg
 
     @property
     def vertices(self) -> u.Quantity:
         m = np.tan(self.wedge_half_angle)
-        left_x, left_y = self.inner_radius + self.decenter.x, m * self.inner_radius + self.decenter.y
-        right_x, right_y = self.outer_radius + self.decenter.x, m * self.outer_radius + self.decenter.y
+        # inner_radius = self.half_width_left +
+        # inner_radius = self.apex_offset - self.half_width_left
+        # outer_radius = self.apex_offset + self.half_width_right
+        left_x, left_y = -self.half_width_left, -m * (self.apex_offset + self.half_width_left)
+        right_x, right_y = self.half_width_right, -m * (self.apex_offset - self.half_width_right)
         v_x = np.stack([left_x, right_x, right_x, left_x], axis=~0)
         v_y = np.stack([left_y, right_y, -right_y, -left_y], axis=~0)
         return kgpy.vector.from_components(v_x, v_y)
 
     @property
-    def config_broadcast(self):
-        return np.broadcast(
-            super().config_broadcast,
-            self.inner_radius,
-            self.outer_radius,
-            self.wedge_half_angle,
-        )
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.apex_offset)
+        out = np.broadcast(out, self.half_width_left)
+        out = np.broadcast(out, self.half_width_right)
+        out = np.broadcast(out, self.wedge_half_angle)
+        return out
 
     def copy(self) -> 'IsoscelesTrapezoid':
         other = super().copy()      # type: IsoscelesTrapezoid
-        other.inner_radius = self.inner_radius.copy()
-        other.outer_radius = self.outer_radius.copy()
+        other.apex_offset = self.apex_offset.copy()
+        other.half_width_left = self.half_width_left.copy()
+        other.half_width_right = self.half_width_right.copy()
         other.wedge_half_angle = self.wedge_half_angle.copy()
         return other

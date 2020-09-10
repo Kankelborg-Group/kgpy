@@ -15,9 +15,9 @@ class Decenter(Transform):
     y: u.Quantity = 0 * u.mm
 
     @property
-    def config_broadcast(self):
+    def broadcasted(self):
         return np.broadcast(
-            super().config_broadcast,
+            super().broadcasted,
             self.x,
             self.y,
         )

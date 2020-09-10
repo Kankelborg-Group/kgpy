@@ -20,12 +20,14 @@ class Material(
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         pass
 
-    def plot_2d(
+    def plot(
             self,
-            ax: plt.Axes,
-            aperture: Aperture,
-            sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
-            rigid_transform: typ.Optional[transform.rigid.Transform] = None,
+            ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-    ):
-        pass
+            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
+            aperture: typ.Optional[Aperture] = None,
+    ) -> plt.Axes:
+        if ax is None:
+            fig, ax = plt.subplots()
+        return ax
