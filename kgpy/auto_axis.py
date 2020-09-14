@@ -9,13 +9,22 @@ class AutoAxis:
     @abc.abstractmethod
     def __init__(self):
         super().__init__()
-        self.ndim = 0
+        self.num_left_dim = 0
+        self.num_right_dim = 0
         self.all = []
 
-    def auto_axis_index(self):
-        i = ~self.ndim
+    @property
+    def ndim(self) -> int:
+        return self.num_left_dim + self.num_right_dim
+
+    def auto_axis_index(self, from_right: bool = True):
+        if from_right:
+            i = ~self.num_right_dim
+            self.num_right_dim += 1
+        else:
+            i = self.num_left_dim
+            self.num_left_dim += 1
         self.all.append(i)
-        self.ndim += 1
         return i
 
     def perp_axes(self, axis: int) -> typ.Tuple[int, ...]:
