@@ -11,8 +11,8 @@ import scipy.signal
 import scipy.ndimage
 import scipy.optimize
 
+
 from dataclasses import dataclass
-# from kso.kso_iii.science.instruments.esis import ndimage_transforms
 
 @dataclass
 class TransformCube:
@@ -205,6 +205,7 @@ def test_alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarr
     # print(fit_quality)
     return -fit_quality
 
+
 def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func, origin = np.array([0,0]),
                       moving_origin = False, kwargs = {}) -> float:
     """
@@ -253,7 +254,7 @@ def affine_alignment_quality(transform, im1, im2):
     fit_quality = np.max(cc)
 
 
-    # print(fit_quality)
+    # print(fit_quzality)
     return -fit_quality
 
 

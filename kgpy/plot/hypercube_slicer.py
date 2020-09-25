@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import KeyEvent, MouseEvent, MouseButton
 import astropy.wcs
+from kgpy import format as fmt
 
 __all__ = ['HypercubeSlicer']
 
@@ -43,7 +44,7 @@ class HypercubeSlicer:
 
         sh = data.shape
 
-        fig = plt.figure()
+        fig = plt.figure(constrained_layout = True, figsize= (10,8))
 
         gridspec = fig.add_gridspec(
             nrows=2,
@@ -58,17 +59,83 @@ class HypercubeSlicer:
         self._x_index = sh[self._axis.x] // 2
         self._y_index = sh[self._axis.y] // 2
         self._z_index = sh[self._axis.z] // 2
+        self._t_index = 0
 
-        self._ax_xy = None
-        self._ax_xz = None
-        self._ax_yz = None
-        self._ax_z = None
+        self._ax_xy = self._fig.add_subplot(
+            self._gridspec[self._i_xy],
+            projection=self._wcs_xy
+        )
+        self._ax_xz = self._fig.add_subplot(
+            self._gridspec[self._i_xz],
+            projection=self._wcs_xz,
+            sharex=self._ax_xy,
+        )
+        self._ax_yz = self._fig.add_subplot(
+            self._gridspec[self._i_yz],
+            projection=self._wcs_yz,
+            sharey=self._ax_xy,
+        )
+        self._ax_z = self._fig.add_subplot(
+            self._gridspec[self._i_z],
+            projection=self._wcs_z,
+            sharex=self._ax_yz,
+
+
+        )
+
 
         self._vmin = np.percentile(self._data, self.percentile_thresh[0])
         self._vmax = np.percentile(self._data, self.percentile_thresh[~0])
 
+        self._xy_vline = self._ax_xy.axvline(self._x_index_int, **self.line_kwargs)
+        self._xy_hline = self._ax_xy.axhline(self._y_index_int, **self.line_kwargs)
+
+        self._xz_vline = self._ax_xz.axvline(self._x_index_int, **self.line_kwargs)
+        self._xz_hline = self._ax_xz.axhline(self._z_index_int, **self.line_kwargs)
+
+        self._yz_vline = self._ax_yz.axvline(self._z_index_int, **self.line_kwargs)
+        self._yz_hline = self._ax_yz.axhline(self._y_index_int, **self.line_kwargs)
+
+        self._z_vline = self._ax_z.axvline(self._z_index, **self.line_kwargs)
+
+        self._plot_z = self._ax_z.plot(self._data_z)
+        self._plot_z_med = self._ax_z.plot(self._data_xy_median[self.t_index])
+
+
+
+
+        self._img_xy = self._ax_xy.imshow(
+            X=self._data_xy,
+            aspect='auto',
+            vmin=self._vmin,
+            vmax=self._vmax,
+            interpolation='nearest',
+            origin='lower'
+        )
+
+        self._img_xz = self._ax_xz.imshow(
+            self._data_xz,
+            aspect='auto',
+            vmax=self._vmax,
+            vmin=self._vmin,
+            interpolation='nearest',
+            origin='lower'
+        )
+
+        self._img_yz = self._ax_yz.imshow(
+            self._data_yz,
+            aspect='auto',
+            vmax=self._vmax,
+            vmin=self._vmin,
+            interpolation='nearest',
+            origin='lower'
+        )
+
+
         self.t_index = 0
         self._cid = None
+
+        fig.set_constrained_layout(False)
 
         fig.canvas.mpl_connect('button_press_event', self._left_click)
         fig.canvas.mpl_connect('button_release_event', self._left_unclick)
@@ -217,6 +284,49 @@ class HypercubeSlicer:
         self._ax_z.set_ylim((self.vmin, value))
 
     @property
+    def _data_xy(self):
+        return self._data[self.t_index, :, :, self._z_index_int]
+
+
+    @property
+    def _data_xy_extent(self):
+        data_xy_shp = self._data_xy.shape
+        extent = self._wcs_xy.all_pix2world(np.array([(0, 0), (data_xy_shp[1] - 1, data_xy_shp[0] - 1)]), 0).flat
+        return (extent[0], extent[2], extent[1], extent[3])
+
+    @property
+    def _data_xz(self):
+        return self._data[self.t_index, self._y_index_int, :, :].T
+
+    @property
+    def _data_xz_extent(self):
+        data_xz_shp = self._data_xz.shape
+        extent = self._wcs_xz.all_pix2world(np.array([(0, 0), (data_xz_shp[1] - 1, data_xz_shp[0] - 1)]), 0).flat
+        return (extent[0], extent[2], extent[1], extent[3])
+
+    @property
+    def _data_yz(self):
+        return self._data[self.t_index, :, self._x_index_int, :]
+
+    @property
+    def _data_yz_extent(self):
+        data_yz_shp = self._data_yz.shape
+        extent = self._wcs_yz.all_pix2world(np.array([(0, 0), (data_yz_shp[1] - 1, data_yz_shp[0] - 1)]), 0).flat
+        return (extent[0], extent[2], extent[1], extent[3])
+    
+    @property
+    def _data_z(self):
+        return self._data[self.t_index, self._y_index_int, self._x_index_int]
+
+    @property
+    def _data_z_extent(self):
+        data_z_shp = self._data_z.shape
+        start = np.array(0)
+        end = np.array(data_z_shp[0])
+        extent = self._wcs_z.all_pix2world((start[None,...],end[None,...]),0)
+        return np.squeeze(extent)
+
+    @property
     def t_index(self) -> int:
         return self._t_index
 
@@ -225,78 +335,31 @@ class HypercubeSlicer:
 
         self._t_index = value
 
-        if self._ax_xy is not None:
-            self._fig.delaxes(self._ax_xy)
-
-        if self._ax_xz is not None:
-            self._fig.delaxes(self._ax_xz)
-
-        if self._ax_yz is not None:
-            self._fig.delaxes(self._ax_yz)
-
-        if self._ax_z is not None:
-            self._fig.delaxes(self._ax_z)
-
-        self._ax_xy = self._fig.add_subplot(
-            self._gridspec[self._i_xy],
-            projection=self._wcs_xy
-        )
-        self._ax_xz = self._fig.add_subplot(
-            self._gridspec[self._i_xz],
-            projection=self._wcs_xz,
-            sharex=self._ax_xy,
-        )
-        self._ax_yz = self._fig.add_subplot(
-            self._gridspec[self._i_yz],
-            projection=self._wcs_yz,
-            sharey=self._ax_xy,
-        )
-        self._ax_z = self._fig.add_subplot(
-            self._gridspec[self._i_z],
-            projection=self._wcs_z,
-            sharex=self._ax_yz,
-        )
-
         self._fig.suptitle('t = ' + str(self.t_index))
-        self._ax_xy.set_title('z = ' + self._z_pos.to_string(format='latex'))
-        self._img_xy = self._ax_xy.imshow(
-            X=self._data[self.t_index, :, :, self._z_index_int],
-            aspect='auto',
-            vmin=self._vmin,
-            vmax=self._vmax,
-            interpolation='nearest',
-        )
-        self._xy_vline = self._ax_xy.axvline(self._x_index_int, **self.line_kwargs)
-        self._xy_hline = self._ax_xy.axhline(self._y_index_int, **self.line_kwargs)
+        self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
+        self._ax_xy.reset_wcs(wcs = self._wcs_xy)
+        self._img_xy.set_data(self._data_xy)
+        self._xy_vline.set_xdata(self._x_index_int)
+        self._xy_hline.set_ydata(self._y_index_int)
 
-        self._ax_xz.set_title('y = ' + self._y_pos.to_string(format='latex'))
-        self._img_xz = self._ax_xz.imshow(
-            self._data[self.t_index, self._y_index_int, :, :].T,
-            aspect='auto',
-            vmax=self._vmax,
-            vmin=self._vmin,
-            interpolation='nearest',
-        )
-        self._xz_vline = self._ax_xz.axvline(self._x_index_int, **self.line_kwargs)
-        self._xz_hline = self._ax_xz.axhline(self._z_index_int, **self.line_kwargs)
+        self._ax_xz.set_title('y = ' + fmt.quantity(self._y_pos))
+        self._ax_xz.reset_wcs(wcs = self._wcs_xz)
+        self._img_xz.set_data(self._data_xz)
+        self._xz_vline.set_xdata(self._x_index_int)
+        self._xz_hline.set_ydata(self._z_index_int)
 
-        self._ax_yz.set_title('x = ' + self._x_pos.to_string(format='latex'))
-        self._img_yz = self._ax_yz.imshow(
-            self._data[self.t_index, :, self._x_index_int, :],
-            aspect='auto',
-            vmax=self._vmax,
-            vmin=self._vmin,
-            interpolation='nearest',
-        )
-        self._yz_vline = self._ax_yz.axvline(self._z_index_int, **self.line_kwargs)
-        self._yz_hline = self._ax_yz.axhline(self._y_index_int, **self.line_kwargs)
+        self._ax_yz.set_title('x = ' + fmt.quantity(self._x_pos))
+        self._ax_yz.reset_wcs(wcs = self._wcs_yz)
+        self._img_yz.set_data(self._data_yz)
+        self._yz_vline.set_xdata(self._z_index_int)
+        self._yz_hline.set_ydata(self._y_index_int)
 
-        self._ax_z.set_title('x = ' + self._x_pos.to_string(format='latex') +
-                             ', y = ' + self._y_pos.to_string(format='latex'))
-        self._plot_z = self._ax_z.plot(self._data[self.t_index, self._y_index_int, self._x_index_int])
-        self._plot_z_med = self._ax_z.plot(self._data_xy_median[self.t_index])
+        self._ax_z.set_title('x = ' + fmt.quantity(self._x_pos) + ', y = ' + fmt.quantity(self._y_pos))
+        self._ax_z.reset_wcs(wcs = self._wcs_z)
+        self._plot_z[0].set_ydata(self._data_z)
+        self._plot_z_med[0].set_ydata(self._data_xy_median[self.t_index])
         self._ax_z.set_ylim((self._vmin, self._vmax))
-        self._z_vline = self._ax_z.axvline(self._z_index, **self.line_kwargs)
+        self._z_vline.set_xdata(self._z_index)
 
     @property
     def x_index(self) -> float:
@@ -305,13 +368,13 @@ class HypercubeSlicer:
     @x_index.setter
     def x_index(self, value: float):
         self._x_index = value
-        self._ax_yz.set_title('x = ' + self._x_pos.to_string(format='latex'))
-        self._ax_z.set_title('x = ' + self._x_pos.to_string(format='latex') +
-                             ', y = ' + self._y_pos.to_string(format='latex'))
+        self._ax_yz.set_title('x = ' + fmt.quantity(self._x_pos))
+        self._ax_z.set_title('x = ' + fmt.quantity(self._x_pos) +
+                             ', y = ' + fmt.quantity(self._y_pos))
         self._xy_vline.set_xdata(self._x_index_int)
         self._xz_vline.set_xdata(self._x_index_int)
-        self._img_yz.set_data(self._data[self.t_index, :, self._x_index_int, :])
-        self._plot_z[0].set_ydata(self._data[self.t_index, self._y_index_int, self._x_index_int])
+        self._img_yz.set_data(self._data_yz)
+        self._plot_z[0].set_ydata(self._data_z)
 
     @property
     def y_index(self) -> float:
@@ -320,13 +383,13 @@ class HypercubeSlicer:
     @y_index.setter
     def y_index(self, value: float):
         self._y_index = value
-        self._ax_xz.set_title('y = ' + self._y_pos.to_string(format='latex'))
-        self._ax_z.set_title('x = ' + self._x_pos.to_string(format='latex') +
-                             ', y = ' + self._y_pos.to_string(format='latex'))
+        self._ax_xz.set_title('y = ' + fmt.quantity(self._y_pos))
+        self._ax_z.set_title('x = ' + fmt.quantity(self._x_pos) +
+                             ', y = ' + fmt.quantity(self._y_pos))
         self._xy_hline.set_ydata(self._y_index_int)
         self._yz_hline.set_ydata(self._y_index_int)
-        self._img_xz.set_data(self._data[self.t_index, self._y_index_int, :, :].T)
-        self._plot_z[0].set_ydata(self._data[self.t_index, self._y_index_int, self._x_index_int])
+        self._img_xz.set_data(self._data_xz)
+        self._plot_z[0].set_ydata(self._data_z)
 
     @property
     def z_index(self) -> float:
@@ -335,11 +398,11 @@ class HypercubeSlicer:
     @z_index.setter
     def z_index(self, value: float):
         self._z_index = value
-        self._ax_xy.set_title('z = ' + self._z_pos.to_string(format='latex'))
+        self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
         self._xz_hline.set_ydata(self._z_index_int)
         self._yz_vline.set_xdata(self._z_index_int)
         self._z_vline.set_xdata(self._z_index_int)
-        self._img_xy.set_data(self._data[self.t_index, :, :, self._z_index_int])
+        self._img_xy.set_data(self._data_xy)
 
     def _increment_vmax(self):
         self.vmax = self.vmax + self._lim_increment
@@ -387,7 +450,7 @@ class TestHypercube:
         with capsys.disabled():
             mosaic_paths = mosaics.download()
 
-            num_mosiacs = 3
+            num_mosiacs = 2
 
             cube_list = []
             wcs_list = []
@@ -397,7 +460,6 @@ class TestHypercube:
                 wcs = astropy.wcs.WCS(hdu.header)
                 wcs = wcs.swapaxes(2, 1)
                 wcs = wcs.swapaxes(1, 0)
-                print(wcs)
                 wcs_list.append(wcs)
 
             hypercube = np.array(cube_list)
