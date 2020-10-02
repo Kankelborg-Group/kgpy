@@ -16,7 +16,7 @@ class CubicPolyDensity(ConstantDensity):
 
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         x2 = np.square(x)
-        term0 = self.ruling_density
+        term0 = self.ruling_density[..., None, None, None, None, None]
         term1 = self.ruling_density_linear * x
         term2 = self.ruling_density_quadratic * x2
         term3 = self.ruling_density_cubic * x * x2

@@ -15,10 +15,11 @@ class Toroidal(Standard):
     def __call__(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         x2 = np.square(x)
         y2 = np.square(y)
-        c = self.curvature
-        r = self.radius_of_rotation
+        c = self.curvature[..., None, None, None, None, None]
+        r = self.radius_of_rotation[..., None, None, None, None, None]
         mask = np.abs(x) > r
-        zy = c * y2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * y2))
+        conic = self.conic[..., None, None, None, None, None]
+        zy = c * y2 / (1 + np.sqrt(1 - (1 + conic) * np.square(c) * y2))
         z = r - np.sqrt(np.square(r - zy) - x2)
         z[mask] = (r - np.sqrt(np.square(r - zy) - np.square(r)))[mask]
         return z
@@ -26,10 +27,11 @@ class Toroidal(Standard):
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         x2 = np.square(x)
         y2 = np.square(y)
-        c = self.curvature
+        c = self.curvature[..., None, None, None, None, None]
         c2 = np.square(c)
-        r = self.radius_of_rotation
-        g = np.sqrt(1 - (1 + self.conic) * c2 * y2)
+        r = self.radius_of_rotation[..., None, None, None, None, None]
+        conic = self.conic[..., None, None, None, None, None]
+        g = np.sqrt(1 - (1 + conic) * c2 * y2)
         zy = c * y2 / (1 + g)
         f = np.sqrt(np.square(r - zy) - x2)
         dzdx = x / f

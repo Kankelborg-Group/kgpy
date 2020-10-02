@@ -17,6 +17,26 @@ class Vignetting:
     mask: np.ndarray
     polynomial_degree: int = 1
 
+    def __call__(
+            self,
+            cube: np.ndarray,
+            wavelength: u.Quantity,
+            spatial_domain: u.Quantity,
+            inverse: bool = False,
+    ) -> np.ndarray:
+
+        output_min, output_max = spatial_domain
+
+        grid_x = np.linspace(output_min[x], output_max[x], cube.shape[~1])
+        grid_y = np.linspace(output_min[y], output_max[y], cube.shape[~0])
+        wavelength, grid_x, grid_y = np.broadcast_arrays(wavelength[..., None, None], grid_x[..., None], grid_y, subok=True)
+
+        model = self.model(inverse=inverse)
+
+        vig = model(wavelength, grid_x, grid_y).to(u.dimensionless_unscaled)[..., 0]
+
+        return vig * cube
+
     def model(self, inverse: bool = False) -> polynomial.Polynomial3D:
         data = self.unvignetted_percent
         names_input, names_output = ['\\lambda', 'x', 'y'], ['$V$']
