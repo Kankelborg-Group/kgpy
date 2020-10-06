@@ -24,14 +24,25 @@ class Vignetting:
             spatial_domain: u.Quantity,
             inverse: bool = False,
     ) -> np.ndarray:
+        return Vignetting.apply_model(
+            model=self.model(inverse=inverse),
+            cube=cube,
+            wavelength=wavelength,
+            spatial_domain=spatial_domain,
+        )
 
+    @staticmethod
+    def apply_model(
+            model: polynomial.Polynomial3D,
+            cube: np.ndarray,
+            wavelength: u.Quantity,
+            spatial_domain: u.Quantity,
+    ):
         output_min, output_max = spatial_domain
 
         grid_x = np.linspace(output_min[x], output_max[x], cube.shape[~1])
         grid_y = np.linspace(output_min[y], output_max[y], cube.shape[~0])
         wavelength, grid_x, grid_y = np.broadcast_arrays(wavelength[..., None, None], grid_x[..., None], grid_y, subok=True)
-
-        model = self.model(inverse=inverse)
 
         vig = model(wavelength, grid_x, grid_y).to(u.dimensionless_unscaled)[..., 0]
 

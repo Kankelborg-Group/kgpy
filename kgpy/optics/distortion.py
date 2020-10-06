@@ -5,7 +5,7 @@ import scipy.ndimage
 import matplotlib.pyplot as plt
 import astropy.units as u
 import pandas
-from kgpy import mixin, vector, format as fmt, polynomial, interpolate
+from kgpy import mixin, vector, format as fmt, polynomial
 from kgpy.vector import x, y, z
 
 __all__ = ['Distortion']
@@ -78,6 +78,9 @@ class Distortion:
         model = self.model(inverse=not inverse)
 
         coordinates = model(wavelength, output_grid_x, output_grid_y)
+
+        sh = cube.shape[:~2]
+        coordinates = np.broadcast_to(coordinates, sh + coordinates.shape[~3:])
 
         coordinates_flat = coordinates.reshape((-1, ) + coordinates.shape[~3:])
         coordinates_flat = np.moveaxis(coordinates_flat, ~0, 2)

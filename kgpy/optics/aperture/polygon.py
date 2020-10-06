@@ -23,8 +23,9 @@ class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.AB
         c = np.zeros(points[x].shape, dtype=np.bool)
 
         for v in range(self.vertices.shape[~1]):
-            vert_j = self.vertices[..., v - 1, :]
-            vert_i = self.vertices[..., v, :]
+            vertices = self.vertices[..., None, None, None, None, None, :, :]
+            vert_j = vertices[..., v - 1, :]
+            vert_i = vertices[..., v, :]
             slope = (vert_j[y] - vert_i[y]) / (vert_j[x] - vert_i[x])
             condition_1 = (vert_i[y] > points[y]) != (vert_j[y] > points[y])
             condition_2 = points[x] < ((points[y] - vert_i[y]) / slope + vert_i[x])
