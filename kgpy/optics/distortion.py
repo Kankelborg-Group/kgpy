@@ -70,24 +70,34 @@ class Distortion:
 
         output_min, output_max = spatial_domain_output
 
-        output_grid_x = np.linspace(output_min[x], output_max[x], spatial_samples_output[x])[:, None]
+        output_grid_x = np.linspace(output_min[x], output_max[x], spatial_samples_output[x])
         output_grid_y = np.linspace(output_min[y], output_max[y], spatial_samples_output[y])
-        output_grid_x, output_grid_y = np.broadcast_arrays(output_grid_x, output_grid_y, subok=True)
+        wavelength, output_grid_x, output_grid_y = np.broadcast_arrays(
+            wavelength[..., None, None], output_grid_x[..., None], output_grid_y, subok=True)
 
-        model = self.model(inverse=inverse)
+        model = self.model(inverse=not inverse)
+
+        coordinates = model(wavelength, output_grid_x, output_grid_y)
+
+        sh = cube.shape[:~2]
+        coordinates = np.broadcast_to(coordinates, sh + coordinates.shape[~3:])
+
+        coordinates_flat = coordinates.reshape((-1, ) + coordinates.shape[~3:])
+        coordinates_flat = np.moveaxis(coordinates_flat, ~0, 2)
 
         cube_flat = cube.reshape((-1,) + cube.shape[~2:])
-        wavelength_flat = wavelength.reshape((-1,) + wavelength.shape[~0:])
 
         new_cube_flat = np.empty(cube_flat.shape[:~1] + tuple(spatial_samples_output))
 
         for i in range(cube_flat.shape[0]):
             for j in range(cube_flat.shape[1]):
+
                 new_cube_flat[i, j] = scipy.ndimage.map_coordinates(
                     input=cube_flat[i, j],
-                    coordinates=model(wavelength_flat[i, j], output_grid_x, output_grid_y),
+                    coordinates=coordinates_flat[i, j],
                     order=interp_order,
                     prefilter=interp_prefilter,
+                    cval=np.nan,
                 )
 
         return new_cube_flat.reshape(cube.shape[:~2] + new_cube_flat.shape[~2:])

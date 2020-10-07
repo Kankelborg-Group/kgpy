@@ -19,19 +19,21 @@ class Standard(Sag):
 
     def __call__(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         r2 = np.square(x) + np.square(y)
-        c = self.curvature
-        sz = c * r2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * r2))
-        mask = r2 >= np.square(self.radius)
+        c = self.curvature[..., None, None, None, None, None]
+        conic = self.conic[..., None, None, None, None, None]
+        sz = c * r2 / (1 + np.sqrt(1 - (1 + conic) * np.square(c) * r2))
+        mask = r2 >= np.square(self.radius[..., None, None, None, None, None])
         sz[mask] = 0
         return sz
 
     def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
         x2, y2 = np.square(x), np.square(y)
-        c = self.curvature
+        c = self.curvature[..., None, None, None, None, None]
         c2 = np.square(c)
-        g = np.sqrt(1 - (1 + self.conic) * c2 * (x2 + y2))
+        conic = self.conic[..., None, None, None, None, None]
+        g = np.sqrt(1 - (1 + conic) * c2 * (x2 + y2))
         dzdx, dzdy = c * x / g, c * y / g
-        mask = (x2 + y2) >= np.square(self.radius)
+        mask = (x2 + y2) >= np.square(self.radius[..., None, None, None, None, None])
         dzdx[mask] = 0
         dzdy[mask] = 0
         n = vector.normalize(vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))

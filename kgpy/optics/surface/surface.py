@@ -66,6 +66,10 @@ class Surface(
         return line(t_intercept)
 
     def propagate_rays(self, rays: Rays, intercept_error: u.Quantity = 0.1 * u.nm) -> Rays:
+
+        if not self.is_active:
+            return rays
+
         from_prev_to_self = rays.transform.inverse + self.transform
         from_self_to_prev = from_prev_to_self.inverse
         rays = rays.apply_transform_list(from_self_to_prev)
