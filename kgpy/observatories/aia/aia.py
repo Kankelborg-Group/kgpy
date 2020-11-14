@@ -1,118 +1,117 @@
+import typing as typ
 import pathlib
 import dataclasses
 import numpy as np
 import datetime
+import astropy.time
+import astropy.wcs
+import astropy.io.fits
 import sunpy
 import sunpy.map
 import sunpy.net.attrs
 import astropy.units as u
-from kgpy.io import fits
-from aiapy.calibrate import register, update_pointing
-
+import aiapy.calibrate
+from .. import Obs
 
 
 @dataclasses.dataclass
-class AIA:
-    intensity: np.ndarray
-    exposure_start_time: np.ndarray
-    exposure_length: np.ndarray
-    wcs: np.ndarray
-    wave: np.ndarray
+class AIA(Obs):
+    """
+    A class for storing downloading and storing a sequence of AIA images
+    """
 
     @classmethod
-    def from_path(cls, name: str, frame_paths = None, directory: pathlib.Path = None):
-        if directory is not None:
-            frame_paths = np.array(sorted(directory.glob('*')))
-        if frame_paths is None:
-            print('Make Sure to Provide a Path')
-        hdu = fits.load_hdu(frame_paths, hdu_index=0)
-        return cls(
-            fits.extract_data(hdu),
-            # for some reason these files have a dash instead of an underscore for this keyword.
-            # That may be a temporary error
-            fits.extract_times(hdu, 'DATE-OBS'),
-            fits.extract_header_value(hdu, 'EXPTIME'),
-            fits.extract_wcs(hdu),
-            fits.extract_header_value(hdu, 'WAVE_STR'),
+    def from_path_array(
+            cls,
+            path_array: np.ndarray,
+    ) -> 'AIA':
+
+        aia_map = sunpy.map.Map(path_array[0, 0])
+        self = cls(
+            intensity=np.empty(path_array.shape + aia_map.data.shape) * u.adu,
+            time=astropy.time.Time(np.zeros(path_array.shape), format='unix'),
+            exposure_length=np.zeros(path_array.shape) * u.s,
+            wavelength=np.zeros(path_array.shape) * u.AA,
+            wcs=np.empty(path_array.shape, dtype=astropy.wcs.WCS),
         )
 
+        for i in range(path_array.shape[0]):
+            for c in range(path_array.shape[1]):
+                aia_map = sunpy.map.Map(path_array[i, c])
+                self.intensity[i, c] = aia_map.data * u.adu
+                self.time[i, c] = aia_map.date
+                self.exposure_length[i, c] = aia_map.exposure_time
+                self.wavelength[i, c] = aia_map.wavelength
+                self.wcs[i, c] = aia_map.wcs
 
+        return self
 
-def fetch_from_time(start: datetime.datetime, end: datetime.datetime, download_path: pathlib.Path,
-                    aia_channels=None, hmi = False):
+    @classmethod
+    def from_time_range(
+            cls,
+            time_start: astropy.time.Time,
+            time_end: astropy.time.Time,
+            download_path: pathlib.Path = None,
+            channels: typ.Optional[u.Quantity] = None,
+            # hmi_B_los: bool = False,
+            user_email: str = 'roytsmart@gmail.com',
+    ):
+        if channels is None:
+            channels = [94, 131, 171, 193, 211, 304, 335] * u.AA
 
-    if aia_channels is None:
-        aia_channels = [94 * u.AA, 131 * u.AA, 171 * u.AA, 193 * u.AA, 211 * u.AA, 304 * u.AA,
-                        335 * u.AA]
+        if download_path is None:
+            download_path = pathlib.Path(__file__).parent / 'data'
 
-    if not download_path.is_dir():
-        download_path.mkdir()
+        if not download_path.is_dir():
+            download_path.mkdir()
 
-    # Initialize JSOC attributes
-    time = sunpy.net.attrs.Time(start, end)
-    notify = sunpy.net.attrs.jsoc.Notify('jacobdparker@gmail.com')
-    segment = sunpy.net.attrs.jsoc.Segment('image')
+        level_1_path = download_path / 'level_1'
+        level_15_path = download_path / 'level_15'
 
-    # Download shortwave AIA data
-    euv_series = sunpy.net.attrs.jsoc.Series('aia.lev1_euv_12s')
-    file_paths = []
-    for channel in aia_channels:
+        if not level_15_path.is_dir():
+            level_15_path.mkdir()
 
-        # Create a separate path for each channel
-        c_path = download_path / str(int(channel.value))
-        if not c_path.is_dir():
-            c_path.mkdir()
+        # Initialize JSOC attributes
+        time = sunpy.net.attrs.Time(time_start, time_end)
+        notify = sunpy.net.attrs.jsoc.Notify(user_email)
+        segment = sunpy.net.attrs.jsoc.Segment('image')
 
-        # Download the data
-        search = sunpy.net.Fido.search(time, euv_series, notify, sunpy.net.attrs.jsoc.Wavelength(channel), segment)
-        files = sunpy.net.Fido.fetch(search, path=str(c_path),max_conn=1)
-        while len(files.errors) > 0:
-            print('Found Errors')
-            files = sunpy.net.Fido.fetch(files, path=str(c_path),max_conn=1)
+        # Download shortwave AIA data
+        euv_series = sunpy.net.attrs.jsoc.Series('aia.lev1_euv_12s')
+        file_paths = []
+        for channel in channels:
 
-        file_paths += files
-        # download_jsoc_series(euv_series, c_path, time, notify, jsoc.Wavelength(channel), segment)
+            # Download the data
+            search = sunpy.net.Fido.search(time, euv_series, notify, sunpy.net.attrs.jsoc.Wavelength(channel), segment)
+            files = sunpy.net.Fido.fetch(search, path=str(level_1_path), max_conn=1)
+            while len(files.errors) > 0:
+                files = sunpy.net.Fido.fetch(files, path=str(level_1_path), max_conn=1)
 
-    # Make folder for hmi data
-    if hmi is True:
-        h_path = download_path / 'hmi'
-        if not h_path.is_dir():
-            h_path.mkdir()
-        # Download HMI data
-        hmi_series = sunpy.net.attrs.jsoc.Series('hmi.M_45s')
-        hmi_search = sunpy.net.Fido.search(time, hmi_series, notify)
-        sunpy.net.Fido.fetch(hmi_search, path=str(h_path))
+            files = sorted(files)
 
-    return file_paths
+            files_15 = []
+            for file in files:
+                file_15 = level_15_path / pathlib.Path(file).name
+                files_15.append(file_15)
+                if not file_15.is_file():
+                    aia_map = sunpy.map.Map(file)
+                    aia_map = aiapy.calibrate.update_pointing(aia_map)
+                    aia_map = aiapy.calibrate.register(aia_map)
+                    aia_map.save(file_15)
 
-def aiaprep_from_paths(files):
-    """
-    Prep downloaded AIA files to level 1.5.  Designed to take the file_paths returned by fetch_from_time as input
-    """
-    saved_files= []
-    for file in files:
-        file = pathlib.Path(file)
-        map = sunpy.map.Map(file)
+            file_paths.append(files_15)
 
-        instrument = 'aia.'
-        wave = str(map.fits_header['WAVELNTH'])
-        time = map.fits_header['T_OBS']
+        # # Make folder for hmi data
+        # if hmi_B_los is True:
+        #     h_path = download_path / 'hmi'
+        #     if not h_path.is_dir():
+        #         h_path.mkdir()
+        #     # Download HMI data
+        #     hmi_series = sunpy.net.attrs.jsoc.Series('hmi.M_45s')
+        #     hmi_search = sunpy.net.Fido.search(time, hmi_series, notify)
+        #     hmi_files = sunpy.net.Fido.fetch(hmi_search, path=str(h_path))
+        #     file_paths.append(hmi_files)
+        #
+        file_paths = np.array(file_paths).T
 
-        file_name = pathlib.Path(instrument+wave+'.'+time+'.lev1.5.fits')
-        dir_path = file.parent / 'lev15/'
-
-        if not dir_path.is_dir():
-            dir_path.mkdir()
-
-        save_path = dir_path/file_name
-        saved_files.append(save_path)
-        if not save_path.is_file():
-            print('Prepping'+str(file))
-            map_15 = update_pointing(map)
-            map_15 = register(map_15)
-            map_15.save(save_path)
-
-    return saved_files
-
-
-
+        return cls.from_path_array(file_paths)
