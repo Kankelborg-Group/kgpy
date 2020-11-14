@@ -11,11 +11,11 @@ import sunpy.map
 import sunpy.net.attrs
 import astropy.units as u
 import aiapy.calibrate
-from .. import Obs
+import kgpy
 
 
 @dataclasses.dataclass
-class AIA(Obs):
+class AIA(kgpy.Obs):
     """
     A class for storing downloading and storing a sequence of AIA images
     """
