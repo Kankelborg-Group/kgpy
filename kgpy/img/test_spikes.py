@@ -1,15 +1,16 @@
+import pytest
 import pathlib
 import numpy as np
 import astropy.io.fits
 import matplotlib.pyplot as plt
-
 import kgpy
-from kgpy.plot.slice.image_stepper import CubeSlicer
+from kgpy.plot import CubeSlicer
 from kgpy.img import spikes
 
 testfile = pathlib.Path(kgpy.__file__).parent.parent / 'data/iris_l2_20150615_072426_3610091469_raster_t000_r00000.fits'
 
 
+@pytest.mark.skip('Anti-test')
 def test_identify_and_fix():
 
     data = astropy.io.fits.open(testfile)[4].data
@@ -29,6 +30,7 @@ def test_identify_and_fix():
     plt.show()
 
 
+@pytest.mark.skip('Anti-test')
 def test_identify():
 
     data = astropy.io.fits.open(testfile)[4].data

@@ -9,6 +9,7 @@ setup(
         'matplotlib',
         'scipy',
         'astropy',
+        'sunpy',
         'pandas',
         # 'beautifultable',
         # 'pywin32 ; platform_system=="Windows"',
