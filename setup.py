@@ -9,6 +9,7 @@ setup(
         'matplotlib',
         'scipy',
         'astropy',
+        'pandas',
         # 'beautifultable',
         # 'pywin32 ; platform_system=="Windows"',
         'pytest',
