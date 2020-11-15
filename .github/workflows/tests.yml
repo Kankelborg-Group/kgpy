@@ -17,7 +17,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install package
+      - name: Update pip and install test infrastructure
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools flake8 pytest
+          pip install flake8 pytest
+      - name: Install package
+        run: |
+          cwd
+          pip install -e .
