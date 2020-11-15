@@ -23,5 +23,5 @@ jobs:
           pip install flake8 pytest
       - name: Install package
         run: |
-          cwd
+          pwd
           pip install -e .
