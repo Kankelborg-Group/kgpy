@@ -27,13 +27,8 @@ class AIA(kgpy.Obs):
     ) -> 'AIA':
 
         aia_map = sunpy.map.Map(path_array[0, 0])
-        self = cls(
-            intensity=np.empty(path_array.shape + aia_map.data.shape) * u.adu,
-            time=astropy.time.Time(np.zeros(path_array.shape), format='unix'),
-            exposure_length=np.zeros(path_array.shape) * u.s,
-            wavelength=np.zeros(path_array.shape) * u.AA,
-            wcs=np.empty(path_array.shape, dtype=astropy.wcs.WCS),
-        )
+        self = cls.zeros(path_array.shape + aia_map.data.shape)
+        self.channel = np.zeros(path_array.shape[~0]) * u.AA
 
         for i in range(path_array.shape[0]):
             for c in range(path_array.shape[1]):
@@ -41,7 +36,7 @@ class AIA(kgpy.Obs):
                 self.intensity[i, c] = aia_map.data * u.adu
                 self.time[i, c] = aia_map.date
                 self.exposure_length[i, c] = aia_map.exposure_time
-                self.wavelength[i, c] = aia_map.wavelength
+                self.channel[c] = aia_map.wavelength
                 self.wcs[i, c] = aia_map.wcs
 
         return self
@@ -83,9 +78,9 @@ class AIA(kgpy.Obs):
 
             # Download the data
             search = sunpy.net.Fido.search(time, euv_series, notify, sunpy.net.attrs.jsoc.Wavelength(channel), segment)
-            files = sunpy.net.Fido.fetch(search, path=str(level_1_path), max_conn=1)
+            files = sunpy.net.Fido.fetch(search, path=str(level_1_path), max_conn=1, progress=False)
             while len(files.errors) > 0:
-                files = sunpy.net.Fido.fetch(files, path=str(level_1_path), max_conn=1)
+                files = sunpy.net.Fido.fetch(files, path=str(level_1_path), max_conn=1, progress=False)
 
             files = sorted(files)
 
