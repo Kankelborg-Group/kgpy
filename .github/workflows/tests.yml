@@ -38,9 +38,22 @@ jobs:
         run: |
           pip install pytest pytest-cov
           pytest --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html
-      - name: Upload pytest coverage report
-        uses: actions/upload-artifact@v2
+#      - name: Upload pytest coverage report
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: pytest-coverage-${{ matrix.os }}-${{ matrix.python-version }}
+#          path: coverage.xml
+#        if: ${{ always() }}
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
         with:
-          name: pytest-coverage-${{ matrix.os }}-${{ matrix.python-version }}
-          path: coverage.xml
-        if: ${{ always() }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          files: ./coverage1.xml,./coverage2.xml
+          directory: ./coverage/reports/
+          flags: unittests
+          env_vars: OS,PYTHON
+          name: codecov-umbrella
+          fail_ci_if_error: true
+          path_to_write_report: ./coverage/codecov_report.gz
+          verbose: true
