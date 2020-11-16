@@ -1,2 +1,0 @@
-class SolveStatus:
-    pass
