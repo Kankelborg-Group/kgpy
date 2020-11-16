@@ -10,7 +10,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
         python-version: [3.7, 3.8]
-    name: ${{ matrix.os}}, Python ${{ matrix.python-version }} lint and test
+    name: ${{ matrix.os }}, Python ${{ matrix.python-version }} lint and test
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
@@ -38,9 +38,9 @@ jobs:
         run: |
           pip install pytest pytest-cov
           pytest --doctest-modules --junitxml=junit/test-results.xml --cov=. --cov-report=xml --cov-report=html
-      - name: Upload pytest test results
+      - name: Upload pytest coverage report
         uses: actions/upload-artifact@v2
         with:
-          name: pytest-results-${{ matrix.python-version }}
-          path: junit/test-results-${{ matrix.python-version }}.xml
+          name: pytest-coverage-${{ matrix.os }}-${{ matrix.python-version }}
+          path: coverage.xml
         if: ${{ always() }}
