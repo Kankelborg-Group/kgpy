@@ -33,7 +33,7 @@ def power_law_image(
     :param alpha: power law index for the image power spectrum (goes as k^(-alpha))
     :param meanval: mean value of the image.
     :param pad: positive integer factor for padding arrays. pad=2 or higher prevents the output image from being
-    periodic in structure.
+        periodic in structure.
     :return:
     """
 
