@@ -17,6 +17,7 @@ setup(
         'urlpath',
         'shapely',
         'sphinx-autodoc-typehints',
+        'astropy-sphinx-theme',
     ],
     url='https://titan.ssel.montana.edu/gitlab/Kankelborg-Group/kgpy',
     license='',
