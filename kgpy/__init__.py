@@ -17,3 +17,5 @@ from ._name import Name
 from . import fft
 from ._rebin import rebin
 from ._obs import Obs
+
+Obs.__module__ = __name__

@@ -14,6 +14,9 @@ from . import Distortion, Vignetting
 
 __all__ = ['Rays']
 
+# import matplotlib.axes
+# plt.Axes.__module__ = matplotlib.axes.__name__
+
 
 class CAxis(AutoAxis):
     def __init__(self):
@@ -57,17 +60,19 @@ class Rays(transform.rigid.Transformable):
     )
 
     @property
-    def field_angles(self) -> u.Quantity:
+    @u.quantity_input
+    def field_angles(self) -> u.rad:
         angles = np.arcsin(self.direction)[vector.xy] << u.rad
         return angles[..., ::-1]
 
     @classmethod
+    @u.quantity_input
     def from_field_angles(
             cls,
-            wavelength_grid: u.Quantity,
-            position: u.Quantity,
-            field_grid_x: u.Quantity,
-            field_grid_y: u.Quantity,
+            wavelength_grid: u.nm,
+            position: u.mm,
+            field_grid_x: u.deg,
+            field_grid_y: u.deg,
             pupil_grid_x: typ.Optional[u.Quantity] = None,
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ) -> 'Rays':

@@ -17,3 +17,15 @@ from ._irregular_polygon import IrregularPolygon
 from ._general_polygon import GeneralPolygon
 from ._isosceles_trapezoid import IsoscelesTrapezoid
 from ._asymmetric_rectangular import AsymmetricRectangular
+
+Aperture.__module__ = __name__
+Decenterable.__module__ = __name__
+Obscurable.__module__ = __name__
+Circular.__module__ = __name__
+Polygon.__module__ = __name__
+Rectangular.__module__ = __name__
+RegularPolygon.__module__ = __name__
+IrregularPolygon.__module__ = __name__
+GeneralPolygon.__module__ = __name__
+IsoscelesTrapezoid.__module__ = __name__
+AsymmetricRectangular.__module__ = __name__

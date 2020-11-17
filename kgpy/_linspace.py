@@ -12,7 +12,7 @@ def linspace(start: u.Quantity, stop: u.Quantity, num: int, axis: int = 0) -> u.
 
 def linspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np.ndarray:
     """
-    A modified version of :code:`numpy.linspace()` that returns a value in the center of the range between `start`
+    A modified version of :func:`numpy.linspace()` that returns a value in the center of the range between `start`
     and `stop` if `num == 1` unlike `numpy.linspace` which would just return `start`.
     This function is often helfpul when creating a grid.
     Sometimes you want to test with only a single element, but you want that element to be in the center of the range
@@ -33,7 +33,7 @@ def linspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np
 
 def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np.ndarray:
     """
-    A modified version of `numpy.linspace` that selects cell centers instead of cell edges.
+    A modified version of :func:`numpy.linspace` that selects cell centers instead of cell edges.
 
     :param start:
     :param stop:

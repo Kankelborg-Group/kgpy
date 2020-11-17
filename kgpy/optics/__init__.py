@@ -29,3 +29,11 @@ from ._surface import Surface
 from ._surface_list import SurfaceList
 from . import component
 from ._system import System
+
+Distortion.__module__ = __name__
+Vignetting.__module__ = __name__
+Rays.__module__ = __name__
+RaysList.__module__ = __name__
+Surface.__module__ = __name__
+SurfaceList.__module__ = __name__
+System.__module__ = __name__

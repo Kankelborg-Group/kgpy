@@ -7,3 +7,5 @@ __all__ = ['Transform', 'rigid']
 
 from ._transform import Transform
 from . import rigid
+
+Transform.__module__ = __name__

@@ -31,7 +31,7 @@ class System(
     """
     object_surface: Surface = dataclasses.field(default_factory=Surface)        #: Surface representing light source
     surfaces: SurfaceList = dataclasses.field(default_factory=SurfaceList)      #: All surfaces in the optical system
-    wavelengths: typ.Optional[u.Quantity] = None    #: Source wavelengths
+    wavelengths: u.nm = 0 * u.nm    #: Source wavelengths
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the pupil for each axis x, y
     pupil_margin: u.Quantity = 1 * u.um     #: Margin between edge of pupil and nearest ray
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the field for each axis x, y

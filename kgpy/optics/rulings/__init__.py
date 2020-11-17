@@ -7,3 +7,7 @@ __all__ = ['Rulings', 'ConstantDensity', 'CubicPolyDensity']
 from ._rulings import Rulings
 from ._constant_density import ConstantDensity
 from ._cubic_poly_density import CubicPolyDensity
+
+Rulings.__module__ = __name__
+ConstantDensity.__module__ = __name__
+CubicPolyDensity.__module__ = __name__
