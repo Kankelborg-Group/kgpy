@@ -23,7 +23,7 @@ def linspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np
     :param num: Number of samples to generate for this sequence.
     :param axis: The axis in the result used to store the samples. The default is the first axis.
     :return: An array the size of the broadcasted shape of `start` and `stop` with an additional dimension of length
-    `num`.
+        `num`.
     """
     if num == 1:
         return np.expand_dims((start + stop) / 2, axis=axis)

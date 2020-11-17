@@ -5,6 +5,9 @@ __all__ = ['AutoAxis']
 
 
 class AutoAxis:
+    """
+    Semi-automated axis numbering
+    """
 
     @abc.abstractmethod
     def __init__(self):
