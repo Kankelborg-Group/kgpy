@@ -5,5 +5,5 @@ Currently, the only supported transforms are rigid transformations.
 
 __all__ = ['Transform', 'rigid']
 
-from .transform import Transform
+from ._transform import Transform
 from . import rigid

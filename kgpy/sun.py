@@ -1,4 +1,3 @@
-
 import astropy.units as u
 
 __all__ = ['angular_radius_max']

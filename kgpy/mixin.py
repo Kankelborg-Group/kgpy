@@ -7,7 +7,7 @@ import pathlib
 import pickle
 import typing as typ
 
-from .name import Name
+from kgpy import Name
 
 __all__ = ['Broadcastable', 'Named', 'Dataframable', 'Copyable', 'Pickleable', 'Plottable']
 

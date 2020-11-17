@@ -6,16 +6,14 @@ __all__ = [
     'AutoAxis',
     'linspace', 'midspace',
     'Name',
-    'Component',
     'fft',
     'rebin',
     'Obs',
 ]
 
-from .auto_axis import AutoAxis
-from .linspace import linspace, midspace
-from .name import Name
-from .component import Component
+from ._auto_axis import AutoAxis
+from ._linspace import linspace, midspace
+from ._name import Name
 from . import fft
-from .rebin import rebin
-from .obs import Obs
+from ._rebin import rebin
+from ._obs import Obs

@@ -6,14 +6,14 @@ __all__ = ['Aperture', 'Decenterable', 'Obscurable', 'Circular', 'Polygon', 'Rec
            'IrregularPolygon',
            'IsoscelesTrapezoid', 'AsymmetricRectangular']
 
-from .aperture import Aperture
-from .decenterable import Decenterable
-from .obscurable import Obscurable
-from .circular import Circular
-from .polygon import Polygon
-from .rectangular import Rectangular
-from .regular_polygon import RegularPolygon
-from .irregular_polygon import IrregularPolygon
-from .general_polygon import GeneralPolygon
-from .isosceles_trapezoid import IsoscelesTrapezoid
-from .asymmetric_rectangular import AsymmetricRectangular
+from ._aperture import Aperture
+from ._decenterable import Decenterable
+from ._obscurable import Obscurable
+from ._circular import Circular
+from ._polygon import Polygon
+from ._rectangular import Rectangular
+from ._regular_polygon import RegularPolygon
+from ._irregular_polygon import IrregularPolygon
+from ._general_polygon import GeneralPolygon
+from ._isosceles_trapezoid import IsoscelesTrapezoid
+from ._asymmetric_rectangular import AsymmetricRectangular

@@ -2,7 +2,8 @@ import typing as typ
 import abc
 import astropy.units as u
 from kgpy import mixin, vector
-from .. import Rays, Material
+from .. import Rays
+from ..material import Material
 
 __all__ = ['Rulings']
 

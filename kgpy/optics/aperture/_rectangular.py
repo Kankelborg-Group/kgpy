@@ -3,13 +3,13 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import kgpy.vector
-from . import polygon
+from . import Polygon
 
 __all__ = ['Rectangular']
 
 
 @dataclasses.dataclass
-class Rectangular(polygon.Polygon):
+class Rectangular(Polygon):
 
     half_width_x: u.Quantity = 0 * u.mm
     half_width_y: u.Quantity = 0 * u.mm

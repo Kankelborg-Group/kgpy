@@ -6,13 +6,13 @@ import astropy.units as u
 import shapely.geometry
 import kgpy.vector
 from kgpy.vector import x, y, z
-from . import Aperture, obscurable, decenterable
+from . import Aperture, Obscurable, Decenterable
 
 __all__ = ['Polygon']
 
 
 @dataclasses.dataclass
-class Polygon(decenterable.Decenterable, obscurable.Obscurable, Aperture, abc.ABC):
+class Polygon(Decenterable, Obscurable, Aperture, abc.ABC):
 
     @property
     def shapely_poly(self) -> shapely.geometry.Polygon:

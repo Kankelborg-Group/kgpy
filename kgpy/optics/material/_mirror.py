@@ -6,7 +6,8 @@ from astropy import units as u
 import astropy.visualization
 from kgpy import vector, transform, optics
 from kgpy.vector import x, y, z
-from .. import Rays, Aperture
+from .. import Rays
+from ..aperture import Aperture
 from . import Material
 
 

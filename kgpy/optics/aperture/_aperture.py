@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.visualization
 from kgpy import mixin, vector, transform
-from .. import Sag
+from ..sag import Sag
 
 __all__ = ['Aperture']
 

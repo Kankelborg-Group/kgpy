@@ -7,10 +7,10 @@ import matplotlib.colors
 import astropy.units as u
 import astropy.visualization
 import astropy.modeling
-import kgpy.transform.rigid.transform_list
+# import kgpy.transform.rigid.transform_list
 from kgpy import AutoAxis, vector, transform, format as fmt
 from kgpy.vector import x, y, z, ix, iy, iz
-from .. import Distortion, Vignetting
+from . import Distortion, Vignetting
 
 __all__ = ['Rays']
 
@@ -40,7 +40,7 @@ class VAxis(Axis, CAxis):
 
 
 @dataclasses.dataclass
-class Rays(kgpy.transform.rigid.Transformable):
+class Rays(transform.rigid.Transformable):
     axis = Axis()
     vaxis = VAxis()
 

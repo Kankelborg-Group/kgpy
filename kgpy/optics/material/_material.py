@@ -4,7 +4,8 @@ import typing as typ
 import matplotlib.pyplot as plt
 import astropy.units as u
 from kgpy import mixin, vector, transform
-from .. import Rays, Aperture
+from .. import Rays
+from ..aperture import Aperture
 
 __all__ = ['Material']
 

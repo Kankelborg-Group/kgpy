@@ -6,15 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 from kgpy import mixin, vector, transform, optimization
-from .. import Rays, Sag, Rulings, Aperture, Material
+from . import Rays, sag, rulings, aperture, material
 
 __all__ = ['Surface']
 
-SagT = typ.TypeVar('SagT', bound=Sag)
-MaterialT = typ.TypeVar('MaterialT', bound=Material)
-ApertureT = typ.TypeVar('ApertureT', bound=Aperture)
-ApertureMechT = typ.TypeVar('ApertureMechT', bound=Aperture)
-RulingsT = typ.TypeVar('RulingsT', bound=Rulings)
+SagT = typ.TypeVar('SagT', bound=sag.Sag)
+MaterialT = typ.TypeVar('MaterialT', bound=material.Material)
+ApertureT = typ.TypeVar('ApertureT', bound=aperture.Aperture)
+ApertureMechT = typ.TypeVar('ApertureMechT', bound=aperture.Aperture)
+RulingsT = typ.TypeVar('RulingsT', bound=rulings.Rulings)
 
 
 @dataclasses.dataclass

@@ -5,29 +5,27 @@ kgpy.optics is a package designed for simulating optical systems.
 __all__ = [
     'Distortion',
     'Vignetting',
-    'Rays', 'RaysList',
-    'sag', 'Sag',
-    'aperture', 'Aperture',
-    'material', 'Material',
-    'rulings', 'Rulings',
-    'surface', 'Surface', 'SurfaceList',
-    'component', 'Component',
+    'Rays',
+    'RaysList',
+    'sag',
+    'aperture',
+    'material',
+    'rulings',
+    'Surface',
+    'SurfaceList',
+    'component',
     'System',
 ]
 
-from .distortion import Distortion
-from .vignetting import Vignetting
-from .rays import Rays, RaysList
+from ._distortion import Distortion
+from ._vignetting import Vignetting
+from ._rays import Rays
+from ._rays_list import RaysList
 from . import sag
-from .sag import Sag
 from . import aperture
-from .aperture import Aperture
 from . import material
-from .material import Material
 from . import rulings
-from .rulings import Rulings
-from . import surface
-from .surface import Surface, SurfaceList
+from ._surface import Surface
+from ._surface_list import SurfaceList
 from . import component
-from .component import Component
-from .system import System
+from ._system import System

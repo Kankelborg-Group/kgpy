@@ -4,6 +4,6 @@ This package allows for the simulation of various groove profiles.
 """
 __all__ = ['Rulings', 'ConstantDensity', 'CubicPolyDensity']
 
-from .rulings import Rulings
-from .constant_density import ConstantDensity
-from .cubic_poly_density import CubicPolyDensity
+from ._rulings import Rulings
+from ._constant_density import ConstantDensity
+from ._cubic_poly_density import CubicPolyDensity

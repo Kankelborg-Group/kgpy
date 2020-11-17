@@ -4,13 +4,13 @@ import typing as typ
 import numpy as np
 import astropy.units as u
 
-from . import Aperture, decenterable
+from . import Aperture, Decenterable
 
 __all__ = ['Spider']
 
 
 @dataclasses.dataclass
-class Spider(decenterable.Decenterable, Aperture):
+class Spider(Decenterable, Aperture):
 
     arm_half_width: u.Quantity = 0 * u.mm
     num_arms: int = 2

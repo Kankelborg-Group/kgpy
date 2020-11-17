@@ -3,7 +3,8 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 from kgpy import vector
-from .. import Rays, Material
+from .. import Rays
+from ..material import Material
 from . import Rulings
 
 __all__ = ['ConstantDensity']

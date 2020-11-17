@@ -8,7 +8,7 @@ __all__ = [
     'Translate'
 ]
 
-from .transform import Transform
-from .transform_list import TransformList, Transformable
-from .tilt import TiltX, TiltY, TiltZ
-from .translate import Translate
+from ._transform import Transform
+from ._transform_list import TransformList, Transformable
+from ._tilt import TiltX, TiltY, TiltZ
+from ._translate import Translate

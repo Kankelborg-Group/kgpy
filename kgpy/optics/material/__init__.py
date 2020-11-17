@@ -1,2 +1,6 @@
-from .material import Material
-from .mirror import Mirror
+"""
+Library of optical materials
+"""
+
+from ._material import Material
+from ._mirror import Mirror
