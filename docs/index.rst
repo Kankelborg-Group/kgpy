@@ -6,6 +6,7 @@ Kankelborg Group repositories (that generally represent different instruments).
 
 .. autosummary::
     :toctree: _autosummary
+    :template: module_custom.rst
     :recursive:
 
     kgpy

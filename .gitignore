@@ -51,4 +51,5 @@
 *.egg-info/
 
 # Sphinx
-_build
+docs/_build/
+docs/_autosummary/
