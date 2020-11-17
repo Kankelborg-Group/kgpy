@@ -3,7 +3,7 @@ import numpy as np
 import astropy.units as u
 from kgpy import vector
 from kgpy.vector import x_hat, y_hat, z_hat
-from . import tilt
+from . import _tilt
 
 
 class TestTiltX:
@@ -17,7 +17,7 @@ class TestTiltX:
         ],
     )
     def test__call__(self, vec: u.Quantity, angle: u.Quantity, vec_out: u.Quantity):
-        assert np.isclose(tilt.TiltX(angle)(vec), vec_out).all()
+        assert np.isclose(_tilt.TiltX(angle)(vec), vec_out).all()
 
 
 class TestTiltY:
@@ -31,7 +31,7 @@ class TestTiltY:
         ],
     )
     def test__call__(self, vec: u.Quantity, angle: u.Quantity, vec_out: u.Quantity):
-        assert np.isclose(tilt.TiltY(angle)(vec), vec_out).all()
+        assert np.isclose(_tilt.TiltY(angle)(vec), vec_out).all()
 
 
 class TestTiltZ:
@@ -45,4 +45,4 @@ class TestTiltZ:
         ],
     )
     def test__call__(self, vec: u.Quantity, angle: u.Quantity, vec_out: u.Quantity):
-        assert np.isclose(tilt.TiltZ(angle)(vec), vec_out).all()
+        assert np.isclose(_tilt.TiltZ(angle)(vec), vec_out).all()

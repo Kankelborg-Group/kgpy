@@ -1,2 +1,2 @@
-from .golden_section_search import golden_section_search
-from .coordinate_descent import coordinate_descent
+from ._golden_section_search import golden_section_search
+from ._coordinate_descent import coordinate_descent

@@ -26,13 +26,16 @@ class System(
     mixin.Broadcastable,
     mixin.Named,
 ):
-    object_surface: Surface = dataclasses.field(default_factory=Surface)
-    surfaces: SurfaceList = dataclasses.field(default_factory=SurfaceList)
-    wavelengths: typ.Optional[u.Quantity] = None
-    pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3
-    pupil_margin: u.Quantity = 1 * u.um
-    field_samples: typ.Union[int, typ.Tuple[int, int]] = 3
-    field_margin: u.Quantity = 1 * u.nrad
+    """
+    Model of an optical system.
+    """
+    object_surface: Surface = dataclasses.field(default_factory=Surface)        #: Surface representing light source
+    surfaces: SurfaceList = dataclasses.field(default_factory=SurfaceList)      #: All surfaces in the optical system
+    wavelengths: typ.Optional[u.Quantity] = None    #: Source wavelengths
+    pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the pupil for each axis x, y
+    pupil_margin: u.Quantity = 1 * u.um     #: Margin between edge of pupil and nearest ray
+    field_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the field for each axis x, y
+    field_margin: u.Quantity = 1 * u.nrad       #: Margin between edge of field and nearest ray
     # baffle_positions: typ.Optional[typ.List[transform.rigid.Transform]] = None
 
     def __post_init__(self):

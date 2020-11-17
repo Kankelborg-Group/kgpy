@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.time
 import kgpy.plot
-import kgpy.test_obs
+import kgpy._obs_test
 from . import AIA
 
 
@@ -18,7 +18,7 @@ def obs_test() -> AIA:
     return AIA.from_time_range(time_start, time_end, download_path, channels=channels)
 
 
-class TestAIA(kgpy.test_obs.TestObs):
+class TestAIA(kgpy._obs_test.TestObs):
 
     def test_from_time_range(self,  obs_test: AIA):
         # with capsys.disabled():
