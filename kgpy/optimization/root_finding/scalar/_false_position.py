@@ -44,7 +44,7 @@ def false_position(
 
     Returns
     -------
-    numpy.ndarray
+    ~numpy.ndarray
         Root of the function
 
     Raises

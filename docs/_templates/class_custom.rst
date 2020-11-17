@@ -31,3 +31,9 @@
     {% endif %}
     {% endblock %}
 
+    {% block dia %}
+    .. rubric:: {{ _('Inheritance Diagram') }}
+
+    .. inheritance-diagram:: {{ fullname }}
+    {% endblock %}
+
