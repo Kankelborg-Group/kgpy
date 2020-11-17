@@ -12,15 +12,14 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../'))
 
+sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information -----------------------------------------------------
 
 project = 'kgpy'
 copyright = '2020, Roy T. Smart, Charles C. Kankelborg, Jacob D. Parker, Nelson C. Goldsworth'
 author = 'Roy T. Smart, Charles C. Kankelborg, Jacob D. Parker, Nelson C. Goldsworth'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -30,11 +29,15 @@ author = 'Roy T. Smart, Charles C. Kankelborg, Jacob D. Parker, Nelson C. Goldsw
 extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
+    # "sphinx.ext.autodoc.typehints",
     'sphinx_autodoc_typehints',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
 ]
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 autosummary_imported_members = True
+
+autodoc_typehints = "description"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -43,7 +46,6 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 # directories to ignore when looking for source files.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -54,9 +56,9 @@ html_theme = 'bootstrap-astropy'
 html_theme_options = {
     'logotext1': 'kg',  # white,  semi-bold
     'logotext2': 'py',  # blue, light
-    'logotext3': ':docs',   # white,  light
+    'logotext3': ':docs',  # white,  light
     'astropy_project_menubar': False
-    }
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -65,3 +67,17 @@ html_static_path = ['_static']
 
 # https://github.com/readthedocs/readthedocs.org/issues/2569
 master_doc = 'index'
+
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'matplotlib': ('https://matplotlib.org', None),
+    'astropy': ('https://docs.astropy.org/en/stable/', None)
+}
+
+import matplotlib.pyplot as plt
+import matplotlib.axes
+import astropy.time
+plt.Axes.__module__ = matplotlib.axes.__name__
+astropy.time.Time.__module__ = astropy.time.__name__
