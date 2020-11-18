@@ -39,7 +39,9 @@ autosummary_generate = True  # Turn on sphinx.ext.autosummary
 autosummary_imported_members = True
 
 autodoc_typehints = "description"
+
 graphviz_output_format = 'svg'
+inheritance_graph_attrs = dict(rankdir='TB')
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
