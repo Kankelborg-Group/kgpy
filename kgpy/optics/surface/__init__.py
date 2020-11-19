@@ -16,7 +16,7 @@ from .rulings import Rulings
 
 __all__ = ['Surface', 'SagT', 'SurfaceList']
 
-SagT = typ.TypeVar('SagT', bound=Sag)       #: Generic :class:`kgpy.optics.sag.Sag` type
+SagT = typ.TypeVar('SagT', bound=Sag)       #: Generic :class:`kgpy.optics.surface.sag.Sag` type
 MaterialT = typ.TypeVar('MaterialT', bound=Material)
 ApertureT = typ.TypeVar('ApertureT', bound=Aperture)
 ApertureMechT = typ.TypeVar('ApertureMechT', bound=Aperture)

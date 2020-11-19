@@ -14,6 +14,7 @@ import os
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.axes
+import astropy.units
 import astropy.time
 import pandas
 
@@ -95,6 +96,7 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
 }
 
-# plt.Axes.__module__ = matplotlib.axes.__name__
-# astropy.time.Time.__module__ = astropy.time.__name__
-# pandas.DataFrame.__module__ = pandas.__name__
+plt.Axes.__module__ = matplotlib.axes.__name__
+astropy.units.Quantity.__module__ = astropy.units.__name__
+astropy.time.Time.__module__ = astropy.time.__name__
+pandas.DataFrame.__module__ = pandas.__name__

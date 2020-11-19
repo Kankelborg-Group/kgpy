@@ -17,7 +17,7 @@ from kgpy import mixin
 __all__ = ['Obs']
 
 
-class Axis(mixin.AutoAxis):
+class ObsAxis(mixin.AutoAxis):
     def __init__(self):
         super().__init__()
         self.y = self.auto_axis_index()
@@ -32,7 +32,7 @@ class Axis(mixin.AutoAxis):
 
 @dataclasses.dataclass
 class Obs:
-    axis: typ.ClassVar[Axis] = Axis()                       #: Relationship between physical dimension and axis index.
+    axis: typ.ClassVar[ObsAxis] = ObsAxis()                 #: Relationship between physical dimension and axis index.
     intensity: typ.Optional[u.Quantity] = None              #: Intensity of each pixel in the data
     intensity_uncertainty: typ.Optional[u.Quantity] = None
     wcs: typ.Optional[np.ndarray] = None
@@ -79,6 +79,20 @@ class Obs:
             legend_ncol: int = 1,
             drawstyle: str = 'steps',
     ) -> plt.Axes:
+        """
+
+        Parameters
+        ----------
+        a:
+        a_name
+        ax :
+        legend_ncol
+        drawstyle
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
         if ax is None:
             fig, ax = plt.subplots()
         with astropy.visualization.quantity_support():
