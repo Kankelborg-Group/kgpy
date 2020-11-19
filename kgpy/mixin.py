@@ -9,7 +9,40 @@ import typing as typ
 
 from kgpy import Name
 
-__all__ = ['Broadcastable', 'Named', 'Dataframable', 'Copyable', 'Pickleable', 'Plottable']
+__all__ = ['AutoAxis', 'Broadcastable', 'Named', 'Dataframable', 'Copyable', 'Pickleable', 'Plottable']
+
+
+class AutoAxis:
+    """
+    Semi-automated axis numbering
+    """
+
+    @abc.abstractmethod
+    def __init__(self):
+        super().__init__()
+        self.num_left_dim = 0       #: Number of dimensions on the left side of the array.
+        self.num_right_dim = 0      #: Number of dimensions on the right side of the array
+        self.all = []               #: List of indices for each axis.
+
+    @property
+    def ndim(self) -> int:
+        return self.num_left_dim + self.num_right_dim
+
+    def auto_axis_index(self, from_right: bool = True):
+        if from_right:
+            i = ~self.num_right_dim
+            self.num_right_dim += 1
+        else:
+            i = self.num_left_dim
+            self.num_left_dim += 1
+        self.all.append(i)
+        return i
+
+    def perp_axes(self, axis: int) -> typ.Tuple[int, ...]:
+        axes = self.all.copy()
+        axes = [a % self.ndim for a in axes]
+        axes.remove(axis % self.ndim)
+        return tuple([a - self.ndim for a in axes])
 
 
 class Pickleable(abc.ABC):
@@ -62,7 +95,7 @@ class Broadcastable:
 
 class Dataframable:
     """
-    This mixin class naively converts a child class to a :py:class:`pandas.Dataframe`.
+    This mixin class naively converts a child class to a :class:`pandas.Dataframe`.
     """
     @property
     @abc.abstractmethod

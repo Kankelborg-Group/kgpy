@@ -12,6 +12,11 @@
 #
 import os
 import sys
+import matplotlib.pyplot as plt
+import matplotlib.axes
+import astropy.time
+import pandas
+
 
 sys.path.insert(0, os.path.abspath('../'))
 
@@ -36,9 +41,15 @@ extensions = [
     'sphinx.ext.inheritance_diagram',
 ]
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
-autosummary_imported_members = True
-
+# autosummary_imported_members = True
+# autoclass_content = 'both'
 autodoc_typehints = "description"
+
+# autosummary_filename_map = {
+#     'kgpy.optics.Surface': 'kgpy.optics.Surface_cls',
+# }
+
+typehints_fully_qualified = True
 
 graphviz_output_format = 'svg'
 inheritance_graph_attrs = dict(rankdir='TB')
@@ -55,13 +66,16 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
+
 html_theme = 'bootstrap-astropy'
 html_theme_options = {
     'logotext1': 'kg',  # white,  semi-bold
     'logotext2': 'py',  # blue, light
     'logotext3': ':docs',  # white,  light
     'astropy_project_menubar': False
+}
+html_sidebars = {
+   '**': ['globaltoc.html'],
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -77,11 +91,10 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'matplotlib': ('https://matplotlib.org', None),
-    'astropy': ('https://docs.astropy.org/en/stable/', None)
+    'astropy': ('https://docs.astropy.org/en/stable/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
 }
 
-import matplotlib.pyplot as plt
-import matplotlib.axes
-import astropy.time
-plt.Axes.__module__ = matplotlib.axes.__name__
-astropy.time.Time.__module__ = astropy.time.__name__
+# plt.Axes.__module__ = matplotlib.axes.__name__
+# astropy.time.Time.__module__ = astropy.time.__name__
+# pandas.DataFrame.__module__ = pandas.__name__

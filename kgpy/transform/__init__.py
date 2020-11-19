@@ -2,10 +2,21 @@
 Package for general coordinate transforms.
 Currently, the only supported transforms are rigid transformations.
 """
+import abc
+from kgpy import mixin
 
-__all__ = ['Transform', 'rigid']
 
-from ._transform import Transform
+class Transform(
+    mixin.Copyable,
+    mixin.Broadcastable,
+    abc.ABC,
+):
+    pass
+
+
 from . import rigid
 
-Transform.__module__ = __name__
+__all__ = [
+    'Transform',
+    'rigid',
+]

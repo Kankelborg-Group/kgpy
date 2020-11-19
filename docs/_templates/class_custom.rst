@@ -9,6 +9,8 @@
     :undoc-members:
     :member-order: groupwise
 
+    .. automethod:: __init__
+
     {% block attributes %}
     {% if attributes %}
     .. rubric:: {{ _('Attributes') }}
