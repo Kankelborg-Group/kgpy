@@ -152,7 +152,7 @@ class Obs:
         )
         ax.set_xlabel(label_x)
         ax.set_ylabel(label_y)
-        fig.colorbar(img, ax=ax, label=image.unit, location=colorbar_location)
+        fig.colorbar(img, ax=ax, label=image.unit, location=colorbar_location, use_gridspec=False)
         return ax
 
     def plot_channel_from_data(
@@ -375,9 +375,7 @@ class Obs:
             axs[0, c].set_xlabel(label_x)
             if c == 0:
                 axs[0, c].set_ylabel(label_y)
-            fig.colorbar(img, ax=axs[0, c], label=image.unit,
-                         location='bottom'
-                         )
+            fig.colorbar(img, ax=axs[0, c], label=image.unit, location='bottom', use_gridspec=False)
 
         def func(i: int):
             for c in range(self.num_channels):
