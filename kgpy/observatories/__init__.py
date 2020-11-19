@@ -20,8 +20,8 @@ __all__ = ['Obs']
 class ObsAxis(mixin.AutoAxis):
     def __init__(self):
         super().__init__()
-        self.y = self.auto_axis_index()
         self.x = self.auto_axis_index()
+        self.y = self.auto_axis_index()
         self.channel = self.auto_axis_index()
         self.time = self.auto_axis_index(from_right=False)
 
@@ -152,9 +152,7 @@ class Obs:
         )
         ax.set_xlabel(label_x)
         ax.set_ylabel(label_y)
-        fig.colorbar(img, ax=ax, label=image.unit,
-                     # location=colorbar_location
-                     )
+        fig.colorbar(img, ax=ax, label=image.unit, location=colorbar_location)
         return ax
 
     def plot_channel_from_data(
@@ -342,7 +340,7 @@ class Obs:
         if axs is None:
             fig, axs = plt.subplots(ncols=self.num_channels, squeeze=False)
         else:
-            fig = axs[0].figure
+            fig = axs[0, 0].figure
 
         data = data[time_slice]
         start_time = self.time[time_slice]
@@ -378,7 +376,7 @@ class Obs:
             if c == 0:
                 axs[0, c].set_ylabel(label_y)
             fig.colorbar(img, ax=axs[0, c], label=image.unit,
-                         # location='bottom'
+                         location='bottom'
                          )
 
         def func(i: int):

@@ -14,9 +14,6 @@ from .aberration import Distortion, Vignetting
 
 __all__ = ['Rays', 'RaysList']
 
-# import matplotlib.axes
-# plt.Axes.__module__ = matplotlib.axes.__name__
-
 
 class CAxis(mixin.AutoAxis):
     def __init__(self):
@@ -65,7 +62,6 @@ class Rays(transform.rigid.Transformable):
         return angles[..., ::-1]
 
     @classmethod
-    @u.quantity_input
     def from_field_angles(
             cls,
             wavelength_grid: u.Quantity,

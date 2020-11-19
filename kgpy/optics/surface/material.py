@@ -62,7 +62,7 @@ class Mirror(Material):
 
                 c1, c2 = components
                 wire = aperture.wire.copy()
-                wire[z] = self.thickness
+                wire[vector.z] = self.thickness
                 if rigid_transform is not None:
                     wire = rigid_transform(wire, num_extra_dims=1)
                 ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)

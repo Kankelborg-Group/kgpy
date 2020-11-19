@@ -14,7 +14,14 @@ from .material import Material
 from .aperture import Aperture
 from .rulings import Rulings
 
-__all__ = ['Surface', 'SagT', 'SurfaceList']
+__all__ = [
+    'sag',
+    'material',
+    'aperture',
+    'rulings',
+    'SagT',
+    'Surface',
+    'SurfaceList']
 
 SagT = typ.TypeVar('SagT', bound=Sag)       #: Generic :class:`kgpy.optics.surface.sag.Sag` type
 MaterialT = typ.TypeVar('MaterialT', bound=Material)

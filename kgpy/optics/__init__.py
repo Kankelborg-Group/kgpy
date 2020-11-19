@@ -13,11 +13,15 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 from kgpy import mixin, linspace, vector, optimization, transform
 from kgpy.vector import x, y, z, ix, iy, iz, xy
-from .rays import Rays, RaysList
-from .surface import Surface, SurfaceList
+from . import aberration, rays, surface, component
 
-
-__all__ = ['System']
+__all__ = [
+    'aberration',
+    'rays',
+    'surface',
+    'component',
+    'System'
+]
 
 
 @dataclasses.dataclass
@@ -29,9 +33,10 @@ class System(
     """
     Model of an optical system.
     """
-    object_surface: Surface = dataclasses.field(default_factory=Surface)        #: Surface representing light source
-    surfaces: SurfaceList = dataclasses.field(default_factory=SurfaceList)      #: All surfaces in the optical system
-    wavelengths: u.nm = 0 * u.nm    #: Source wavelengths
+    #: Surface representing the light source
+    object_surface: surface.Surface = dataclasses.field(default_factory=surface.Surface)
+    surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
+    wavelengths: u.Quantity = 0 * u.nm    #: Source wavelengths
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the pupil for each axis x, y
     pupil_margin: u.Quantity = 1 * u.um     #: Margin between edge of pupil and nearest ray
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the field for each axis x, y
@@ -46,15 +51,15 @@ class System(
         self._raytrace_cache = None
 
     @property
-    def stop(self) -> Surface:
+    def stop(self) -> surface.Surface:
         return [s for s in self.surfaces if s.is_stop][0]
 
     @property
-    def surfaces_all(self) -> SurfaceList:
-        return SurfaceList([self.object_surface]) + self.surfaces
+    def surfaces_all(self) -> surface.SurfaceList:
+        return surface.SurfaceList([self.object_surface]) + self.surfaces
 
     @property
-    def aperture_surfaces(self) -> typ.Iterator[Surface]:
+    def aperture_surfaces(self) -> typ.Iterator[surface.Surface]:
         for s in self.surfaces:
             if s.aperture is not None:
                 yield s
@@ -99,7 +104,7 @@ class System(
             axis=~0
         )
 
-    def pupil_x(self, surf: Surface) -> u.Quantity:
+    def pupil_x(self, surf: surface.Surface) -> u.Quantity:
         aper = surf.aperture
         return linspace(
             start=aper.min[x] + self.pupil_margin,
@@ -108,7 +113,7 @@ class System(
             axis=~0,
         )
 
-    def pupil_y(self, surf: Surface) -> u.Quantity:
+    def pupil_y(self, surf: surface.Surface) -> u.Quantity:
         aper = surf.aperture
         return linspace(
             start=aper.min[y] + self.pupil_margin,
@@ -118,17 +123,17 @@ class System(
         )
 
     @property
-    def raytrace(self) -> RaysList:
+    def raytrace(self) -> rays.RaysList:
         if self._raytrace_cache is None:
             self._update_raytrace_caches()
         return self._raytrace_cache
 
     @property
-    def _raytrace(self) -> RaysList:
+    def _raytrace(self) -> rays.RaysList:
         return self.surfaces_all.raytrace(self.rays_input)
 
     @property
-    def rays_output(self) -> Rays:
+    def rays_output(self) -> rays.Rays:
         return self.raytrace[~0]
 
     @property
@@ -154,7 +159,7 @@ class System(
 
             def position_error(pos: u.Quantity) -> u.Quantity:
                 position = vector.to_3d(pos)
-                rays_in = Rays.from_field_angles(
+                rays_in = rays.Rays.from_field_angles(
                     wavelength_grid=self.wavelengths,
                     position=position,
                     field_grid_x=self.field_x,
@@ -198,7 +203,7 @@ class System(
                 direction[z] = 1
                 direction = transform.rigid.TiltX(direc[y])(direction)
                 direction = transform.rigid.TiltY(direc[x])(direction)
-                rays_in = Rays.from_field_positions(
+                rays_in = rays.Rays.from_field_positions(
                     wavelength_grid=self.wavelengths,
                     direction=direction,
                     field_grid_x=self.field_x,
@@ -252,8 +257,8 @@ class System(
     def plot_footprint(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            surf: typ.Optional[Surface] = None,
-            color_axis: int = Rays.axis.wavelength,
+            surf: typ.Optional[surface.Surface] = None,
+            color_axis: int = rays.Rays.axis.wavelength,
             plot_apertures: bool = True,
             plot_vignetted: bool = False,
     ) -> plt.Axes:
@@ -276,8 +281,8 @@ class System(
 
     def plot_projections(
             self,
-            surface_first: typ.Optional[Surface] = None,
-            surface_last: typ.Optional[Surface] = None,
+            surface_first: typ.Optional[surface.Surface] = None,
+            surface_last: typ.Optional[surface.Surface] = None,
             color_axis: int = 0,
             plot_vignetted: bool = False,
             plot_rays: bool = True,
@@ -320,10 +325,10 @@ class System(
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
             rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
-            surface_first: typ.Optional[Surface] = None,
-            surface_last: typ.Optional[Surface] = None,
+            surface_first: typ.Optional[surface.Surface] = None,
+            surface_last: typ.Optional[surface.Surface] = None,
             plot_rays: bool = True,
-            color_axis: int = Rays.axis.wavelength,
+            color_axis: int = rays.Rays.axis.wavelength,
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         if ax is None:
@@ -357,106 +362,6 @@ class System(
 
         return ax
 
-    def to_occ(self):
-
-        occ_unit = u.mm
-
-        import OCC.Core.TopoDS
-        import OCC.Core as occ
-        from OCC.Core import gp, Geom, BRepBuilderAPI, BRepPrimAPI, Standard, BRepLib, Geom2d, BRep, Poly, TColgp, TopLoc
-
-
-        occ_shapes = []
-
-        for surf in self.aperture_surfaces:
-
-            print(surf)
-
-
-            # wire = surf.transform_to_global(surf.aperture.wire, self, num_extra_dims=1)
-            # wire = surf.aperture.global_wire(self, surf,  apply_sag=True)
-            wire = surf.aperture.wire
-            wire = np.broadcast_to(wire, self.shape + wire.shape, subok=True)
-            if surf.is_sphere:
-                wire = wire / surf.radius
-            for c, wire_c in enumerate(wire):
-                occ_arr = TColgp.TColgp_Array1OfPnt2d(0, len(wire_c))
-                # occ_wire = BRepBuilderAPI.BRepBuilderAPI_MakeWire()
-                # occ_poly = OCC.Core.BRepBuilderAPI.BRepBuilderAPI_MakePolygon()
-                # old_occ_point = OCC.Core.gp.gp_Pnt2d(*wire_c[0][xy].value)
-                for p, point in enumerate(wire_c):
-                    occ_point = OCC.Core.gp.gp_Pnt2d(*point[xy].value)
-                    occ_arr.SetValue(p, occ_point)
-                    # occ_wire.Add(BRepBuilderAPI.BRepBuilderAPI_MakeEdge2d(old_occ_point, occ_point).Edge())
-                    old_occ_point = occ_point
-                occ_poly2d = Poly.Poly_Polygon2D(occ_arr)
-                # occ_wire = occ_wire.Wire()
-
-                # occ_wire = occ_poly.Wire()
-                # occ_shapes.append(occ_wire)
-
-
-
-                if surf.is_plane:
-
-                    length = 1 * occ_unit
-                    point_0 = surf.local_to_global_transform(vector.from_components() << occ_unit, self)[c]
-                    point_1 = surf.local_to_global_transform(vector.from_components(z=length), self)[c]
-                    normal = (point_1 - point_0) / length
-                    occ_point_0 = gp.gp_Pnt(*point_0.value)
-                    occ_normal = gp.gp_Dir(*normal.value)
-                    occ_ax3 = gp.gp_Ax3(occ_point_0, occ_normal)
-                    occ_surf = Geom.Geom_Plane(occ_ax3)
-                    occ_polysurf = BRep.BRep_PolygonOnSurface(occ_poly2d, occ_surf, TopLoc.TopLoc_Location())
-                    # occ_face = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf, occ_wire).Face()
-                    occ_shapes.append(occ_polysurf.Curve3D())
-
-                elif surf.is_sphere:
-
-                    point_0 = surf.local_to_global_transform(vector.from_components() << occ_unit, self)[c]
-                    point_1 = surf.local_to_global_transform(vector.from_components(x=surf.radius), self)[c]
-                    point_2 = surf.local_to_global_transform(vector.from_components(y=surf.radius), self)[c]
-                    point_3 = surf.local_to_global_transform(vector.from_components(z=surf.radius), self)[c]
-                    xhat = (point_1 - point_0) / surf.radius
-                    yhat = (point_2 - point_0) / surf.radius
-                    zhat = (point_3 - point_0) / surf.radius
-                    occ_point_3 = gp.gp_Pnt(*point_3.to(occ_unit).value)
-                    occ_xhat = gp.gp_Dir(*xhat.value)
-                    occ_yhat = gp.gp_Dir(*yhat.value)
-                    occ_zhat = gp.gp_Dir(*zhat.value)
-                    # occ_ax2 = gp.gp_Ax2(occ_point_3, occ_xhat, occ_zhat)
-                    occ_ax3 = gp.gp_Ax3(occ_point_3, occ_zhat)
-                    # occ_curve = Geom.Geom_Circle(occ_ax2, surf.radius.to(occ_unit).value)
-                    # occ_curve = Geom.Geom_TrimmedCurve(occ_curve, 3 * np.pi / 4, np.pi,)
-                    # rev_ax = gp.gp_Ax1(occ_point_3, occ_zhat)
-                    # occ_surf = Geom.Geom_SurfaceOfRevolution(occ_curve, rev_ax)
-                    # occ_surf = gp.gp_Sphere(occ_ax3, surf.radius.to(occ_unit).value)
-                    occ_surf = Geom.Geom_SphericalSurface(occ_ax3, surf.radius.to(occ_unit).value)
-                    occ_polysurf = BRep.BRep_PolygonOnSurface(occ_poly2d, occ_surf, TopLoc.TopLoc_Location())
-                    # occ_surf = Geom.Geom_CylindricalSurface(occ_ax3, surf.radius.to(occ_unit).value)
-                    # occ_surf = BRepPrimAPI.BRepPrimAPI_MakeSphere(surf.radius.to(occ_unit).value)
-                    # occ_surf = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf).Face()
-                    # occ_face = BRepBuilderAPI.BRepBuilderAPI_MakeFace(occ_surf, occ_polysurf).Face()
-                    # BRepLib.breplib_BuildCurves3d(occ_face)
-
-                    # occ_solid = BRepPrimAPI.BRepPrimAPI_MakePrism(occ_face, gp.gp_Vec(*(10 * zhat).value)).Shape()
-                    # occ_surf = Geom.Geom_RectangularTrimmedSurface(occ_surf, -np.pi / 2, -np.pi/4, False)
-                    occ_shapes.append(occ_polysurf.Surface2())
-
-        return occ_shapes
-
-    def plot_occ(self):
-
-        import OCC.Display.SimpleGui
-
-        display, start_display, add_menu, add_function_to_menu = OCC.Display.SimpleGui.init_display()
-
-        occ_shapes = self.to_occ()
-
-        for shape in occ_shapes:
-            display.DisplayShape(shape)
-
-        start_display()
 
 
 
