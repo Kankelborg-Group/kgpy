@@ -19,7 +19,7 @@ setup(
         'sphinx-autodoc-typehints',
         'astropy-sphinx-theme',
     ],
-    url='https://titan.ssel.montana.edu/gitlab/Kankelborg-Group/kgpy',
+    url='https://github.com/Kankelborg-Group/kgpy',
     license='',
     author='Roy Smart',
     author_email='roytsmart@gmail.com',
