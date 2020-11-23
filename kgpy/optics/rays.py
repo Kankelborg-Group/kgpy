@@ -4,6 +4,7 @@ import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
+import matplotlib.cm
 import astropy.units as u
 import astropy.visualization
 import astropy.modeling

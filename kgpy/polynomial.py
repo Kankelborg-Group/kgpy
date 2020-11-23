@@ -84,6 +84,15 @@ class Polynomial3D(mixin.Dataframable):
                     for i in range(d + 1):
                         if i + j + k == d:
                             vander.append((x ** i) * (y ** j) * (z ** k))
+        # vander = []
+        # if degree >= 0:
+        #     vander += [np.ones(x.shape) * u.dimensionless_unscaled]
+        # if degree >= 1:
+        #     vander += [x, y, z]
+        # if degree >= 2:
+        #     vander += [x * x, x * y, y * y, x * z, y * z, z * z]
+        # if degree >= 3:
+        #     raise NotImplementedError
         return vander
 
     @property

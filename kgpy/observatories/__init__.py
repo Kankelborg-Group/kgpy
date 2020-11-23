@@ -14,7 +14,7 @@ import astropy.wcs
 import astropy.visualization
 from kgpy import mixin
 
-__all__ = ['Obs']
+__all__ = ['Obs', 'aia']
 
 
 class ObsAxis(mixin.AutoAxis):
@@ -97,25 +97,25 @@ class Obs:
             fig, ax = plt.subplots()
         with astropy.visualization.quantity_support():
             for c in range(self.num_channels):
-                if c == 0:
-                    color = None
-                else:
-                    color = line[0].get_color()
+                # if c == 0:
+                #     color = None
+                # else:
+                #     color = line[0].get_color()
                 line = ax.plot(
                     self.time_index,
                     a[:, c],
-                    color=color,
-                    linestyle=list(matplotlib.lines.lineStyles.keys())[c],
+                    # color=color,
+                    # linestyle=list(matplotlib.lines.lineStyles.keys())[c],
                     label=a_name + ', ' + self.channel_labels[c],
                     drawstyle=drawstyle,
                 )
             ax.set_xlabel('sequence index')
-            ax.legend(fontsize='x-small', ncol=legend_ncol, loc='right')
+            ax.legend(fontsize='small', ncol=legend_ncol, loc='right')
         return ax
 
-    def plot_intensity_total_vs_time(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
+    def plot_intensity_mean_vs_time(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
         return self.plot_quantity_vs_index(
-            a=self.intensity.sum(self.axis.xy), a_name='Total intensity', ax=ax)
+            a=self.intensity.mean(self.axis.xy), a_name='Mean intensity', ax=ax)
 
     def plot_exposure_length(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
         return self.plot_quantity_vs_index(a=self.exposure_length, a_name='Exposure length', ax=ax)
@@ -356,7 +356,8 @@ class Obs:
         imgs = []
         for c in range(self.num_channels):
 
-            axs[0, c].set_title(self.channel_labels[c])
+            ax = axs.flatten()[c]
+            ax.set_title(self.channel_labels[c])
 
             label_x = 'detector $x$ (pix)'
             label_y = 'detector $y$ (pix)'
@@ -364,7 +365,7 @@ class Obs:
 
             image = data[0, c].T
 
-            img = axs.flatten()[c].imshow(
+            img = ax.imshow(
                 X=image.value,
                 vmin=np.percentile(data[:, c], thresh_min.value).value,
                 vmax=np.percentile(data[:, c], thresh_max.value).value,
@@ -372,9 +373,9 @@ class Obs:
                 norm=matplotlib.colors.PowerNorm(norm_gamma)
             )
             imgs.append(img)
-            axs[0, c].set_xlabel(label_x)
+            ax.set_xlabel(label_x)
             if c == 0:
-                axs[0, c].set_ylabel(label_y)
+                ax.set_ylabel(label_y)
             fig.colorbar(img, ax=axs[0, c], label=image.unit, location='bottom', use_gridspec=False)
 
         def func(i: int):
@@ -403,3 +404,6 @@ class Obs:
             data=self.intensity,
             axs=axs, thresh_min=thresh_min, thresh_max=thresh_max, norm_gamma=norm_gamma, frame_interval=frame_interval
         )
+
+
+from . import aia

@@ -97,7 +97,7 @@ class Distortion:
                     coordinates=coordinates_flat[i, j],
                     order=interp_order,
                     prefilter=interp_prefilter,
-                    cval=np.nan,
+                    # cval=np.nan,
                 )
 
         return new_cube_flat.reshape(cube.shape[:~2] + new_cube_flat.shape[~2:])
