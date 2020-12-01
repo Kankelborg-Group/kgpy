@@ -1,5 +1,5 @@
 """
-Complement to the :code:`kgpy.vector` package for matrices.
+Complement to the :mod:`kgpy.vector` package for matrices.
 """
 
 import typing as typ

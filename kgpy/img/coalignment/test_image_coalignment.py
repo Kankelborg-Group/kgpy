@@ -1,3 +1,4 @@
+import pytest
 from kgpy.img.coalignment import image_coalignment
 import numpy as np
 import scipy.ndimage
@@ -21,6 +22,8 @@ def image_and_object():
 
     return test_img,transform_obj
 
+
+@pytest.mark.skip('Test with blocking plots')
 def test_transform_image():
     test_img, transform_obj = image_and_object()
     transformed_test_image = transform_obj.transform_image(test_img)
@@ -30,6 +33,8 @@ def test_transform_image():
     ax = plt.imshow(transformed_test_image)
     plt.show()
 
+
+@pytest.mark.skip('Test with blocking plots')
 def test_transform_coordinates():
     test_img, transform_obj = image_and_object()
     transformed_test_image = transform_obj.transform_image(test_img)
@@ -50,6 +55,7 @@ def test_transform_coordinates():
     plt.show()
 
 
+@pytest.mark.skip('Test with blocking plots')
 def test_modified_affine_to_quadratic():
     test_img = np.random.rand(1001,1001)+1
 

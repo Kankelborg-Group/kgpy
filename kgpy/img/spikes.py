@@ -14,8 +14,6 @@ __all__ = ['identify', 'fix', 'identify_and_fix']
 class Stats:
     """
     A class representing a statistical model of spikes in an image.
-    The statistical model consists of:
-     - A 2D histogram of local median vs intensity.
     """
 
     hist: np.ndarray

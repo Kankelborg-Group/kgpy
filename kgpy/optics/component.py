@@ -4,7 +4,7 @@ import dataclasses
 import astropy.units as u
 import pandas
 from kgpy import mixin, format, vector, transform
-from . import Surface
+from .surface import Surface
 
 __all__ = ['Component', 'PistonComponent', 'TranslationComponent', 'CylindricalComponent']
 

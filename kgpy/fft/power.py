@@ -17,11 +17,11 @@ def periodogram_fft(
     Numerical Recipes). However, this routine is needed by the much better estimators powerspec and spec2d.
 
     :param data: 1d or 2d array for which the power spectrum is desired. It is not assumed that the data is periodic;
-    therefore, the data will be Hann windowed. It is also not assumed that the image is real. That's why the
-    normalization is such that the sum must be performed over both positive and negative k.
+        therefore, the data will be Hann windowed. It is also not assumed that the image is real. That's why the
+        normalization is such that the sum must be performed over both positive and negative k.
     :param retain_dc: if True, then retain the DC offset when calculating the FFT. Ordinarily, the DC offset is
-    subtracted before calculating the spectrum, because the Hanning window tends to make the offset bleed into the
-    nearest neighbors of the DC element of the FFT.
+        subtracted before calculating the spectrum, because the Hanning window tends to make the offset bleed into the
+        nearest neighbors of the DC element of the FFT.
     :return:
     """
     if not retain_dc:
@@ -109,8 +109,8 @@ def spec2d(
     :param data: 2D array of data
     :param sub_image_size: size of the square sub-image to analyze. Default is 16, min is 4
     :param retain_dc: if True, then retain the DC offset when calculating the power spectrum. Ordinarily, the DC offset
-    is subtracted before calculating the spectrum, because the Hanning window tends to make the offset bleed into the
-    nearest neighbor of pixel (0, 0) of the 2D power spectrum.
+        is subtracted before calculating the spectrum, because the Hanning window tends to make the offset bleed into
+        the nearest neighbor of pixel (0, 0) of the 2D power spectrum.
     :return:
     """
 
@@ -162,14 +162,14 @@ def spec_xy(
     normalization convention is the same as with `periodogram_fft`
 
     :param image: the 2d image for which the power spectra are to be calculated :param nfreq: Number of elements in
-    each segment, and also the number of elements in each of the output power spectra. The smaller the `nfreq`,
-    thee lower the spectral resolution but the better the noise supression.
+        each segment, and also the number of elements in each of the output power spectra. The smaller the `nfreq`,
+        the lower the spectral resolution but the better the noise supression.
     :param dx: sample interval. Defaults to 1. If included, then `k` will be converted to units of cycles (or radians,
-    if that keyword is set) per unit distance (or time), corresponding to the units of dx
+        if that keyword is set) per unit distance (or time), corresponding to the units of dx
     :param radians: if True, then let `k` be in radians, rather than cycles, per whatever.
     :param retain_dc: if set, then retain the DC offset when calculating the power spectrum. Ordinarily, the DC offset
-    is subtracted before calculating the spectrum, because the Hanning window tends to make the offset bleed into the
-    nearest neighbors of the pixel [0,0] of the 2D power spectrum.
+        is subtracted before calculating the spectrum, because the Hanning window tends to make the offset bleed into
+        the nearest neighbors of the pixel [0,0] of the 2D power spectrum.
     :return: `psx`, `psy`: the power spectra averages of `x` and `y`, respectively
     """
 
