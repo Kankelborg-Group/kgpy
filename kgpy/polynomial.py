@@ -28,9 +28,12 @@ class Polynomial3D(mixin.Dataframable):
             y: u.Quantity,
             z: u.Quantity,
             data: u.Quantity,
-            mask: np.ndarray,
+            mask: typ.Optional[np.ndarray] = None,
             degree: int = 1,
     ) -> 'Polynomial3D':
+
+        if mask is None:
+            mask = np.array([True])
 
         num_components_out = data.shape[~0:]
         grid_shape = np.broadcast(x, y, z, data[vector.x], mask).shape
