@@ -149,6 +149,7 @@ class HypercubeSlicer:
         self._y_index = sh[self._axis.y] // 2
         self._z_index = sh[self._axis.z] // 2
         self._t_index = 0
+        self._integrate = False
 
         self._ax_xy = self._fig.add_subplot(
             self._gridspec[self._i_xy],
@@ -279,6 +280,8 @@ class HypercubeSlicer:
             self._increment_vmin()
         elif event.key == 'ctrl+-':
             self._decrement_vmin()
+        elif event.key == 'i':
+            self._change_integrate_status()
         self._fig.canvas.draw()
 
     @property
@@ -361,40 +364,31 @@ class HypercubeSlicer:
     @vmax.setter
     def vmax(self, value: float):
         self._vmax = value
-        self._img_xy.set_clim(vmax=value)
-        self._img_xz.set_clim(vmax=value)
-        self._img_yz.set_clim(vmax=value)
-        self._ax_z.set_ylim((self.vmin, value))
+        if self._integrate:
+            self._img_xy.set_clim(vmax=value * self._data.shape[-1])
+            self._img_xz.set_clim(vmax=value)
+            self._img_yz.set_clim(vmax=value)
+            self._ax_z.set_ylim((self.vmin, value))
+        else:
+            self._img_xy.set_clim(vmax=value)
+            self._img_xz.set_clim(vmax=value)
+            self._img_yz.set_clim(vmax=value)
+            self._ax_z.set_ylim((self.vmin, value))
 
     @property
     def _data_xy(self):
-        return self._data[self.t_index, :, :, self._z_index_int]
-
-    @property
-    def _data_xy_extent(self):
-        data_xy_shp = self._data_xy.shape
-        extent = self._wcs_xy.all_pix2world(np.array([(0, 0), (data_xy_shp[1] - 1, data_xy_shp[0] - 1)]), 0).flat
-        return (extent[0], extent[2], extent[1], extent[3])
+        if self._integrate:
+            return np.sum(self._data[self.t_index, :, :, :], axis=-1)
+        else:
+            return self._data[self.t_index, :, :, self._z_index_int]
 
     @property
     def _data_xz(self):
         return self._data[self.t_index, self._y_index_int, :, :].T
 
     @property
-    def _data_xz_extent(self):
-        data_xz_shp = self._data_xz.shape
-        extent = self._wcs_xz.all_pix2world(np.array([(0, 0), (data_xz_shp[1] - 1, data_xz_shp[0] - 1)]), 0).flat
-        return (extent[0], extent[2], extent[1], extent[3])
-
-    @property
     def _data_yz(self):
         return self._data[self.t_index, :, self._x_index_int, :]
-
-    @property
-    def _data_yz_extent(self):
-        data_yz_shp = self._data_yz.shape
-        extent = self._wcs_yz.all_pix2world(np.array([(0, 0), (data_yz_shp[1] - 1, data_yz_shp[0] - 1)]), 0).flat
-        return (extent[0], extent[2], extent[1], extent[3])
 
     @property
     def _data_z(self):
@@ -418,8 +412,11 @@ class HypercubeSlicer:
         self._t_index = value
 
         self._fig.suptitle('t = ' + str(self.t_index))
-        self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
-        self._ax_xy.reset_wcs(wcs=self._wcs_xy)
+        if self._integrate:
+            self._ax_xy.set_title('Summed Z')
+        else:
+            self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
+        self._ax_xy.reset_wcs(wcs = self._wcs_xy)
         self._img_xy.set_data(self._data_xy)
         self._xy_vline.set_xdata(self._x_index_int)
         self._xy_hline.set_ydata(self._y_index_int)
@@ -480,11 +477,28 @@ class HypercubeSlicer:
     @z_index.setter
     def z_index(self, value: float):
         self._z_index = value
-        self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
+        if self._integrate:
+            self._ax_xy.set_title('Summed Z')
+        else:
+            self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
         self._xz_hline.set_ydata(self._z_index_int)
         self._yz_vline.set_xdata(self._z_index_int)
         self._z_vline.set_xdata(self._z_index_int)
         self._img_xy.set_data(self._data_xy)
+
+    def _change_integrate_status(self):
+        if self._integrate:
+            self._integrate = False
+            self._img_xy.set_data(self._data_xy)
+            self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
+            self._img_xy.set_clim(vmax=self.vmax)
+        else:
+            self._integrate = True
+            self._img_xy.set_data(self._data_xy)
+            self._ax_xy.set_title('Summed Z')
+            self._img_xy.set_clim(vmax=self.vmax * self._data.shape[-1])
+
+
 
     def _increment_vmax(self):
         self.vmax = self.vmax + self._lim_increment
@@ -521,3 +535,34 @@ class HypercubeSlicer:
 
     def _decrement_z_index(self):
         self.z_index = (self.z_index - 1) % self.shape[self._axis.z]
+
+class TestHypercube:
+
+    def test__init__(self, capsys):
+        from kgpy.observatories.iris import mosaics
+        import astropy.io.fits
+
+        with capsys.disabled():
+            mosaic_paths = mosaics.download()
+
+            num_mosiacs = 2
+
+            cube_list = []
+            wcs_list = []
+            for path in mosaic_paths[:num_mosiacs]:
+                hdu = astropy.io.fits.open(path)[0]
+                cube_list.append(np.moveaxis(hdu.data, 0, ~0))
+                wcs = astropy.wcs.WCS(hdu.header)
+                wcs = wcs.swapaxes(2, 1)
+                wcs = wcs.swapaxes(1, 0)
+                wcs_list.append(wcs)
+
+            hypercube = np.array(cube_list)
+
+            s = HypercubeSlicer(
+                data=hypercube,
+                wcs_list=wcs_list,
+                width_ratios=(5, 1),
+                height_ratios=(5, 1),
+            )
+            plt.show()
