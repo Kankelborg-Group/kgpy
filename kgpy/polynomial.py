@@ -130,3 +130,15 @@ class Polynomial3D(mixin.Dataframable):
             dataframe.index = self.component_names_output
 
         return dataframe
+
+    def copy(self) -> 'Polynomial3D':
+        names_out = self.component_names_output
+        if names_out is not None:
+            names_out = names_out.copy()
+        return Polynomial3D(
+            degree=self.degree,
+            coefficients=[c.copy() for c in self.coefficients],
+            component_names_input=self.component_names_input.copy(),
+            component_names_output=names_out,
+        )
+
