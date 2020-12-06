@@ -218,7 +218,7 @@ class Rays(transform.rigid.Transformable):
             polynomial_degree=polynomial_degree
         )
 
-    def vignetting(self, polynomial_degree: int = 1):
+    def vignetting(self, polynomial_degree: int = 1) -> Vignetting:
         counts = self.mask.sum((self.axis.pupil_x, self.axis.pupil_y))
         return Vignetting(
             wavelength=self.input_wavelength[..., :, None, None],
