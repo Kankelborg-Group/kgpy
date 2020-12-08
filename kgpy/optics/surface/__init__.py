@@ -43,6 +43,7 @@ class Surface(
     """
 
     is_stop: bool = False
+    is_stop_test: bool = False
     is_active: bool = True  #: Flag to disable the surface
     is_visible: bool = True     #: Flag to disable plotting this surface
     sag: typ.Optional[SagT] = None      #: Sag profile of this surface
