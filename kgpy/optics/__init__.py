@@ -192,11 +192,11 @@ class System(
                 )
 
             else:
-
                 if self._rays_input_cache is None:
                     direction_guess = vector.from_components(use_z=False) << u.deg
                 else:
-                    direction_guess = self._rays_input_cache.direction
+                    d = self._rays_input_cache.direction
+                    direction_guess = np.arctan2(d[xy],  d[..., ~0:])
 
                 step_size = 1e-10 * u.deg
                 step = vector.from_components(x=step_size, y=step_size, use_z=False)
