@@ -21,7 +21,8 @@ __all__ = [
     'rulings',
     'SagT',
     'Surface',
-    'SurfaceList']
+    'SurfaceList',
+]
 
 SagT = typ.TypeVar('SagT', bound=Sag)       #: Generic :class:`kgpy.optics.surface.sag.Sag` type
 MaterialT = typ.TypeVar('MaterialT', bound=Material)
@@ -51,6 +52,7 @@ class Surface(
     aperture: typ.Optional[ApertureT] = None    #: Aperture of this surface
     aperture_mechanical: typ.Optional[ApertureMechT] = None     #: Mechanical aperture of this surface
     rulings: typ.Optional[RulingsT] = None      #: Ruling profile of this surface
+    baffle_link: typ.Optional['Surface'] = None
 
     def ray_intercept(
             self,
@@ -189,3 +191,9 @@ class SurfaceList(
             surf.plot(ax=ax, components=components, rigid_transform=rigid_transform + surf.transform)
 
         return ax
+
+
+from . import aperture
+from . import sag
+from . import material
+from . import rulings

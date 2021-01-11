@@ -25,6 +25,7 @@ __all__ = [
     'IsoscelesTrapezoid',
 ]
 
+
 @dataclasses.dataclass
 class Aperture(
     mixin.Broadcastable,
@@ -70,6 +71,7 @@ class Aperture(
                     wire[vector.z] = wire[vector.z] + sag(wire[vector.x], wire[vector.y])
                 if rigid_transform is not None:
                     wire = rigid_transform(wire, num_extra_dims=1)
+                wire = wire.reshape((-1, ) + wire.shape[~1:])
                 ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
         return ax
 
@@ -128,15 +130,15 @@ class Circular(
 
     @property
     def min(self) -> u.Quantity:
-        return -self.max
+        return -vector.from_components(self.radius, self.radius) + self.decenter.vector
 
     @property
     def max(self) -> u.Quantity:
-        return vector.from_components(self.radius, self.radius)
+        return vector.from_components(self.radius, self.radius) + self.decenter.vector
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
-        x = points[..., 0]
-        y = points[..., 1]
+        x = points[..., 0] - self.decenter.x
+        y = points[..., 1] - self.decenter.y
         r = np.sqrt(np.square(x) + np.square(y))
         is_inside = r <= self.radius
         if not self.is_obscuration:
@@ -150,8 +152,8 @@ class Circular(
         a = np.linspace(0 * u.deg, 360 * u.deg, num=self.num_samples)
         r = np.expand_dims(self.radius.copy(), ~0)
 
-        x = r * np.cos(a)
-        y = r * np.sin(a)
+        x = r * np.cos(a) + self.decenter.x
+        y = r * np.sin(a) + self.decenter.y
         z = np.broadcast_to(0, x.shape)
 
         return np.stack([x, y, z], axis=~0)
@@ -170,6 +172,8 @@ class Polygon(Decenterable, Obscurable, Aperture, abc.ABC):
         return shapely.geometry.Polygon(self.vertices)
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
+
+        points -= self.decenter.vector
 
         x, y = vector.x, vector.y
 
@@ -207,9 +211,13 @@ class Polygon(Decenterable, Obscurable, Aperture, abc.ABC):
 
     @property
     def wire(self) -> u.Quantity:
-        coords = self.shapely_poly.exterior
-        wire_samples = np.linspace(0, 1, num=self.num_samples, endpoint=False)
-        return u.Quantity([coords.interpolate(a, normalized=True) << self.vertices.unit for a in wire_samples])
+        left_vert = np.roll(self.vertices[..., None, :], -1, axis=~2)
+        right_vert = self.vertices[..., None, :]
+        diff = left_vert - right_vert
+        t = np.linspace(0, 1, num=self.num_samples, endpoint=False)[..., None, :, None]
+        wire = right_vert + diff * t
+        wire = wire.reshape(wire.shape[:~2] + (wire.shape[~2] * wire.shape[~1], ) + wire.shape[~0:])
+        return wire
 
 
 @dataclasses.dataclass
@@ -283,12 +291,14 @@ class Rectangular(Polygon):
         return out
 
     def is_unvignetted(self, points: u.Quantity) -> np.ndarray:
+        amin = self.min[vector.xy][..., None, None, None, None, None, :]
+        amax = self.max[vector.xy][..., None, None, None, None, None, :]
         x = points[vector.x]
         y = points[vector.y]
-        m1 = x <= self.half_width_x
-        m2 = x >= -self.half_width_x
-        m3 = y <= self.half_width_y
-        m4 = y >= -self.half_width_y
+        m1 = x <= amax[vector.x]
+        m2 = x >= amin[vector.x]
+        m3 = y <= amax[vector.y]
+        m4 = y >= amin[vector.y]
         is_inside = m1 & m2 & m3 & m4
         if not self.is_obscuration:
             return is_inside
@@ -297,19 +307,20 @@ class Rectangular(Polygon):
 
     @property
     def min(self) -> u.Quantity:
-        return -self.max
+        return -vector.from_components(self.half_width_x, self.half_width_y) + self.decenter.vector
 
     @property
     def max(self) -> u.Quantity:
-        return vector.from_components(self.half_width_x, self.half_width_y)
+        return vector.from_components(self.half_width_x, self.half_width_y) + self.decenter.vector
 
     @property
     def vertices(self) -> u.Quantity:
 
-        wx, wy = np.broadcast_arrays(self.half_width_x, self.half_width_y, subok=True)
+        minx, miny = self.min[vector.x], self.min[vector.y]
+        maxx, maxy = self.max[vector.x], self.max[vector.y]
 
-        x = np.stack([wx, wx, -wx, -wx], axis=~0)
-        y = np.stack([wy, -wy, -wy, wy], axis=~0)
+        x = np.stack([maxx, maxx, minx, minx], axis=~0)
+        y = np.stack([maxy, miny, miny, maxy], axis=~0)
 
         return vector.from_components(x, y)
 
@@ -358,8 +369,8 @@ class AsymmetricRectangular(Polygon):
 
     @property
     def vertices(self) -> u.Quantity:
-        v_x = np.stack([self.width_x_pos, self.width_x_neg, self.width_x_neg, self.width_x_pos])
-        v_y = np.stack([self.width_y_pos, self.width_y_pos, self.width_y_neg, self.width_y_neg])
+        v_x = np.stack([self.width_x_pos, self.width_x_neg, self.width_x_neg, self.width_x_pos]) + self.decenter.x
+        v_y = np.stack([self.width_y_pos, self.width_y_pos, self.width_y_neg, self.width_y_neg]) + self.decenter.y
         return vector.from_components(v_x, v_y)
 
     def copy(self) -> 'AsymmetricRectangular':

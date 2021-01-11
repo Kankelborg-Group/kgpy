@@ -1,6 +1,7 @@
 """
 kgpy.optics is a package designed for simulating optical systems.
 """
+import collections
 import dataclasses
 import pathlib
 import pickle
@@ -13,14 +14,15 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 from kgpy import mixin, linspace, vector, optimization, transform
 from kgpy.vector import x, y, z, ix, iy, iz, xy
-from . import aberration, rays, surface, component
+from . import aberration, rays, surface, component, baffle
 
 __all__ = [
     'aberration',
     'rays',
     'surface',
     'component',
-    'System'
+    'System',
+    'SystemList',
 ]
 
 
@@ -41,7 +43,7 @@ class System(
     pupil_margin: u.Quantity = 1 * u.um     #: Margin between edge of pupil and nearest ray
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the field for each axis x, y
     field_margin: u.Quantity = 1 * u.nrad       #: Margin between edge of field and nearest ray
-    # baffle_positions: typ.Optional[typ.List[transform.rigid.Transform]] = None
+    baffles_blank: baffle.BaffleList = dataclasses.field(default_factory=baffle.BaffleList)
 
     def __post_init__(self):
         self.update()
@@ -49,6 +51,7 @@ class System(
     def update(self) -> typ.NoReturn:
         self._rays_input_cache = None
         self._raytrace_cache = None
+        self._baffles_cache = None
 
     @property
     def stop(self) -> surface.Surface:
@@ -125,6 +128,16 @@ class System(
             num=self.pupil_samples_normalized[iy],
             axis=~0,
         )
+
+    @property
+    def baffles(self) -> baffle.BaffleList:
+        if self._baffles_cache is None:
+            if self.baffles_blank is not None:
+                self._baffles_cache = self.baffles_blank.apertures_from_raytrace(
+                    surfaces=self.surfaces_all,
+                    raytrace=self.raytrace,
+                )
+        return self._baffles_cache
 
     @property
     def raytrace(self) -> rays.RaysList:
@@ -204,10 +217,13 @@ class System(
                 # surf = self.stop
                 stop_index = self.surfaces_all.index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
-                target_position = vector.from_components(px[..., None], py)
+                target_position = vector.from_components(
+                    px[..., None, None, None, :, None],
+                    py[..., None, None, None, None, :]
+                )
 
                 def position_error(direc: u.Quantity) -> u.Quantity:
-                    direction = np.zeros(self.field_samples_normalized + target_position.shape)
+                    direction = np.zeros(target_position.shape[:~4] + self.field_samples_normalized + target_position.shape[~2:])
                     direction[z] = 1
                     direction = transform.rigid.TiltX(direc[y])(direction)
                     direction = transform.rigid.TiltY(direc[x])(direction)
@@ -338,6 +354,7 @@ class System(
             plot_rays: bool = True,
             color_axis: int = rays.Rays.axis.wavelength,
             plot_vignetted: bool = False,
+            plot_baffles: bool = True,
     ) -> plt.Axes:
         if ax is None:
             fig, ax = plt.subplots()
@@ -368,11 +385,82 @@ class System(
             rigid_transform=rigid_transform,
         )
 
+        if plot_baffles:
+            if self.baffles is not None:
+                self.baffles.plot(ax=ax, components=components, rigid_transform=rigid_transform)
+
         return ax
 
 
+class SystemList(
+    collections.UserList,
+    typ.List[System]
+):
 
+    def __init__(
+            self,
+            initlist: typ.Optional[typ.List[System]],
+            baffles_blank: typ.Optional[baffle.BaffleList] = None
+    ):
+        super().__init__(initlist)
+        self.baffles_blank = baffles_blank
+        self.update()
 
+    def update(self) -> typ.NoReturn:
+        self._baffles_cache = None
+
+    @property
+    def baffles(self) -> baffle.BaffleList:
+        if self._baffles_cache is None:
+            for s in range(len(self)):
+                sys = self[s]
+                new_baffles = self.baffles_blank.apertures_from_raytrace(sys.surfaces_all, sys.raytrace)
+                if s == 0:
+                    baffles = new_baffles
+                else:
+                    baffles = baffle.BaffleList([b1.unary_union(b2) for b1, b2 in zip(baffles, new_baffles)])
+            self._baffles_cache = baffles
+
+        # baffles = self[0].baffles
+        # for s in range(1, len(self)):
+        #     tmp = baffle.BaffleList([])
+        #     for b1 in baffles:
+        #         for b2 in self[s].baffles:
+        #             if b1.transform == b2.transform:
+        #                 tmp.append(b1.unary_union(b2))
+        #     baffles = tmp
+            # baffles = baffle.BaffleList([b1.unary_union(b2) for b1, b2 in zip(baffles, self[s].baffles)])
+        return self._baffles_cache
+
+    def plot(
+            self,
+            ax: typ.Optional[plt.Axes] = None,
+            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            plot_rays: bool = True,
+            color_axis: int = rays.Rays.axis.wavelength,
+            plot_vignetted: bool = False,
+            plot_baffles: bool = True,
+    ) -> plt.Axes:
+
+        if ax is None:
+            _, ax = plt.subplots()
+
+        for sys in self:
+            sys.plot(
+                ax=ax,
+                components=components,
+                rigid_transform=rigid_transform,
+                plot_rays=plot_rays,
+                color_axis=color_axis,
+                plot_vignetted=plot_vignetted,
+                plot_baffles=plot_baffles
+            )
+
+        if plot_baffles:
+            self.baffles.plot(ax=ax, components=components, rigid_transform=rigid_transform)
+
+        return ax
 
 
 

@@ -65,6 +65,7 @@ class Mirror(Material):
                 wire[vector.z] = self.thickness
                 if rigid_transform is not None:
                     wire = rigid_transform(wire, num_extra_dims=1)
+                wire = wire.reshape((-1,) + wire.shape[~1:])
                 ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
 
                 # todo: utilize polymorphsim here
