@@ -210,12 +210,12 @@ class Baffle(
             with ezdxf.addons.r12writer(filename) as dxf:
 
                 if self.obscuration is not None:
-                    dxf.add_polyline(self.obscuration.vertices.to(dxf_unit).value)
+                    dxf.add_polyline(self.obscuration.vertices.to(dxf_unit).value, closed=True)
 
                 if self.apertures is not None:
                     for aper in self.apertures:
                         if isinstance(aper, optics.surface.aperture.Polygon):
-                            dxf.add_polyline(aper.vertices.to(dxf_unit).value)
+                            dxf.add_polyline(aper.vertices.to(dxf_unit).value, closed=True)
                         elif isinstance(aper, optics.surface.aperture.Circular):
                             dxf.add_circle(
                                 (aper.decenter.x.to(dxf_unit).value, aper.decenter.y.to(dxf_unit).value),
