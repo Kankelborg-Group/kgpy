@@ -2,11 +2,13 @@ import typing as typ
 import abc
 import collections
 import dataclasses
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import shapely.geometry
 import shapely.ops
+import ezdxf.addons
 from kgpy import mixin, vector, transform as tfrm, geometry, optics
 from . import rays, surface
 
@@ -47,7 +49,6 @@ class Baffle(
         position = []
         for rays in raytrace:
             t = self.transform.inverse + rays.transform
-            from_prev_to_self = rays.transform.inverse + self.transform
             p = t(rays.position, num_extra_dims=5)
             p = np.broadcast_to(p, vgrid_sh, subok=True)
             position.append(p)
@@ -204,6 +205,22 @@ class Baffle(
 
         return ax
 
+    def to_dxf(self, filename: pathlib.Path):
+        if self.obscuration is not None:
+            with ezdxf.addons.r12writer(filename) as dxf:
+
+                if self.obscuration is not None:
+                    dxf.add_polyline(self.obscuration.vertices.value)
+
+                if self.apertures is not None:
+                    for aper in self.apertures:
+                        if isinstance(aper, optics.surface.aperture.Polygon):
+                            dxf.add_polyline(aper.vertices.value)
+                        elif isinstance(aper, optics.surface.aperture.Circular):
+                            dxf.add_circle((aper.decenter.x.value, aper.decenter.y.value), aper.radius.value)
+                        else:
+                            raise NotImplementedError
+
     def copy(self) -> 'Baffle[ApertureT, ObscurationT]':
         other = super().copy()      # type: Baffle[ApertureT, ObscurationT]
         other.apertures = [aper.copy() for aper in self.apertures]
@@ -226,7 +243,6 @@ class BaffleList(
             data.append(baffle)
         return BaffleList(data)
 
-
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
@@ -243,3 +259,8 @@ class BaffleList(
             baffle.plot(ax, components, rigid_transform + baffle.transform)
 
         return ax
+
+    def to_dxf(self, file_base: pathlib.Path):
+        for i in range(len(self)):
+            filename = file_base.parent / (str(file_base.name) + '_' + str(i) + '.dxf')
+            self[i].to_dxf(filename)

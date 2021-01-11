@@ -16,6 +16,7 @@ setup(
         'wget',
         'urlpath',
         'shapely',
+        'ezdxf',
         'sphinx-autodoc-typehints',
         'astropy-sphinx-theme',
     ],
