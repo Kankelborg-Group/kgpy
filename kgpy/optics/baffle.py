@@ -205,7 +205,7 @@ class Baffle(
 
         return ax
 
-    def to_dxf(self, filename: pathlib.Path, dxf_unit: u.Unit = u.mm):
+    def to_dxf(self, filename: pathlib.Path, dxf_unit: u.Unit = u.imperial.inch):
         if self.obscuration is not None:
             with ezdxf.addons.r12writer(filename) as dxf:
 
