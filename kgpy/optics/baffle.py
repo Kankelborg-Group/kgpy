@@ -205,19 +205,22 @@ class Baffle(
 
         return ax
 
-    def to_dxf(self, filename: pathlib.Path):
+    def to_dxf(self, filename: pathlib.Path, dxf_unit: u.Unit = u.mm):
         if self.obscuration is not None:
             with ezdxf.addons.r12writer(filename) as dxf:
 
                 if self.obscuration is not None:
-                    dxf.add_polyline(self.obscuration.vertices.value)
+                    dxf.add_polyline(self.obscuration.vertices.to(dxf_unit).value)
 
                 if self.apertures is not None:
                     for aper in self.apertures:
                         if isinstance(aper, optics.surface.aperture.Polygon):
-                            dxf.add_polyline(aper.vertices.value)
+                            dxf.add_polyline(aper.vertices.to(dxf_unit).value)
                         elif isinstance(aper, optics.surface.aperture.Circular):
-                            dxf.add_circle((aper.decenter.x.value, aper.decenter.y.value), aper.radius.value)
+                            dxf.add_circle(
+                                (aper.decenter.x.to(dxf_unit).value, aper.decenter.y.to(dxf_unit).value),
+                                aper.radius.to(dxf_unit).value
+                            )
                         else:
                             raise NotImplementedError
 
