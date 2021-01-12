@@ -57,17 +57,20 @@ class Distortion:
             self,
             cube: np.ndarray,
             wavelength: u.Quantity,
+            spatial_domain_input: u.Quantity,
             spatial_domain_output: u.Quantity,
             spatial_samples_output: typ.Union[int, typ.Tuple[int, int]],
             inverse: bool = False,
             interp_order: int = 1,
             interp_prefilter: bool = False,
+            fill_value: float = 0,
     ) -> np.ndarray:
 
         if isinstance(spatial_samples_output, int):
             spatial_samples_output = 2 * (spatial_samples_output,)
         spatial_samples_output = np.array(spatial_samples_output)
 
+        input_min, input_max = spatial_domain_input
         output_min, output_max = spatial_domain_output
 
         output_grid_x = np.linspace(output_min[x], output_max[x], spatial_samples_output[x])
@@ -78,6 +81,8 @@ class Distortion:
         model = self.model(inverse=not inverse)
 
         coordinates = model(wavelength, output_grid_x, output_grid_y)
+        coordinates = (coordinates - input_min) / (input_max - input_min)
+        coordinates *= cube.shape[~1:] * u.pix
 
         sh = cube.shape[:~2]
         coordinates = np.broadcast_to(coordinates, sh + coordinates.shape[~3:])
@@ -97,10 +102,10 @@ class Distortion:
                     coordinates=coordinates_flat[i, j],
                     order=interp_order,
                     prefilter=interp_prefilter,
-                    cval=np.nan,
+                    cval=fill_value,
                 )
 
-        return new_cube_flat.reshape(cube.shape[:~2] + new_cube_flat.shape[~2:])
+        return new_cube_flat.reshape(cube.shape[:~2] + new_cube_flat.shape[~2:]) << cube.unit
 
     def plot_residual(
             self,

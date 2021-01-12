@@ -4,6 +4,7 @@ import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
+import matplotlib.cm
 import astropy.units as u
 import astropy.visualization
 import astropy.modeling
@@ -108,7 +109,10 @@ class Rays(transform.rigid.Transformable):
 
         direction, _ = np.broadcast_arrays(direction, wavelength, subok=True)
 
-        position = vector.from_components(x=field_grid_x[..., None, None, None], y=field_grid_y[..., None, None])
+        position = vector.from_components(x=field_grid_x[..., None, None, None], y=field_grid_y[..., None, :, None, None])
+        # print(field_grid_x.shape)
+        # print(position.shape)
+        # print(wavelength.shape)
         position, _ = np.broadcast_arrays(position, wavelength, subok=True)
 
         return cls(
@@ -138,6 +142,7 @@ class Rays(transform.rigid.Transformable):
             self.wavelength[x],
             self.position[x],
             self.direction[x],
+            self.mask,
         ).shape
 
     @property
@@ -217,7 +222,7 @@ class Rays(transform.rigid.Transformable):
             polynomial_degree=polynomial_degree
         )
 
-    def vignetting(self, polynomial_degree: int = 1):
+    def vignetting(self, polynomial_degree: int = 1) -> Vignetting:
         counts = self.mask.sum((self.axis.pupil_x, self.axis.pupil_y))
         return Vignetting(
             wavelength=self.input_wavelength[..., :, None, None],
@@ -320,8 +325,8 @@ class Rays(transform.rigid.Transformable):
             px = position[x][mask]
             py = position[y][mask]
             limits = (
-                (px.min().value, px.max().value),
-                (py.min().value, py.max().value),
+                (np.nanmin(px).value, np.nanmax(px).value),
+                (np.nanmin(py).value, np.nanmax(py).value),
             )
 
         base_shape = self.shape + self.grid_shape[self.axis.wavelength:self.axis.field_y + 1]
@@ -488,13 +493,15 @@ class RaysList(
         if rigid_transform is None:
             rigid_transform = transform.rigid.TransformList()
 
+        img_rays = self[~0]
+
         intercepts = []
         for rays in self:
             rays_transform = rigid_transform + rays.transform
-            intercepts.append(rays_transform(rays.position, num_extra_dims=5))
+            intercept = rays_transform(rays.position, num_extra_dims=5)
+            intercept = np.broadcast_to(intercept, img_rays.vector_grid_shape, subok=True)
+            intercepts.append(intercept)
         intercepts = u.Quantity(intercepts)
-
-        img_rays = self[~0]
 
         color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 
@@ -519,6 +526,8 @@ class RaysList(
         mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
 
         for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
+            # print(intercept_c.shape)
+            # print(mask_c.shape)
             ax.plot(
                 intercept_c[:, mask_c, components[0]],
                 intercept_c[:, mask_c, components[1]],

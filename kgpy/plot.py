@@ -19,6 +19,13 @@ class ImageSlicer:
         ax.set_title('use scroll wheel to navigate images')
 
         x, y = np.broadcast_arrays(x, y, subok=True)
+
+        if x.ndim == 2:
+            x = x[..., None]
+
+        if y.ndim == 2:
+            y = y[..., None]
+
         self.x = x
         self.y = y
         self.sh = x.shape
@@ -40,15 +47,33 @@ class ImageSlicer:
 
         self.ax.set_ylabel('slice %s' % self.ind)
 
-        self.plot[0].set_xdata(self.x[self.ind])
-        self.plot[0].set_ydata(self.y[self.ind])
+        for i, line in enumerate(self.plot):
+            line.set_xdata(self.x[self.ind, ..., i])
+            line.set_ydata(self.y[self.ind, ..., i])
 
         self.fig.canvas.draw()
 
 
+class TestImageSlicer:
+
+    def test__2d__(self):
+        x = np.arange(64)
+        y = np.random.random((32, 64))
+
+        isl = ImageSlicer(x, y)
+        plt.show()
+
+    def test__3d__(self):
+        x = np.arange(64)[..., None]
+        y = np.random.random((32, 64, 4))
+
+        isl = ImageSlicer(x, y)
+        plt.show()
+
+
 class CubeSlicer:
-    def __init__(self, cube, **kwargs):
-        fig, ax = plt.subplots(1, 1)
+    def __init__(self, cube, figsize: typ.Tuple[float, float] = (6, 4), **kwargs):
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
         self.fig = fig
         self.ax = ax
         ax.set_title('use scroll wheel to navigate images')

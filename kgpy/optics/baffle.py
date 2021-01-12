@@ -1,270 +1,269 @@
-# import typing as tp
-# import pickle
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import astropy.units as u
-# from shapely.geometry import Polygon, MultiPoint, MultiPolygon
-# from shapely.ops import unary_union
-# from ezdxf.r12writer import r12writer
-#
-# from kgpy import optics, math
-#
-#
-# def add_baffle(self, baffle_name: str, baffle_cs: math.geometry.CoordinateSystem,
-#                pass_surfaces: tp.Union[None, tp.List[tp.Union[None, configuration.SurfaceArray]]] = None,
-#                margin: u.Quantity = 1 * u.mm) -> 'configuration.Component':
-#     comp = self.add_baffle_component(baffle_name, baffle_cs)
-#
-#     self.calc_baffle_aperture(comp, pass_surfaces=pass_surfaces, margin=margin)
-#
-#     return comp
-#
-#
-# def calc_baffle_aperture(self, component: 'configuration.Component', pass_surfaces:
-# tp.Union[None, tp.List[tp.Union[None, 'optics.system.configuration.Surface']]] = None,
-#                          margin: u.Quantity = 1 * u.mm):
-#     if pass_surfaces is None:
-#         pass_surfaces = len(component) * [None]  # type: tp.List[tp.Union[None, tp.List[Surface]]]
-#
-#     # n = 15
-#     # m = 15
-#     n = 5
-#     m = 1
-#
-#     wavl = [self.wavelengths.items[0]]
-#
-#     configs = list(range(self.num_configurations))
-#
-#     V, _, _ = self.square_raytrace(configs, [self.image], wavl, n, m * n)
-#
-#     surf_lst = []
-#
-#     old_config = self.config
-#
-#     plt.figure(figsize=(10, 10))
-#
-#     for s, surface in enumerate(component):
-#
-#         surface = surface  # type: Surface
-#
-#         ch_lst = []
-#
-#         for c in configs:
-#
-#             if pass_surfaces[s] is None:
-#
-#                 _, X, Y = self.square_raytrace([c], [surface], wavl, n, m * n)
-#
-#                 x = X[c, ...]
-#                 y = Y[c, ...]
-#                 v = V[c, ...]
-#
-#                 x = x.flatten()
-#                 y = y.flatten()
-#                 v = v.flatten()
-#
-#                 x = x[v == 0]
-#                 y = y[v == 0]
-#
-#                 pts = np.stack([x, y]).transpose()
-#
-#             else:
-#
-#                 self.config = c
-#
-#                 s1 = pass_surfaces[s][0]
-#                 s2 = pass_surfaces[s][1]
-#
-#                 if s1.aperture is not None:
-#                     pts1 = s1.aperture.points
-#                 else:
-#                     pts1 = s1.mechanical_aperture.points
-#
-#                 if s2.aperture is not None:
-#                     pts2 = s2.aperture.points
-#                 else:
-#                     pts2 = s2.mechanical_aperture.points
-#
-#                 pts = []
-#
-#                 for p1 in pts1:
-#
-#                     for p2 in pts2:
-#                         v1 = math.Vector(np.append(p1.value, 0) * p1.unit)
-#                         v2 = math.Vector(np.append(p2.value, 0) * p2.unit)
-#
-#                         v1 = s1.cs.X + v1.rotate(s1.cs.Q)
-#                         v2 = s2.cs.X + v2.rotate(s2.cs.Q)
-#
-#                         # c1 = gcs() + v1
-#                         # c2 = gcs() + v2
-#                         #
-#                         # c1 = s1.cs @ c1
-#                         # c2 = s2.cs @ c2
-#
-#                         v3 = surface.cs.xy_intercept(v1, v2)
-#
-#                         pts.append(v3.X.value[:2])
-#
-#                 pts = np.stack(pts)
-#
-#                 self.config = old_config
-#
-#             plt.scatter(pts[:, 0], pts[:, 1], s=1)
-#
-#             pts = MultiPoint(pts)
-#             hull = pts.convex_hull
-#             ch_lst.append(hull)
-#
-#         surf_lst.append(unary_union(ch_lst))
-#
-#     aper = unary_union(surf_lst)
-#     if isinstance(aper, Polygon):
-#         aper = MultiPolygon([aper])
-#
-#     for poly in aper:
-#         plt.plot(*poly.exterior.xy)
-#
-#     t = margin.value  # todo: fix this to convert units correctly
-#     n = 3
-#     for d in range(n):
-#         dilated_aperture_lst = []
-#         for poly in aper:
-#             dilated_aperture_lst.append(poly.buffer(t / n))
-#         aper = MultiPolygon(dilated_aperture_lst)
-#
-#     aper = unary_union(aper)
-#     if isinstance(aper, Polygon):
-#         aper = MultiPolygon([aper])
-#
-#     for poly in aper:
-#         plt.plot(*poly.exterior.xy)
-#
-#     plt.title(component.name)
-#     plt.gca().set_aspect('equal')
-#     lim = 1.5 * self.entrance_pupil_radius.value
-#     plt.xlim((-lim, lim))
-#     plt.ylim((-lim, lim))
-#     plt.savefig(component.name + '.png', bbox_inches='tight')
-#     pickle.dump(plt.gcf(), open(component.name + '.pickle', 'wb'))
-#
-#     for surface in component:
-#
-#         aper_lst = []
-#         for poly in aper:
-#             aper_lst.append(np.stack(poly.exterior.xy).transpose() * self.lens_units)
-#
-#         surface.mechanical_aperture = kgpy.optics.system.configuration.surface.aperture.aperture.MultiPolygon(aper_lst)
-#
-#     # Write dxf file
-#     with r12writer(component.name + '.dxf') as dxf:
-#
-#         for poly in aper:
-#             pts = np.stack(poly.exterior.xy).transpose()
-#
-#             pts[:, 1] = pts[:, 1] + (3.49927 + 3.35597) / 2
-#
-#             dxf.add_polyline(pts)
-#             # dxf.add_solid(pts)
-#
-#
-# def add_baffle_component(self, baffle_name: str, baffle_cs: math.geometry.CoordinateSystem
-#                          ) -> 'configuration.Component':
-#     """
-#     Add a baffle to the system at the specified coordinate system across the x-y plane.
-#     This function automatically calculates how many times the raypath crosses the baffle plane, and constructs the
-#     appropriate amount of baffle surfaces
-#     :param baffle_name: Human-readable name of the baffle
-#     :param baffle_cs: Coordinate system where the baffle will be placed.
-#     This function assumes that the baffle lies in the x-y plane of this coordinate system.
-#     :return: Pointer to Baffle component
-#     """
-#
-#     # Create new component to store the baffle
-#     baffle = configuration.Component(baffle_name)
-#
-#     # Define variable to track how many times the system intersected the
-#     baffle_pass = 0
-#
-#     index = 0
-#
-#     while True:
-#
-#         intercept = None
-#
-#         # Make a copy of the surfaces list so we don't try to iterate over and write to the same list
-#         old_surfaces = self._surfaces.copy()
-#
-#         # Loop through all surfaces in the system to see if any intersect with a baffle
-#         for surf in old_surfaces:
-#
-#             if surf.system_index <= index:
-#                 continue
-#
-#             # Compute the intersection between the thickness vector and the x-y plane of the baffle, if it exists.
-#             intercept = baffle_cs.xy_intercept(surf.post_cs.X, surf.back_cs.X)
-#
-#             # If the intercept exists, insert the new baffle
-#             if intercept is not None:
-#
-#                 # Compute the new thickness vectors for both to
-#                 t1 = intercept - surf.post_cs.X  # New thickness of original surface
-#                 t2 = surf.back_cs.X - intercept  # Thickness of new surface to be added after the baffle
-#
-#                 # Modify the original surface to have the correct thickness
-#                 surf.thickness = t1.dot(surf.post_cs.z_hat)
-#
-#                 # Calculate the tilt/decenter required to put the baffle in the correct place
-#                 cs = baffle_cs.diff(surf.back_cs)
-#                 cs.X.z = 0 * u.mm
-#
-#                 # Create new baffle surface
-#                 baffle_thickness = t2.dot(surf.post_cs.z_hat)
-#                 baffle_surf = optics.Surface(baffle_name + str(baffle_pass), thickness=baffle_thickness)
-#                 for c in range(self.num_configurations):
-#                     self.config = c
-#                     baffle_surf._before_surf_cs_break_list.append(cs)
-#                     baffle_surf._after_surf_cs_break_list.append(cs.inverse)
-#                 self.config = 0
-#
-#                 index = surf.system_index + 1
-#
-#                 # Link the new baffle surface into the system
-#                 self.insert(baffle_surf, index)
-#
-#                 # Insert new baffle surface into baffle component
-#                 baffle.append(baffle_surf)
-#
-#                 surf.update()
-#
-#                 # Update the number of baffle passes
-#                 baffle_pass += 1
-#
-#                 break
-#
-#         if intercept is None:
-#             break
-#
-#     return baffle
-#
-#
-# def square_raytrace(self, configurations: tp.List[int], surfaces: tp.List[configuration.SurfaceArray],
-#                     wavelengths: tp.List[configuration.Wavelength],
-#                     num_field, num_pupil):
-#     r = 1.0
-#
-#     field_x = np.linspace(-r, r, num=num_field)
-#     field_y = np.linspace(-r, r, num=num_field)
-#
-#     # Evenly spaced grid of pupil positions
-#     pupil_x = np.linspace(-r, r, num=num_pupil)
-#     pupil_y = np.linspace(-r, r, num=num_pupil)
-#
-#     return self.raytrace(configurations, surfaces, wavelengths, field_x, field_y, pupil_x, pupil_y)
-#
-#
-# def raytrace(self, configurations: tp.List[int], surfaces: tp.List[configuration.SurfaceArray],
-#              wavelengths: tp.List[configuration.Wavelength], field_x: np.ndarray, field_y: np.ndarray,
-#              pupil_x: np.ndarray, pupil_y: np.ndarray
-#              ) -> tp.Tuple[np.ndarray, np.ndarray, np.ndarray]:
-#     raise NotImplementedError
+import typing as typ
+import abc
+import collections
+import dataclasses
+import pathlib
+import numpy as np
+import matplotlib.pyplot as plt
+import astropy.units as u
+import shapely.geometry
+import shapely.ops
+import ezdxf.addons
+from kgpy import mixin, vector, transform as tfrm, geometry, optics
+from . import rays, surface
+
+__all__ = ['Baffle', 'BaffleList']
+
+ApertureT = typ.TypeVar('ApertureT', bound=typ.List[surface.Aperture])
+ObscurationT = typ.TypeVar('ObscurationT', bound=surface.Aperture)
+
+
+@dataclasses.dataclass
+class Baffle(
+    mixin.Broadcastable,
+    tfrm.rigid.Transformable,
+    mixin.Named,
+    abc.ABC,
+    typ.Generic[ObscurationT],
+):
+
+    apertures: typ.Optional[ApertureT] = None
+    obscuration: typ.Optional[ObscurationT] = None
+    margin: u.Quantity = 1 * u.mm
+    union_axes: typ.Optional[typ.Sequence[int]] = None
+
+    def apertures_from_raytrace(
+            self,
+            surfaces: surface.SurfaceList,
+            raytrace: rays.RaysList,
+    ) -> 'Baffle':
+        baffle_plane_point = self.transform.translation_eff
+        baffle_plane_normal = self.transform(vector.z_hat, translate=False)
+
+        img_rays = raytrace[~0]
+        sh = img_rays.shape
+        vgrid_sh = img_rays.vector_grid_shape
+
+        convex_hull_list = []
+
+        position = []
+        for rays in raytrace:
+            t = self.transform.inverse + rays.transform
+            p = t(rays.position, num_extra_dims=5)
+            p = np.broadcast_to(p, vgrid_sh, subok=True)
+            position.append(p)
+        position = u.Quantity(position)
+
+        for i in range(1, len(raytrace)):
+
+            position_1 = position[i - 1]
+            position_2 = position[i]
+
+            intercept = geometry.segment_plane_intercept(
+                plane_point=[0, 0, 0] * u.mm,
+                plane_normal=vector.z_hat,
+                line_point_1=position_1,
+                line_point_2=position_2,
+            )
+
+            mask = img_rays.mask
+            mask &= np.isfinite(intercept.sum(~0))
+            mask &= ~self.obscuration.is_unvignetted(intercept)
+
+            surf = surfaces[i]
+            if surf.baffle_link is not None:
+                t1 = self.transform.inverse + surf.transform
+                t2 = self.transform.inverse + surf.baffle_link.transform
+                p1 = t1(surf.aperture.vertices, num_extra_dims=1)[..., :, None, :]
+                p2 = t2(surf.baffle_link.aperture.vertices, num_extra_dims=1)[..., None, :, :]
+
+                intercept_surf = geometry.segment_plane_intercept(
+                    plane_point=[0, 0, 0] * u.mm,
+                    plane_normal=vector.z_hat,
+                    line_point_1=p1,
+                    line_point_2=p2,
+                )
+            else:
+                intercept_surf = None
+
+            if self.union_axes is None:
+                intercept = intercept[None, mask, :]
+                if intercept_surf is not None:
+                    intercept_surf = intercept_surf[None, np.isfinite(intercept_surf.sum(~0)), :]
+                    # intercept_surf = intercept_surf.reshape((1, -1, 3))
+                # position_1 = position_1[None, mask, :]
+                # position_2 = position_2[None, mask, :]
+
+            else:
+                raise NotImplementedError
+                # position_1 = position_1.reshape(sh + (-1, 3))
+                # position_2 = position_2.reshape(sh + (-1, 3))
+                #
+                # num_union_axes = len(self.union_axes)
+                # num_separate_axes = len(sh) - num_union_axes
+                # union_axes_dest = num_separate_axes + np.arange(num_union_axes)
+                #
+                # position_1 = np.moveaxis(position_1, self.union_axes, union_axes_dest)
+                # position_2 = np.moveaxis(position_2, self.union_axes, union_axes_dest)
+                #
+                # position_1 = position_1.reshape(position_1.shape[:num_separate_axes] + (-1, 3))
+                # position_2 = position_2.reshape(position_2.shape[:num_separate_axes] + (-1, 3))
+                #
+                # position_1 = position_1.reshape((-1, ) + position_1.shape[~1:])
+                # position_2 = position_2.reshape((-1, ) + position_2.shape[~1:])
+
+            for j in range(len(intercept)):
+
+                # intercept = geometry.segment_plane_intercept(
+                #     plane_point=baffle_plane_point,
+                #     plane_normal=baffle_plane_normal,
+                #     line_point_1=position_1[j],
+                #     line_point_2=position_2[j],
+                # )
+                #
+                # intercept = intercept[np.isfinite(intercept.sum(~0))]
+                # print(intercept.shape)
+                #
+                # intercept = intercept[~self.obscuration.is_unvignetted(intercept), :]
+
+                intercept_j = intercept[j]
+                if intercept_surf is not None:
+                    intercept_j = np.concatenate([intercept_j, intercept_surf[j]])
+
+                convex_hull = shapely.geometry.MultiPoint(intercept_j.value).convex_hull
+                convex_hull_list.append(convex_hull)
+
+
+        apertures = shapely.ops.unary_union(convex_hull_list)
+        if isinstance(apertures, shapely.geometry.Polygon):
+            apertures = shapely.geometry.MultiPolygon([apertures])
+
+        apertures = shapely.geometry.MultiPolygon([a.buffer(self.margin.to(position.unit).value) for a in apertures])
+        apertures = shapely.ops.unary_union(apertures)
+        if isinstance(apertures, shapely.geometry.Polygon):
+            apertures = shapely.geometry.MultiPolygon([apertures])
+
+        # num_dilate_iter = 3
+        # for d in range(num_dilate_iter):
+        #     apertures = shapely.geometry.MultiPolygon([aper.buffer(self.margin.value / num_dilate_iter) for aper in apertures])
+        #     apertures = shapely.ops.unary_union(apertures)
+        #     if isinstance(apertures, shapely.geometry.Polygon):
+        #         apertures = shapely.geometry.MultiPolygon([apertures])
+
+        apertures_final = []
+        for aper in apertures:
+            a = optics.surface.aperture.IrregularPolygon(vertices=vector.to_3d(np.array(aper.exterior) << position.unit))
+            apertures_final.append(a)
+
+        return Baffle(
+            name=self.name.copy(),
+            transform=self.transform.copy(),
+            apertures=apertures_final,
+            obscuration=self.obscuration.copy(),
+        )
+
+    def unary_union(self, other: 'Baffle'):
+
+        aper_unit = u.mm
+
+        apertures_self = [shapely.geometry.Polygon(aper.vertices.to(aper_unit).value) for aper in self.apertures]
+        apertures_other = [shapely.geometry.Polygon(aper.vertices.to(aper_unit).value) for aper in other.apertures]
+
+        apertures = shapely.geometry.MultiPolygon(apertures_self + apertures_other)
+        apertures = shapely.ops.unary_union(apertures)
+        if isinstance(apertures, shapely.geometry.Polygon):
+            apertures = shapely.geometry.MultiPolygon([apertures])
+
+        apertures_final = []
+        for aper in apertures:
+            a = optics.surface.aperture.IrregularPolygon(
+                vertices=vector.to_3d(np.array(aper.exterior) << aper_unit))
+            apertures_final.append(a)
+
+        return Baffle(
+            name=self.name.copy(),
+            transform=self.transform.copy(),
+            apertures=apertures_final,
+            obscuration=self.obscuration.copy(),
+        )
+
+    def plot(
+            self,
+            ax: typ.Optional[plt.Axes] = None,
+            components: typ.Tuple[int, int] = (0, 1),
+            rigid_transform: typ.Optional[tfrm.rigid.TransformList] = None,
+    ) -> plt.Axes:
+        if ax is None:
+            fig, ax = plt.subplots()
+
+        if self.apertures is not None:
+            for aper in self.apertures:
+                aper.plot(ax=ax, components=components, rigid_transform=rigid_transform)
+
+        if self.obscuration is not None:
+            self.obscuration.plot(ax=ax, components=components, rigid_transform=rigid_transform)
+
+        return ax
+
+    def to_dxf(self, filename: pathlib.Path, dxf_unit: u.Unit = u.imperial.inch):
+        if self.obscuration is not None:
+            with ezdxf.addons.r12writer(filename) as dxf:
+
+                if self.obscuration is not None:
+                    dxf.add_polyline(self.obscuration.vertices.to(dxf_unit).value, closed=True)
+
+                if self.apertures is not None:
+                    for aper in self.apertures:
+                        if isinstance(aper, optics.surface.aperture.Polygon):
+                            dxf.add_polyline(aper.vertices.to(dxf_unit).value, closed=True)
+                        elif isinstance(aper, optics.surface.aperture.Circular):
+                            dxf.add_circle(
+                                (aper.decenter.x.to(dxf_unit).value, aper.decenter.y.to(dxf_unit).value),
+                                aper.radius.to(dxf_unit).value
+                            )
+                        else:
+                            raise NotImplementedError
+
+    def copy(self) -> 'Baffle[ApertureT, ObscurationT]':
+        other = super().copy()      # type: Baffle[ApertureT, ObscurationT]
+        other.apertures = [aper.copy() for aper in self.apertures]
+        other.obscuration = self.obscuration.copy()
+        return other
+
+
+class BaffleList(
+    collections.UserList,
+):
+
+    def apertures_from_raytrace(
+            self,
+            surfaces: surface.SurfaceList,
+            raytrace: rays.RaysList,
+    ) -> 'BaffleList':
+        data = []
+        for baffle in self:
+            baffle = baffle.apertures_from_raytrace(surfaces, raytrace)
+            data.append(baffle)
+        return BaffleList(data)
+
+    def plot(
+            self,
+            ax: typ.Optional[plt.Axes] = None,
+            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            rigid_transform: typ.Optional[tfrm.rigid.TransformList] = None
+    ) -> plt.Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+
+        if rigid_transform is None:
+            rigid_transform = tfrm.rigid.TransformList()
+
+        for baffle in self:
+            baffle.plot(ax, components, rigid_transform + baffle.transform)
+
+        return ax
+
+    def to_dxf(self, file_base: pathlib.Path):
+        for i in range(len(self)):
+            filename = file_base.parent / (str(file_base.name) + '_' + str(i) + '.dxf')
+            self[i].to_dxf(filename)

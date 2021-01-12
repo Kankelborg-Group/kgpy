@@ -5,7 +5,7 @@ import matplotlib.animation
 import astropy.units as u
 import astropy.time
 import astropy.wcs
-from . import Obs
+from .image import Obs
 
 __all__ = ['TestObs']
 

@@ -28,9 +28,12 @@ class Polynomial3D(mixin.Dataframable):
             y: u.Quantity,
             z: u.Quantity,
             data: u.Quantity,
-            mask: np.ndarray,
+            mask: typ.Optional[np.ndarray] = None,
             degree: int = 1,
     ) -> 'Polynomial3D':
+
+        if mask is None:
+            mask = np.array([True])
 
         num_components_out = data.shape[~0:]
         grid_shape = np.broadcast(x, y, z, data[vector.x], mask).shape
@@ -84,6 +87,15 @@ class Polynomial3D(mixin.Dataframable):
                     for i in range(d + 1):
                         if i + j + k == d:
                             vander.append((x ** i) * (y ** j) * (z ** k))
+        # vander = []
+        # if degree >= 0:
+        #     vander += [np.ones(x.shape) * u.dimensionless_unscaled]
+        # if degree >= 1:
+        #     vander += [x, y, z]
+        # if degree >= 2:
+        #     vander += [x * x, x * y, y * y, x * z, y * z, z * z]
+        # if degree >= 3:
+        #     raise NotImplementedError
         return vander
 
     @property
@@ -118,3 +130,15 @@ class Polynomial3D(mixin.Dataframable):
             dataframe.index = self.component_names_output
 
         return dataframe
+
+    def copy(self) -> 'Polynomial3D':
+        names_out = self.component_names_output
+        if names_out is not None:
+            names_out = names_out.copy()
+        return Polynomial3D(
+            degree=self.degree,
+            coefficients=[c.copy() for c in self.coefficients],
+            component_names_input=self.component_names_input.copy(),
+            component_names_output=names_out,
+        )
+
