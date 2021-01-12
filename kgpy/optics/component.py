@@ -66,6 +66,12 @@ class TranslationComponent(Component[SurfaceT]):
         other.translation = self.translation.copy()
         return other
 
+    @property
+    def dataframe(self) -> pandas.DataFrame:
+        dataframe = super().dataframe
+        dataframe['translation'] = [format.quantity(self.translation.vector)]
+        return dataframe
+
 
 @dataclasses.dataclass
 class CylindricalComponent(PistonComponent[SurfaceT]):

@@ -379,6 +379,36 @@ class Rays(transform.rigid.Transformable):
             color_axis: int = axis.wavelength,
             plot_vignetted: bool = False,
     ) -> plt.Axes:
+        return self.plot_attribute(
+            attr_x=self.position[x],
+            attr_y=self.position[y],
+            ax=ax,
+            color_axis=color_axis,
+            plot_vignetted=plot_vignetted
+        )
+
+    def plot_direction(
+            self,
+            ax: typ.Optional[plt.Axes] = None,
+            color_axis: int = axis.wavelength,
+            plot_vignetted: bool = False,
+    ) -> plt.Axes:
+        return self.plot_attribute(
+            attr_x=np.arctan(self.direction[x], self.direction[z]).to(u.arcmin),
+            attr_y=np.arctan(self.direction[y], self.direction[z]).to(u.arcmin),
+            ax=ax,
+            color_axis=color_axis,
+            plot_vignetted=plot_vignetted
+        )
+
+    def plot_attribute(
+            self,
+            attr_x: u.Quantity,
+            attr_y: u.Quantity,
+            ax: typ.Optional[plt.Axes] = None,
+            color_axis: int = axis.wavelength,
+            plot_vignetted: bool = False,
+    ) -> plt.Axes:
         if ax is None:
             _, ax = plt.subplots()
 
@@ -390,8 +420,8 @@ class Rays(transform.rigid.Transformable):
 
         with astropy.visualization.quantity_support():
             scatter = ax.scatter(
-                x=self.position[x][mask],
-                y=self.position[y][mask],
+                x=attr_x[mask],
+                y=attr_y[mask],
                 c=self.colormesh(color_axis)[mask].value,
             )
             try:

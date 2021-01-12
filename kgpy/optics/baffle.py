@@ -30,6 +30,7 @@ class Baffle(
     apertures: typ.Optional[ApertureT] = None
     obscuration: typ.Optional[ObscurationT] = None
     margin: u.Quantity = 1 * u.mm
+    min_distance: u.Quantity = 2 * u.mm
     union_axes: typ.Optional[typ.Sequence[int]] = None
 
     def apertures_from_raytrace(
@@ -138,10 +139,19 @@ class Baffle(
         if isinstance(apertures, shapely.geometry.Polygon):
             apertures = shapely.geometry.MultiPolygon([apertures])
 
-        apertures = shapely.geometry.MultiPolygon([a.buffer(self.margin.to(position.unit).value) for a in apertures])
+        dilate_distance = (self.margin + self.min_distance / 2).to(position.unit)
+        apertures = shapely.geometry.MultiPolygon([a.buffer(dilate_distance.value) for a in apertures])
         apertures = shapely.ops.unary_union(apertures)
         if isinstance(apertures, shapely.geometry.Polygon):
             apertures = shapely.geometry.MultiPolygon([apertures])
+
+        erosion_distance = -self.min_distance.to(position.unit) / 2
+        apertures = shapely.geometry.MultiPolygon([a.buffer(erosion_distance.value) for a in apertures])
+        if isinstance(apertures, shapely.geometry.Polygon):
+            apertures = shapely.geometry.MultiPolygon([apertures])
+
+
+
 
         # num_dilate_iter = 3
         # for d in range(num_dilate_iter):
@@ -171,6 +181,17 @@ class Baffle(
 
         apertures = shapely.geometry.MultiPolygon(apertures_self + apertures_other)
         apertures = shapely.ops.unary_union(apertures)
+        if isinstance(apertures, shapely.geometry.Polygon):
+            apertures = shapely.geometry.MultiPolygon([apertures])
+
+        dilate_distance = self.min_distance.to(aper_unit) / 2
+        apertures = shapely.geometry.MultiPolygon([a.buffer(dilate_distance.value) for a in apertures])
+        apertures = shapely.ops.unary_union(apertures)
+        if isinstance(apertures, shapely.geometry.Polygon):
+            apertures = shapely.geometry.MultiPolygon([apertures])
+
+        erosion_distance = -self.min_distance.to(aper_unit) / 2
+        apertures = shapely.geometry.MultiPolygon([a.buffer(erosion_distance.value) for a in apertures])
         if isinstance(apertures, shapely.geometry.Polygon):
             apertures = shapely.geometry.MultiPolygon([apertures])
 
