@@ -59,6 +59,7 @@ class Aperture(
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
             rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[Sag] = None,
+            color: str = 'black'
     ) -> plt.Axes:
         if ax is None:
             fig, ax = plt.subplots()
@@ -72,7 +73,7 @@ class Aperture(
                 if rigid_transform is not None:
                     wire = rigid_transform(wire, num_extra_dims=1)
                 wire = wire.reshape((-1, ) + wire.shape[~1:])
-                ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
+                ax.fill(wire[..., c1].T, wire[..., c2].T, color=color, fill=False)
         return ax
 
     def copy(self) -> 'Aperture':

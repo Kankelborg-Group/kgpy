@@ -55,7 +55,7 @@ class PistonComponent(Component[SurfaceT]):
 
 @dataclasses.dataclass
 class TranslationComponent(Component[SurfaceT]):
-    translation: transform.rigid.Translate = dataclasses.field(default_factory=transform.rigid.Translate)
+    translation: transform.rigid.Translate = dataclasses.field(default_factory=transform.rigid.Translate.from_components)
 
     @property
     def transform(self) -> transform.rigid.TransformList:

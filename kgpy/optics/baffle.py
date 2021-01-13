@@ -115,18 +115,6 @@ class Baffle(
 
             for j in range(len(intercept)):
 
-                # intercept = geometry.segment_plane_intercept(
-                #     plane_point=baffle_plane_point,
-                #     plane_normal=baffle_plane_normal,
-                #     line_point_1=position_1[j],
-                #     line_point_2=position_2[j],
-                # )
-                #
-                # intercept = intercept[np.isfinite(intercept.sum(~0))]
-                # print(intercept.shape)
-                #
-                # intercept = intercept[~self.obscuration.is_unvignetted(intercept), :]
-
                 intercept_j = intercept[j]
                 if intercept_surf is not None:
                     intercept_j = np.concatenate([intercept_j, intercept_surf[j]])
@@ -149,16 +137,6 @@ class Baffle(
         apertures = shapely.geometry.MultiPolygon([a.buffer(erosion_distance.value) for a in apertures])
         if isinstance(apertures, shapely.geometry.Polygon):
             apertures = shapely.geometry.MultiPolygon([apertures])
-
-
-
-
-        # num_dilate_iter = 3
-        # for d in range(num_dilate_iter):
-        #     apertures = shapely.geometry.MultiPolygon([aper.buffer(self.margin.value / num_dilate_iter) for aper in apertures])
-        #     apertures = shapely.ops.unary_union(apertures)
-        #     if isinstance(apertures, shapely.geometry.Polygon):
-        #         apertures = shapely.geometry.MultiPolygon([apertures])
 
         apertures_final = []
         for aper in apertures:
@@ -213,16 +191,17 @@ class Baffle(
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (0, 1),
             rigid_transform: typ.Optional[tfrm.rigid.TransformList] = None,
+            # color: str = 'black',
     ) -> plt.Axes:
         if ax is None:
             fig, ax = plt.subplots()
 
         if self.apertures is not None:
             for aper in self.apertures:
-                aper.plot(ax=ax, components=components, rigid_transform=rigid_transform)
+                aper.plot(ax=ax, components=components, rigid_transform=rigid_transform, color='blue')
 
         if self.obscuration is not None:
-            self.obscuration.plot(ax=ax, components=components, rigid_transform=rigid_transform)
+            self.obscuration.plot(ax=ax, components=components, rigid_transform=rigid_transform, color='blue')
 
         return ax
 

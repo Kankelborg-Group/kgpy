@@ -420,16 +420,6 @@ class SystemList(
                 else:
                     baffles = baffle.BaffleList([b1.unary_union(b2) for b1, b2 in zip(baffles, new_baffles)])
             self._baffles_cache = baffles
-
-        # baffles = self[0].baffles
-        # for s in range(1, len(self)):
-        #     tmp = baffle.BaffleList([])
-        #     for b1 in baffles:
-        #         for b2 in self[s].baffles:
-        #             if b1.transform == b2.transform:
-        #                 tmp.append(b1.unary_union(b2))
-        #     baffles = tmp
-            # baffles = baffle.BaffleList([b1.unary_union(b2) for b1, b2 in zip(baffles, self[s].baffles)])
         return self._baffles_cache
 
     def plot(

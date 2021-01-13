@@ -45,7 +45,7 @@ def secant(
         else:
             raise NotImplementedError
 
-        x2 = x1 - kgpy.vector.matmul(inv_jac, f1)
+        x2 = x1 - 0.9*kgpy.vector.matmul(inv_jac, f1)
 
         x1 = np.broadcast_to(x1, x2.shape, subok=True)
         mask = np.broadcast_to(mask, x2[..., 0].shape)
