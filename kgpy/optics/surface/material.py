@@ -27,7 +27,8 @@ class Material(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            color: typ.Optional[str] = None,
+            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
             aperture: typ.Optional[Aperture] = None,
     ) -> plt.Axes:
@@ -43,19 +44,33 @@ class Mirror(Material):
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         return -np.sign(rays.index_of_refraction) * u.dimensionless_unscaled
 
+    def view(self) -> 'Mirror':
+        other = super().view()      # type: Mirror
+        other.thickness = self.thickness
+        return other
+
     def copy(self) -> 'Mirror':
         other = super().copy()      # type: Mirror
-        other.thickness = self.thickness
+        other.thickness = self.thickness.copy()
+        return other
 
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            color: typ.Optional[str] = None,
+            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
             aperture: typ.Optional[Aperture] = None,
     ) -> plt.Axes:
-        super().plot(ax=ax, components=components, rigid_transform=rigid_transform, sag=sag, aperture=aperture)
+        super().plot(
+            ax=ax,
+            components=components,
+            color=color,
+            transform_extra=transform_extra,
+            sag=sag,
+            aperture=aperture
+        )
 
         if aperture is not None:
             with astropy.visualization.quantity_support():
@@ -63,8 +78,8 @@ class Mirror(Material):
                 c1, c2 = components
                 wire = aperture.wire.copy()
                 wire[vector.z] = self.thickness
-                if rigid_transform is not None:
-                    wire = rigid_transform(wire, num_extra_dims=1)
+                if transform_extra is not None:
+                    wire = transform_extra(wire, num_extra_dims=1)
                 wire = wire.reshape((-1,) + wire.shape[~1:])
                 ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
 
@@ -77,8 +92,8 @@ class Mirror(Material):
                     back_vertices[vector.z] = self.thickness
 
                     vertices = np.stack([front_vertices, back_vertices], axis=~1)
-                    if rigid_transform is not None:
-                        vertices = rigid_transform(vertices, num_extra_dims=2)
+                    if transform_extra is not None:
+                        vertices = transform_extra(vertices, num_extra_dims=2)
                     vertices = vertices.reshape((-1, ) + vertices.shape[~1:])
 
                     ax.plot(vertices[..., c1].T, vertices[..., c2].T, color='black')

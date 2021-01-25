@@ -7,7 +7,7 @@ import collections
 import dataclasses
 import numpy as np
 import astropy.units as u
-from kgpy import mixin, vector, matrix
+from kgpy import mixin, vector, matrix, units
 from . import Transform as BaseTransform
 
 __all__ = [
@@ -21,36 +21,46 @@ __all__ = [
 
 class Transform(BaseTransform):
 
-    @property
-    @abc.abstractmethod
-    def rotation_eff(self) -> typ.Optional[u.Quantity]:
-        return None
+    # @property
+    # @abc.abstractmethod
+    # def rotation_eff(self) -> typ.Optional[u.Quantity]:
+    #     return None
+    #
+    # @property
+    # @abc.abstractmethod
+    # def translation_eff(self) -> typ.Optional[u.Quantity]:
+    #     return None
+    #
+    # def __call__(
+    #         self,
+    #         value: typ.Optional[u.Quantity] = None,
+    #         rotate: bool = True,
+    #         translate: bool = True,
+    #         num_extra_dims: int = 0,
+    # ) -> u.Quantity:
+    #     if value is not None:
+    #         if rotate:
+    #             if self.rotation_eff is not None:
+    #                 sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None), slice(None)])
+    #                 value = vector.matmul(self.rotation_eff[sl], value)
+    #     if translate:
+    #         if self.translation_eff is not None:
+    #             sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None)])
+    #             if value is None:
+    #                 value = self.translation_eff[sl]
+    #             else:
+    #                 value = value + self.translation_eff[sl]
+    #     return value
 
-    @property
     @abc.abstractmethod
-    def translation_eff(self) -> typ.Optional[u.Quantity]:
-        return None
-
     def __call__(
             self,
-            value: typ.Optional[u.Quantity] = None,
+            value: u.Quantity,
             rotate: bool = True,
             translate: bool = True,
             num_extra_dims: int = 0,
     ) -> u.Quantity:
-        if value is not None:
-            if rotate:
-                if self.rotation_eff is not None:
-                    sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None), slice(None)])
-                    value = vector.matmul(self.rotation_eff[sl], value)
-        if translate:
-            if self.translation_eff is not None:
-                sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None)])
-                if value is None:
-                    value = self.translation_eff[sl]
-                else:
-                    value = value + self.translation_eff[sl]
-        return value
+        pass
 
     @abc.abstractmethod
     def __invert__(self) -> 'Transform':
@@ -61,16 +71,12 @@ class Transform(BaseTransform):
         return self.__invert__()
 
 
+@dataclasses.dataclass
 class TransformList(
     Transform,
-    collections.UserList,
+    mixin.DataclassList[Transform],
 ):
-    def __init__(self, transforms: typ.List[Transform] = None, intrinsic: bool = True):
-        super().__init__(transforms)
-        self.intrinsic = intrinsic
-
-    def __repr__(self):
-        return type(self).__name__ + '(transforms=' + super().__repr__() + ', intrinsic=' + str(self.intrinsic) + ')'
+    intrinsic: bool = True
 
     @property
     def transforms(self) -> typ.Iterator[Transform]:
@@ -83,25 +89,40 @@ class TransformList(
     def extrinsic(self) -> bool:
         return not self.intrinsic
 
-    @property
-    def rotation_eff(self) -> u.Quantity:
-        rotation = np.identity(3) << u.dimensionless_unscaled
-        for transform in self.transforms:
-            if transform is not None:
-                if transform.rotation_eff is not None:
-                    rotation = matrix.mul(transform.rotation_eff, rotation)
-        return rotation
-
+    # @property
+    # def rotation_eff(self) -> u.Quantity:
+    #     rotation = np.identity(3) << u.dimensionless_unscaled
+    #     for transform in self.transforms:
+    #         if transform is not None:
+    #             if transform.rotation_eff is not None:
+    #                 # rotation = matrix.mul(transform.rotation_eff, rotation)
+    #                 rotation = matrix.mul(rotation, transform.rotation_eff)
+    #     return rotation
+    #
     @property
     def translation_eff(self) -> u.Quantity:
-        translation = None
+        value = vector.from_components() * u.mm
+        return self(value)
+
+    def __call__(
+            self,
+            value: u.Quantity,
+            rotate: bool = True,
+            translate: bool = True,
+            num_extra_dims: int = 0,
+    ) -> u.Quantity:
         for transform in self.transforms:
-            if transform is not None:
-                translation = transform(translation)
-        return translation
+            value = transform(
+                value=value,
+                rotate=rotate,
+                translate=translate,
+                num_extra_dims=num_extra_dims,
+            )
+        return value
 
     def __invert__(self) -> 'TransformList':
-        other = type(self)()
+        other = self.copy()
+        other.data = []
         for transform in self:
             if transform is not None:
                 transform = transform.__invert__()
@@ -109,21 +130,50 @@ class TransformList(
         other.reverse()
         return other
 
+    # @property
+    # def tol_iter(self) -> typ.Iterator['TransformList']:
+    #     if len(self) > 0:
+    #         for t in self[0].tol_iter:
+    #             tl = type(self)([t], intrinsic=self.intrinsic)
+    #             if len(self) > 1:
+    #                 for tlist in self[1:].tol_iter:
+    #                     yield tl + tlist
+    #             else:
+    #                 yield tl
+    #     else:
+    #         yield self.copy()
+
+    def view(self) -> 'TransformList':
+        other = super().view()      # type: TransformList
+        other.intrinsic = self.intrinsic
+        return other
+
     def copy(self) -> 'TransformList':
-        other = type(self)()
-        for transform in self:
-            if transform is not None:
-                transform = transform.copy()
-            other.append(transform)
+        other = super().copy()     # type: TransformList
         other.intrinsic = self.intrinsic
         return other
 
 
 @dataclasses.dataclass
 class Transformable(
+    mixin.Toleranceable,
     mixin.Copyable,
 ):
     transform: TransformList = dataclasses.field(default_factory=TransformList)
+
+    @property
+    def tol_iter(self) -> typ.Iterator['Transformable']:
+        others = super().tol_iter   # type: typ.Iterator[Transformable]
+        for other in others:
+            for transform in self.transform.tol_iter:
+                new_other = other.view()
+                new_other.transform = transform
+                yield new_other
+
+    def view(self) -> 'Transformable':
+        other = super().view()  # type: Transformable
+        other.transform = self.transform
+        return other
 
     def copy(self) -> 'Transformable':
         other = super().copy()  # type: Transformable
@@ -133,7 +183,7 @@ class Transformable(
 
 @dataclasses.dataclass
 class TiltAboutAxis(Transform, abc.ABC):
-    angle: u.Quantity = 0 * u.deg
+    angle: typ.Union[u.Quantity, units.TolQuantity] = 0 * u.deg
 
     @property
     def broadcasted(self):
@@ -142,23 +192,54 @@ class TiltAboutAxis(Transform, abc.ABC):
     def __eq__(self, other: 'TiltAboutAxis') -> bool:
         return np.array(self.angle == other.angle).all()
 
+    def __call__(
+            self,
+            value: u.Quantity,
+            rotate: bool = True,
+            translate: bool = True,
+            num_extra_dims: int = 0,
+    ) -> u.Quantity:
+        if rotate:
+            sl = tuple([Ellipsis] + [None] * num_extra_dims + [slice(None), slice(None)])
+            value = vector.matmul(self.rotation_matrix[sl], value)
+        return value
+
     def __invert__(self) -> 'TiltAboutAxis':
         return type(self)(angle=-self.angle)
 
     @property
-    def translation_eff(self) -> None:
-        return None
+    @abc.abstractmethod
+    def rotation_matrix(self) -> u.Quantity:
+        pass
+
+    @property
+    def tol_iter(self) -> typ.Iterator['TiltAboutAxis']:
+        others = super().tol_iter   # type: typ.Iterator[TiltAboutAxis]
+        for other in others:
+            if isinstance(self.angle, units.TolQuantity):
+                other_1, other_2 = other.view(), other.view()
+                other_1.angle = self.angle.amin
+                other_2.angle = self.angle.amax
+                yield other_1
+                yield other_2
+            else:
+                yield other
+
+    def view(self) -> 'TiltAboutAxis':
+        other = super().view()     # type: TiltAboutAxis
+        other.angle = self.angle
+        return other
 
     def copy(self) -> 'TiltAboutAxis':
-        return type(self)(
-            angle=self.angle.copy(),
-        )
+        other = super().copy()  # type: TiltAboutAxis
+        other.angle = self.angle.copy()
+        return other
 
 
 class TiltX(TiltAboutAxis):
 
     @property
-    def rotation_eff(self) -> u.Quantity:
+    def rotation_matrix(self) -> u.Quantity:
         r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
         cos_x, sin_x = np.cos(self.angle), np.sin(self.angle)
         r[..., 0, 0] = 1
@@ -172,7 +253,7 @@ class TiltX(TiltAboutAxis):
 class TiltY(TiltAboutAxis):
 
     @property
-    def rotation_eff(self) -> u.Quantity:
+    def rotation_matrix(self) -> u.Quantity:
         r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
         cos_y, sin_y = np.cos(self.angle), np.sin(self.angle)
         r[..., 0, 0] = cos_y
@@ -186,7 +267,7 @@ class TiltY(TiltAboutAxis):
 class TiltZ(TiltAboutAxis):
 
     @property
-    def rotation_eff(self) -> u.Quantity:
+    def rotation_matrix(self) -> u.Quantity:
         r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
         cos_z, sin_z = np.cos(self.angle), np.sin(self.angle)
         r[..., 0, 0] = cos_z
@@ -200,64 +281,115 @@ class TiltZ(TiltAboutAxis):
 @dataclasses.dataclass
 class Translate(Transform):
 
-    vector: u.Quantity = dataclasses.field(default_factory=vector.from_components)
+    x: typ.Union[u.Quantity, units.TolQuantity] = 0 * u.mm
+    y: typ.Union[u.Quantity, units.TolQuantity] = 0 * u.mm
+    z: typ.Union[u.Quantity, units.TolQuantity] = 0 * u.mm
 
     @classmethod
-    def from_components(cls, x: u.Quantity = 0 * u.mm, y: u.Quantity = 0 * u.mm, z: u.Quantity = 0 * u.mm):
-        return cls(vector=vector.from_components(x, y, z))
+    def from_vector(
+            cls,
+            vec: u.Quantity,
+    ) -> 'Translate':
+        return cls(
+            x=vec[vector.x].copy(),
+            y=vec[vector.y].copy(),
+            z=vec[vector.z].copy(),
+        )
 
     @property
     def broadcasted(self):
         return np.broadcast(
             super().broadcasted,
-            self.vector,
+            self.x,
+            self.y,
+            self.z,
         )
 
     @property
-    def x(self) -> u.Quantity:
-        return self.vector[vector.x]
+    def vector(self):
+        return vector.from_components(x=self.x, y=self.y, z=self.z)
 
-    @x.setter
-    def x(self, value: u.Quantity) -> typ.NoReturn:
-        self.vector[vector.x] = value
-
-    @property
-    def y(self) -> u.Quantity:
-        return self.vector[vector.y]
-
-    @y.setter
-    def y(self, value: u.Quantity) -> typ.NoReturn:
-        self.vector[vector.y] = value
-
-    @property
-    def z(self) -> u.Quantity:
-        return self.vector[vector.z]
-
-    @z.setter
-    def z(self, value: u.Quantity) -> typ.NoReturn:
-        self.vector[vector.z] = value
+    def __call__(
+            self,
+            value: u.Quantity,
+            rotate: bool = True,
+            translate: bool = True,
+            num_extra_dims: int = 0,
+    ) -> u.Quantity:
+        if translate:
+            sl = tuple([Ellipsis] + [None] * num_extra_dims + [slice(None)])
+            value = self.vector[sl] + value
+        return value
 
     def __invert__(self) -> 'Translate':
-        return Translate(-self.vector)
+        return Translate(x=-self.x, y=-self.y, z=-self.z)
 
     def __eq__(self, other: 'Translate') -> bool:
         return np.array(self.vector == other.vector).all()
 
     def __add__(self, other: 'Translate') -> 'Translate':
-        return type(self)(self.vector + other.vector)
+        return type(self)(
+            x=self.x + other.x,
+            y=self.y + other.y,
+            z=self.z + other.z,
+        )
 
     def __sub__(self, other: 'Translate') -> 'Translate':
-        return type(self)(self.vector - other.vector)
+        return type(self)(
+            x=self.x - other.x,
+            y=self.y - other.y,
+            z=self.z - other.z,
+        )
+
+    # @property
+    # def rotation_eff(self) -> None:
+    #     return None
+    #
+    # @property
+    # def translation_eff(self) -> u.Quantity:
+    #     return self.vector
 
     @property
-    def rotation_eff(self) -> None:
-        return None
+    def tol_iter(self):
+        others = super().tol_iter   # type: typ.Iterator[Translate]
 
-    @property
-    def translation_eff(self) -> u.Quantity:
-        return self.vector
+        if isinstance(self.x, units.TolQuantity):
+            ax = [self.x.amin, self.x.amax]
+        else:
+            ax = [self.x.copy()]
+
+        if isinstance(self.y, units.TolQuantity):
+            ay = [self.y.amin, self.y.amax]
+        else:
+            ay = [self.y.copy()]
+
+        if isinstance(self.z, units.TolQuantity):
+            az = [self.z.amin, self.z.amax]
+        else:
+            az = [self.z.copy()]
+
+        # if (len(ax) > 1) or (len(ay) > 1) or (len(az) > 1):
+
+        for other in others:
+            for ax_i in ax:
+                for ay_j in ay:
+                    for az_k in az:
+                        new_other = other.view()
+                        new_other.x = ax_i
+                        new_other.y = ay_j
+                        new_other.z = az_k
+                        yield new_other
+
+    def view(self) -> 'Translate':
+        other = super().view()  # type: Translate
+        other.x = self.x
+        other.y = self.y
+        other.z = self.z
+        return other
 
     def copy(self) -> 'Translate':
-        return Translate(
-            vector=self.vector.copy()
-        )
+        other = super().copy()  # type: Translate
+        other.x = self.x.copy()
+        other.y = self.y.copy()
+        other.z = self.z.copy()
+        return other

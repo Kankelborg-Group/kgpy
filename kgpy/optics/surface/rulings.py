@@ -86,6 +86,12 @@ class ConstantDensity(Rulings):
         out = np.broadcast(out, self.ruling_density)
         return out
 
+    def view(self) -> 'ConstantDensity':
+        other = super().view()  # type: ConstantDensity
+        other.diffraction_order = self.diffraction_order
+        other.ruling_density = self.ruling_density
+        return other
+
     def copy(self) -> 'ConstantDensity':
         other = super().copy()  # type: ConstantDensity
         other.diffraction_order = self.diffraction_order.copy()
@@ -115,6 +121,13 @@ class CubicPolyDensity(ConstantDensity):
         out = np.broadcast(out, self.ruling_density_quadratic)
         out = np.broadcast(out, self.ruling_density_cubic)
         return out
+
+    def view(self) -> 'CubicPolyDensity':
+        other = super().view()  # type: CubicPolyDensity
+        other.ruling_density_linear = self.ruling_density_linear
+        other.ruling_density_quadratic = self.ruling_density_quadratic
+        other.ruling_density_cubic = self.ruling_density_cubic
+        return other
 
     def copy(self) -> 'CubicPolyDensity':
         other = super().copy()  # type: CubicPolyDensity

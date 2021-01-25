@@ -61,7 +61,7 @@ class TestTransformList:
     def test_polar(self):
         transform = rigid.TransformList([
             rigid.TiltZ(90 * u.deg),
-            rigid.Translate([1, 0, 0] * u.dimensionless_unscaled),
+            rigid.Translate.from_vector([1, 0, 0] * u.dimensionless_unscaled),
         ])
         a = vector.from_components()
         b = transform(a)

@@ -39,7 +39,6 @@ def segment_plane_intercept(
 ) -> u.Quantity:
 
     line_direction = line_point_2 - line_point_1
-    line_length = vector.length(line_direction)
 
     d = line_plane_intercept_parameter(plane_point, plane_normal, line_point_1, line_direction)[..., 0]
     intercept = line_plane_intercept(plane_point, plane_normal, line_point_1, line_direction)

@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.visualization
-from kgpy import mixin, vector, transform, optimization
+from kgpy import mixin, vector, transform as tfrm, optimization
 from ..rays import Rays, RaysList
 from .sag import Sag
 from .material import Material
@@ -34,7 +34,8 @@ RulingsT = typ.TypeVar('RulingsT', bound=Rulings)
 @dataclasses.dataclass
 class Surface(
     mixin.Broadcastable,
-    transform.rigid.Transformable,
+    tfrm.rigid.Transformable,
+    mixin.Colorable,
     mixin.Named,
     abc.ABC,
     typ.Generic[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT],
@@ -52,7 +53,8 @@ class Surface(
     aperture: typ.Optional[ApertureT] = None    #: Aperture of this surface
     aperture_mechanical: typ.Optional[ApertureMechT] = None     #: Mechanical aperture of this surface
     rulings: typ.Optional[RulingsT] = None      #: Ruling profile of this surface
-    baffle_link: typ.Optional['Surface'] = None
+    # baffle_link: typ.Optional['Surface'] = None
+    baffle_loft_ids: typ.List[int] = dataclasses.field(default_factory=lambda: [])
 
     def ray_intercept(
             self,
@@ -66,10 +68,10 @@ class Surface(
         def func(t: u.Quantity) -> u.Quantity:
             a = line(t)
             if self.sag is not None:
-                sag = self.sag(a[vector.x], a[vector.y])
+                surf_sag = self.sag(a[vector.x], a[vector.y])
             else:
-                sag = 0 * u.mm
-            return a[vector.z] - sag
+                surf_sag = 0 * u.mm
+            return a[vector.z] - surf_sag
 
         bracket_max = 2 * np.nanmax(np.abs(rays.position[vector.z])) + 1 * u.mm
         # if np.isfinite(self.radius):
@@ -82,14 +84,21 @@ class Surface(
         )
         return line(t_intercept)
 
-    def propagate_rays(self, rays: Rays, intercept_error: u.Quantity = 0.1 * u.nm) -> Rays:
+    def propagate_rays(
+            self,
+            rays: Rays,
+            intercept_error: u.Quantity = 0.1 * u.nm
+    ) -> Rays:
 
         if not self.is_active:
             return rays
 
-        from_prev_to_self = rays.transform.inverse + self.transform
-        from_self_to_prev = from_prev_to_self.inverse
-        rays = rays.apply_transform_list(from_self_to_prev)
+        # from_prev_to_self = rays.transform.inverse + self.transform
+        # from_self_to_prev = from_prev_to_self.inverse
+        # rays = rays.apply_transform_list(from_self_to_prev)
+        # transform_total = rays.transform + self.transform.inverse
+        transform_total = self.transform.inverse + rays.transform
+        rays = rays.apply_transform_list(transform_total)
         rays.transform = self.transform
 
         rays.position = self.ray_intercept(rays, intercept_error=intercept_error)
@@ -130,67 +139,220 @@ class Surface(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (0, 1),
-            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            color: typ.Optional[str] = None,
+            transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
+            to_global: bool = False,
     ) -> plt.Axes:
         if ax is None:
             fig, ax = plt.subplots()
 
+        if color is None:
+            color = self.color
+
+        if to_global:
+            if transform_extra is None:
+                transform_extra = tfrm.rigid.TransformList()
+            transform_extra = transform_extra + self.transform
+
         if self.is_visible:
 
             if self.aperture is not None:
-                self.aperture.plot(ax, components, rigid_transform, self.sag, )
+                self.aperture.plot(
+                    ax=ax,
+                    components=components,
+                    transform_extra=transform_extra,
+                    color=color,
+                    sag=self.sag,
+                )
             if self.aperture_mechanical is not None:
-                self.aperture_mechanical.plot(ax, components, rigid_transform, self.sag, )
+                self.aperture_mechanical.plot(
+                    ax=ax,
+                    components=components,
+                    transform_extra=transform_extra,
+                    color=color,
+                    sag=self.sag,
+                )
 
             if self.material is not None:
                 if self.aperture_mechanical is not None:
-                    self.material.plot(ax, components, rigid_transform, self.sag, self.aperture_mechanical)
+                    self.material.plot(
+                        ax=ax,
+                        components=components,
+                        transform_extra=transform_extra,
+                        color=color,
+                        sag=self.sag,
+                        aperture=self.aperture_mechanical,
+                    )
                 elif self.aperture is not None:
-                    self.material.plot(ax, components, rigid_transform, self.sag, self.aperture)
+                    self.material.plot(
+                        ax=ax,
+                        components=components,
+                        transform_extra=transform_extra,
+                        color=color,
+                        sag=self.sag,
+                        aperture=self.aperture,
+                    )
 
         return ax
+
+    def view(self) -> 'Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]':
+        other = super().view()      # type: Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]
+        other.is_stop = self.is_stop
+        other.is_stop_test = self.is_stop_test
+        other.is_active = self.is_active
+        other.is_visible = self.is_visible
+        other.sag = self.sag
+        other.material = self.material
+        other.aperture = self.aperture
+        other.aperture_mechanical = self.aperture_mechanical
+        other.rulings = self.rulings
+        other.baffle_loft_ids = self.baffle_loft_ids
+        return other
 
     def copy(self) -> 'Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]':
         other = super().copy()      # type: Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]
         other.is_stop = self.is_stop
+        other.is_stop_test = self.is_stop_test
         other.is_active = self.is_active
         other.is_visible = self.is_visible
-        other.sag = self.sag.copy()
-        other.material = self.material.copy()
-        other.aperture = self.aperture.copy()
-        other.aperture_mechanical = self.aperture.copy()
-        other.rulings = self.rulings.copy()
+
+        if self.sag is None:
+            other.sag = self.sag
+        else:
+            other.sag = self.sag.copy()
+
+        if self.material is None:
+            other.material = self.material
+        else:
+            other.material = self.material.copy()
+
+        if self.aperture is None:
+            other.aperture = self.aperture
+        else:
+            other.aperture = self.aperture.copy()
+
+        if self.aperture_mechanical is None:
+            other.aperture_mechanical = self.aperture_mechanical
+        else:
+            other.aperture_mechanical = self.aperture_mechanical.copy()
+
+        if self.rulings is None:
+            other.rulings = self.rulings
+        else:
+            other.rulings = self.rulings.copy()
+
+        if self.baffle_loft_ids is None:
+            other.baffle_loft_ids = self.baffle_loft_ids
+        else:
+            other.baffle_loft_ids = self.baffle_loft_ids.copy()
+
         return other
 
 
+@dataclasses.dataclass
 class SurfaceList(
-    collections.UserList,
-    typ.List[Surface],
+    # mixin.Toleranceable,
+    # collections.UserList,
+    mixin.Colorable,
+    tfrm.rigid.Transformable,
+    mixin.DataclassList[Surface],
+    # typ.List[Surface],
 ):
 
-    def raytrace(self, rays: Rays, intercept_error: u.Quantity = 0.1 * u.nm) -> RaysList:
+    @property
+    def flat_local_iter(self) -> typ.Iterator[Surface]:
+        for surf in self.data:
+            if isinstance(surf, type(self)):
+                for s in surf.flat_local_iter:
+                    yield s
+            else:
+                yield surf
+
+    @property
+    def flat_global_iter(self) -> typ.Iterator[Surface]:
+        for surf in self.data:
+            if isinstance(surf, type(self)):
+                for s in surf.flat_global_iter:
+                    s = s.view()
+                    s.transform = self.transform + s.transform
+                    yield s
+            else:
+                surf = surf.view()
+                surf.transform = self.transform + surf.transform
+                yield surf
+
+    @property
+    def flat_global(self) -> 'SurfaceList':
+        other = super().copy()  # type: SurfaceList
+        other.data = list(self.flat_global_iter)
+        return other
+
+    @property
+    def flat_local(self) -> 'SurfaceList':
+        other = super().copy()  # type: SurfaceList
+        other.data = list(self.flat_local_iter)
+        return other
+
+    def raytrace(
+            self,
+            rays: Rays,
+            surface_last: typ.Optional[Surface] = None,
+            intercept_error: u.Quantity = 0.1 * u.nm
+    ) -> RaysList:
+
         rays_list = RaysList()
-        for surf in self:
+        for surf in self.flat_global_iter:
             rays = surf.propagate_rays(rays, intercept_error=intercept_error)
             rays_list.append(rays)
+            if surf == surface_last:
+                return rays_list
         return rays_list
 
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            rigid_transform: typ.Optional[transform.rigid.TransformList] = None
+            color: typ.Optional[str] = None,
+            transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
+            to_global: bool = False,
     ) -> plt.Axes:
         if ax is None:
             _, ax = plt.subplots()
 
-        if rigid_transform is None:
-            rigid_transform = transform.rigid.TransformList()
+        if color is None:
+            color = self.color
+
+        if to_global:
+            if transform_extra is None:
+                transform_extra = tfrm.rigid.TransformList()
+            transform_extra = transform_extra + self.transform
 
         for surf in self:
-            surf.plot(ax=ax, components=components, rigid_transform=rigid_transform + surf.transform)
+            surf.plot(
+                ax=ax,
+                components=components,
+                color=color,
+                transform_extra=transform_extra,
+                to_global=True,
+            )
 
         return ax
+
+    # @property
+    # def tol_iter(self) -> typ.Iterator['SurfaceList']:
+    #     if len(self) > 0:
+    #         for s in self[0].tol_iter:
+    #             result = self.view()
+    #             result.data = [s]
+    #             if len(self) > 1:
+    #                 for slist in self[1:].tol_iter:
+    #                     yield result + slist
+    #             else:
+    #                 yield result
+    #
+    #
+    #     else:
+    #         yield self.view()
 
 
 from . import aperture

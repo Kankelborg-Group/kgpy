@@ -38,8 +38,13 @@ class PistonComponent(Component[SurfaceT]):
     @property
     def transform(self) -> transform.rigid.TransformList:
         return super().transform + transform.rigid.TransformList([
-            transform.rigid.Translate.from_components(z=-self.piston)
+            transform.rigid.Translate(z=-self.piston)
         ])
+
+    def view(self) -> 'PistonComponent':
+        other = super().view()  # type: PistonComponent
+        other.piston = self.piston
+        return other
 
     def copy(self) -> 'PistonComponent':
         other = super().copy()      # type: PistonComponent
@@ -55,11 +60,16 @@ class PistonComponent(Component[SurfaceT]):
 
 @dataclasses.dataclass
 class TranslationComponent(Component[SurfaceT]):
-    translation: transform.rigid.Translate = dataclasses.field(default_factory=transform.rigid.Translate.from_components)
+    translation: transform.rigid.Translate = dataclasses.field(default_factory=transform.rigid.Translate)
 
     @property
     def transform(self) -> transform.rigid.TransformList:
         return super().transform + transform.rigid.TransformList([self.translation])
+
+    def view(self) -> 'TranslationComponent':
+        other = super().view()      # type: TranslationComponent
+        other.translation = self.translation
+        return other
 
     def copy(self) -> 'TranslationComponent':
         other = super().copy()      # type: TranslationComponent
@@ -82,8 +92,14 @@ class CylindricalComponent(PistonComponent[SurfaceT]):
     def transform(self) -> transform.rigid.TransformList:
         return super().transform + transform.rigid.TransformList([
             transform.rigid.TiltZ(self.cylindrical_azimuth),
-            transform.rigid.Translate.from_components(x=self.cylindrical_radius),
+            transform.rigid.Translate(x=self.cylindrical_radius),
         ])
+
+    def view(self) -> 'CylindricalComponent':
+        other = super().view()  # type: CylindricalComponent
+        other.cylindrical_radius = self.cylindrical_radius
+        other.cylindrical_azimuth = self.cylindrical_azimuth
+        return other
 
     def copy(self) -> 'CylindricalComponent':
         other = super().copy()  # type: CylindricalComponent

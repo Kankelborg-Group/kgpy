@@ -109,7 +109,8 @@ class Rays(transform.rigid.Transformable):
 
         direction, _ = np.broadcast_arrays(direction, wavelength, subok=True)
 
-        position = vector.from_components(x=field_grid_x[..., None, None, None], y=field_grid_y[..., None, :, None, None])
+        position = vector.from_components(x=field_grid_x[..., None, None, None],
+                                          y=field_grid_y[..., None, :, None, None])
         # print(field_grid_x.shape)
         # print(position.shape)
         # print(wavelength.shape)
@@ -236,6 +237,19 @@ class Rays(transform.rigid.Transformable):
             polynomial_degree=polynomial_degree,
         )
 
+    def view(self) -> 'Rays':
+        other = super().view()  # type: Rays
+        other.wavelength = self.wavelength
+        other.position = self.position
+        other.direction = self.direction
+        other.polarization = self.polarization
+        other.surface_normal = self.surface_normal
+        other.index_of_refraction = self.index_of_refraction
+        other.vignetted_mask = self.vignetted_mask
+        other.error_mask = self.error_mask
+        other.input_grids = self.input_grids
+        return other
+
     def copy(self) -> 'Rays':
         other = super().copy()  # type: Rays
         other.wavelength = self.wavelength.copy()
@@ -246,8 +260,7 @@ class Rays(transform.rigid.Transformable):
         other.index_of_refraction = self.index_of_refraction.copy()
         other.vignetted_mask = self.vignetted_mask.copy()
         other.error_mask = self.error_mask.copy()
-        other.input_grids = self.input_grids
-        # other.input_grids = copy.deepcopy(self.input_grids)
+        other.input_grids = [g.copy() for g in self.input_grids]
         return other
 
     @property
@@ -428,7 +441,8 @@ class Rays(transform.rigid.Transformable):
                 ax.legend(
                     handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
                     labels=list(self.grid_labels(color_axis).flatten()),
-                    loc='upper right',
+                    loc='top left',
+                    bbox_to_anchor=(1.0, 1.0),
                 )
             except ValueError:
                 pass
@@ -509,25 +523,26 @@ class RaysList(
     collections.UserList,
     typ.List[Rays],
 ):
+
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         if ax is None:
             _, ax = plt.subplots()
 
-        if rigid_transform is None:
-            rigid_transform = transform.rigid.TransformList()
+        if transform_extra is None:
+            transform_extra = transform.rigid.TransformList()
 
         img_rays = self[~0]
 
         intercepts = []
         for rays in self:
-            rays_transform = rigid_transform + rays.transform
+            rays_transform = transform_extra + rays.transform
             intercept = rays_transform(rays.position, num_extra_dims=5)
             intercept = np.broadcast_to(intercept, img_rays.vector_grid_shape, subok=True)
             intercepts.append(intercept)
@@ -556,8 +571,6 @@ class RaysList(
         mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
 
         for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
-            # print(intercept_c.shape)
-            # print(mask_c.shape)
             ax.plot(
                 intercept_c[:, mask_c, components[0]],
                 intercept_c[:, mask_c, components[1]],
@@ -565,9 +578,8 @@ class RaysList(
                 label=label,
             )
 
-        ax.set_xlim(right=1.1 * ax.get_xlim()[1])
         handles, labels = ax.get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
-        ax.legend(label_dict.values(), label_dict.keys())
+        ax.legend(label_dict.values(), label_dict.keys(), loc='top left', bbox_to_anchor=(1.0, 1.0))
 
         return ax

@@ -55,10 +55,17 @@ class Standard(Sag):
         n = vector.normalize(vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
         return n
 
+    def view(self) -> 'Standard':
+        other = super().view()  # type: Standard
+        other.radius = self.radius
+        other.conic = self.conic
+        return other
+
     def copy(self) -> 'Standard':
         other = super().copy()  # type: Standard
         other.radius = self.radius.copy()
         other.conic = self.conic.copy()
+        return other
 
     @property
     def broadcasted(self):
@@ -107,6 +114,11 @@ class Toroidal(Standard):
         out = super().broadcasted
         out = np.broadcast(out, self.radius_of_rotation)
         return out
+
+    def view(self) -> 'Toroidal':
+        other = super().view()  # type: Toroidal
+        other.radius_of_rotation = self.radius_of_rotation
+        return other
 
     def copy(self) -> 'Toroidal':
         other = super().copy()  # type: Toroidal

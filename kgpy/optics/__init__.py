@@ -14,13 +14,15 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 from kgpy import mixin, linspace, vector, optimization, transform
 from kgpy.vector import x, y, z, ix, iy, iz, xy
-from . import aberration, rays, surface, component, baffle
+from . import aberration, rays, surface, component, baffle, breadboard
 
 __all__ = [
     'aberration',
     'rays',
     'surface',
     'component',
+    'baffle',
+    'breadboard',
     'System',
     'SystemList',
 ]
@@ -32,18 +34,24 @@ class System(
     mixin.Broadcastable,
     mixin.Named,
 ):
+    from .breadboard import Breadboard
     """
     Model of an optical system.
     """
     #: Surface representing the light source
     object_surface: surface.Surface = dataclasses.field(default_factory=surface.Surface)
     surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
-    wavelengths: u.Quantity = 0 * u.nm    #: Source wavelengths
-    pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the pupil for each axis x, y
-    pupil_margin: u.Quantity = 1 * u.um     #: Margin between edge of pupil and nearest ray
-    field_samples: typ.Union[int, typ.Tuple[int, int]] = 3      #: Number of samples across the field for each axis x, y
-    field_margin: u.Quantity = 1 * u.nrad       #: Margin between edge of field and nearest ray
+    wavelengths: u.Quantity = 0 * u.nm  #: Source wavelengths
+    pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3  #: Number of samples across the pupil for each axis x, y
+    pupil_margin: u.Quantity = 1 * u.um  #: Margin between edge of pupil and nearest ray
+    field_samples: typ.Union[int, typ.Tuple[int, int]] = 3  #: Number of samples across the field for each axis x, y
+    field_margin: u.Quantity = 1 * u.nrad  #: Margin between edge of field and nearest ray
     baffles_blank: baffle.BaffleList = dataclasses.field(default_factory=baffle.BaffleList)
+    baffles_hull_axes: typ.Optional[typ.Tuple[int, ...]] = None
+    breadboard: typ.Optional[Breadboard] = None
+
+    # tolerances: typ.Dict[str, typ.Callable[['System'], typ.Iterator['System']]] = dataclasses.field(
+    #     default_factory=lambda: {})
 
     def __post_init__(self):
         self.update()
@@ -53,23 +61,23 @@ class System(
         self._raytrace_cache = None
         self._baffles_cache = None
 
-    @property
-    def stop(self) -> surface.Surface:
-        return [s for s in self.surfaces if s.is_stop][0]
-
-    @property
-    def stop_tests(self) -> typ.List[surface.Surface]:
-        return [s for s in self.surfaces if s.is_stop_test]
+    # @property
+    # def stop(self) -> surface.Surface:
+    #     return [s for s in self.surfaces if s.is_stop][0]
+    #
+    # @property
+    # def stop_tests(self) -> typ.List[surface.Surface]:
+    #     return [s for s in self.surfaces if s.is_stop_test]
 
     @property
     def surfaces_all(self) -> surface.SurfaceList:
         return surface.SurfaceList([self.object_surface]) + self.surfaces
 
-    @property
-    def aperture_surfaces(self) -> typ.Iterator[surface.Surface]:
-        for s in self.surfaces:
-            if s.aperture is not None:
-                yield s
+    # @property
+    # def aperture_surfaces(self) -> typ.Iterator[surface.Surface]:
+    #     for s in self.surfaces:
+    #         if s.aperture is not None:
+    #             yield s
 
     @staticmethod
     def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
@@ -130,53 +138,154 @@ class System(
         )
 
     @property
+    def baffle_lofts(self) -> typ.Dict[int, typ.List[surface.Surface]]:
+        lofts = {}
+        for surf in self.surfaces_all.flat_global_iter:
+            for b_id in surf.baffle_loft_ids:
+                if b_id not in lofts:
+                    lofts[b_id] = []
+                lofts[b_id].append(surf)
+
+        return lofts
+
+    @property
     def baffles(self) -> baffle.BaffleList:
         if self._baffles_cache is None:
-            if self.baffles_blank is not None:
-                self._baffles_cache = self.baffles_blank.apertures_from_raytrace(
-                    surfaces=self.surfaces_all,
-                    raytrace=self.raytrace,
-                )
+            self._baffles_cache = self.calc_baffles(self.baffles_blank)
         return self._baffles_cache
+
+    def calc_baffles(
+            self,
+            baffles_blank: baffle.BaffleList,
+            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+    ) -> baffle.BaffleList:
+
+        if transform_extra is None:
+            transform_extra = transform.rigid.TransformList()
+
+        if baffles_blank:
+
+            systems = list(self.tol_iter)
+
+            num_systems = len(systems)
+            num_surfaces = len(self.raytrace)
+            base_shape = (num_systems, num_surfaces)
+            position_rays_shape = base_shape + self.rays_output.vector_grid_shape
+
+            position_rays = np.empty(position_rays_shape) << self.rays_output.position.unit
+            mask_rays = np.empty(position_rays_shape[:~0], dtype=np.bool)
+
+            for i in range(num_systems):
+                sys = systems[i]
+                r_img = systems[i].raytrace[~0]
+                for j in range(num_surfaces):
+                    r = sys.raytrace[j]
+                    position_rays[i, j] = r.transform(r.position, num_extra_dims=5)
+                    position_rays[i, j] = transform_extra(position_rays[i, j], num_extra_dims=5)
+                    mask_rays[i, j] = r_img.mask
+
+            position_rays_shape = base_shape + self.rays_output.shape + (-1, 3)
+            position_rays = position_rays.reshape(position_rays_shape)
+            mask_rays = mask_rays.reshape(position_rays_shape[:~0])
+
+            hull_axes = self.baffles_hull_axes
+            if hull_axes is None:
+                hull_axes = list(range(self.rays_output.ndim))
+            hull_axes = list(np.array(hull_axes) + len(base_shape))
+            hull_axes.insert(0, 0)
+            hull_axes.insert(len(hull_axes) + 1, ~0)
+
+            baffles = baffles_blank.concat_apertures_from_global_positions(
+                position_1=position_rays[:, :~0],
+                position_2=position_rays[:, 1:],
+                mask=mask_rays[:, :~0],
+                hull_axes=hull_axes,
+            )
+
+            position_0_lofts = []
+            position_1_lofts = []
+            for sys in systems:
+                p0_sys, p1_sys = [], []
+                for loft in sys.baffle_lofts.values():
+                    surf_0, surf_1 = loft[:2]
+                    p0 = surf_0.transform(surf_0.aperture.vertices, num_extra_dims=1)[..., :, None, :]
+                    p1 = surf_1.transform(surf_1.aperture.vertices, num_extra_dims=1)[..., None, :, :]
+                    p0 = transform_extra(p0, num_extra_dims=2)
+                    p1 = transform_extra(p1, num_extra_dims=2)
+                    p0 = np.broadcast_to(p0, self.rays_output.shape + p0.shape, subok=True)
+                    p1 = np.broadcast_to(p1, self.rays_output.shape + p1.shape, subok=True)
+                    p0, p1 = np.broadcast_arrays(p0, p1, subok=True)
+                    p0_sys.append(p0)
+                    p1_sys.append(p1)
+                position_0_lofts.append(p0_sys)
+                position_1_lofts.append(p1_sys)
+
+            hull_axes = self.baffles_hull_axes
+            if hull_axes is None:
+                hull_axes = list(range(self.rays_output.ndim))
+            hull_axes = list(np.array(hull_axes) + 1)
+            hull_axes.insert(0, 0)
+            hull_axes.insert(len(hull_axes) + 1, ~1)
+            hull_axes.insert(len(hull_axes) + 1, ~0)
+
+            for p0, p1 in zip(zip(*position_0_lofts), zip(*position_1_lofts)):
+                p0, p1 = u.Quantity(p0), u.Quantity(p1)
+                baffles = baffles.concat_apertures_from_global_positions(
+                    position_1=p0,
+                    position_2=p1,
+                    hull_axes=hull_axes,
+                )
+
+        else:
+            baffles = baffles_blank
+
+        return baffles
 
     @property
     def raytrace(self) -> rays.RaysList:
         if self._raytrace_cache is None:
-            self._update_raytrace_caches()
+            self._raytrace_cache = self.surfaces_all.raytrace(self.rays_input)
         return self._raytrace_cache
-
-    @property
-    def _raytrace(self) -> rays.RaysList:
-        return self.surfaces_all.raytrace(self.rays_input)
 
     @property
     def rays_output(self) -> rays.Rays:
         return self.raytrace[~0]
 
     @property
-    def rays_input(self):
-        return self.raytrace[0]
+    def rays_input(self) -> rays.Rays:
+        if self._rays_input_cache is None:
+            self._rays_input_cache = self._calc_rays_input()
+        return self._rays_input_cache
+        # return self.raytrace[0]
 
-    def _update_raytrace_caches(self) -> typ.NoReturn:
+    def _calc_rays_input(self) -> rays.Rays:
 
-        stops = self.stop_tests + [self.stop]
+        # stops = self.stop_tests + [self.stop]
 
-        for surf in stops:
+        rays_input = None
+
+        for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+
+            if not surf.is_stop and not surf.is_stop_test:
+                continue
 
             if self.field_min.unit.is_equivalent(u.rad):
 
-                if self._rays_input_cache is None:
+                if rays_input is None:
                     position_guess = vector.from_components(use_z=False) << u.mm
                 else:
-                    position_guess = self._rays_input_cache.position[xy]
+                    position_guess = rays_input.position[xy]
 
                 step_size = .1 * u.mm
                 step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
                 # surf = self.stop
-                stop_index = self.surfaces_all.index(surf)
+                # stop_index = self.surfaces_all.index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
-                target_position = vector.from_components(px[..., None], py)
+                target_position = vector.from_components(
+                    px[..., None, None, None, :, None],
+                    py[..., None, None, None, None, :]
+                )
 
                 def position_error(pos: u.Quantity) -> u.Quantity:
                     position = vector.to_3d(pos)
@@ -189,33 +298,42 @@ class System(
                         pupil_grid_y=py
                     )
                     rays_in.transform = self.object_surface.transform
-                    raytrace = self.surfaces_all.raytrace(rays_in)
+                    raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
 
-                    self._rays_input_cache = rays_in
-                    self._raytrace_cache = raytrace
+                    # self._rays_input_cache = rays_in
+                    # self._raytrace_cache = raytrace
 
-                    return (raytrace[stop_index].position - target_position)[xy]
+                    return (raytrace[~0].position - target_position)[xy]
 
-                optimization.root_finding.vector.secant(
+                position_final = optimization.root_finding.vector.secant(
                     func=position_error,
                     root_guess=position_guess,
                     step_size=step,
                     max_abs_error=1 * u.nm,
                     max_iterations=100,
                 )
+                rays_input = rays.Rays.from_field_angles(
+                    wavelength_grid=self.wavelengths,
+                    position=vector.to_3d(position_final),
+                    field_grid_x=self.field_x,
+                    field_grid_y=self.field_y,
+                    pupil_grid_x=px,
+                    pupil_grid_y=py
+                )
+                rays_input.transform = self.object_surface.transform
 
             else:
-                if self._rays_input_cache is None:
+                if rays_input is None:
                     direction_guess = vector.from_components(use_z=False) << u.deg
                 else:
-                    d = self._rays_input_cache.direction
-                    direction_guess = np.arctan2(d[xy],  d[..., ~0:])
+                    d = rays_input.direction
+                    direction_guess = np.arctan2(d[xy], d[..., ~0:])
 
                 step_size = 1e-10 * u.deg
                 step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
                 # surf = self.stop
-                stop_index = self.surfaces_all.index(surf)
+                # stop_index = self.surfaces_all.index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
                 target_position = vector.from_components(
                     px[..., None, None, None, :, None],
@@ -223,9 +341,11 @@ class System(
                 )
 
                 def position_error(direc: u.Quantity) -> u.Quantity:
-                    direction = np.zeros(target_position.shape[:~4] + self.field_samples_normalized + target_position.shape[~2:])
-                    direction[z] = 1
-                    direction = transform.rigid.TiltX(direc[y])(direction)
+                    # direction = np.zeros(
+                    #     target_position.shape[:~4] + self.field_samples_normalized + target_position.shape[~2:])
+                    # direction[z] = 1
+                    # direction = vector.z_hat
+                    direction = transform.rigid.TiltX(direc[y])(vector.z_hat)
                     direction = transform.rigid.TiltY(direc[x])(direction)
                     rays_in = rays.Rays.from_field_positions(
                         wavelength_grid=self.wavelengths,
@@ -236,20 +356,36 @@ class System(
                         pupil_grid_y=py,
                     )
                     rays_in.transform = self.object_surface.transform
-                    raytrace = self.surfaces_all.raytrace(rays_in)
+                    raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
 
-                    self._rays_input_cache = rays_in
-                    self._raytrace_cache = raytrace
+                    # self._rays_input_cache = rays_in
+                    # self._raytrace_cache = raytrace
 
-                    return (raytrace[stop_index].position - target_position)[xy]
+                    return (raytrace[~0].position - target_position)[xy]
 
-                optimization.root_finding.vector.secant(
+                angles_final = optimization.root_finding.vector.secant(
                     func=position_error,
                     root_guess=direction_guess,
                     step_size=step,
                     max_abs_error=1 * u.nm,
                     max_iterations=100,
                 )
+                direction_final = transform.rigid.TiltX(angles_final[y])(vector.z_hat)
+                direction_final = transform.rigid.TiltY(angles_final[x])(direction_final)
+                rays_input = rays.Rays.from_field_positions(
+                    wavelength_grid=self.wavelengths,
+                    direction=direction_final,
+                    field_grid_x=self.field_x,
+                    field_grid_y=self.field_y,
+                    pupil_grid_x=px,
+                    pupil_grid_y=py,
+                )
+                rays_input.transform = self.object_surface.transform
+
+            if surf.is_stop:
+                return rays_input
+
+        raise ValueError('No stop defined')
 
     def psf(
             self,
@@ -268,6 +404,27 @@ class System(
     def print_surfaces(self) -> typ.NoReturn:
         for surf in self.surfaces_all:
             print(surf)
+
+    def __eq__(self, other: 'System'):
+        if self.object_surface != other.object_surface:
+            return True
+        if self.surfaces != other.surfaces:
+            return False
+        if np.array(self.wavelengths != other.wavelengths).any():
+            return False
+        if self.pupil_samples != other.pupil_samples:
+            return False
+        if self.pupil_margin != other.pupil_margin:
+            return False
+        if self.field_samples != other.field_samples:
+            return False
+        if self.field_margin != other.field_margin:
+            return False
+        if self.baffles_blank != other.baffles_blank:
+            return False
+        if self.baffles_hull_axes != other.baffles_hull_axes:
+            return False
+        return True
 
     @property
     def broadcasted(self):
@@ -289,14 +446,16 @@ class System(
         if ax is None:
             _, ax = plt.subplots()
 
+        surfaces = self.surfaces_all.flat_local
+
         if surf is None:
-            surf = self.surfaces[~0]
+            surf = surfaces[~0]
 
-        surf_index = self.surfaces_all.index(surf)
-        rays = self.raytrace[surf_index].copy()
-        rays.vignetted_mask = self.rays_output.vignetted_mask
+        surf_index = surfaces.index(surf)
+        surf_rays = self.raytrace[surf_index].view()
+        surf_rays.vignetted_mask = self.rays_output.vignetted_mask
 
-        rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
+        surf_rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
         if plot_apertures:
             surf.plot(ax=ax)
@@ -340,7 +499,7 @@ class System(
 
         handles, labels = axs[xy].get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
-        fig.legend(label_dict.values(), label_dict.keys())
+        fig.legend(label_dict.values(), label_dict.keys(), loc='top left', bbox_to_anchor=(1.0, 1.0))
 
         return fig
 
@@ -348,62 +507,114 @@ class System(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             surface_first: typ.Optional[surface.Surface] = None,
             surface_last: typ.Optional[surface.Surface] = None,
             plot_rays: bool = True,
             color_axis: int = rays.Rays.axis.wavelength,
             plot_vignetted: bool = False,
             plot_baffles: bool = True,
+            plot_breadboard: bool = True,
     ) -> plt.Axes:
         if ax is None:
             fig, ax = plt.subplots()
 
+        surfaces = self.surfaces_all.flat_local
+
+        if transform_extra is None:
+            transform_extra = transform.rigid.TransformList()
+        transform_extra = transform_extra + self.transform
+
         if surface_first is None:
-            surface_first = self.surfaces_all[0]
+            surface_first = surfaces[0]
         if surface_last is None:
-            surface_last = self.surfaces_all[~0]
-        surface_index_first = self.surfaces_all.index(surface_first)
-        surface_index_last = self.surfaces_all.index(surface_last)
+            surface_last = surfaces[~0]
+        surface_index_first = surfaces.index(surface_first)
+        surface_index_last = surfaces.index(surface_last)
 
         surf_slice = slice(surface_index_first, surface_index_last + 1)
 
         if plot_rays:
-            raytrace_slice = self.raytrace[surf_slice]      # type: RaysList
+            raytrace_slice = self.raytrace[surf_slice]  # type: RaysList
             raytrace_slice.plot(
                 ax=ax,
                 components=components,
-                rigid_transform=rigid_transform,
+                transform_extra=transform_extra,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
             )
 
-        surfaces_slice = self.surfaces_all[surf_slice]  # type: SurfaceList
+        surfaces_slice = self.surfaces_all.flat_global[surf_slice]  # type: SurfaceList
         surfaces_slice.plot(
             ax=ax,
             components=components,
-            rigid_transform=rigid_transform,
+            transform_extra=transform_extra,
+            to_global=True,
         )
 
         if plot_baffles:
             if self.baffles is not None:
-                self.baffles.plot(ax=ax, components=components, rigid_transform=rigid_transform)
+                self.baffles.plot(ax=ax, components=components, transform_extra=transform_extra)
+
+        if plot_breadboard:
+            if self.breadboard is not None:
+                self.breadboard.plot(
+                    ax=ax,
+                    components=components,
+                    transform_extra=transform_extra,
+                    to_global=True,
+                )
 
         return ax
 
+    @property
+    def tol_iter(self) -> typ.Iterator['System']:
+        others = super().tol_iter   # type: typ.Iterator
+        for other in others:
+            for surfaces in other.surfaces.tol_iter:
+                new_other = other.view()
+                new_other.surfaces = surfaces
+                yield new_other
 
+    def view(self) -> 'System':
+        other = super().view()  # type: System
+        other.object_surface = self.object_surface
+        other.surfaces = self.surfaces
+        other.wavelengths = self.wavelengths
+        other.pupil_samples = self.pupil_samples
+        other.pupil_margin = self.pupil_margin
+        other.field_samples = self.field_samples
+        other.field_margin = self.field_margin
+        other.baffles_blank = self.baffles_blank
+        other.baffles_hull_axes = self.baffles_hull_axes
+        other.breadboard = self.breadboard
+        return other
+
+    def copy(self) -> 'System':
+        other = super().copy()  # type: System
+        other.object_surface = self.object_surface.copy()
+        other.surfaces = self.surfaces.copy()
+        other.wavelengths = self.wavelengths.copy()
+        other.pupil_samples = self.pupil_samples
+        other.pupil_margin = self.pupil_margin.copy()
+        other.field_samples = self.field_samples
+        other.field_margin = self.field_margin.copy()
+        other.baffles_blank = self.baffles_blank.copy()
+        other.baffles_hull_axes = self.baffles_hull_axes
+        if self.breadboard is None:
+            other.breadboard = self.breadboard
+        else:
+            other.breadboard = self.breadboard.copy()
+        return other
+
+
+@dataclasses.dataclass
 class SystemList(
-    collections.UserList,
-    typ.List[System]
+    mixin.DataclassList[System],
 ):
+    baffles_blank: baffle.BaffleList = dataclasses.field(default_factory=baffle.BaffleList)
 
-    def __init__(
-            self,
-            initlist: typ.Optional[typ.List[System]],
-            baffles_blank: typ.Optional[baffle.BaffleList] = None
-    ):
-        super().__init__(initlist)
-        self.baffles_blank = baffles_blank
+    def __post_init__(self):
         self.update()
 
     def update(self) -> typ.NoReturn:
@@ -412,12 +623,13 @@ class SystemList(
     @property
     def baffles(self) -> baffle.BaffleList:
         if self._baffles_cache is None:
-            for s in range(len(self)):
-                sys = self[s]
-                new_baffles = self.baffles_blank.apertures_from_raytrace(sys.surfaces_all, sys.raytrace)
-                if s == 0:
-                    baffles = new_baffles
-                else:
+            baffles = self.baffles_blank.copy()
+            if baffles:
+                for sys in self:
+                    new_baffles = sys.calc_baffles(
+                        baffles_blank=self.baffles_blank,
+                        transform_extra=sys.transform,
+                    )
                     baffles = baffle.BaffleList([b1.unary_union(b2) for b1, b2 in zip(baffles, new_baffles)])
             self._baffles_cache = baffles
         return self._baffles_cache
@@ -426,7 +638,7 @@ class SystemList(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[int, int] = (vector.ix, vector.iy),
-            rigid_transform: typ.Optional[transform.rigid.TransformList] = None,
+            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             plot_rays: bool = True,
             color_axis: int = rays.Rays.axis.wavelength,
             plot_vignetted: bool = False,
@@ -440,7 +652,7 @@ class SystemList(
             sys.plot(
                 ax=ax,
                 components=components,
-                rigid_transform=rigid_transform,
+                transform_extra=transform_extra,
                 plot_rays=plot_rays,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
@@ -448,12 +660,6 @@ class SystemList(
             )
 
         if plot_baffles:
-            self.baffles.plot(ax=ax, components=components, rigid_transform=rigid_transform)
+            self.baffles.plot(ax=ax, components=components, transform_extra=transform_extra)
 
         return ax
-
-
-
-
-
-
