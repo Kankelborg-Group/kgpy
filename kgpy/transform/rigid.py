@@ -21,45 +21,14 @@ __all__ = [
 
 class Transform(BaseTransform):
 
-    # @property
-    # @abc.abstractmethod
-    # def rotation_eff(self) -> typ.Optional[u.Quantity]:
-    #     return None
-    #
-    # @property
-    # @abc.abstractmethod
-    # def translation_eff(self) -> typ.Optional[u.Quantity]:
-    #     return None
-    #
-    # def __call__(
-    #         self,
-    #         value: typ.Optional[u.Quantity] = None,
-    #         rotate: bool = True,
-    #         translate: bool = True,
-    #         num_extra_dims: int = 0,
-    # ) -> u.Quantity:
-    #     if value is not None:
-    #         if rotate:
-    #             if self.rotation_eff is not None:
-    #                 sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None), slice(None)])
-    #                 value = vector.matmul(self.rotation_eff[sl], value)
-    #     if translate:
-    #         if self.translation_eff is not None:
-    #             sl = tuple([Ellipsis] + ([None] * num_extra_dims) + [slice(None)])
-    #             if value is None:
-    #                 value = self.translation_eff[sl]
-    #             else:
-    #                 value = value + self.translation_eff[sl]
-    #     return value
-
     @abc.abstractmethod
     def __call__(
             self,
-            value: u.Quantity,
+            value: vector.Vector3D,
             rotate: bool = True,
             translate: bool = True,
             num_extra_dims: int = 0,
-    ) -> u.Quantity:
+    ) -> vector.Vector3D:
         pass
 
     @abc.abstractmethod
@@ -100,17 +69,17 @@ class TransformList(
     #     return rotation
     #
     @property
-    def translation_eff(self) -> u.Quantity:
-        value = vector.from_components() * u.mm
+    def translation_eff(self) -> vector.Vector3D:
+        value = vector.Vector3D.spatial()
         return self(value)
 
     def __call__(
             self,
-            value: u.Quantity,
+            value: vector.Vector3D,
             rotate: bool = True,
             translate: bool = True,
             num_extra_dims: int = 0,
-    ) -> u.Quantity:
+    ) -> vector.Vector3D:
         for transform in self.transforms:
             value = transform(
                 value=value,
@@ -129,19 +98,6 @@ class TransformList(
             other.append(transform)
         other.reverse()
         return other
-
-    # @property
-    # def tol_iter(self) -> typ.Iterator['TransformList']:
-    #     if len(self) > 0:
-    #         for t in self[0].tol_iter:
-    #             tl = type(self)([t], intrinsic=self.intrinsic)
-    #             if len(self) > 1:
-    #                 for tlist in self[1:].tol_iter:
-    #                     yield tl + tlist
-    #             else:
-    #                 yield tl
-    #     else:
-    #         yield self.copy()
 
     def view(self) -> 'TransformList':
         other = super().view()      # type: TransformList
@@ -194,14 +150,14 @@ class TiltAboutAxis(Transform, abc.ABC):
 
     def __call__(
             self,
-            value: u.Quantity,
+            value: vector.Vector3D,
             rotate: bool = True,
             translate: bool = True,
             num_extra_dims: int = 0,
-    ) -> u.Quantity:
+    ) -> vector.Vector3D:
         if rotate:
-            sl = tuple([Ellipsis] + [None] * num_extra_dims + [slice(None), slice(None)])
-            value = vector.matmul(self.rotation_matrix[sl], value)
+            extra_dims_slice = (Ellipsis, ) + num_extra_dims * (np.newaxis, )
+            value = self.rotation_matrix[extra_dims_slice] @ value
         return value
 
     def __invert__(self) -> 'TiltAboutAxis':
@@ -209,7 +165,7 @@ class TiltAboutAxis(Transform, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def rotation_matrix(self) -> u.Quantity:
+    def rotation_matrix(self) -> matrix.Matrix3D:
         pass
 
     @property
@@ -218,8 +174,8 @@ class TiltAboutAxis(Transform, abc.ABC):
         for other in others:
             if isinstance(self.angle, units.TolQuantity):
                 other_1, other_2 = other.view(), other.view()
-                other_1.angle = self.angle.amin
-                other_2.angle = self.angle.amax
+                other_1.angle = self.angle.vmin
+                other_2.angle = self.angle.vmax
                 yield other_1
                 yield other_2
             else:
@@ -239,42 +195,42 @@ class TiltAboutAxis(Transform, abc.ABC):
 class TiltX(TiltAboutAxis):
 
     @property
-    def rotation_matrix(self) -> u.Quantity:
-        r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
-        cos_x, sin_x = np.cos(self.angle), np.sin(self.angle)
-        r[..., 0, 0] = 1
-        r[..., 1, 1] = cos_x
-        r[..., 1, 2] = -sin_x
-        r[..., 2, 1] = sin_x
-        r[..., 2, 2] = cos_x
+    def rotation_matrix(self) -> matrix.Matrix3D:
+        r = matrix.Matrix3D()
+        cos_angle, sin_angle = np.cos(self.angle), np.sin(self.angle)
+        r.xx = 1
+        r.yy = cos_angle
+        r.yz = -sin_angle
+        r.zy = sin_angle
+        r.zz = cos_angle
         return r
 
 
 class TiltY(TiltAboutAxis):
 
     @property
-    def rotation_matrix(self) -> u.Quantity:
-        r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
-        cos_y, sin_y = np.cos(self.angle), np.sin(self.angle)
-        r[..., 0, 0] = cos_y
-        r[..., 0, 2] = sin_y
-        r[..., 1, 1] = 1
-        r[..., 2, 0] = -sin_y
-        r[..., 2, 2] = cos_y
+    def rotation_matrix(self) -> matrix.Matrix3D:
+        r = matrix.Matrix3D()
+        cos_angle, sin_angle = np.cos(self.angle), np.sin(self.angle)
+        r.xx = cos_angle
+        r.xz = sin_angle
+        r.yy = 1
+        r.zx = -sin_angle
+        r.zz = cos_angle
         return r
 
 
 class TiltZ(TiltAboutAxis):
 
     @property
-    def rotation_matrix(self) -> u.Quantity:
-        r = np.zeros(self.shape + (3, 3)) << u.dimensionless_unscaled
-        cos_z, sin_z = np.cos(self.angle), np.sin(self.angle)
-        r[..., 0, 0] = cos_z
-        r[..., 0, 1] = -sin_z
-        r[..., 1, 0] = sin_z
-        r[..., 1, 1] = cos_z
-        r[..., 2, 2] = 1
+    def rotation_matrix(self) -> matrix.Matrix3D:
+        r = matrix.Matrix3D()
+        cos_angle, sin_angle = np.cos(self.angle), np.sin(self.angle)
+        r.xx = cos_angle
+        r.xy = -sin_angle
+        r.yx = sin_angle
+        r.yy = cos_angle
+        r.zz = 1
         return r
 
 
@@ -288,12 +244,12 @@ class Translate(Transform):
     @classmethod
     def from_vector(
             cls,
-            vec: u.Quantity,
+            vec: vector.Vector3D,
     ) -> 'Translate':
         return cls(
-            x=vec[vector.x].copy(),
-            y=vec[vector.y].copy(),
-            z=vec[vector.z].copy(),
+            x=vec.x.copy(),
+            y=vec.y.copy(),
+            z=vec.z.copy(),
         )
 
     @property
@@ -306,26 +262,26 @@ class Translate(Transform):
         )
 
     @property
-    def vector(self):
-        return vector.from_components(x=self.x, y=self.y, z=self.z)
+    def value(self):
+        return vector.Vector3D(x=self.x, y=self.y, z=self.z)
 
     def __call__(
             self,
-            value: u.Quantity,
+            value: vector.Vector3D,
             rotate: bool = True,
             translate: bool = True,
             num_extra_dims: int = 0,
-    ) -> u.Quantity:
+    ) -> vector.Vector3D:
         if translate:
-            sl = tuple([Ellipsis] + [None] * num_extra_dims + [slice(None)])
-            value = self.vector[sl] + value
+            extra_dims_slice = (Ellipsis, ) + num_extra_dims * (np.newaxis, )
+            value = self.value[extra_dims_slice] + value
         return value
 
     def __invert__(self) -> 'Translate':
         return Translate(x=-self.x, y=-self.y, z=-self.z)
 
     def __eq__(self, other: 'Translate') -> bool:
-        return np.array(self.vector == other.vector).all()
+        return np.array(self.value == other.value).all()
 
     def __add__(self, other: 'Translate') -> 'Translate':
         return type(self)(
@@ -341,30 +297,22 @@ class Translate(Transform):
             z=self.z - other.z,
         )
 
-    # @property
-    # def rotation_eff(self) -> None:
-    #     return None
-    #
-    # @property
-    # def translation_eff(self) -> u.Quantity:
-    #     return self.vector
-
     @property
     def tol_iter(self):
         others = super().tol_iter   # type: typ.Iterator[Translate]
 
         if isinstance(self.x, units.TolQuantity):
-            ax = [self.x.amin, self.x.amax]
+            ax = [self.x.vmin, self.x.vmax]
         else:
             ax = [self.x.copy()]
 
         if isinstance(self.y, units.TolQuantity):
-            ay = [self.y.amin, self.y.amax]
+            ay = [self.y.vmin, self.y.vmax]
         else:
             ay = [self.y.copy()]
 
         if isinstance(self.z, units.TolQuantity):
-            az = [self.z.amin, self.z.amax]
+            az = [self.z.vmin, self.z.vmax]
         else:
             az = [self.z.copy()]
 

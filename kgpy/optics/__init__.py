@@ -13,7 +13,6 @@ import astropy.visualization
 import matplotlib.pyplot as plt
 import matplotlib.colors
 from kgpy import mixin, linspace, vector, optimization, transform
-from kgpy.vector import x, y, z, ix, iy, iz, xy
 from . import aberration, rays, surface, component, baffle, breadboard
 
 __all__ = [
@@ -50,9 +49,6 @@ class System(
     baffles_hull_axes: typ.Optional[typ.Tuple[int, ...]] = None
     breadboard: typ.Optional[Breadboard] = None
 
-    # tolerances: typ.Dict[str, typ.Callable[['System'], typ.Iterator['System']]] = dataclasses.field(
-    #     default_factory=lambda: {})
-
     def __post_init__(self):
         self.update()
 
@@ -73,12 +69,6 @@ class System(
     def surfaces_all(self) -> surface.SurfaceList:
         return surface.SurfaceList([self.object_surface]) + self.surfaces
 
-    # @property
-    # def aperture_surfaces(self) -> typ.Iterator[surface.Surface]:
-    #     for s in self.surfaces:
-    #         if s.aperture is not None:
-    #             yield s
-
     @staticmethod
     def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
         if isinstance(samples, int):
@@ -94,46 +84,46 @@ class System(
         return self._normalize_2d_samples(self.field_samples)
 
     @property
-    def field_min(self) -> u.Quantity:
-        return self.object_surface.aperture.min
+    def field_min(self) -> vector.Vector2D:
+        return self.object_surface.aperture.min.xy
 
     @property
-    def field_max(self) -> u.Quantity:
-        return self.object_surface.aperture.max
+    def field_max(self) -> vector.Vector2D:
+        return self.object_surface.aperture.max.xy
 
     @property
     def field_x(self) -> u.Quantity:
         return linspace(
-            start=self.field_min[x] + self.field_margin,
-            stop=self.field_max[x] - self.field_margin,
-            num=self.field_samples_normalized[ix],
+            start=self.field_min.x + self.field_margin,
+            stop=self.field_max.x - self.field_margin,
+            num=self.field_samples_normalized[vector.ix],
             axis=~0,
         )
 
     @property
     def field_y(self) -> u.Quantity:
         return linspace(
-            start=self.field_min[y] + self.field_margin,
-            stop=self.field_max[y] - self.field_margin,
-            num=self.field_samples_normalized[iy],
+            start=self.field_min.y + self.field_margin,
+            stop=self.field_max.y - self.field_margin,
+            num=self.field_samples_normalized[vector.iy],
             axis=~0
         )
 
     def pupil_x(self, surf: surface.Surface) -> u.Quantity:
         aper = surf.aperture
         return linspace(
-            start=aper.min[x] + self.pupil_margin,
-            stop=aper.max[x] - self.pupil_margin,
-            num=self.pupil_samples_normalized[ix],
+            start=aper.min.x + self.pupil_margin,
+            stop=aper.max.x - self.pupil_margin,
+            num=self.pupil_samples_normalized[vector.ix],
             axis=~0,
         )
 
     def pupil_y(self, surf: surface.Surface) -> u.Quantity:
         aper = surf.aperture
         return linspace(
-            start=aper.min[y] + self.pupil_margin,
-            stop=aper.max[y] - self.pupil_margin,
-            num=self.pupil_samples_normalized[iy],
+            start=aper.min.y + self.pupil_margin,
+            stop=aper.max.y - self.pupil_margin,
+            num=self.pupil_samples_normalized[vector.iy],
             axis=~0,
         )
 
@@ -256,11 +246,8 @@ class System(
         if self._rays_input_cache is None:
             self._rays_input_cache = self._calc_rays_input()
         return self._rays_input_cache
-        # return self.raytrace[0]
 
     def _calc_rays_input(self) -> rays.Rays:
-
-        # stops = self.stop_tests + [self.stop]
 
         rays_input = None
 
@@ -269,29 +256,30 @@ class System(
             if not surf.is_stop and not surf.is_stop_test:
                 continue
 
-            if self.field_min.unit.is_equivalent(u.rad):
+            if self.field_min.quantity.unit.is_equivalent(u.rad):
 
                 if rays_input is None:
-                    position_guess = vector.from_components(use_z=False) << u.mm
+                    # position_guess = vector.from_components(use_z=False) << u.mm
+                    position_guess = vector.Vector2D.spatial()
                 else:
-                    position_guess = rays_input.position[xy]
+                    position_guess = rays_input.position.xy
 
                 step_size = .1 * u.mm
-                step = vector.from_components(x=step_size, y=step_size, use_z=False)
+                # step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
-                # surf = self.stop
-                # stop_index = self.surfaces_all.index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
-                target_position = vector.from_components(
-                    px[..., None, None, None, :, None],
-                    py[..., None, None, None, None, :]
-                )
+                px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
+                py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
+                target_position = vector.Vector2D(px, py)
+                # target_position = vector.from_components(
+                #     px[..., None, None, None, :, None],
+                #     py[..., None, None, None, None, :]
+                # )
 
-                def position_error(pos: u.Quantity) -> u.Quantity:
-                    position = vector.to_3d(pos)
+                def position_error(pos: vector.Vector2D) -> vector.Vector2D:
                     rays_in = rays.Rays.from_field_angles(
                         wavelength_grid=self.wavelengths,
-                        position=position,
+                        position=pos.to_3d(),
                         field_grid_x=self.field_x,
                         field_grid_y=self.field_y,
                         pupil_grid_x=px,
@@ -300,21 +288,20 @@ class System(
                     rays_in.transform = self.object_surface.transform
                     raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
 
-                    # self._rays_input_cache = rays_in
-                    # self._raytrace_cache = raytrace
+                    return raytrace[~0].position.xy - target_position
 
-                    return (raytrace[~0].position - target_position)[xy]
+                    # return (raytrace[~0].position - target_position)[xy]
 
-                position_final = optimization.root_finding.vector.secant(
+                position_final = optimization.root_finding.vector.secant_2d(
                     func=position_error,
                     root_guess=position_guess,
-                    step_size=step,
+                    step_size=step_size,
                     max_abs_error=1 * u.nm,
                     max_iterations=100,
                 )
                 rays_input = rays.Rays.from_field_angles(
                     wavelength_grid=self.wavelengths,
-                    position=vector.to_3d(position_final),
+                    position=position_final.to_3d(),
                     field_grid_x=self.field_x,
                     field_grid_y=self.field_y,
                     pupil_grid_x=px,
@@ -324,29 +311,21 @@ class System(
 
             else:
                 if rays_input is None:
-                    direction_guess = vector.from_components(use_z=False) << u.deg
+                    direction_guess = vector.Vector2D(x=0 * u.deg, y=0 * u.deg)
                 else:
-                    d = rays_input.direction
-                    direction_guess = np.arctan2(d[xy], d[..., ~0:])
+                    direction_guess = np.arcsin(rays_input.direction.xy)
 
                 step_size = 1e-10 * u.deg
-                step = vector.from_components(x=step_size, y=step_size, use_z=False)
+                # step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
-                # surf = self.stop
-                # stop_index = self.surfaces_all.index(surf)
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
-                target_position = vector.from_components(
-                    px[..., None, None, None, :, None],
-                    py[..., None, None, None, None, :]
-                )
+                px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
+                py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
+                target_position = vector.Vector2D(px, py)
 
-                def position_error(direc: u.Quantity) -> u.Quantity:
-                    # direction = np.zeros(
-                    #     target_position.shape[:~4] + self.field_samples_normalized + target_position.shape[~2:])
-                    # direction[z] = 1
-                    # direction = vector.z_hat
-                    direction = transform.rigid.TiltX(direc[y])(vector.z_hat)
-                    direction = transform.rigid.TiltY(direc[x])(direction)
+                def position_error(angles: vector.Vector2D) -> vector.Vector2D:
+                    direction = transform.rigid.TiltX(angles.y)(vector.z_hat)
+                    direction = transform.rigid.TiltY(angles.x)(direction)
                     rays_in = rays.Rays.from_field_positions(
                         wavelength_grid=self.wavelengths,
                         direction=direction,
@@ -358,20 +337,17 @@ class System(
                     rays_in.transform = self.object_surface.transform
                     raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
 
-                    # self._rays_input_cache = rays_in
-                    # self._raytrace_cache = raytrace
+                    return raytrace[~0].position.xy - target_position
 
-                    return (raytrace[~0].position - target_position)[xy]
-
-                angles_final = optimization.root_finding.vector.secant(
+                angles_final = optimization.root_finding.vector.secant_2d(
                     func=position_error,
                     root_guess=direction_guess,
-                    step_size=step,
+                    step_size=step_size,
                     max_abs_error=1 * u.nm,
                     max_iterations=100,
                 )
-                direction_final = transform.rigid.TiltX(angles_final[y])(vector.z_hat)
-                direction_final = transform.rigid.TiltY(angles_final[x])(direction_final)
+                direction_final = transform.rigid.TiltX(angles_final.y)(vector.z_hat)
+                direction_final = transform.rigid.TiltY(angles_final.x)(direction_final)
                 rays_input = rays.Rays.from_field_positions(
                     wavelength_grid=self.wavelengths,
                     direction=direction_final,
@@ -480,9 +456,12 @@ class System(
 
         ax_indices = [xy, yz, xz]
         planes = [
-            (vector.ix, vector.iy),
-            (vector.iz, vector.iy),
-            (vector.iz, vector.ix),
+            # (vector.ix, vector.iy),
+            # (vector.iz, vector.iy),
+            # (vector.iz, vector.ix),
+            ('x', 'y'),
+            ('z', 'y'),
+            ('z', 'x'),
         ]
         for ax_index, plane in zip(ax_indices, planes):
             self.plot(
@@ -506,7 +485,7 @@ class System(
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            components: typ.Tuple[str, str] = ('x', 'y'),
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             surface_first: typ.Optional[surface.Surface] = None,
             surface_last: typ.Optional[surface.Surface] = None,
@@ -535,7 +514,7 @@ class System(
         surf_slice = slice(surface_index_first, surface_index_last + 1)
 
         if plot_rays:
-            raytrace_slice = self.raytrace[surf_slice]  # type: RaysList
+            raytrace_slice = self.raytrace[surf_slice]  # type: rays.RaysList
             raytrace_slice.plot(
                 ax=ax,
                 components=components,
@@ -544,7 +523,7 @@ class System(
                 plot_vignetted=plot_vignetted,
             )
 
-        surfaces_slice = self.surfaces_all.flat_global[surf_slice]  # type: SurfaceList
+        surfaces_slice = self.surfaces_all.flat_global[surf_slice]  # type: surfaces.SurfaceList
         surfaces_slice.plot(
             ax=ax,
             components=components,
@@ -637,7 +616,7 @@ class SystemList(
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            components: typ.Tuple[str, str] = ('x', 'y'),
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             plot_rays: bool = True,
             color_axis: int = rays.Rays.axis.wavelength,

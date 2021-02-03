@@ -10,7 +10,6 @@ import astropy.visualization
 import astropy.modeling
 # import kgpy.transform.rigid.transform_list
 from kgpy import mixin, vector, transform, format as fmt
-from kgpy.vector import x, y, z, ix, iy, iz
 from .aberration import Distortion, Vignetting
 
 __all__ = ['Rays', 'RaysList']
@@ -43,14 +42,18 @@ class VAxis(Axis, CAxis):
 @dataclasses.dataclass
 class Rays(transform.rigid.Transformable):
     axis = Axis()
-    vaxis = VAxis()
 
-    wavelength: u.Quantity = dataclasses.field(default_factory=lambda: [[0]] * u.nm)
-    position: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 0]] * u.mm)
-    direction: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 1]] * u.dimensionless_unscaled)
-    polarization: u.Quantity = dataclasses.field(default_factory=lambda: [[1, 0]] * u.dimensionless_unscaled)
-    surface_normal: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, -1]] * u.dimensionless_unscaled)
-    index_of_refraction: u.Quantity = dataclasses.field(default_factory=lambda: [[1]] * u.dimensionless_unscaled)
+    # wavelength: u.Quantity = dataclasses.field(default_factory=lambda: [[0]] * u.nm)
+    # position: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 0]] * u.mm)
+    # direction: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 1]] * u.dimensionless_unscaled)
+    # polarization: u.Quantity = dataclasses.field(default_factory=lambda: [[1, 0]] * u.dimensionless_unscaled)
+    # surface_normal: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, -1]] * u.dimensionless_unscaled)
+    # index_of_refraction: u.Quantity = dataclasses.field(default_factory=lambda: [[1]] * u.dimensionless_unscaled)
+    wavelength: u.Quantity = 0 * u.nm
+    position: vector.Vector3D = dataclasses.field(default_factory=vector.Vector3D)
+    direction: vector.Vector3D = dataclasses.field(default_factory=vector.zhat_factory)
+    surface_normal: vector.Vector3D = dataclasses.field(default_factory=lambda: -vector.zhat_factory())
+    index_of_refraction: u.Quantity = 1 * u.dimensionless_unscaled
     vignetted_mask: np.ndarray = np.array([True])
     error_mask: np.ndarray = np.array([True])
     input_grids: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
@@ -58,32 +61,32 @@ class Rays(transform.rigid.Transformable):
     )
 
     @property
-    def field_angles(self) -> u.Quantity:
-        angles = np.arcsin(self.direction)[vector.xy] << u.rad
-        return angles[..., ::-1]
+    def field_angles(self) -> vector.Vector2D:
+        return -np.arcsin(self.direction.xy).to(u.deg)
 
     @classmethod
     def from_field_angles(
             cls,
             wavelength_grid: u.Quantity,
-            position: u.Quantity,
+            position: vector.Vector3D,
             field_grid_x: u.Quantity,
             field_grid_y: u.Quantity,
             pupil_grid_x: typ.Optional[u.Quantity] = None,
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ) -> 'Rays':
 
-        wavelength = np.expand_dims(wavelength_grid, cls.vaxis.perp_axes(cls.vaxis.wavelength))
-        field_x = np.expand_dims(field_grid_x, cls.vaxis.perp_axes(cls.vaxis.field_x))
-        field_y = np.expand_dims(field_grid_y, cls.vaxis.perp_axes(cls.vaxis.field_y))
-        wavelength, field_x, field_y = np.broadcast_arrays(wavelength, field_x, field_y, subok=True)
+        wavelength = np.expand_dims(wavelength_grid, cls.axis.perp_axes(cls.axis.wavelength))
+        field_x = np.expand_dims(field_grid_x, cls.axis.perp_axes(cls.axis.field_x))
+        field_y = np.expand_dims(field_grid_y, cls.axis.perp_axes(cls.axis.field_y))
+        # wavelength, field_x, field_y = np.broadcast_arrays(wavelength, field_x, field_y, subok=True)
 
-        position, _ = np.broadcast_arrays(position, wavelength, subok=True)
+        # position = np.broadcast_to(position, wavelength.shape)
+        # position, _ = np.broadcast_arrays(position, wavelength, subok=True)
 
-        direction = np.zeros(position.shape)
-        direction[z] = 1
-        direction = transform.rigid.TiltX(field_y[..., 0])(direction)
-        direction = transform.rigid.TiltY(field_x[..., 0])(direction)
+        # direction = np.zeros(position.shape)
+        # direction[z] = 1
+        direction = transform.rigid.TiltX(field_y)(vector.z_hat)
+        direction = transform.rigid.TiltY(field_x)(direction)
 
         return cls(
             wavelength=wavelength,
@@ -96,25 +99,25 @@ class Rays(transform.rigid.Transformable):
     def from_field_positions(
             cls,
             wavelength_grid: u.Quantity,
-            direction: u.Quantity,
+            direction: vector.Vector3D,
             field_grid_x: u.Quantity,
             field_grid_y: u.Quantity,
             pupil_grid_x: typ.Optional[u.Quantity] = None,
             pupil_grid_y: typ.Optional[u.Quantity] = None,
     ):
-        wavelength = np.expand_dims(wavelength_grid, cls.vaxis.perp_axes(cls.vaxis.wavelength))
-        pupil_x = np.expand_dims(pupil_grid_x, cls.vaxis.perp_axes(cls.vaxis.pupil_x))
-        pupil_y = np.expand_dims(pupil_grid_y, cls.vaxis.perp_axes(cls.vaxis.pupil_y))
-        wavelength, pupil_x, pupil_y = np.broadcast_arrays(wavelength, pupil_x, pupil_y, subok=True)
+        wavelength = np.expand_dims(wavelength_grid, cls.axis.perp_axes(cls.axis.wavelength))
+        # pupil_x = np.expand_dims(pupil_grid_x, cls.axis.perp_axes(cls.axis.pupil_x))
+        # pupil_y = np.expand_dims(pupil_grid_y, cls.axis.perp_axes(cls.axis.pupil_y))
+        # wavelength, pupil_x, pupil_y = np.broadcast_arrays(wavelength, pupil_x, pupil_y, subok=True)
 
-        direction, _ = np.broadcast_arrays(direction, wavelength, subok=True)
+        # direction, _ = np.broadcast_arrays(direction, wavelength, subok=True)
 
-        position = vector.from_components(x=field_grid_x[..., None, None, None],
-                                          y=field_grid_y[..., None, :, None, None])
-        # print(field_grid_x.shape)
-        # print(position.shape)
-        # print(wavelength.shape)
-        position, _ = np.broadcast_arrays(position, wavelength, subok=True)
+        position = vector.Vector3D(
+            x=np.expand_dims(field_grid_x, cls.axis.perp_axes(cls.axis.field_x)),
+            y=np.expand_dims(field_grid_y, cls.axis.perp_axes(cls.axis.field_y)),
+            z=0 * u.mm,
+        )
+        # position, _ = np.broadcast_arrays(position, wavelength, subok=True)
 
         return cls(
             wavelength=wavelength,
@@ -125,9 +128,9 @@ class Rays(transform.rigid.Transformable):
 
     def apply_transform_list(self, transform_list: transform.rigid.TransformList) -> 'Rays':
         other = self.copy()
-        other.position = transform_list(other.position, num_extra_dims=5)
-        other.direction = transform_list(other.direction, translate=False, num_extra_dims=5)
-        other.surface_normal = transform_list(other.surface_normal, translate=False, num_extra_dims=5)
+        other.position = transform_list(other.position, num_extra_dims=self.axis.ndim)
+        other.direction = transform_list(other.direction, translate=False, num_extra_dims=self.axis.ndim)
+        other.surface_normal = transform_list(other.surface_normal, translate=False, num_extra_dims=self.axis.ndim)
         other.transform += transform_list.inverse
         return other
 
@@ -140,23 +143,23 @@ class Rays(transform.rigid.Transformable):
     @property
     def grid_shape(self) -> typ.Tuple[int, ...]:
         return np.broadcast(
-            self.wavelength[x],
-            self.position[x],
-            self.direction[x],
+            self.wavelength,
+            self.position,
+            self.direction,
             self.mask,
         ).shape
 
-    @property
-    def vector_grid_shape(self) -> typ.Tuple[int, ...]:
-        return self.grid_shape + (3,)
-
-    @property
-    def scalar_grid_shape(self) -> typ.Tuple[int, ...]:
-        return self.grid_shape + (1,)
+    # @property
+    # def vector_grid_shape(self) -> typ.Tuple[int, ...]:
+    #     return self.grid_shape + (3,)
+    #
+    # @property
+    # def scalar_grid_shape(self) -> typ.Tuple[int, ...]:
+    #     return self.grid_shape + (1,)
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
-        return self.vector_grid_shape[:~(self.vaxis.ndim - 1)]
+        return self.grid_shape[:~(self.axis.ndim - 1)]
 
     @property
     def ndim(self):
@@ -195,19 +198,25 @@ class Rays(transform.rigid.Transformable):
         return self.vignetted_mask & self.error_mask
 
     @property
-    def field_mesh_input(self) -> u.Quantity:
+    def field_mesh_input(self) -> vector.Vector2D:
         fx, fy = self.input_grids[self.axis.field_x], self.input_grids[self.axis.field_y]
-        return vector.from_components(x=fx[..., :, None], y=fy[..., None, :], use_z=False)
+        return vector.Vector2D(
+            x=fx[..., :, np.newaxis],
+            y=fy[..., np.newaxis, :],
+        )
 
     @property
-    def position_pupil_avg(self) -> u.Quantity:
-        axes = (self.vaxis.pupil_x, self.vaxis.pupil_y)
-        mask = np.broadcast_to(self.mask[..., None], self.position.shape)
-        avg = np.ma.average(a=self.position.value, weights=mask, axis=axes, ) << self.position.unit
-        return np.expand_dims(avg, axis=axes)
+    def position_pupil_avg(self) -> vector.Vector3D:
+        axes = (self.axis.pupil_x, self.axis.pupil_y)
+        # mask = np.broadcast_to(self.mask[..., None], self.position.shape)
+        # avg = np.ma.average(a=self.position, weights=self.mask, axis=axes, ) << self.position.unit
+        # return np.expand_dims(avg, axis=axes)
+        p = self.position.copy()
+        p[self.mask] = 0 * u.mm
+        return p.sum(axis=axes, keepdims=True) / self.mask.sum(axis=axes, keepdims=True)
 
     @property
-    def position_pupil_relative(self) -> u.Quantity:
+    def position_pupil_relative(self) -> vector.Vector3D:
         return self.position - self.position_pupil_avg
 
     def distortion(self, polynomial_degree: int = 1) -> Distortion:
@@ -242,7 +251,6 @@ class Rays(transform.rigid.Transformable):
         other.wavelength = self.wavelength
         other.position = self.position
         other.direction = self.direction
-        other.polarization = self.polarization
         other.surface_normal = self.surface_normal
         other.index_of_refraction = self.index_of_refraction
         other.vignetted_mask = self.vignetted_mask
@@ -255,7 +263,6 @@ class Rays(transform.rigid.Transformable):
         other.wavelength = self.wavelength.copy()
         other.position = self.position.copy()
         other.direction = self.direction.copy()
-        other.polarization = self.polarization.copy()
         other.surface_normal = self.surface_normal.copy()
         other.index_of_refraction = self.index_of_refraction.copy()
         other.vignetted_mask = self.vignetted_mask.copy()
@@ -266,7 +273,7 @@ class Rays(transform.rigid.Transformable):
     @property
     def spot_size_rms(self):
         position = self.position_pupil_relative
-        r = vector.length(position[vector.xy], keepdims=False)
+        r = position.xy.length
         r2 = np.square(r)
         pupil_axes = self.axis.pupil_x, self.axis.pupil_y
         sz = np.sqrt(np.ma.average(r2.value, axis=pupil_axes, weights=self.mask) << r2.unit)
@@ -330,13 +337,13 @@ class Rays(transform.rigid.Transformable):
         position = self.position.copy()
         position_rel = self.position_pupil_relative
         if relative_to_centroid[vector.ix]:
-            position[x] = position_rel[x]
+            position.x = position_rel.x
         if relative_to_centroid[vector.iy]:
-            position[y] = position_rel[y]
+            position.y = position_rel.y
 
         if limits is None:
-            px = position[x][mask]
-            py = position[y][mask]
+            px = position.x[mask]
+            py = position.y[mask]
             limits = (
                 (np.nanmin(px).value, np.nanmax(px).value),
                 (np.nanmin(py).value, np.nanmax(py).value),
@@ -358,14 +365,14 @@ class Rays(transform.rigid.Transformable):
                     for j, p_cwij in enumerate(p_cwi):
                         cwij = c, w, i, j
                         hist[cwij], edges_x[cwij], edges_y[cwij] = np.histogram2d(
-                            x=p_cwij[x].flatten().value,
-                            y=p_cwij[y].flatten().value,
+                            x=p_cwij.x.flatten().value,
+                            y=p_cwij.y.flatten().value,
                             bins=bins,
                             weights=mask[cwij].flatten(),
                             range=limits,
                         )
 
-        unit = self.position.unit
+        unit = self.position.x.unit
         return hist, edges_x << unit, edges_y << unit
 
     def colorgrid(self, axis: int) -> np.ndarray:
@@ -393,8 +400,8 @@ class Rays(transform.rigid.Transformable):
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         return self.plot_attribute(
-            attr_x=self.position[x],
-            attr_y=self.position[y],
+            attr_x=self.position.x,
+            attr_y=self.position.y,
             ax=ax,
             color_axis=color_axis,
             plot_vignetted=plot_vignetted
@@ -407,8 +414,8 @@ class Rays(transform.rigid.Transformable):
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         return self.plot_attribute(
-            attr_x=np.arctan(self.direction[x], self.direction[z]).to(u.arcmin),
-            attr_y=np.arctan(self.direction[y], self.direction[z]).to(u.arcmin),
+            attr_x=np.arctan(self.direction.x, self.direction.z).to(u.arcmin),
+            attr_y=np.arctan(self.direction.y, self.direction.z).to(u.arcmin),
             ax=ax,
             color_axis=color_axis,
             plot_vignetted=plot_vignetted
@@ -425,11 +432,14 @@ class Rays(transform.rigid.Transformable):
         if ax is None:
             _, ax = plt.subplots()
 
+        attr_x = np.broadcast_to(attr_x, self.grid_shape)
+        attr_y = np.broadcast_to(attr_y, self.grid_shape)
+
         if plot_vignetted:
             mask = self.error_mask
         else:
             mask = self.mask
-        mask = np.broadcast_to(mask, self.position[x].shape)
+        mask = np.broadcast_to(mask, self.grid_shape)
 
         with astropy.visualization.quantity_support():
             scatter = ax.scatter(
@@ -441,8 +451,8 @@ class Rays(transform.rigid.Transformable):
                 ax.legend(
                     handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
                     labels=list(self.grid_labels(color_axis).flatten()),
-                    loc='top left',
-                    bbox_to_anchor=(1.0, 1.0),
+                    loc='center left',
+                    bbox_to_anchor=(1.0, 0.5),
                 )
             except ValueError:
                 pass
@@ -527,7 +537,7 @@ class RaysList(
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            components: typ.Tuple[str, str] = ('x', 'y'),
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
@@ -543,10 +553,15 @@ class RaysList(
         intercepts = []
         for rays in self:
             rays_transform = transform_extra + rays.transform
-            intercept = rays_transform(rays.position, num_extra_dims=5)
-            intercept = np.broadcast_to(intercept, img_rays.vector_grid_shape, subok=True)
+            intercept = rays_transform(rays.position, num_extra_dims=rays.axis.ndim)
+            # if type(intercept) is not u.Quantity:
+            #     print('here')
+            #     # print(intercept.tmin)
+            #     # print()
+            #     intercept = intercept.vmin
+            intercept = np.broadcast_to(intercept, img_rays.grid_shape, subok=True)
             intercepts.append(intercept)
-        intercepts = u.Quantity(intercepts)
+        intercepts = np.stack(intercepts)
 
         color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 
@@ -556,30 +571,38 @@ class RaysList(
             mask = img_rays.mask
         mask = np.broadcast_to(mask, img_rays.grid_shape)
 
-        grid = img_rays.input_grids[color_axis].flatten()
-        colors = plt.cm.viridis((grid - grid.min()) / (grid.max() - grid.min()))
-        labels = img_rays.grid_labels(color_axis).flatten()
+        grid = img_rays.input_grids[color_axis]
+        grid = np.broadcast_to(grid, img_rays.shape + grid.shape[~0:])
+        grid = grid.flatten()
+        grid_min, grid_max = grid.min(axis=~0, keepdims=True), grid.max(axis=~0, keepdims=True)
+        grid_delta = grid_max - grid_min
+        ngrid = (grid - grid_min) / grid_delta
+        ngrid[~np.isfinite(ngrid)] = 0.5
+        colors = plt.cm.viridis(ngrid)
+        labels = img_rays.grid_labels(color_axis)
+        labels = np.broadcast_to(labels, img_rays.shape + labels.shape[~0:])
+        labels = labels.flatten()
 
-        intercepts = np.moveaxis(intercepts, color_axis - 1, img_rays.ndim + 1)
+        intercepts = np.moveaxis(intercepts, color_axis, img_rays.ndim + 1)
         mask = np.moveaxis(mask, color_axis, img_rays.ndim)
 
-        new_shape = intercepts.shape[0:1] + (-1,) + grid.shape + intercepts.shape[~(img_rays.vaxis.ndim - 2):]
+        new_shape = intercepts.shape[:1] + (-1,) + intercepts.shape[~(img_rays.axis.ndim - 2):]
         intercepts = intercepts.reshape(new_shape)
-        mask = mask.reshape((-1,) + grid.shape + mask.shape[~(img_rays.axis.ndim - 2):])
+        mask = mask.reshape((-1,) + mask.shape[~(img_rays.axis.ndim - 2):])
 
-        intercepts = np.moveaxis(intercepts, ~(img_rays.vaxis.ndim - 1), 0)
+        intercepts = np.moveaxis(intercepts, ~(img_rays.axis.ndim - 1), 0)
         mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
 
         for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
             ax.plot(
-                intercept_c[:, mask_c, components[0]],
-                intercept_c[:, mask_c, components[1]],
+                intercept_c[:, mask_c].get_component(components[0]),
+                intercept_c[:, mask_c].get_component(components[1]),
                 color=color,
                 label=label,
             )
 
         handles, labels = ax.get_legend_handles_labels()
         label_dict = dict(zip(labels, handles))
-        ax.legend(label_dict.values(), label_dict.keys(), loc='top left', bbox_to_anchor=(1.0, 1.0))
+        ax.legend(label_dict.values(), label_dict.keys(), loc='center left', bbox_to_anchor=(1.0, 0.5))
 
         return ax

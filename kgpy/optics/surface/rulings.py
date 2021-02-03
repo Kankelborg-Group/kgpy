@@ -17,7 +17,7 @@ class Rulings(
 ):
 
     @abc.abstractmethod
-    def normal(self, x: u.Quantity, y: u.Quantity):
+    def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ):
         pass
 
     @abc.abstractmethod
@@ -25,22 +25,22 @@ class Rulings(
             self,
             rays: Rays,
             material: typ.Optional[Material] = None,
-    ) -> u.Quantity:
+    ) -> vector.Vector3D:
         pass
 
     def effective_input_direction(
             self,
             rays: Rays,
             material: typ.Optional[Material] = None,
-    ):
-        return vector.normalize(self._effective_input_vector(rays, material=material))
+    ) -> vector.Vector3D:
+        return self._effective_input_vector(rays=rays, material=material).normalize()
 
     def effective_input_index(
             self,
             rays: Rays,
             material: typ.Optional[Material] = None,
-    ):
-        return vector.length(self._effective_input_vector(rays, material=material))
+    ) -> u.Quantity:
+        return self._effective_input_vector(rays=rays, material=material).length
 
 
 @dataclasses.dataclass
@@ -48,21 +48,28 @@ class ConstantDensity(Rulings):
     diffraction_order: u.Quantity = 1 * u.dimensionless_unscaled
     ruling_density: u.Quantity = 0 * (1 / u.mm)
 
-    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
-        return vector.from_components(y=self.ruling_density)
+    def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0) -> vector.Vector3D:
+        extra_dims_slice = (Ellipsis, ) + num_extra_dims * (np.newaxis, )
+        return vector.Vector3D(
+            x=0 * self.ruling_density,
+            y=self.ruling_density[extra_dims_slice],
+            z=0 * self.ruling_density
+        )
 
     def _effective_input_vector(
             self,
             rays: Rays,
             material: typ.Optional[Material] = None,
-    ) -> u.Quantity:
+    ) -> vector.Vector3D:
+        num_extra_dims = rays.axis.ndim
+        extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
         if material is not None:
             n2 = material.index_of_refraction(rays)
         else:
             n2 = np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
         a = rays.index_of_refraction * rays.direction
-        normal = self.normal(rays.position[vector.x], rays.position[vector.y])
-        return a + n2 * self.diffraction_order * rays.wavelength * normal
+        normal = self.normal(rays.position.x, rays.position.y, num_extra_dims=num_extra_dims)
+        return a + n2 * self.diffraction_order[extra_dims_slice] * rays.wavelength * normal
 
     def wavelength_from_angles(
             self,
@@ -105,14 +112,15 @@ class CubicPolyDensity(ConstantDensity):
     ruling_density_quadratic: u.Quantity = 0 / (u.mm ** 3)
     ruling_density_cubic: u.Quantity = 0 / (u.mm ** 4)
 
-    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> vector.Vector3D:
+        extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
         x2 = np.square(x)
-        term0 = self.ruling_density[..., None, None, None, None, None]
-        term1 = self.ruling_density_linear * x
-        term2 = self.ruling_density_quadratic * x2
-        term3 = self.ruling_density_cubic * x * x2
+        term0 = self.ruling_density[extra_dims_slice]
+        term1 = self.ruling_density_linear[extra_dims_slice] * x
+        term2 = self.ruling_density_quadratic[extra_dims_slice] * x2
+        term3 = self.ruling_density_cubic[extra_dims_slice] * x * x2
         groove_density = term0 + term1 + term2 + term3
-        return vector.from_components(x=groove_density)
+        return vector.Vector3D(x=groove_density)
 
     @property
     def broadcasted(self):

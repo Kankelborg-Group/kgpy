@@ -60,8 +60,8 @@ class Baffle(
 
     def concat_apertures_from_global_positions(
             self,
-            position_1: u.Quantity,
-            position_2: u.Quantity,
+            position_1: vector.Vector3D,
+            position_2: vector.Vector3D,
             mask: typ.Optional = None,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
     ) -> 'Baffle':
@@ -70,7 +70,7 @@ class Baffle(
         position_2 = self.transform.inverse(position_2, num_extra_dims=1)
 
         intercept = geometry.segment_plane_intercept(
-            plane_point=[0, 0, 0] * u.mm,
+            plane_point=vector.Vector3D() * u.mm,
             plane_normal=vector.z_hat,
             line_point_1=position_1,
             line_point_2=position_2,
@@ -80,7 +80,7 @@ class Baffle(
 
     def concat_apertures_from_intercept(
             self,
-            intercept: u.Quantity,
+            intercept: vector.Vector3D,
             mask: u.Quantity,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
     ) -> 'Baffle':
@@ -88,7 +88,7 @@ class Baffle(
 
         if mask is None:
             mask = True
-        mask = mask & np.isfinite(intercept.sum(~0))
+        mask = mask & np.isfinite(intercept.length_l1)
 
         num_axes = len(sh[:~0])
         num_hull_axes = len(hull_axes)
@@ -105,15 +105,15 @@ class Baffle(
         intercept = intercept.reshape((-1, ) + intercept.shape[num_hull_axes:])
         mask = mask.reshape((-1, ) + mask.shape[num_hull_axes:])
 
-        intercept = np.moveaxis(intercept, 0, ~1)
+        intercept = np.moveaxis(intercept, 0, ~0)
         mask = np.moveaxis(mask, 0, ~0)
 
-        intercept = intercept.reshape((-1, ) + intercept.shape[~1:])
+        intercept = intercept.reshape((-1, ) + intercept.shape[~0:])
         mask = mask.reshape((-1, ) + mask.shape[~0:])
 
         apertures = []
         for i in range(len(intercept)):
-            points = intercept[i, mask[i], :]
+            points = intercept[i, mask[i]]
             if len(points) > 2:
                 points = shapely.geometry.MultiPoint(points.to(self.shapely_unit).value)
                 poly = points.convex_hull
@@ -165,7 +165,10 @@ class Baffle(
     def apertures(self):
         apertures = []
         for interior in self._shapely_baffle.interiors:
-            a = optics.surface.aperture.IrregularPolygon(vertices=vector.to_3d(np.array(interior) << self.shapely_unit))
+            # a = optics.surface.aperture.IrregularPolygon(vertices=vector.to_3d(np.array(interior) << self.shapely_unit))
+            a = optics.surface.aperture.IrregularPolygon(
+                vertices=vector.Vector2D.from_quantity(interior << self.shapely_unit).to_3d()
+            )
             apertures.append(a)
         return apertures
 
@@ -181,7 +184,9 @@ class Baffle(
 
     def _to_aperture(self, aperture: shapely.geometry.Polygon) -> surface.aperture.IrregularPolygon:
         return optics.surface.aperture.IrregularPolygon(
-            vertices=vector.to_3d(np.array(aperture.exterior) << self.shapely_unit))
+            # vertices=vector.to_3d(np.array(aperture.exterior) << self.shapely_unit))
+            vertices=vector.Vector2D.from_quantity(aperture.exterior << self.shapely_unit).to_3d()
+        )
 
     def _to_aperture_list(self, apertures: shapely.geometry.MultiPolygon) -> typ.List[surface.aperture.Polygon]:
         return [self._to_aperture(aper) for aper in apertures]
@@ -348,7 +353,7 @@ class Baffle(
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (0, 1),
+            components: typ.Tuple[str, str] = ('x', 'y'),
             color: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
@@ -433,8 +438,8 @@ class BaffleList(
 
     def concat_apertures_from_global_positions(
             self,
-            position_1: u.Quantity,
-            position_2: u.Quantity,
+            position_1: vector.Vector3D,
+            position_2: vector.Vector3D,
             mask: typ.Optional = None,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
     ) -> 'BaffleList':
@@ -444,7 +449,7 @@ class BaffleList(
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            components: typ.Tuple[str, str] = ('x', 'y'),
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None
     ) -> plt.Axes:
         if ax is None:

@@ -51,7 +51,7 @@ class Breadboard(
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            components: typ.Tuple[str, str] = ('x', 'y'),
             color: str = 'black',
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             to_global: bool = False,
@@ -68,17 +68,20 @@ class Breadboard(
                 transform_extra = transform.rigid.TransformList()
             transform_extra = transform_extra + self.transform
 
-        top = vector.from_components(
+        top = vector.Vector3D(
             x=u.Quantity([0 * u.mm, 0 * u.mm, self.width, self.width]),
-            z=u.Quantity([0 * u.mm, self.length, self.length, 0 * u.mm])
+            y=0 * u.mm,
+            z=u.Quantity([0 * u.mm, self.length, self.length, 0 * u.mm]),
         )
         bottom = top.copy()
-        bottom[vector.y] = -self.thickness
-        points = u.Quantity([top, bottom])
+        bottom.y = -self.thickness
+        points = np.stack([top, bottom])
         points = transform_extra(points)
 
         c0, c1 = components
-        ax.fill(points[..., c0].T, points[..., c1].T, fill=False, color=color)
-        ax.plot(points[..., c0], points[..., c1], color=color)
+        ax.fill(points.get_component(c0).T, points.get_component(c1).T, fill=False, color=color)
+        ax.plot(points.get_component(c0), points.get_component(c1), color=color)
+
+        return ax
 
 

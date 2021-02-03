@@ -4,6 +4,7 @@ kgpy root package
 import dataclasses
 import typing as typ
 import numpy as np
+import astropy.units as u
 
 __all__ = [
     'linspace', 'midspace',

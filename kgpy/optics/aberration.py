@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import pandas
 from kgpy import mixin, vector, format as fmt, polynomial
-from kgpy.vector import x, y, z
 
 __all__ = ['Distortion', 'Vignetting']
 

@@ -16,11 +16,11 @@ class Sag(
 ):
 
     @abc.abstractmethod
-    def __call__(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def __call__(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> u.Quantity:
         pass
 
     @abc.abstractmethod
-    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> vector.Vector3D:
         pass
 
 
@@ -33,27 +33,32 @@ class Standard(Sag):
     def curvature(self) -> u.Quantity:
         return np.where(np.isinf(self.radius), 0 / u.mm, 1 / self.radius)
 
-    def __call__(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def __call__(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> u.Quantity:
+        extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
         r2 = np.square(x) + np.square(y)
-        c = self.curvature[..., None, None, None, None, None]
-        conic = self.conic[..., None, None, None, None, None]
+        c = self.curvature[extra_dims_slice]
+        conic = self.conic[extra_dims_slice]
         sz = c * r2 / (1 + np.sqrt(1 - (1 + conic) * np.square(c) * r2))
-        mask = r2 >= np.square(self.radius[..., None, None, None, None, None])
+        mask = r2 >= np.square(self.radius[extra_dims_slice])
         sz[mask] = 0
         return sz
 
-    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> vector.Vector3D:
+        extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
         x2, y2 = np.square(x), np.square(y)
-        c = self.curvature[..., None, None, None, None, None]
+        c = self.curvature[extra_dims_slice]
         c2 = np.square(c)
-        conic = self.conic[..., None, None, None, None, None]
+        conic = self.conic[extra_dims_slice]
         g = np.sqrt(1 - (1 + conic) * c2 * (x2 + y2))
         dzdx, dzdy = c * x / g, c * y / g
-        mask = (x2 + y2) >= np.square(self.radius[..., None, None, None, None, None])
+        mask = (x2 + y2) >= np.square(self.radius[extra_dims_slice])
         dzdx[mask] = 0
         dzdy[mask] = 0
-        n = vector.normalize(vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
-        return n
+        return vector.Vector3D(
+            x=dzdx,
+            y=dzdy,
+            z=-1 * u.dimensionless_unscaled
+        ).normalize()
 
     def view(self) -> 'Standard':
         other = super().view()  # type: Standard
@@ -79,25 +84,27 @@ class Standard(Sag):
 class Toroidal(Standard):
     radius_of_rotation: u.Quantity = 0 * u.mm
 
-    def __call__(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def __call__(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> u.Quantity:
+        extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
         x2 = np.square(x)
         y2 = np.square(y)
-        c = self.curvature[..., None, None, None, None, None]
-        r = self.radius_of_rotation[..., None, None, None, None, None]
+        c = self.curvature[extra_dims_slice]
+        r = self.radius_of_rotation[extra_dims_slice]
         mask = np.abs(x) > r
-        conic = self.conic[..., None, None, None, None, None]
+        conic = self.conic[extra_dims_slice]
         zy = c * y2 / (1 + np.sqrt(1 - (1 + conic) * np.square(c) * y2))
         z = r - np.sqrt(np.square(r - zy) - x2)
         z[mask] = (r - np.sqrt(np.square(r - zy) - np.square(r)))[mask]
         return z
 
-    def normal(self, x: u.Quantity, y: u.Quantity) -> u.Quantity:
+    def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> vector.Vector3D:
+        extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
         x2 = np.square(x)
         y2 = np.square(y)
-        c = self.curvature[..., None, None, None, None, None]
+        c = self.curvature[extra_dims_slice]
         c2 = np.square(c)
-        r = self.radius_of_rotation[..., None, None, None, None, None]
-        conic = self.conic[..., None, None, None, None, None]
+        r = self.radius_of_rotation[extra_dims_slice]
+        conic = self.conic[extra_dims_slice]
         g = np.sqrt(1 - (1 + conic) * c2 * y2)
         zy = c * y2 / (1 + g)
         f = np.sqrt(np.square(r - zy) - x2)
@@ -107,7 +114,11 @@ class Toroidal(Standard):
         mask = np.abs(x) > r
         dzdx[mask] = 0
         dzdy[mask] = 0
-        return vector.normalize(vector.from_components(dzdx, dzdy, -1 * u.dimensionless_unscaled))
+        return vector.Vector3D(
+            x=dzdx,
+            y=dzdy,
+            z=-1 * u.dimensionless_unscaled
+        ).normalize()
 
     @property
     def broadcasted(self):

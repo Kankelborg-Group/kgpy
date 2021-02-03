@@ -79,7 +79,7 @@ class TranslationComponent(Component[SurfaceT]):
     @property
     def dataframe(self) -> pandas.DataFrame:
         dataframe = super().dataframe
-        dataframe['translation'] = [format.quantity(self.translation.vector)]
+        dataframe['translation'] = [format.quantity(self.translation.value.quantity)]
         return dataframe
 
 
