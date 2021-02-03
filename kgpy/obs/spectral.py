@@ -12,11 +12,11 @@ class CubeAxis(mixin.AutoAxis):
     """
     def __init__(self):
         super().__init__()
+        self.w = self.auto_axis_index()
         self.x = self.auto_axis_index()
         self.y = self.auto_axis_index()
-        self.w = self.auto_axis_index()
-        self.channel = self.auto_axis_index(from_right=False)
         self.time = self.auto_axis_index(from_right=False)
+        self.channel = self.auto_axis_index(from_right=False)
 
     @property
     def xy(self) -> typ.Tuple[int, int]:
@@ -30,14 +30,18 @@ class Cube(Image):
     """
     axis: typ.ClassVar[CubeAxis] = CubeAxis()
 
+    @property
+    def num_wavelength(self) -> int:
+        return self.shape[self.axis.w]
+
 
 class SliceAxis(mixin.AutoAxis):
     def __init__(self):
         super().__init__()
-        self.y = self.auto_axis_index()
         self.w = self.auto_axis_index()
-        self.channel = self.auto_axis_index(from_right=False)
+        self.y = self.auto_axis_index()
         self.time = self.auto_axis_index(from_right=False)
+        self.channel = self.auto_axis_index(from_right=False)
 
 
 @dataclasses.dataclass

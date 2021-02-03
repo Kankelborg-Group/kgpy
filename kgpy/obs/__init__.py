@@ -2,6 +2,7 @@
 Interfaces for various solar observatories.
 """
 import typing as typ
+import pathlib
 import dataclasses
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,7 +32,7 @@ class ImageAxis(mixin.AutoAxis):
 
 
 @dataclasses.dataclass
-class Image:
+class Image(mixin.Pickleable):
     axis: typ.ClassVar[ImageAxis] = ImageAxis()                 #: Relationship between physical dimension and axis index.
     intensity: typ.Optional[u.Quantity] = None              #: Intensity of each pixel in the data
     intensity_uncertainty: typ.Optional[u.Quantity] = None
@@ -54,6 +55,10 @@ class Image:
         self.exposure_length = np.zeros(sh) * u.s
         return self
 
+    @staticmethod
+    def default_pickle_path() -> pathlib.Path:
+        return pathlib.Path('cube.pickle')
+
     @property
     def shape(self) -> typ.Tuple[int, ...]:
         return self.intensity.shape
@@ -65,6 +70,14 @@ class Image:
     @property
     def num_channels(self) -> int:
         return self.shape[self.axis.channel]
+
+    @property
+    def num_x(self) -> int:
+        return self.shape[self.axis.x]
+
+    @property
+    def num_y(self) -> int:
+        return self.shape[self.axis.y]
 
     @property
     def channel_labels(self) -> typ.List[str]:
