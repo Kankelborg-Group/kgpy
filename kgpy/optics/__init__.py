@@ -48,6 +48,8 @@ class System(
     baffles_blank: baffle.BaffleList = dataclasses.field(default_factory=baffle.BaffleList)
     baffles_hull_axes: typ.Optional[typ.Tuple[int, ...]] = None
     breadboard: typ.Optional[Breadboard] = None
+    tolerance_axes: typ.Dict[str, int] = dataclasses.field(default_factory=lambda: {})
+    focus_axes: typ.Dict[str, int] = dataclasses.field(default_factory=lambda: {})
 
     def __post_init__(self):
         self.update()
@@ -456,9 +458,6 @@ class System(
 
         ax_indices = [xy, yz, xz]
         planes = [
-            # (vector.ix, vector.iy),
-            # (vector.iz, vector.iy),
-            # (vector.iz, vector.ix),
             ('x', 'y'),
             ('z', 'y'),
             ('z', 'x'),

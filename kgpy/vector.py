@@ -264,8 +264,11 @@ class Vector2D(np.lib.mixins.NDArrayOperatorsMixin):
     ) -> 'Vector2D':
         return np.sum(self, axis=axis, keepdims=keepdims)
 
-    def reshape(self, shape: typ.Sequence) -> 'Vector2D':
-        return np.reshape(self, shape)
+    def reshape(self, *args) -> 'Vector2D':
+        return type(self)(
+            x=self.x_final.reshape(*args),
+            y=self.y_final.reshape(*args),
+        )
 
     def outer(self, other: 'Vector2D') -> 'matrix.Matrix2D':
         result = matrix.Matrix2D()
@@ -421,8 +424,10 @@ class Vector3D(Vector2D):
     ) -> 'Vector3D':
         return super().sum(axis=axis, keepdims=keepdims)
 
-    def reshape(self, shape: typ.Sequence) -> 'Vector3D':
-        return super().reshape(shape)
+    def reshape(self, *args) -> 'Vector3D':
+        result = super().reshape(*args)
+        result.z = self.z_final.reshape(*args)
+        return result
 
     def outer(self, other: 'Vector3D') -> 'matrix.Matrix3D':
         result = super().outer(other).to_3d()

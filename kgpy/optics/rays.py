@@ -554,11 +554,6 @@ class RaysList(
         for rays in self:
             rays_transform = transform_extra + rays.transform
             intercept = rays_transform(rays.position, num_extra_dims=rays.axis.ndim)
-            # if type(intercept) is not u.Quantity:
-            #     print('here')
-            #     # print(intercept.tmin)
-            #     # print()
-            #     intercept = intercept.vmin
             intercept = np.broadcast_to(intercept, img_rays.grid_shape, subok=True)
             intercepts.append(intercept)
         intercepts = np.stack(intercepts)

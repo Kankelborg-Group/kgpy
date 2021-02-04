@@ -197,8 +197,8 @@ class HypercubeSlicer:
 
         )
 
-        self._vmin = np.percentile(self._data, self.percentile_thresh[0])
-        self._vmax = np.percentile(self._data, self.percentile_thresh[~0])
+        self._vmin = np.nanpercentile(self._data, self.percentile_thresh[0])
+        self._vmax = np.nanpercentile(self._data, self.percentile_thresh[~0])
 
         self._xy_vline = self._ax_xy.axvline(self._x_index_int, **self.line_kwargs)
         self._xy_hline = self._ax_xy.axhline(self._y_index_int, **self.line_kwargs)
