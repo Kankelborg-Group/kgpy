@@ -301,6 +301,18 @@ class Baffle(
                             dxf.add_polyline(aper.vertices.quantity.to(dxf_unit).value, closed=True)
                         elif isinstance(aper, optics.surface.aperture.Circular):
                             dxf.add_circle(
+                                (aper.descenter.x.to(dxf_unit).value, aper.decenter.y.to(dxf_unit).value),
+                                aper.radius.to(dxf_unit).value
+                            )
+                        else:
+                            raise NotImplementedError
+
+                if self.apertures_extra is not None:
+                    for aper in self.apertures_extra:
+                        if isinstance(aper, optics.surface.aperture.Polygon):
+                            dxf.add_polyline(aper.vertices.quantity.to(dxf_unit).value, closed=True)
+                        elif isinstance(aper, optics.surface.aperture.Circular):
+                            dxf.add_circle(
                                 (aper.decenter.x.to(dxf_unit).value, aper.decenter.y.to(dxf_unit).value),
                                 aper.radius.to(dxf_unit).value
                             )
