@@ -42,7 +42,7 @@ class System(
     surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
     wavelengths: u.Quantity = 0 * u.nm  #: Source wavelengths
     pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3  #: Number of samples across the pupil for each axis x, y
-    pupil_margin: u.Quantity = 1 * u.um  #: Margin between edge of pupil and nearest ray
+    pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3  #: Number of samples across the field for each axis x, y
     field_margin: u.Quantity = 1 * u.nrad  #: Margin between edge of field and nearest ray
     baffles_blank: baffle.BaffleList = dataclasses.field(default_factory=baffle.BaffleList)
@@ -130,13 +130,15 @@ class System(
         )
 
     @property
-    def baffle_lofts(self) -> typ.Dict[int, typ.List[surface.Surface]]:
+    def baffle_lofts(self) -> typ.Dict[int, typ.Tuple[surface.Surface, surface.Surface]]:
         lofts = {}
         for surf in self.surfaces_all.flat_global_iter:
             for b_id in surf.baffle_loft_ids:
                 if b_id not in lofts:
-                    lofts[b_id] = []
-                lofts[b_id].append(surf)
+                    lofts[b_id] = ()
+                if len(lofts[b_id]) >= 2:
+                    raise ValueError('Loft with more than two surfaces')
+                lofts[b_id] = lofts[b_id] + (surf, )
 
         return lofts
 
@@ -157,76 +159,11 @@ class System(
 
         if baffles_blank:
 
-            systems = list(self.tol_iter)
+            baffles = baffles_blank
+            baffles = baffles.concat_apertures_from_raytrace(
+                raytrace=self.raytrace, transform_extra=transform_extra, hull_axes=self.baffles_hull_axes, color='red')
 
-            num_systems = len(systems)
-            num_surfaces = len(self.raytrace)
-            base_shape = (num_systems, num_surfaces)
-            position_rays_shape = base_shape + self.rays_output.vector_grid_shape
-
-            position_rays = np.empty(position_rays_shape) << self.rays_output.position.unit
-            mask_rays = np.empty(position_rays_shape[:~0], dtype=np.bool)
-
-            for i in range(num_systems):
-                sys = systems[i]
-                r_img = systems[i].raytrace[~0]
-                for j in range(num_surfaces):
-                    r = sys.raytrace[j]
-                    position_rays[i, j] = r.transform(r.position, num_extra_dims=5)
-                    position_rays[i, j] = transform_extra(position_rays[i, j], num_extra_dims=5)
-                    mask_rays[i, j] = r_img.mask
-
-            position_rays_shape = base_shape + self.rays_output.shape + (-1, 3)
-            position_rays = position_rays.reshape(position_rays_shape)
-            mask_rays = mask_rays.reshape(position_rays_shape[:~0])
-
-            hull_axes = self.baffles_hull_axes
-            if hull_axes is None:
-                hull_axes = list(range(self.rays_output.ndim))
-            hull_axes = list(np.array(hull_axes) + len(base_shape))
-            hull_axes.insert(0, 0)
-            hull_axes.insert(len(hull_axes) + 1, ~0)
-
-            baffles = baffles_blank.concat_apertures_from_global_positions(
-                position_1=position_rays[:, :~0],
-                position_2=position_rays[:, 1:],
-                mask=mask_rays[:, :~0],
-                hull_axes=hull_axes,
-            )
-
-            position_0_lofts = []
-            position_1_lofts = []
-            for sys in systems:
-                p0_sys, p1_sys = [], []
-                for loft in sys.baffle_lofts.values():
-                    surf_0, surf_1 = loft[:2]
-                    p0 = surf_0.transform(surf_0.aperture.vertices, num_extra_dims=1)[..., :, None, :]
-                    p1 = surf_1.transform(surf_1.aperture.vertices, num_extra_dims=1)[..., None, :, :]
-                    p0 = transform_extra(p0, num_extra_dims=2)
-                    p1 = transform_extra(p1, num_extra_dims=2)
-                    p0 = np.broadcast_to(p0, self.rays_output.shape + p0.shape, subok=True)
-                    p1 = np.broadcast_to(p1, self.rays_output.shape + p1.shape, subok=True)
-                    p0, p1 = np.broadcast_arrays(p0, p1, subok=True)
-                    p0_sys.append(p0)
-                    p1_sys.append(p1)
-                position_0_lofts.append(p0_sys)
-                position_1_lofts.append(p1_sys)
-
-            hull_axes = self.baffles_hull_axes
-            if hull_axes is None:
-                hull_axes = list(range(self.rays_output.ndim))
-            hull_axes = list(np.array(hull_axes) + 1)
-            hull_axes.insert(0, 0)
-            hull_axes.insert(len(hull_axes) + 1, ~1)
-            hull_axes.insert(len(hull_axes) + 1, ~0)
-
-            for p0, p1 in zip(zip(*position_0_lofts), zip(*position_1_lofts)):
-                p0, p1 = u.Quantity(p0), u.Quantity(p1)
-                baffles = baffles.concat_apertures_from_global_positions(
-                    position_1=p0,
-                    position_2=p1,
-                    hull_axes=hull_axes,
-                )
+            baffles = baffles.concat_apertures_from_lofts(lofts=self.baffle_lofts, transform_extra=transform_extra)
 
         else:
             baffles = baffles_blank
@@ -261,22 +198,16 @@ class System(
             if self.field_min.quantity.unit.is_equivalent(u.rad):
 
                 if rays_input is None:
-                    # position_guess = vector.from_components(use_z=False) << u.mm
                     position_guess = vector.Vector2D.spatial()
                 else:
                     position_guess = rays_input.position.xy
 
                 step_size = .1 * u.mm
-                # step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
                 px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
                 py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
                 target_position = vector.Vector2D(px, py)
-                # target_position = vector.from_components(
-                #     px[..., None, None, None, :, None],
-                #     py[..., None, None, None, None, :]
-                # )
 
                 def position_error(pos: vector.Vector2D) -> vector.Vector2D:
                     rays_in = rays.Rays.from_field_angles(
@@ -291,8 +222,6 @@ class System(
                     raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
 
                     return raytrace[~0].position.xy - target_position
-
-                    # return (raytrace[~0].position - target_position)[xy]
 
                 position_final = optimization.root_finding.vector.secant_2d(
                     func=position_error,
@@ -318,7 +247,6 @@ class System(
                     direction_guess = np.arcsin(rays_input.direction.xy)
 
                 step_size = 1e-10 * u.deg
-                # step = vector.from_components(x=step_size, y=step_size, use_z=False)
 
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
                 px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))

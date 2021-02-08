@@ -533,6 +533,14 @@ class RaysList(
     collections.UserList,
     typ.List[Rays],
 ):
+    @property
+    def intercepts(self) -> vector.Vector3D:
+        intercepts = []
+        for rays in self:
+            intercept = rays.transform(rays.position, num_extra_dims=rays.axis.ndim)
+            intercept = np.broadcast_to(intercept, self[~0].grid_shape, subok=True)
+            intercepts.append(intercept)
+        return np.stack(intercepts)
 
     def plot(
             self,
@@ -550,13 +558,7 @@ class RaysList(
 
         img_rays = self[~0]
 
-        intercepts = []
-        for rays in self:
-            rays_transform = transform_extra + rays.transform
-            intercept = rays_transform(rays.position, num_extra_dims=rays.axis.ndim)
-            intercept = np.broadcast_to(intercept, img_rays.grid_shape, subok=True)
-            intercepts.append(intercept)
-        intercepts = np.stack(intercepts)
+        intercepts = transform_extra(self.intercepts)
 
         color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 

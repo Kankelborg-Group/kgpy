@@ -67,16 +67,16 @@ class Aperture(
         if color is None:
             color = self.color
 
-        with astropy.visualization.quantity_support():
-            c1, c2 = components
-            wire = self.wire
-            if wire.quantity.unit.is_equivalent(u.mm):
-                if sag is not None:
-                    wire.z = wire.z + sag(wire.x, wire.y)
-                if transform_extra is not None:
-                    wire = transform_extra(wire, num_extra_dims=1)
-                wire = wire.reshape((-1, wire.shape[~0]))
-                ax.fill(wire.get_component(c1).T, wire.get_component(c2).T, color=color, fill=False)
+        # with astropy.visualization.quantity_support():
+        c1, c2 = components
+        wire = self.wire
+        if wire.x.unit.is_equivalent(u.mm):
+            if sag is not None:
+                wire.z = wire.z + sag(wire.x, wire.y)
+            if transform_extra is not None:
+                wire = transform_extra(wire, num_extra_dims=1)
+            wire = wire.reshape((-1, wire.shape[~0]))
+            ax.fill(wire.get_component(c1).T, wire.get_component(c2).T, color=color, fill=False, )
         return ax
 
     def view(self) -> 'Aperture':
@@ -302,7 +302,7 @@ class RegularPolygon(Polygon):
 
 @dataclasses.dataclass
 class IrregularPolygon(Polygon):
-    vertices: u.Quantity = None
+    vertices: vector.Vector3D = None
 
     def view(self) -> 'IrregularPolygon':
         other = super().view()  # type: IrregularPolygon

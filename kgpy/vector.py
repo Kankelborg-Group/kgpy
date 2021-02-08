@@ -256,6 +256,9 @@ class Vector2D(np.lib.mixins.NDArrayOperatorsMixin):
         else:
             self.x.__setitem__(key, value)
             self.y.__setitem__(key, value)
+    #
+    # def __len__(self):
+    #     return self.shape[0]
 
     def sum(
             self,
