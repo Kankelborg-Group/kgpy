@@ -205,9 +205,12 @@ class System(
                 step_size = .1 * u.mm
 
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
-                px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
-                py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
-                target_position = vector.Vector2D(px, py)
+                # px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
+                # py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
+                target_position = vector.Vector2D(
+                    x=np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x)),
+                    y=np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y)),
+                )
 
                 def position_error(pos: vector.Vector2D) -> vector.Vector2D:
                     rays_in = rays.Rays.from_field_angles(
@@ -249,9 +252,12 @@ class System(
                 step_size = 1e-10 * u.deg
 
                 px, py = self.pupil_x(surf), self.pupil_y(surf)
-                px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
-                py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
-                target_position = vector.Vector2D(px, py)
+                # px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
+                # py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
+                target_position = vector.Vector2D(
+                    x=np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x)),
+                    y=np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y)),
+                )
 
                 def position_error(angles: vector.Vector2D) -> vector.Vector2D:
                     direction = transform.rigid.TiltX(angles.y)(vector.z_hat)

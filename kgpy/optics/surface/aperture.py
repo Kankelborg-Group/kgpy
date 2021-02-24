@@ -67,17 +67,17 @@ class Aperture(
         if color is None:
             color = self.color
 
-        # with astropy.visualization.quantity_support():
-        c1, c2 = components
-        wire = self.wire
-        if wire.x.unit.is_equivalent(u.mm):
-            if sag is not None:
-                wire.z = wire.z + sag(wire.x, wire.y)
-            if transform_extra is not None:
-                wire = transform_extra(wire, num_extra_dims=1)
-            wire = wire.reshape((-1, wire.shape[~0]))
-            ax.fill(wire.get_component(c1).T, wire.get_component(c2).T, color=color, fill=False, )
-        return ax
+        with astropy.visualization.quantity_support():
+            c1, c2 = components
+            wire = self.wire
+            if wire.x.unit.is_equivalent(u.mm):
+                if sag is not None:
+                    wire.z = wire.z + sag(wire.x, wire.y)
+                if transform_extra is not None:
+                    wire = transform_extra(wire, num_extra_dims=1)
+                wire = wire.reshape((-1, wire.shape[~0]))
+                ax.fill(wire.get_component(c1).T, wire.get_component(c2).T, color=color, fill=False)
+            return ax
 
     def view(self) -> 'Aperture':
         other = super().view()  # type: Aperture
@@ -436,6 +436,7 @@ class IsoscelesTrapezoid(Polygon):
         vertices = vector.Vector3D(
             x=np.stack([left_x, right_x, right_x, left_x], axis=~0),
             y=np.stack([left_y, right_y, -right_y, -left_y], axis=~0),
+            z=0 * left_x,
         )
         return vertices + self.decenter.value
 

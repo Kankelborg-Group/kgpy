@@ -2,8 +2,10 @@
 Package for easier manipulation of vectors than the usual numpy functions.
 """
 import typing as typ
+import abc
 import dataclasses
 import numpy as np
+import numpy.typing
 import astropy.units as u
 from kgpy import units
 from . import matrix
@@ -14,6 +16,7 @@ __all__ = [
     # 'xy',
     # 'x_hat', 'y_hat', 'z_hat',
     # 'dot', 'outer', 'matmul', 'lefmatmul', 'length', 'normalize', 'from_components', 'from_components_cylindrical'
+    'Vector',
     'Vector2D',
     'Vector3D',
     'xhat_factory', 'yhat_factory', 'zhat_factory',
@@ -82,8 +85,45 @@ iz = 2
 #     return from_components(r * np.cos(phi), r * np.sin(phi), z)
 
 
+class Vector(
+    np.lib.mixins.NDArrayOperatorsMixin,
+    abc.ABC,
+):
+
+    @classmethod
+    @abc.abstractmethod
+    def spatial(cls) -> 'Vector':
+        return cls()
+
+    @classmethod
+    @abc.abstractmethod
+    def from_quantity(cls, value: u.Quantity):
+        return cls()
+
+    @property
+    @abc.abstractmethod
+    def quantity(self) -> u.Quantity:
+        pass
+
+    @abc.abstractmethod
+    def __array_ufunc__(self, function, method, *inputs, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def __array_function__(self, function, types, args, kwargs):
+        pass
+
+    @abc.abstractmethod
+    def __getitem__(self, item):
+        pass
+
+    @abc.abstractmethod
+    def __setitem__(self, key, value):
+        pass
+
+
 @dataclasses.dataclass
-class Vector2D(np.lib.mixins.NDArrayOperatorsMixin):
+class Vector2D(Vector):
     x: u.Quantity = 0 * u.dimensionless_unscaled
     y: u.Quantity = 0 * u.dimensionless_unscaled
 
@@ -94,17 +134,17 @@ class Vector2D(np.lib.mixins.NDArrayOperatorsMixin):
 
     @classmethod
     def spatial(cls) -> 'Vector2D':
-        return cls(
-            x=0 * u.mm,
-            y=0 * u.mm,
-        )
+        self = super().spatial()
+        self.x = self.x * u.mm
+        self.y = self.y * u.mm
+        return self
 
     @classmethod
     def from_quantity(cls, value: u.Quantity):
-        return cls(
-            x=value[..., cls.x_index],
-            y=value[..., cls.y_index],
-        )
+        self = super().from_quantity(value)
+        self.x = value[..., cls.x_index]
+        self.y = value[..., cls.y_index]
+        return self
 
     @classmethod
     def from_cylindrical(
@@ -124,6 +164,10 @@ class Vector2D(np.lib.mixins.NDArrayOperatorsMixin):
     @property
     def shape(self) -> typ.Tuple[int, ...]:
         return self.broadcast.shape
+
+    @property
+    def ndim(self) -> int:
+        return self.broadcast.ndim
 
     @property
     def x_final(self) -> u.Quantity:
@@ -197,34 +241,73 @@ class Vector2D(np.lib.mixins.NDArrayOperatorsMixin):
             )
 
     def __array_function__(self, function, types, args, kwargs):
+        if function is np.broadcast_to:
+            return self._broadcast_to(*args, **kwargs)
+        elif function is np.broadcast_arrays:
+            return self._broadcast_arrays(*args, **kwargs)
+        elif function in [
+            np.min, np.max, np.median, np.mean, np.sum, np.prod, np.stack, np.moveaxis, np.roll, np.nanmin, np.nanmax,
+            np.nansum, np.nanmean
+        ]:
+            return self._array_function_default(function, types, args, kwargs)
+        else:
+            raise NotImplementedError
+
+        # args_x = tuple(self._extract_x_final(args))
+        # args_y = tuple(self._extract_y_final(args))
+        # types_x = [type(a) for a in args_x if getattr(a, '__array_function__', None) is not None]
+        # types_y = [type(a) for a in args_y if getattr(a, '__array_function__', None) is not None]
+        # result_x = self.x_final.__array_function__(function, types_x, args_x, kwargs)
+        # result_y = self.y_final.__array_function__(function, types_y, args_y, kwargs)
+        #
+        # if isinstance(result_x, list):
+        #     result = [type(self)(x=rx, y=ry) for rx, ry in zip(result_x, result_y)]
+        # else:
+        #     result = type(self)(x=result_x, y=result_y)
+        # return result
+
+    def _array_function_default(self, function, types, args, kwargs):
         args_x = tuple(self._extract_x_final(args))
         args_y = tuple(self._extract_y_final(args))
         types_x = [type(a) for a in args_x if getattr(a, '__array_function__', None) is not None]
         types_y = [type(a) for a in args_y if getattr(a, '__array_function__', None) is not None]
-        result_x = self.x_final.__array_function__(function, types_x, args_x, kwargs)
-        result_y = self.y_final.__array_function__(function, types_y, args_y, kwargs)
+        return type(self)(
+            x=self.x.__array_function__(function, types_x, args_x, kwargs),
+            y=self.y.__array_function__(function, types_y, args_y, kwargs),
+        )
 
-        if isinstance(result_x, list):
-            result = [type(self)(x=rx, y=ry) for rx, ry in zip(result_x, result_y)]
-        else:
-            result = type(self)(x=result_x, y=result_y)
-        return result
+    @classmethod
+    def _broadcast_to(cls, value: 'Vector2D', shape: typ.Sequence[int], subok: bool = False) -> 'Vector2D':
+        return cls(
+            x=np.broadcast_to(value.x, shape, subok=subok),
+            y=np.broadcast_to(value.y, shape, subok=subok),
+        )
 
-    # def __mul__(self, other) -> 'Vector2D':
-    #     return type(self)(
-    #         x=self.x.__mul__(other),
-    #         y=self.y.__mul__(other),
-    #     )
-    #
-    # def __rmul__(self, other):
-    #     return self.__mul__(other)
-    #
-    # def __truediv__(self, other) -> 'Vector2D':
-    #     return type(self)(
-    #         x=self.x.__truediv__(other),
-    #         y=self.y.__truediv__(other),
-    #     )
-    #
+    @classmethod
+    def _broadcast_arrays(cls, *args, **kwargs) -> typ.Iterator[numpy.typing.ArrayLike]:
+        sh = np.broadcast_shapes(*[a.shape for a in args])
+        for a in args:
+            yield np.broadcast_to(a, sh, **kwargs)
+
+    @classmethod
+    def _min(cls, value: 'Vector2D'):
+        return cls(
+            x=value.x.min(),
+
+        )
+
+    def __mul__(self, other) -> 'Vector2D':
+        return type(self)(
+            x=self.x.__mul__(other),
+            y=self.y.__mul__(other),
+        )
+
+    def __truediv__(self, other) -> 'Vector2D':
+        return type(self)(
+            x=self.x.__truediv__(other),
+            y=self.y.__truediv__(other),
+        )
+
     # def __lshift__(self, other) -> 'Vector2D':
     #     return type(self)(
     #         x=self.x.__lshift__(other),
@@ -256,16 +339,30 @@ class Vector2D(np.lib.mixins.NDArrayOperatorsMixin):
         else:
             self.x.__setitem__(key, value)
             self.y.__setitem__(key, value)
-    #
+
     # def __len__(self):
     #     return self.shape[0]
 
     def sum(
             self,
             axis: typ.Union[None, int, typ.Iterable[int], typ.Tuple[int]] = None,
-            keepdims: bool = False
+            keepdims: bool = False,
     ) -> 'Vector2D':
         return np.sum(self, axis=axis, keepdims=keepdims)
+
+    def min(
+            self,
+            axis: typ.Union[None, int, typ.Iterable[int], typ.Tuple[int]] = None,
+            keepdims: bool = False,
+    ) -> 'Vector2D':
+        return np.min(self, axis=axis, keepdims=keepdims)
+
+    def max(
+            self,
+            axis: typ.Union[None, int, typ.Iterable[int], typ.Tuple[int]] = None,
+            keepdims: bool = False,
+    ) -> 'Vector2D':
+        return np.max(self, axis=axis, keepdims=keepdims)
 
     def reshape(self, *args) -> 'Vector2D':
         return type(self)(
@@ -287,11 +384,13 @@ class Vector2D(np.lib.mixins.NDArrayOperatorsMixin):
             y=self.y.to(unit),
         )
 
-    def to_3d(self) -> 'Vector3D':
+    def to_3d(self, z: typ.Optional[u.Quantity] = None) -> 'Vector3D':
         other = Vector3D()
         other.x = self.x
         other.y = self.y
-        other.z = 0 * self.x
+        if z is None:
+            z = 0 * self.x
+        other.z = z
         return other
 
     def copy(self) -> 'Vector2D':
@@ -309,9 +408,15 @@ class Vector3D(Vector2D):
     __array_priority__ = 1000000
 
     @classmethod
+    def from_quantity(cls, value: u.Quantity):
+        self = super().from_quantity(value=value)
+        self.z = value[..., cls.z_index]
+        return self
+
+    @classmethod
     def spatial(cls) -> 'Vector3D':
-        self = super().spatial()
-        self.z = 0 * u.mm
+        self = super().spatial()    # type: Vector3D
+        self.z = self.z * u.mm
         return self
 
     @classmethod
@@ -374,29 +479,51 @@ class Vector3D(Vector2D):
             result.z = result_z
             return result
 
-    def __array_function__(self, function, types, args, kwargs):
-        result = super().__array_function__(function, types, args, kwargs)
+    # def __array_function__(self, function, types, args, kwargs):
+    #     result = super().__array_function__(function, types, args, kwargs)
+    #     args_z = tuple(self._extract_z_final(args))
+    #     types_z = [type(a) for a in args_z if getattr(a, '__array_function__', None) is not None]
+    #     result_z = self.z_final.__array_function__(function, types_z, args_z, kwargs)
+    #
+    #     if isinstance(result, list):
+    #         for r, r_z in zip(result, result_z):
+    #             r.z = r_z
+    #     else:
+    #         result.z = result_z
+    #     return result
+
+    def _array_function_default(self, function, types, args, kwargs):
+        result = super()._array_function_default(function, types, args, kwargs)
         args_z = tuple(self._extract_z_final(args))
         types_z = [type(a) for a in args_z if getattr(a, '__array_function__', None) is not None]
-        result_z = self.z_final.__array_function__(function, types_z, args_z, kwargs)
-
-        if isinstance(result, list):
-            for r, r_z in result, result_z:
-                r.z = r_z
-        else:
-            result.z = result_z
+        result.z = self.z.__array_function__(function, types_z, args_z, kwargs)
         return result
 
-    # def __mul__(self, other) -> 'Vector3D':
-    #     result = super().__mul__(other)     # type: Vector3D
-    #     result.z = self.z.__mul__(other)
-    #     return result
-    #
-    # def __truediv__(self, other) -> 'Vector3D':
-    #     result = super().__truediv__(other)  # type: Vector3D
-    #     result.z = self.z.__truediv__(other)
-    #     return result
-    #
+        # args_x = tuple(self._extract_x_final(args))
+        # args_y = tuple(self._extract_y_final(args))
+        # types_x = [type(a) for a in args_x if getattr(a, '__array_function__', None) is not None]
+        # types_y = [type(a) for a in args_y if getattr(a, '__array_function__', None) is not None]
+        # return type(self)(
+        #     x=self.x.__array_function__(function, types_x, args_x, kwargs),
+        #     y=self.y.__array_function__(function, types_y, args_y, kwargs),
+        # )
+
+    @classmethod
+    def _broadcast_to(cls, value: 'Vector3D', shape: typ.Sequence[int], subok: bool = False) -> 'Vector2D':
+        result = super()._broadcast_to(value, shape, subok=subok)
+        result.z = np.broadcast_to(value.z, shape, subok=subok)
+        return result
+
+    def __mul__(self, other) -> 'Vector3D':
+        result = super().__mul__(other)     # type: Vector3D
+        result.z = self.z.__mul__(other)
+        return result
+
+    def __truediv__(self, other) -> 'Vector3D':
+        result = super().__truediv__(other)  # type: Vector3D
+        result.z = self.z.__truediv__(other)
+        return result
+
     # def __lshift__(self, other) -> 'Vector3D':
     #     result = super().__lshift__(other)  # type: Vector3D
     #     result.z = self.z.__lshift__(other)
@@ -420,10 +547,24 @@ class Vector3D(Vector2D):
         else:
             self.z.__setitem__(key, value)
 
+    def min(
+            self,
+            axis: typ.Union[None, int, typ.Iterable[int], typ.Tuple[int]] = None,
+            keepdims: bool = False,
+    ) -> 'Vector3D':
+        return super().min(axis=axis, keepdims=keepdims)
+
+    def max(
+            self,
+            axis: typ.Union[None, int, typ.Iterable[int], typ.Tuple[int]] = None,
+            keepdims: bool = False,
+    ) -> 'Vector3D':
+        return super().max(axis=axis, keepdims=keepdims)
+
     def sum(
             self,
             axis: typ.Union[None, int, typ.Iterable[int], typ.Tuple[int]] = None,
-            keepdims: bool = False
+            keepdims: bool = False,
     ) -> 'Vector3D':
         return super().sum(axis=axis, keepdims=keepdims)
 

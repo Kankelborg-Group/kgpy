@@ -22,17 +22,27 @@ class CAxis(mixin.AutoAxis):
 
 
 class Axis(mixin.AutoAxis):
+
+    ndim_pupil: typ.ClassVar[int] = 2
+    ndim_field: typ.ClassVar[int] = 2
+
     def __init__(self):
         super().__init__()
+        self.wavelength = self.auto_axis_index()
         self.pupil_y = self.auto_axis_index()
         self.pupil_x = self.auto_axis_index()
         self.field_y = self.auto_axis_index()
         self.field_x = self.auto_axis_index()
-        self.wavelength = self.auto_axis_index()
+        # self.wavelength = self.auto_axis_index()
 
     @property
     def latex_names(self) -> typ.List[str]:
-        return ['$\\lambda$', '$f_x$', '$f_y$', '$p_x$', '$p_y$']
+        return [
+            # '$\\lambda$',
+            '$f_x$', '$f_y$',
+            '$p_x$', '$p_y$',
+            '$\\lambda$',
+        ]
 
 
 class VAxis(Axis, CAxis):
@@ -88,11 +98,18 @@ class Rays(transform.rigid.Transformable):
         direction = transform.rigid.TiltX(field_y)(vector.z_hat)
         direction = transform.rigid.TiltY(field_x)(direction)
 
+        input_grids = [None] * cls.axis.ndim
+        input_grids[cls.axis.field_x] = field_grid_x
+        input_grids[cls.axis.field_y] = field_grid_y
+        input_grids[cls.axis.pupil_x] = pupil_grid_x
+        input_grids[cls.axis.pupil_y] = pupil_grid_y
+        input_grids[cls.axis.wavelength] = wavelength_grid
+
         return cls(
             wavelength=wavelength,
             position=position,
             direction=direction,
-            input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
+            input_grids=input_grids
         )
 
     @classmethod
@@ -119,11 +136,18 @@ class Rays(transform.rigid.Transformable):
         )
         # position, _ = np.broadcast_arrays(position, wavelength, subok=True)
 
+        input_grids = [None] * cls.axis.ndim
+        input_grids[cls.axis.field_x] = field_grid_x
+        input_grids[cls.axis.field_y] = field_grid_y
+        input_grids[cls.axis.pupil_x] = pupil_grid_x
+        input_grids[cls.axis.pupil_y] = pupil_grid_y
+        input_grids[cls.axis.wavelength] = wavelength_grid
+
         return cls(
             wavelength=wavelength,
             position=position,
             direction=direction,
-            input_grids=[wavelength_grid, field_grid_x, field_grid_y, pupil_grid_x, pupil_grid_y],
+            input_grids=input_grids,
         )
 
     def apply_transform_list(self, transform_list: transform.rigid.TransformList) -> 'Rays':
@@ -160,6 +184,10 @@ class Rays(transform.rigid.Transformable):
     @property
     def shape(self) -> typ.Tuple[int, ...]:
         return self.grid_shape[:~(self.axis.ndim - 1)]
+
+    @property
+    def base_shape(self):
+        return self.grid_shape[~(self.axis.ndim - 1)]
 
     @property
     def ndim(self):
@@ -212,8 +240,8 @@ class Rays(transform.rigid.Transformable):
         # avg = np.ma.average(a=self.position, weights=self.mask, axis=axes, ) << self.position.unit
         # return np.expand_dims(avg, axis=axes)
         p = self.position.copy()
-        p[self.mask] = 0 * u.mm
-        return p.sum(axis=axes, keepdims=True) / self.mask.sum(axis=axes, keepdims=True)
+        p[~self.mask] = np.nan
+        return np.nanmean(p, axis=axes, keepdims=True)
 
     @property
     def position_pupil_relative(self) -> vector.Vector3D:
@@ -221,13 +249,12 @@ class Rays(transform.rigid.Transformable):
 
     def distortion(self, polynomial_degree: int = 1) -> Distortion:
         return Distortion(
-            wavelength=self.input_wavelength[..., :, None, None],
-            spatial_mesh_input=vector.from_components(
-                x=self.input_field_x[..., None, :, None],
-                y=self.input_field_y[..., None, None, :],
-                use_z=False,
+            wavelength=self.input_wavelength[..., np.newaxis, np.newaxis, :],
+            spatial_mesh_input=vector.Vector2D(
+                x=self.input_field_x[..., :, np.newaxis, np.newaxis],
+                y=self.input_field_y[..., np.newaxis, :, np.newaxis],
             ),
-            spatial_mesh_output=self.position_pupil_avg[..., 0, 0, :][vector.xy],
+            spatial_mesh_output=self.position_pupil_avg[..., 0, 0, :].xy,
             mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y)),
             polynomial_degree=polynomial_degree
         )
@@ -235,11 +262,10 @@ class Rays(transform.rigid.Transformable):
     def vignetting(self, polynomial_degree: int = 1) -> Vignetting:
         counts = self.mask.sum((self.axis.pupil_x, self.axis.pupil_y))
         return Vignetting(
-            wavelength=self.input_wavelength[..., :, None, None],
-            spatial_mesh=vector.from_components(
-                x=self.input_field_x[..., None, :, None],
-                y=self.input_field_y[..., None, None, :],
-                use_z=False,
+            wavelength=self.input_wavelength[..., np.newaxis, np.newaxis, :],
+            spatial_mesh=vector.Vector2D(
+                x=self.input_field_x[..., :, np.newaxis, np.newaxis],
+                y=self.input_field_y[..., np.newaxis, :, np.newaxis],
             ),
             unvignetted_percent=100 * counts / counts.max() * u.percent,
             mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y)),
@@ -301,16 +327,19 @@ class Rays(transform.rigid.Transformable):
 
         vmin, vmax = sizes.min(), sizes.max()
 
-        for ax, wavl, sz in zip(axs, wavelength, sizes):
-            ax.set_title(fmt.quantity(wavl))
-            img = ax.imshow(
-                X=sz.T.value,
+        # for ax, wavl, sz in zip(axs, wavelength, sizes):
+        for i in range(len(axs)):
+            axs[i].set_title(fmt.quantity(wavelength[i]))
+            sl = [slice(None)] * sizes.ndim
+            sl[self.axis.wavelength] = i
+            img = axs[i].imshow(
+                X=sizes[sl].T.value,
                 vmin=vmin.value,
                 vmax=vmax.value,
                 origin='lower',
                 extent=[field_x[0].value, field_x[~0].value, field_y[0].value, field_y[~0].value],
             )
-            ax.set_xlabel('input $x$ ' + '(' + "{0:latex}".format(field_x.unit) + ')')
+            axs[i].set_xlabel('input $x$ ' + '(' + "{0:latex}".format(field_x.unit) + ')')
 
         axs[0].set_ylabel('input $y$ ' + '(' + "{0:latex}".format(field_y.unit) + ')')
 
@@ -324,7 +353,7 @@ class Rays(transform.rigid.Transformable):
             limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
-    ) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> typ.Tuple[np.ndarray, u.Quantity, u.Quantity]:
 
         if isinstance(bins, int):
             bins = (bins, bins)
@@ -349,28 +378,72 @@ class Rays(transform.rigid.Transformable):
                 (np.nanmin(py).value, np.nanmax(py).value),
             )
 
-        base_shape = self.shape + self.grid_shape[self.axis.wavelength:self.axis.field_y + 1]
-        hist = np.empty(base_shape + tuple(bins))
-        edges_x = np.empty(base_shape + (bins[vector.ix] + 1,))
-        edges_y = np.empty(base_shape + (bins[vector.iy] + 1,))
+        hist_shape = list(self.grid_shape)
+        hist_shape[self.axis.pupil_x] = bins[vector.ix]
+        hist_shape[self.axis.pupil_y] = bins[vector.iy]
+        hist = np.empty(hist_shape)
 
-        if not self.shape:
-            position = position[None, ...]
-            mask = mask[None, ...]
-            hist, edges_x, edges_y = hist[None, ...], edges_x[None, ...], edges_y[None, ...]
+        edges_x_shape = list(self.grid_shape)
+        edges_x_shape[self.axis.pupil_x] = bins[vector.ix] + 1
+        edges_x_shape[self.axis.pupil_y] = 1
+        edges_x = np.empty(edges_x_shape)
 
-        for c, p_c in enumerate(position):
-            for w, p_cw in enumerate(p_c):
-                for i, p_cwi in enumerate(p_cw):
-                    for j, p_cwij in enumerate(p_cwi):
-                        cwij = c, w, i, j
-                        hist[cwij], edges_x[cwij], edges_y[cwij] = np.histogram2d(
-                            x=p_cwij.x.flatten().value,
-                            y=p_cwij.y.flatten().value,
+        edges_y_shape = list(self.grid_shape)
+        edges_y_shape[self.axis.pupil_x] = 1
+        edges_y_shape[self.axis.pupil_y] = bins[vector.iy] + 1
+        edges_y = np.empty(edges_y_shape)
+
+        # base_shape = self.shape + self.grid_shape[self.axis.wavelength:self.axis.field_y + 1]
+        # hist = np.empty(base_shape + tuple(bins))
+        # edges_x = np.empty(base_shape + (bins[vector.ix] + 1,))
+        # edges_y = np.empty(base_shape + (bins[vector.iy] + 1,))
+
+        hist_flat = hist.reshape((-1, ) + hist.shape[~(self.axis.ndim - 1):])
+        edges_x_flat = edges_x.reshape((-1, ) + edges_x.shape[~(self.axis.ndim - 1):])
+        edges_y_flat = edges_y.reshape((-1, ) + edges_y.shape[~(self.axis.ndim - 1):])
+        position_flat = position.reshape((-1,) + position.shape[~(self.axis.ndim - 1):])
+        mask_flat = mask.reshape((-1,) + mask.shape[~(self.axis.ndim - 1):])
+
+        for c in range(hist_flat.shape[0]):
+            for i in range(hist_flat.shape[self.axis.field_x]):
+                for j in range(hist_flat.shape[self.axis.field_y]):
+                    for w in range(hist_flat.shape[self.axis.wavelength]):
+                        cijw = [slice(None)] * hist_flat.ndim
+                        cijw[0] = c
+                        cijw[self.axis.field_x] = i
+                        cijw[self.axis.field_y] = j
+                        cijw[self.axis.wavelength] = w
+                        cijwx = cijw.copy()
+                        cijwx[self.axis.pupil_y] = 0
+                        hist_flat[cijw], edges_x_flat[cijwx], edges_y_flat[cijw] = np.histogram2d(
+                            x=position_flat[cijw].x.flatten().value,
+                            y=position_flat[cijw].y.flatten().value,
                             bins=bins,
-                            weights=mask[cwij].flatten(),
+                            weights=mask_flat[cijw].flatten(),
                             range=limits,
                         )
+
+        hist = hist_flat.reshape(hist.shape)
+        edges_x = edges_x_flat.reshape(edges_x.shape)
+        edges_y = edges_y_flat.reshape(edges_y.shape)
+
+        # if not self.shape:
+        #     position = position[None, ...]
+        #     mask = mask[None, ...]
+        #     hist, edges_x, edges_y = hist[None, ...], edges_x[None, ...], edges_y[None, ...]
+
+        # for c, p_c in enumerate(position):
+        #     for w, p_cw in enumerate(p_c):
+        #         for i, p_cwi in enumerate(p_cw):
+        #             for j, p_cwij in enumerate(p_cwi):
+        #                 cwij = c, w, i, j
+        #                 hist[cwij], edges_x[cwij], edges_y[cwij] = np.histogram2d(
+        #                     x=p_cwij.x.flatten().value,
+        #                     y=p_cwij.y.flatten().value,
+        #                     bins=bins,
+        #                     weights=mask[cwij].flatten(),
+        #                     range=limits,
+        #                 )
 
         unit = self.position.x.unit
         return hist, edges_x << unit, edges_y << unit
@@ -488,10 +561,19 @@ class Rays(transform.rigid.Transformable):
             squeeze=False,
         )
 
+        if hist.ndim > self.axis.ndim:
+            hist, edges_x, edges_y = hist[config_index], edges_x[config_index], edges_y[config_index]
+
         for i, axs_i in enumerate(axs):
             for j, axs_ij in enumerate(axs_i):
                 axs_ij.invert_xaxis()
-                cwji = config_index, wavlen_index, j, i
+                cwji = [slice(None)] * hist.ndim
+                cwji[self.axis.wavelength] = wavlen_index
+                cwji[self.axis.field_x] = j
+                cwji[self.axis.field_y] = i
+                # cwji = config_index, wavlen_index, j, i
+                w = [slice(None)] * hist.ndim
+                w[self.axis.wavelength] = wavlen_index
                 limits = [
                     edges_x[cwji].min().value,
                     edges_x[cwji].max().value,
@@ -503,8 +585,8 @@ class Rays(transform.rigid.Transformable):
                     extent=limits,
                     aspect='auto',
                     origin='lower',
-                    vmin=hist[config_index, wavlen_index].min(),
-                    vmax=hist[config_index, wavlen_index].max(),
+                    vmin=hist[w].min(),
+                    vmax=hist[w].max(),
                     norm=norm,
                 )
                 if i == 0:
@@ -518,10 +600,13 @@ class Rays(transform.rigid.Transformable):
                 elif j == len(axs_i) - 1:
                     axs_ij.set_ylabel('{0.value:0.0f} {0.unit:latex}'.format(field_y[i]))
                     axs_ij.yaxis.set_label_position('right')
+
+                axs_ij.tick_params(axis='both', labelsize=8)
+
         wavelength = self.input_grids[self.axis.wavelength]
-        if wavelength.ndim == 1:
-            wavelength = wavelength[None, ...]
-        wavl_str = wavelength[config_index, wavlen_index]
+        if wavelength.ndim > 1:
+            wavelength = wavelength[config_index]
+        wavl_str = wavelength[wavlen_index]
         wavl_str = '{0.value:0.3f} {0.unit:latex}'.format(wavl_str)
         fig.suptitle('configuration = ' + str(config_index) + ', wavelength = ' + wavl_str)
         fig.colorbar(img, ax=axs, fraction=0.05)

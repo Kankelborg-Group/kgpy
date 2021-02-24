@@ -42,6 +42,7 @@ def segment_plane_intercept(
 
     d = line_plane_intercept_parameter(plane_point, plane_normal, line_point_1, line_direction)
     intercept = line_plane_intercept(plane_point, plane_normal, line_point_1, line_direction)
+    # intercept = line_point_1 + line_direction * d
 
     intercept[d < 0] = np.nan
     intercept[d > 1] = np.nan

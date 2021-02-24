@@ -120,7 +120,7 @@ class CubicPolyDensity(ConstantDensity):
         term2 = self.ruling_density_quadratic[extra_dims_slice] * x2
         term3 = self.ruling_density_cubic[extra_dims_slice] * x * x2
         groove_density = term0 + term1 + term2 + term3
-        return vector.Vector3D(x=groove_density)
+        return vector.Vector3D(x=groove_density, y=0 * groove_density, z=0 * groove_density)
 
     @property
     def broadcasted(self):
