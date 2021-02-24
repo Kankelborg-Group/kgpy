@@ -4,6 +4,7 @@ import collections
 import dataclasses
 import pathlib
 import numpy as np
+import scipy.spatial
 import matplotlib.pyplot as plt
 import astropy.units as u
 import shapely.geometry
@@ -153,9 +154,11 @@ class Baffle(
         for i in range(intercept.shape[0]):
             points = intercept[i, mask[i]]
             if points.shape[0] > 2:
-                points = shapely.geometry.MultiPoint(points.to(self.shapely_unit).quantity.value)
-                poly = points.convex_hull
-                aper = self._to_aperture(poly)
+                # points = shapely.geometry.MultiPoint(points.quantity.to(self.shapely_unit).value)
+                # poly = points.convex_hull
+                # aper = self._to_aperture(poly)
+                hull = scipy.spatial.ConvexHull(points.xy.quantity)
+                aper = optics.surface.aperture.IrregularPolygon(vertices=points[hull.vertices].copy())
                 aper.color = color
                 apertures.append(aper)
 
