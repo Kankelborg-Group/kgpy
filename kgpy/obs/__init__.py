@@ -5,15 +5,19 @@ import typing as typ
 import pathlib
 import dataclasses
 import numpy as np
+import scipy.stats
+import scipy.interpolate
 import matplotlib.pyplot as plt
 import matplotlib.animation
 import matplotlib.colors
 import matplotlib.lines
+import matplotlib.dates
+import matplotlib.ticker
 import astropy.units as u
 import astropy.time
 import astropy.wcs
 import astropy.visualization
-from kgpy import mixin
+from kgpy import mixin, plot
 
 __all__ = ['Image', 'ImageAxis', 'spectral']
 
@@ -42,6 +46,10 @@ class Image(mixin.Pickleable):
     channel: typ.Optional[u.Quantity] = None
     exposure_length: typ.Optional[u.Quantity] = None
 
+    def __post_init__(self):
+        self._time_to_index_cache = None
+        self._index_to_time_cache = None
+
     @classmethod
     def zeros(cls, shape: typ.Sequence[int]) -> 'Image':
         sh = shape[:cls.axis.num_left_dim]
@@ -58,6 +66,14 @@ class Image(mixin.Pickleable):
     @staticmethod
     def default_pickle_path() -> pathlib.Path:
         return pathlib.Path('cube.pickle')
+
+    @property
+    def time_exp_start(self) -> astropy.time.Time:
+        return self.time - self.exposure_length / 2
+
+    @property
+    def time_exp_end(self) -> astropy.time.Time:
+        return self.time + self.exposure_length / 2
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
@@ -82,7 +98,51 @@ class Image(mixin.Pickleable):
     @property
     def channel_labels(self) -> typ.List[str]:
         # return ['Ch' + str(int(c.value)) for c in self.channel[0]]
-        return ['Ch' + str(int(c.value)) for c in self.channel]
+        return ['ch' + str(int(c.value)) for c in self.channel]
+
+    # @property
+    # def time_mid(self) -> astropy.time.Time:
+    #     return self.time + self.exposure_length / 2
+
+    # @property
+    # def _time_to_index_params(self):
+    #     if self._time_to_index_parameters is None:
+    #         self._time_to_index_parameters = scipy.stats.linregress(self.time[:, 0].to_value('mjd'), self.time_index, )
+    #     return self._time_to_index_parameters
+    #
+    # @property
+    # def _index_to_time_params(self):
+    #     if self._index_to_time_parameters is None:
+    #         self._index_to_time_parameters = scipy.stats.linregress(self.time_index, self.time[:, 0].to_value('mjd'), )
+    #     return self._index_to_time_parameters
+
+    @property
+    def _time_to_index(self) -> typ.Callable[[np.ndarray], np.ndarray]:
+        t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
+        t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
+        time = np.stack([t0, t1]).flatten()
+        index = np.stack([self.time_index, self.time_index + 1]).flatten()
+        if self._time_to_index_cache is None:
+            self._time_to_index_cache = scipy.interpolate.interp1d(
+                x=time,
+                y=index,
+                fill_value='extrapolate',
+            )
+        return self._time_to_index_cache
+
+    @property
+    def _index_to_time(self):
+        t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
+        t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
+        time = np.stack([t0, t1]).flatten()
+        index = np.stack([self.time_index, self.time_index + 1]).flatten()
+        if self._index_to_time_cache is None:
+            self._index_to_time_cache = scipy.interpolate.interp1d(
+                x=index,
+                y=time,
+                fill_value='extrapolate',
+            )
+        return self._index_to_time_cache
 
     def plot_quantity_vs_index(
             self,
@@ -90,7 +150,7 @@ class Image(mixin.Pickleable):
             a_name: str = '',
             ax: typ.Optional[plt.Axes] = None,
             legend_ncol: int = 1,
-            drawstyle: str = 'steps',
+            drawstyle: str = 'steps-mid',
     ) -> plt.Axes:
         """
 
@@ -108,22 +168,38 @@ class Image(mixin.Pickleable):
         """
         if ax is None:
             fig, ax = plt.subplots()
+
+        # locator = matplotlib.dates.AutoDateLocator()
+        # locator.intervald[dateutil.rrule.MINUTELY] = [1, 2, 5, 10, 15, 20, 30]
+        # formatter = matplotlib.dates.AutoDateFormatter(locator=locator)
+        # formatter.scaled[(1 * u.min).to(u.day).value] = '%H:%M:%S'
+        # ax.xaxis.set_major_formatter(formatter)
+        # ax.xaxis.set_major_locator(locator)
+        # ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+        ax = plot.datetime_prep(ax)
+
+        ax2 = ax.secondary_xaxis(
+            location='top',
+            functions=(self._time_to_index, self._index_to_time),
+        )
+        ax2.set_xlabel('exposure index')
+
         with astropy.visualization.quantity_support():
+            # with astropy.visualization.time_support(format='isot'):
+            # ax.xaxis.set_tick_params(rotation=90)
+
             for c in range(self.num_channels):
-                # if c == 0:
-                #     color = None
-                # else:
-                #     color = line[0].get_color()
-                line = ax.plot(
-                    self.time_index,
+                ax.plot(
+                    self.time[:, c].to_datetime(),
                     a[:, c],
-                    # color=color,
-                    # linestyle=list(matplotlib.lines.lineStyles.keys())[c],
                     label=a_name + ', ' + self.channel_labels[c],
                     drawstyle=drawstyle,
                 )
-            ax.set_xlabel('sequence index')
-            ax.legend(fontsize='small', ncol=legend_ncol, loc='right')
+
+
+            # ax.figure.autofmt_xdate()
+            # ax.legend(fontsize='small', ncol=legend_ncol, loc='center left', bbox_to_anchor=(1, 0.5))
+            # ax.legend()
         return ax
 
     def plot_intensity_mean_vs_time(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
@@ -131,7 +207,7 @@ class Image(mixin.Pickleable):
             a=self.intensity.mean(self.axis.xy), a_name='Mean intensity', ax=ax)
 
     def plot_exposure_length(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
-        return self.plot_quantity_vs_index(a=self.exposure_length, a_name='Exposure length', ax=ax)
+        return self.plot_quantity_vs_index(a=self.exposure_length, a_name='exposure length', ax=ax)
 
     def plot_channel(
             self,
