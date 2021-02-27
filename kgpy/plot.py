@@ -1,13 +1,28 @@
 import typing as typ
 import os
+import dateutil.rrule
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates
+import matplotlib.ticker
 from matplotlib.backend_bases import KeyEvent, MouseEvent, MouseButton
+import astropy.units as u
 import astropy.wcs
 from kgpy import format as fmt
 
 __all__ = ['ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
 
+
+def datetime_prep(ax: plt.Axes):
+    locator = matplotlib.dates.AutoDateLocator()
+    locator.intervald[dateutil.rrule.MINUTELY] = [1, 2, 5, 10, 15, 20, 30]
+    formatter = matplotlib.dates.AutoDateFormatter(locator=locator)
+    formatter.scaled[(1 * u.min).to(u.day).value] = '%H:%M:%S'
+    ax.xaxis.set_major_formatter(formatter)
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+    ax.set_xlabel('time (UTC)')
+    return ax
 
 class ImageSlicer:
 
