@@ -3,12 +3,7 @@ kgpy root package
 """
 import typing as typ
 import dataclasses
-import pathlib
 import numpy as np
-import matplotlib.pyplot as plt
-import astropy.units as u
-import astropy.visualization
-import pandas
 from kgpy import vector
 
 __all__ = [
@@ -16,7 +11,6 @@ __all__ = [
     'Name',
     'fft',
     'rebin',
-    'Trajectory'
 ]
 
 
@@ -114,110 +108,3 @@ def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np
     i0[axis] = slice(None, ~0)
     i1[axis] = slice(1, None)
     return (a[i0] + a[i1]) / 2
-
-
-@dataclasses.dataclass
-class Trajectory:
-
-    time: u.Quantity
-    altitude: u.Quantity
-    latitude: u.Quantity
-    longitude: u.Quantity
-    velocity: vector.Vector3D
-
-    @classmethod
-    def from_nsroc_csv(
-            cls,
-            csv_file: pathlib.Path,
-            time_col: int = 1,
-            altitude_col: int = 9,
-            latitude_col: int = 10,
-            longitude_col: int = 11,
-            velocity_ew_col: int = 13,
-            velocity_ns_col: int = 14,
-            velocity_alt_col: int = 15,
-    ):
-        df = pandas.read_csv(
-            csv_file,
-            sep=' ',
-            skipinitialspace=True,
-            header=None,
-            skiprows=1,
-        )
-        return cls(
-            time=df[time_col].values * u.s,
-            altitude=(df[altitude_col].values * u.m).to(u.km),
-            latitude=df[latitude_col].values * u.deg,
-            longitude=df[longitude_col].values * u.deg,
-            velocity=vector.Vector3D(
-                x=(df[velocity_ew_col].values * (u.m / u.s)).to(u.km / u.s),
-                y=(df[velocity_ns_col].values * (u.m / u.s)).to(u.km / u.s),
-                z=(df[velocity_alt_col].values * (u.m / u.s)).to(u.km / u.s),
-            )
-        )
-
-    def plot_quantity_vs_time(
-            self,
-            quantity: u.Quantity,
-            quantity_name: str = '',
-            ax: typ.Optional[plt.Axes] = None,
-    ):
-        if ax is None:
-            _, ax = plt.subplots()
-
-        with astropy.visualization.quantity_support():
-            ax.plot(
-                self.time,
-                quantity,
-                label=quantity_name
-            )
-
-        ax.legend()
-
-        return ax
-
-    def plot_altitude_vs_time(
-            self,
-            ax: typ.Optional[plt.Axes] = None,
-    ) -> plt.Axes:
-        return self.plot_quantity_vs_time(
-            quantity=self.altitude,
-            quantity_name='altitude',
-            ax=ax
-        )
-
-    def plot_total_velocity_vs_time(
-            self,
-            ax: typ.Optional[plt.Axes] = None,
-    ) -> plt.Axes:
-        return self.plot_quantity_vs_time(
-            quantity=self.velocity.length,
-            quantity_name='velocity',
-            ax=ax
-        )
-
-    def plot_altitude_and_velocity_vs_time(
-            self,
-            ax_altitude: typ.Optional[plt.Axes] = None,
-            ax_velocity: typ.Optional[plt.Axes] = None,
-    ) -> typ.Tuple[plt.Axes, plt.Axes]:
-        if ax_altitude is None:
-            _, ax = plt.subplots()
-
-        if ax_velocity is None:
-            ax_velocity = ax_altitude.twinx()
-
-        ax_altitude = self.plot_altitude_vs_time(ax=ax_altitude)
-        ax_velocity.plot([], [])
-        ax_velocity = self.plot_total_velocity_vs_time(ax=ax_velocity)
-
-        ax_altitude.get_legend().remove()
-        ax_velocity.get_legend().remove()
-
-        ax_altitude.figure.legend(
-            loc='upper right',
-            bbox_to_anchor=(1, 1),
-            bbox_transform=ax_altitude.transAxes,
-        )
-
-        return ax_altitude, ax_velocity
