@@ -42,6 +42,21 @@ class Distortion:
         # model.component_names_output = names_output
         return model
 
+    @property
+    def plate_scale(self) -> vector.Vector2D:
+        model = self.model()
+        # output_max = self.spatial_mesh_input.max()
+        # output_min = self.spatial_mesh_input.min()
+        # dy = model(output_max.to_3d(self.wavelength)) - model(output_min.to_3d(self.wavelength))
+        # dx = output_max - output_min
+        # return dx / dy
+        center_fov = vector.Vector3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
+        # return 1 / model.dx(center_fov)
+        return vector.Vector2D(
+            x=1 / model.dx(center_fov).x,
+            y=1 / model.dy(center_fov).y,
+        )
+
     def residual(
             self,
             other: typ.Optional['Distortion'] = None,

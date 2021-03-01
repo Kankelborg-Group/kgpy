@@ -296,17 +296,17 @@ class Vector2D(Vector):
 
         )
 
-    def __mul__(self, other) -> 'Vector2D':
-        return type(self)(
-            x=self.x.__mul__(other),
-            y=self.y.__mul__(other),
-        )
-
-    def __truediv__(self, other) -> 'Vector2D':
-        return type(self)(
-            x=self.x.__truediv__(other),
-            y=self.y.__truediv__(other),
-        )
+    # def __mul__(self, other) -> 'Vector2D':
+    #     return type(self)(
+    #         x=self.x.__mul__(other),
+    #         y=self.y.__mul__(other),
+    #     )
+    #
+    # def __truediv__(self, other) -> 'Vector2D':
+    #     return type(self)(
+    #         x=self.x.__truediv__(other),
+    #         y=self.y.__truediv__(other),
+    #     )
 
     # def __lshift__(self, other) -> 'Vector2D':
     #     return type(self)(
@@ -514,15 +514,15 @@ class Vector3D(Vector2D):
         result.z = np.broadcast_to(value.z, shape, subok=subok)
         return result
 
-    def __mul__(self, other) -> 'Vector3D':
-        result = super().__mul__(other)     # type: Vector3D
-        result.z = self.z.__mul__(other)
-        return result
-
-    def __truediv__(self, other) -> 'Vector3D':
-        result = super().__truediv__(other)  # type: Vector3D
-        result.z = self.z.__truediv__(other)
-        return result
+    # def __mul__(self, other) -> 'Vector3D':
+    #     result = super().__mul__(other)     # type: Vector3D
+    #     result.z = self.z.__mul__(other)
+    #     return result
+    #
+    # def __truediv__(self, other) -> 'Vector3D':
+    #     result = super().__truediv__(other)  # type: Vector3D
+    #     result.z = self.z.__truediv__(other)
+    #     return result
 
     # def __lshift__(self, other) -> 'Vector3D':
     #     result = super().__lshift__(other)  # type: Vector3D

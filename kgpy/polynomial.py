@@ -34,6 +34,24 @@ class Polynomial3D(mixin.Dataframable):
             result += c * v
         return result
 
+    def dx(
+            self,
+            vector_input: vector.Vector3D,
+    ) -> u.Quantity:
+        result = 0
+        for c, v in zip(self.coefficients, self._vandermonde_dx(vector_input, degree=self.degree)):
+            result += c * v
+        return result
+
+    def dy(
+            self,
+            vector_input: vector.Vector3D,
+    ) -> u.Quantity:
+        result = 0
+        for c, v in zip(self.coefficients, self._vandermonde_dy(vector_input, degree=self.degree)):
+            result += c * v
+        return result
+
     @classmethod
     def from_lstsq_fit(
             cls,
@@ -132,6 +150,38 @@ class Polynomial3D(mixin.Dataframable):
                             vander.append((vector_input.x ** i) * (vector_input.y ** j) * (vector_input.z ** k))
         return vander
 
+    @staticmethod
+    def _vandermonde_dx(vector_input: vector.Vector3D, degree: int = 1) -> typ.List[u.Quantity]:
+        vander = []
+        for d in range(degree + 1):
+            for k in range(d + 1):
+                for j in range(d + 1):
+                    for i in range(d + 1):
+                        if i + j + k == d:
+                            val_x = i * vector_input.x ** (i - 1)
+                            val_y = vector_input.y ** j
+                            val_z = vector_input.z ** k
+                            val = val_x * val_y * val_z
+                            val = np.nan_to_num(val)
+                            vander.append(val)
+        return vander
+
+    @staticmethod
+    def _vandermonde_dy(vector_input: vector.Vector3D, degree: int = 1) -> typ.List[u.Quantity]:
+        vander = []
+        for d in range(degree + 1):
+            for k in range(d + 1):
+                for j in range(d + 1):
+                    for i in range(d + 1):
+                        if i + j + k == d:
+                            val_x = vector_input.x ** i
+                            val_y = j * vector_input.y ** (j - 1)
+                            val_z = vector_input.z ** k
+                            val = val_x * val_y * val_z
+                            val = np.nan_to_num(val)
+                            vander.append(val)
+        return vander
+
     @property
     def coefficient_names(self):
         names = []
@@ -225,6 +275,24 @@ class Vector2DValuedPolynomial3D(
         return vector.Vector2D(
             x=self.x(vector_input=vector_input),
             y=self.y(vector_input=vector_input),
+        )
+
+    def dx(
+            self,
+            vector_input: vector.Vector3D,
+    ):
+        return vector.Vector2D(
+            x=self.x.dx(vector_input=vector_input),
+            y=self.y.dx(vector_input=vector_input),
+        )
+
+    def dy(
+            self,
+            vector_input: vector.Vector3D,
+    ):
+        return vector.Vector2D(
+            x=self.x.dy(vector_input=vector_input),
+            y=self.y.dy(vector_input=vector_input),
         )
 
     @property
