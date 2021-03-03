@@ -1,10 +1,14 @@
 import typing as typ
 import dataclasses
 import pathlib
+import numpy as np
+import scipy.interpolate
+import scipy.optimize
 import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.time
 import astropy.visualization
+import astropy.modeling
 import pandas
 from kgpy import mixin, Name, vector, plot
 
@@ -12,8 +16,7 @@ __all__ = ['Event']
 
 
 @dataclasses.dataclass
-class Trajectory:
-
+class Trajectory(mixin.Copyable):
     time_start: astropy.time.Time
     time_mission: u.Quantity
     altitude: u.Quantity
@@ -59,6 +62,33 @@ class Trajectory:
     def time(self) -> astropy.time.Time:
         return self.time_start + self.time_mission
 
+    @property
+    def time_apogee(self) -> astropy.time.Time:
+        fit = astropy.modeling.fitting.LinearLSQFitter()
+        parabola = astropy.modeling.models.Polynomial1D(degree=2, domain=[5.8e4, 5.9e4])
+        mask = self.altitude > 200 * u.km
+        parabola = fit(parabola, self.time_mission[mask], self.altitude[mask])
+        vertex_x = -parabola.c1 / (2 * parabola.c2)
+        return self.time_start + vertex_x
+
+    def _interp_quantity_vs_time(self, a: u.Quantity, t: astropy.time.Time):
+        interpolator = scipy.interpolate.interp1d(
+            x=self.time.to_value('unix'),
+            y=a,
+            kind='quadratic',
+            fill_value='extrapolate',
+        )
+        return interpolator(t.to_value('unix')) << a.unit
+
+    def altitude_interp(self, t: astropy.time.Time) -> u.Quantity:
+        return self._interp_quantity_vs_time(self.altitude, t)
+
+    def latitude_interp(self, t: astropy.time.Time) -> u.Quantity:
+        return self._interp_quantity_vs_time(self.latitude, t)
+
+    def longitude_interp(self, t: astropy.time.Time) -> u.Quantity:
+        return self._interp_quantity_vs_time(self.longitude, t)
+
     def plot_quantity_vs_time(
             self,
             quantity: u.Quantity,
@@ -88,6 +118,10 @@ class Trajectory:
         # ax.legend()
 
         return ax
+
+    def plot_apogee(self, ax: plt.Axes):
+        line = ax.axvline(x=self.time_apogee.to_datetime(), label='apogee', linestyle='--', linewidth=1)
+        return line
 
     def plot_altitude_vs_time(
             self,
@@ -142,6 +176,28 @@ class Trajectory:
 
         return ax_altitude, ax_velocity
 
+    def copy(self) -> 'Trajectory':
+        return Trajectory(
+            time_start=self.time_start.copy(),
+            time_mission=self.time_mission.copy(),
+            altitude=self.altitude.copy(),
+            latitude=self.latitude.copy(),
+            longitude=self.longitude.copy(),
+            velocity=self.velocity.copy(),
+
+        )
+
+    def view(self) -> 'Trajectory':
+        return Trajectory(
+            time_start=self.time_start,
+            time_mission=self.time_mission,
+            altitude=self.altitude,
+            latitude=self.latitude,
+            longitude=self.longitude,
+            velocity=self.velocity,
+
+        )
+
 
 @dataclasses.dataclass
 class Event(
@@ -164,18 +220,10 @@ class Event(
         else:
             time = self.time_mission
 
-        # with astropy.visualization.time_support(format='isot'):
         color = self.color
         if color is None:
             color = next(ax._get_lines.prop_cycler)['color']
         ax.axvline(x=time, color=color, label=self.name, linestyle='--', linewidth=1)
-        # lines, labels = ax.get_legend_handles_labels()
-        # ax.legend(lines + [line], labels + [self.name])
-        # legend = ax.get_legend()
-        # print(legend._loc)
-        # print(legend.get_bbox_to_anchor())
-        # ax.legend(loc=legend._loc, bbox_to_anchor=legend.get_bbox_to_anchor().bbox)
-        # ax.legend()
 
         return ax
 
@@ -193,7 +241,8 @@ class Timeline:
     sparcs_enable: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS enable')))
     shutter_door_open: Event = dataclasses.field(default_factory=lambda: Event(name=Name('shutter door open')))
     nosecone_eject: Event = dataclasses.field(default_factory=lambda: Event(name=Name('nosecone eject')))
-    sparcs_fine_mode_stable: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS fine mode stable')))
+    sparcs_fine_mode_stable: Event = dataclasses.field(
+        default_factory=lambda: Event(name=Name('SPARCS fine mode stable')))
     sparcs_rlg_enable: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS RLG enable')))
     sparcs_rlg_disable: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS RLG disable')))
     shutter_door_close: Event = dataclasses.field(default_factory=lambda: Event(name=Name('shutter door close')))

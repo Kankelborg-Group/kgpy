@@ -144,70 +144,66 @@ class Image(mixin.Pickleable):
             )
         return self._index_to_time_cache
 
-    def plot_quantity_vs_index(
-            self,
-            a: u.Quantity,
-            a_name: str = '',
-            ax: typ.Optional[plt.Axes] = None,
-            legend_ncol: int = 1,
-            drawstyle: str = 'steps-mid',
-    ) -> plt.Axes:
-        """
-
-        Parameters
-        ----------
-        a:
-        a_name
-        ax :
-        legend_ncol
-        drawstyle
-
-        Returns
-        -------
-        matplotlib.axes.Axes
-        """
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        # locator = matplotlib.dates.AutoDateLocator()
-        # locator.intervald[dateutil.rrule.MINUTELY] = [1, 2, 5, 10, 15, 20, 30]
-        # formatter = matplotlib.dates.AutoDateFormatter(locator=locator)
-        # formatter.scaled[(1 * u.min).to(u.day).value] = '%H:%M:%S'
-        # ax.xaxis.set_major_formatter(formatter)
-        # ax.xaxis.set_major_locator(locator)
-        # ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-        ax = plot.datetime_prep(ax)
-
+    def add_index_axis_to_time_axis(self, ax: plt.Axes) -> plt.Axes:
         ax2 = ax.secondary_xaxis(
             location='top',
             functions=(self._time_to_index, self._index_to_time),
         )
         ax2.set_xlabel('exposure index')
+        return ax2
+
+    def add_index_axis_to_shared_time_axes(self, axs: typ.Sequence[plt.Axes]) -> typ.Sequence[plt.Axes]:
+
+        axs2 = [self.add_index_axis_to_time_axis(ax) for ax in axs]
+
+        for ax in axs2[1:]:
+            ax.set_xlabel('')
+            ax.set_xticklabels([])
+            # ax.get_shared_x_axes().join(ax, axs2[0])
+
+        return axs2
+
+    def plot_quantity_vs_index(
+            self,
+            ax: plt.Axes,
+            a: u.Quantity,
+            a_name: str = '',
+            drawstyle: str = 'steps-mid',
+    ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
+        ax = plot.datetime_prep(ax)
+
+        # ax2 = ax.secondary_xaxis(
+        #     location='top',
+        #     functions=(self._time_to_index, self._index_to_time),
+        # )
+        # ax2.set_xlabel('exposure index')
 
         with astropy.visualization.quantity_support():
-            # with astropy.visualization.time_support(format='isot'):
-            # ax.xaxis.set_tick_params(rotation=90)
-
+            lines = []
             for c in range(self.num_channels):
-                ax.plot(
+                line, = ax.plot(
                     self.time[:, c].to_datetime(),
                     a[:, c],
                     label=a_name + ', ' + self.channel_labels[c],
                     drawstyle=drawstyle,
                 )
+                lines.append(line)
 
+        return ax, lines
 
-            # ax.figure.autofmt_xdate()
-            # ax.legend(fontsize='small', ncol=legend_ncol, loc='center left', bbox_to_anchor=(1, 0.5))
-            # ax.legend()
-        return ax
-
-    def plot_intensity_mean_vs_time(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
+    def plot_intensity_mean_vs_time(self, ax: plt.Axes, ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
         return self.plot_quantity_vs_index(
-            a=self.intensity.mean(self.axis.xy), a_name='Mean intensity', ax=ax)
+            ax=ax,
+            a=self.intensity.mean(self.axis.xy),
+            a_name='Mean intensity',
+        )
 
-    def plot_exposure_length(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
-        return self.plot_quantity_vs_index(a=self.exposure_length, a_name='exposure length', ax=ax)
+    def plot_exposure_length(self, ax: plt.Axes, ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
+        return self.plot_quantity_vs_index(
+            ax=ax,
+            a=self.exposure_length,
+            a_name='exposure length',
+        )
 
     def plot_channel(
             self,

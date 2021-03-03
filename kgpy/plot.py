@@ -24,6 +24,7 @@ def datetime_prep(ax: plt.Axes):
     ax.set_xlabel('time (UTC)')
     return ax
 
+
 class ImageSlicer:
 
     def __init__(self, x, y, **kwargs):
