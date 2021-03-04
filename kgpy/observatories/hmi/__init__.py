@@ -10,12 +10,11 @@ import sunpy
 import sunpy.map
 import sunpy.net.attrs
 import astropy.units as u
-import aiapy.calibrate
-from .. import Obs
+import kgpy.obs
 
 
 @dataclasses.dataclass
-class HMI(Obs):
+class HMI(kgpy.obs.Image):
     """
     A class for downloading and storing a sequence of HMI images
     """

@@ -11,11 +11,11 @@ import sunpy.map
 import sunpy.net.attrs
 import astropy.units as u
 import aiapy.calibrate
-from .. import Obs
+import kgpy.obs
 
 
 @dataclasses.dataclass
-class AIA(Obs):
+class AIA(kgpy.obs.Image):
     """
     A class for storing downloading and storing a sequence of AIA images
     """
@@ -48,7 +48,6 @@ class AIA(Obs):
             time_end: astropy.time.Time,
             download_path: pathlib.Path = None,
             channels: typ.Optional[u.Quantity] = None,
-            # hmi_B_los: bool = False,
             user_email: str = 'roytsmart@gmail.com',
     ):
         if channels is None:
