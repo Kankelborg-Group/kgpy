@@ -7,7 +7,7 @@ import astropy.units as u
 import pandas
 from kgpy import mixin, vector, format as fmt, polynomial
 
-__all__ = ['Distortion', 'Vignetting']
+__all__ = ['Distortion', 'Vignetting', 'Aberration']
 
 
 @dataclasses.dataclass
@@ -75,12 +75,16 @@ class Distortion:
         residual[~other.mask] = 0
         return residual
 
-    def distort_cube(
+    def __call__(
             self,
             cube: np.ndarray,
             wavelength: u.Quantity,
-            spatial_domain_input: vector.Vector2D,
-            spatial_domain_output: vector.Vector2D,
+            # spatial_domain_input: vector.Vector2D,
+            # spatial_domain_output: vector.Vector2D,
+            spatial_input_min: vector.Vector2D,
+            spatial_input_max: vector.Vector2D,
+            spatial_output_min: vector.Vector2D,
+            spatial_output_max: vector.Vector2D,
             spatial_samples_output: typ.Union[int, vector.Vector2D],
             inverse: bool = False,
             interp_order: int = 1,
@@ -93,13 +97,16 @@ class Distortion:
         #     spatial_samples_output = 2 * (spatial_samples_output,)
         # spatial_samples_output = np.array(spatial_samples_output)
 
-        input_min, input_max = spatial_domain_input
-        output_min, output_max = spatial_domain_output
+        # input_min, input_max = spatial_input_min, spatial_input_max
+        # output_min, output_max = spatial_domain_output
 
         output_grid = vector.Vector3D()
-        output_grid.x = np.linspace(output_min.x, output_max.x, spatial_samples_output.x)[..., :, :, np.newaxis]
-        output_grid.y = np.linspace(output_min.y, output_max.y, spatial_samples_output.y)[..., :, np.newaxis, :]
-        output_grid.z = wavelength[..., np.newaxis, :, :]
+        output_grid.x = np.linspace(spatial_output_min.x, spatial_output_max.x, spatial_samples_output.x)
+        output_grid.y = np.linspace(spatial_output_min.y, spatial_output_max.y, spatial_samples_output.y)
+        output_grid.x = output_grid.x[..., :, np.newaxis, np.newaxis]
+        output_grid.y = output_grid.y[..., np.newaxis, :, np.newaxis]
+        wavelength = wavelength[..., np.newaxis, np.newaxis, :]
+        output_grid.z = wavelength
 
         # output_grid_x = np.linspace(output_min[x], output_max[x], spatial_samples_output[x])
         # output_grid_y = np.linspace(output_min[y], output_max[y], spatial_samples_output[y])
@@ -110,8 +117,10 @@ class Distortion:
 
         # coordinates = model(wavelength, output_grid_x, output_grid_y)
         coordinates = model(output_grid)
-        coordinates = (coordinates - input_min) / (input_max - input_min)
-        coordinates *= cube.shape[~1:] * u.pix
+        coordinates = (coordinates - spatial_input_min) / (spatial_input_max - spatial_input_min)
+        # coordinates *= cube.shape[~1:] * u.pix
+        coordinates = coordinates * vector.Vector2D(x=cube.shape[~2] * u.pix, y=cube.shape[~1] * u.pix)
+        coordinates = coordinates.to_3d(wavelength)
 
         sh = cube.shape[:~2]
         coordinates = np.broadcast_to(coordinates, sh + coordinates.shape[~2:])
@@ -121,18 +130,21 @@ class Distortion:
 
         cube_flat = cube.reshape((-1,) + cube.shape[~2:])
 
-        new_cube_flat = np.empty(cube_flat.shape[:~1] + tuple(spatial_samples_output))
+        new_cube_flat_shape = list(cube_flat.shape)
+        new_cube_flat_shape[~2] = spatial_samples_output.x
+        new_cube_flat_shape[~1] = spatial_samples_output.y
+        new_cube_flat = np.empty(new_cube_flat_shape)
 
         for i in range(cube_flat.shape[0]):
-            for j in range(cube_flat.shape[1]):
-                coords = coordinates_flat[i, j]
-                new_cube_flat[i, j] = scipy.ndimage.map_coordinates(
-                    input=cube_flat[i, j],
-                    coordinates=np.stack([coords.x, coords.y, coords.z]),
-                    order=interp_order,
-                    prefilter=interp_prefilter,
-                    cval=fill_value,
-                )
+            # for j in range(cube_flat.shape[~0]):
+            coords = coordinates_flat[i]
+            new_cube_flat[i] = scipy.ndimage.map_coordinates(
+                input=cube_flat[i],
+                coordinates=np.stack([coords.x, coords.y, coords.z]),
+                order=interp_order,
+                prefilter=interp_prefilter,
+                cval=fill_value,
+            )
 
         return new_cube_flat.reshape(cube.shape[:~2] + new_cube_flat.shape[~2:]) << cube.unit
 
@@ -220,14 +232,18 @@ class Vignetting:
             self,
             cube: np.ndarray,
             wavelength: u.Quantity,
-            spatial_domain: u.Quantity,
+            # spatial_domain: u.Quantity,
+            spatial_min: vector.Vector2D,
+            spatial_max: vector.Vector2D,
             inverse: bool = False,
     ) -> np.ndarray:
         return Vignetting.apply_model(
             model=self.model(inverse=inverse),
             cube=cube,
             wavelength=wavelength,
-            spatial_domain=spatial_domain,
+            # spatial_domain=spatial_domain,
+            spatial_min=spatial_min,
+            spatial_max=spatial_max,
         )
 
     @staticmethod
@@ -235,17 +251,18 @@ class Vignetting:
             model: polynomial.Polynomial3D,
             cube: np.ndarray,
             wavelength: u.Quantity,
-            spatial_domain: u.Quantity,
+            spatial_min: vector.Vector2D,
+            spatial_max: vector.Vector2D,
+            # spatial_domain: u.Quantity,
     ):
-        output_min, output_max = spatial_domain
 
         # grid_x = np.linspace(output_min[x], output_max[x], cube.shape[~1])
         # grid_y = np.linspace(output_min[y], output_max[y], cube.shape[~0])
         # wavelength, grid_x, grid_y = np.broadcast_arrays(wavelength[..., None, None], grid_x[..., None], grid_y, subok=True)
         grid = vector.Vector3D()
-        grid.x = np.linspace(output_min.x, output_max.x, cube.shape[~1])
-        grid.y = np.linspace(output_min.y, output_max.y, cube.shape[~0])
-        grid.z = wavelength
+        grid.x = np.linspace(spatial_min.x, spatial_max.x, cube.shape[~2])[..., :, np.newaxis, np.newaxis]
+        grid.y = np.linspace(spatial_min.y, spatial_max.y, cube.shape[~1])[..., np.newaxis, :, np.newaxis]
+        grid.z = wavelength[..., np.newaxis, np.newaxis, :]
 
         # vig = model(wavelength, grid_x, grid_y).to(u.dimensionless_unscaled)[..., 0]
         vig = model(grid)
@@ -393,3 +410,70 @@ class Vignetting:
         fig.colorbar(img, ax=axs, label=data_name + ' (' + '{0:latex}'.format(data.unit) + ')')
 
         return axs
+
+
+@dataclasses.dataclass
+class Aberration:
+
+    distortion: Distortion
+    vignetting: Vignetting
+
+    def __call__(
+            self,
+            data: u.Quantity,
+            wavelength: u.Quantity,
+            # spatial_domain_input: u.Quantity,
+            # spatial_domain_output: u.Quantity,
+            # spatial_samples_output: typ.Union[int, typ.Tuple[int, int]],
+            spatial_input_min: vector.Vector2D,
+            spatial_input_max: vector.Vector2D,
+            spatial_output_min: vector.Vector2D,
+            spatial_output_max: vector.Vector2D,
+            spatial_samples_output: typ.Union[int, vector.Vector2D],
+            inverse: bool = False,
+    ) -> u.Quantity:
+        if not inverse:
+            data = self.vignetting(
+                cube=data,
+                wavelength=wavelength,
+                # spatial_domain=spatial_domain_input,
+                spatial_min=spatial_input_min,
+                spatial_max=spatial_input_max,
+                inverse=inverse,
+            )
+            data = self.distortion(
+                cube=data,
+                wavelength=wavelength,
+                # spatial_domain_input=spatial_domain_input,
+                # spatial_domain_output=spatial_domain_output,
+                spatial_input_min=spatial_input_min,
+                spatial_input_max=spatial_input_max,
+                spatial_output_min=spatial_output_min,
+                spatial_output_max=spatial_output_max,
+                spatial_samples_output=spatial_samples_output,
+                inverse=inverse,
+                fill_value=np.nan,
+            )
+        else:
+            data = self.distortion(
+                cube=data,
+                wavelength=wavelength,
+                # spatial_domain_input=spatial_domain_input,
+                # spatial_domain_output=spatial_domain_output,
+                spatial_input_min=spatial_input_min,
+                spatial_input_max=spatial_input_max,
+                spatial_output_min=spatial_output_min,
+                spatial_output_max=spatial_output_max,
+                spatial_samples_output=spatial_samples_output,
+                inverse=inverse,
+                fill_value=np.nan,
+            )
+            data = self.vignetting(
+                cube=data,
+                wavelength=wavelength,
+                # spatial_domain=spatial_domain_output,
+                spatial_min=spatial_output_min,
+                spatial_max=spatial_output_max,
+                inverse=inverse,
+            )
+        return data
