@@ -58,18 +58,26 @@ class Trajectory(mixin.Copyable):
             )
         )
 
+    def __post_init__(self):
+        self.update()
+
+    def update(self):
+        self._time_apogee_cache = None
+
     @property
     def time(self) -> astropy.time.Time:
         return self.time_start + self.time_mission
 
     @property
     def time_apogee(self) -> astropy.time.Time:
-        fit = astropy.modeling.fitting.LinearLSQFitter()
-        parabola = astropy.modeling.models.Polynomial1D(degree=2, domain=[5.8e4, 5.9e4])
-        mask = self.altitude > 200 * u.km
-        parabola = fit(parabola, self.time_mission[mask], self.altitude[mask])
-        vertex_x = -parabola.c1 / (2 * parabola.c2)
-        return self.time_start + vertex_x
+        if self._time_apogee_cache is None:
+            fit = astropy.modeling.fitting.LinearLSQFitter()
+            parabola = astropy.modeling.models.Polynomial1D(degree=2, domain=[5.8e4, 5.9e4])
+            mask = self.altitude > 200 * u.km
+            parabola = fit(parabola, self.time_mission[mask], self.altitude[mask])
+            vertex_x = -parabola.c1 / (2 * parabola.c2)
+            self._time_apogee_cache = self.time_start + vertex_x
+        return self._time_apogee_cache
 
     def _interp_quantity_vs_time(self, a: u.Quantity, t: astropy.time.Time):
         interpolator = scipy.interpolate.interp1d(
