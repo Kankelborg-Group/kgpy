@@ -118,11 +118,11 @@ class Image(mixin.Pickleable):
 
     @property
     def _time_to_index(self) -> typ.Callable[[np.ndarray], np.ndarray]:
-        t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
-        t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
-        time = np.stack([t0, t1]).flatten()
-        index = np.stack([self.time_index, self.time_index + 1]).flatten()
         if self._time_to_index_cache is None:
+            t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
+            t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
+            time = np.stack([t0, t1]).flatten()
+            index = np.stack([self.time_index, self.time_index + 1]).flatten()
             self._time_to_index_cache = scipy.interpolate.interp1d(
                 x=time,
                 y=index,
@@ -132,11 +132,11 @@ class Image(mixin.Pickleable):
 
     @property
     def _index_to_time(self):
-        t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
-        t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
-        time = np.stack([t0, t1]).flatten()
-        index = np.stack([self.time_index, self.time_index + 1]).flatten()
         if self._index_to_time_cache is None:
+            t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
+            t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
+            time = np.stack([t0, t1]).flatten()
+            index = np.stack([self.time_index, self.time_index + 1]).flatten()
             self._index_to_time_cache = scipy.interpolate.interp1d(
                 x=index,
                 y=time,
