@@ -60,31 +60,15 @@ class Pickleable(abc.ABC):
     Class for adding 'to_pickle' and 'from_pickle' methods for objects will long creation times.
     """
 
-    @staticmethod
-    @abc.abstractmethod
-    def default_pickle_path() -> pathlib.Path:
-        pass
-
-    def to_pickle(self, path: typ.Optional[pathlib.Path] = None):
-        if path is None:
-            path = self.default_pickle_path()
-
-        file = open(str(path), 'wb')
-        pickle.dump(self, file, protocol=pickle.HIGHEST_PROTOCOL)
-        file.close()
-
-        return
-
     @classmethod
     def from_pickle(cls, path: typ.Optional[pathlib.Path] = None):
-        if path is None:
-            path = cls.default_pickle_path()
-
-        file = open(str(path), 'rb')
-        self = pickle.load(file)
-        file.close()
-
+        with open(path, 'rb') as file:
+            self = pickle.load(file)
         return self
+
+    def to_pickle(self, path: typ.Optional[pathlib.Path]):
+        with open(path, 'wb') as file:
+            pickle.dump(self, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 class Broadcastable:

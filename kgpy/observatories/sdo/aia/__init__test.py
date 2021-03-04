@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.time
 import kgpy.plot
-from ...obs import __init__test
+from kgpy.obs import __init__test
 from . import AIA
 
 
