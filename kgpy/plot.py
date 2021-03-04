@@ -88,8 +88,8 @@ class TestImageSlicer:
 
 
 class CubeSlicer:
-    def __init__(self, cube, figsize: typ.Tuple[float, float] = (6, 4), **kwargs):
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    def __init__(self, cube, figsize: typ.Tuple[float, float] = (6, 4), projection = None, **kwargs):
+        fig, ax = plt.subplots(1, 1, figsize=figsize, subplot_kw=dict(projection=projection))
         self.fig = fig
         self.ax = ax
         ax.set_title('use scroll wheel to navigate images')
