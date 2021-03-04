@@ -63,10 +63,6 @@ class Image(mixin.Pickleable):
         self.exposure_length = np.zeros(sh) * u.s
         return self
 
-    @staticmethod
-    def default_pickle_path() -> pathlib.Path:
-        return pathlib.Path('cube.pickle')
-
     @property
     def time_exp_start(self) -> astropy.time.Time:
         return self.time - self.exposure_length / 2
