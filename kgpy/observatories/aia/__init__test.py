@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.time
 import kgpy.plot
-from .. import __init__test
+from ...obs import __init__test
 from . import AIA
 
 
@@ -27,7 +27,7 @@ class TestAIA(__init__test.TestObs):
         #     download_path = path = pathlib.Path(__file__).parent / 'test_jsoc'
         #     channels = [193, 304] * u.AA
         #     aia = AIA.from_time_range(time_start, time_end, download_path, channels=channels)
-
+        #
         # c = kgpy.plot.CubeSlicer(obs_test.intensity[:, 0].value)
         # plt.show()
 

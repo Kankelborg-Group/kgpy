@@ -96,17 +96,6 @@ class AIA(Obs):
 
             file_paths.append(files_15)
 
-        # # Make folder for hmi data
-        # if hmi_B_los is True:
-        #     h_path = download_path / 'hmi'
-        #     if not h_path.is_dir():
-        #         h_path.mkdir()
-        #     # Download HMI data
-        #     hmi_series = sunpy.net.attrs.jsoc.Series('hmi.M_45s')
-        #     hmi_search = sunpy.net.Fido.search(time, hmi_series, notify)
-        #     hmi_files = sunpy.net.Fido.fetch(hmi_search, path=str(h_path))
-        #     file_paths.append(hmi_files)
-        #
         file_paths = np.array(file_paths).T
 
         return cls.from_path_array(file_paths)
