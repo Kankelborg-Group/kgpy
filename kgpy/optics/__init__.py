@@ -45,6 +45,8 @@ class System(
     pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
     field_samples: typ.Union[int, typ.Tuple[int, int]] = 3  #: Number of samples across the field for each axis x, y
     field_margin: u.Quantity = 1 * u.nrad  #: Margin between edge of field and nearest ray
+    pointing: vector.Vector2D = dataclasses.field(default_factory=lambda: vector.Vector2D(x=0 * u.deg, y=0 * u.deg))
+    roll: u.Quantity = 0 * u.deg
     baffles_blank: baffle.BaffleList = dataclasses.field(default_factory=baffle.BaffleList)
     baffles_hull_axes: typ.Optional[typ.Tuple[int, ...]] = None
     breadboard: typ.Optional[Breadboard] = None
@@ -58,14 +60,6 @@ class System(
         self._rays_input_cache = None
         self._raytrace_cache = None
         self._baffles_cache = None
-
-    # @property
-    # def stop(self) -> surface.Surface:
-    #     return [s for s in self.surfaces if s.is_stop][0]
-    #
-    # @property
-    # def stop_tests(self) -> typ.List[surface.Surface]:
-    #     return [s for s in self.surfaces if s.is_stop_test]
 
     @property
     def surfaces_all(self) -> surface.SurfaceList:
@@ -497,6 +491,8 @@ class System(
         other.pupil_margin = self.pupil_margin
         other.field_samples = self.field_samples
         other.field_margin = self.field_margin
+        other.pointing = self.pointing
+        other.roll = self.roll
         other.baffles_blank = self.baffles_blank
         other.baffles_hull_axes = self.baffles_hull_axes
         other.breadboard = self.breadboard
@@ -511,6 +507,8 @@ class System(
         other.pupil_margin = self.pupil_margin.copy()
         other.field_samples = self.field_samples
         other.field_margin = self.field_margin.copy()
+        other.pointing = self.pointing.copy()
+        other.roll = self.roll.copy()
         other.baffles_blank = self.baffles_blank.copy()
         other.baffles_hull_axes = self.baffles_hull_axes
         if self.breadboard is None:
