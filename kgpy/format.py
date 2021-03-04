@@ -12,8 +12,8 @@ def quantity(
 ) -> str:
 
     if a.ndim == 0:
-        estr = '{0.value:0.' + str(digits_after_decimal) + 'e} {0.unit:latex}'
-        fstr = '{0.value:0.' + str(digits_after_decimal) + 'f} {0.unit:latex}'
+        estr = '{0.value:0.' + str(digits_after_decimal) + 'e} {0.unit:latex_inline}'
+        fstr = '{0.value:0.' + str(digits_after_decimal) + 'f} {0.unit:latex_inline}'
 
         if scientific_notation is None:
             if np.abs(a.value).any() > 0.1:

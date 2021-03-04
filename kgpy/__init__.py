@@ -1,9 +1,10 @@
 """
 kgpy root package
 """
-import dataclasses
 import typing as typ
+import dataclasses
 import numpy as np
+from kgpy import vector
 
 __all__ = [
     'linspace', 'midspace',

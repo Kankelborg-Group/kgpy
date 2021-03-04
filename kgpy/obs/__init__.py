@@ -2,17 +2,22 @@
 Interfaces for various solar observatories.
 """
 import typing as typ
+import pathlib
 import dataclasses
 import numpy as np
+import scipy.stats
+import scipy.interpolate
 import matplotlib.pyplot as plt
 import matplotlib.animation
 import matplotlib.colors
 import matplotlib.lines
+import matplotlib.dates
+import matplotlib.ticker
 import astropy.units as u
 import astropy.time
 import astropy.wcs
 import astropy.visualization
-from kgpy import mixin
+from kgpy import mixin, plot
 
 __all__ = ['Image', 'ImageAxis', 'spectral']
 
@@ -31,7 +36,7 @@ class ImageAxis(mixin.AutoAxis):
 
 
 @dataclasses.dataclass
-class Image:
+class Image(mixin.Pickleable):
     axis: typ.ClassVar[ImageAxis] = ImageAxis()                 #: Relationship between physical dimension and axis index.
     intensity: typ.Optional[u.Quantity] = None              #: Intensity of each pixel in the data
     intensity_uncertainty: typ.Optional[u.Quantity] = None
@@ -40,6 +45,10 @@ class Image:
     time_index: typ.Optional[np.ndarray] = None
     channel: typ.Optional[u.Quantity] = None
     exposure_length: typ.Optional[u.Quantity] = None
+
+    def __post_init__(self):
+        self._time_to_index_cache = None
+        self._index_to_time_cache = None
 
     @classmethod
     def zeros(cls, shape: typ.Sequence[int]) -> 'Image':
@@ -54,6 +63,18 @@ class Image:
         self.exposure_length = np.zeros(sh) * u.s
         return self
 
+    @staticmethod
+    def default_pickle_path() -> pathlib.Path:
+        return pathlib.Path('cube.pickle')
+
+    @property
+    def time_exp_start(self) -> astropy.time.Time:
+        return self.time - self.exposure_length / 2
+
+    @property
+    def time_exp_end(self) -> astropy.time.Time:
+        return self.time + self.exposure_length / 2
+
     @property
     def shape(self) -> typ.Tuple[int, ...]:
         return self.intensity.shape
@@ -67,58 +88,122 @@ class Image:
         return self.shape[self.axis.channel]
 
     @property
+    def num_x(self) -> int:
+        return self.shape[self.axis.x]
+
+    @property
+    def num_y(self) -> int:
+        return self.shape[self.axis.y]
+
+    @property
     def channel_labels(self) -> typ.List[str]:
         # return ['Ch' + str(int(c.value)) for c in self.channel[0]]
-        return ['Ch' + str(int(c.value)) for c in self.channel]
+        return ['ch' + str(int(c.value)) for c in self.channel]
+
+    # @property
+    # def time_mid(self) -> astropy.time.Time:
+    #     return self.time + self.exposure_length / 2
+
+    # @property
+    # def _time_to_index_params(self):
+    #     if self._time_to_index_parameters is None:
+    #         self._time_to_index_parameters = scipy.stats.linregress(self.time[:, 0].to_value('mjd'), self.time_index, )
+    #     return self._time_to_index_parameters
+    #
+    # @property
+    # def _index_to_time_params(self):
+    #     if self._index_to_time_parameters is None:
+    #         self._index_to_time_parameters = scipy.stats.linregress(self.time_index, self.time[:, 0].to_value('mjd'), )
+    #     return self._index_to_time_parameters
+
+    @property
+    def _time_to_index(self) -> typ.Callable[[np.ndarray], np.ndarray]:
+        if self._time_to_index_cache is None:
+            t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
+            t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
+            time = np.stack([t0, t1]).flatten()
+            index = np.stack([self.time_index, self.time_index + 1]).flatten()
+            self._time_to_index_cache = scipy.interpolate.interp1d(
+                x=time,
+                y=index,
+                fill_value='extrapolate',
+            )
+        return self._time_to_index_cache
+
+    @property
+    def _index_to_time(self):
+        if self._index_to_time_cache is None:
+            t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
+            t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
+            time = np.stack([t0, t1]).flatten()
+            index = np.stack([self.time_index, self.time_index + 1]).flatten()
+            self._index_to_time_cache = scipy.interpolate.interp1d(
+                x=index,
+                y=time,
+                fill_value='extrapolate',
+            )
+        return self._index_to_time_cache
+
+    def add_index_axis_to_time_axis(self, ax: plt.Axes) -> plt.Axes:
+        ax2 = ax.secondary_xaxis(
+            location='top',
+            functions=(self._time_to_index, self._index_to_time),
+        )
+        ax2.set_xlabel('exposure index')
+        return ax2
+
+    def add_index_axis_to_shared_time_axes(self, axs: typ.Sequence[plt.Axes]) -> typ.Sequence[plt.Axes]:
+
+        axs2 = [self.add_index_axis_to_time_axis(ax) for ax in axs]
+
+        for ax in axs2[1:]:
+            ax.set_xlabel('')
+            ax.set_xticklabels([])
+            # ax.get_shared_x_axes().join(ax, axs2[0])
+
+        return axs2
 
     def plot_quantity_vs_index(
             self,
+            ax: plt.Axes,
             a: u.Quantity,
             a_name: str = '',
-            ax: typ.Optional[plt.Axes] = None,
-            legend_ncol: int = 1,
-            drawstyle: str = 'steps',
-    ) -> plt.Axes:
-        """
+            drawstyle: str = 'steps-mid',
+    ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
+        ax = plot.datetime_prep(ax)
 
-        Parameters
-        ----------
-        a:
-        a_name
-        ax :
-        legend_ncol
-        drawstyle
+        # ax2 = ax.secondary_xaxis(
+        #     location='top',
+        #     functions=(self._time_to_index, self._index_to_time),
+        # )
+        # ax2.set_xlabel('exposure index')
 
-        Returns
-        -------
-        matplotlib.axes.Axes
-        """
-        if ax is None:
-            fig, ax = plt.subplots()
         with astropy.visualization.quantity_support():
+            lines = []
             for c in range(self.num_channels):
-                # if c == 0:
-                #     color = None
-                # else:
-                #     color = line[0].get_color()
-                line = ax.plot(
-                    self.time_index,
+                line, = ax.plot(
+                    self.time[:, c].to_datetime(),
                     a[:, c],
-                    # color=color,
-                    # linestyle=list(matplotlib.lines.lineStyles.keys())[c],
                     label=a_name + ', ' + self.channel_labels[c],
                     drawstyle=drawstyle,
                 )
-            ax.set_xlabel('sequence index')
-            ax.legend(fontsize='small', ncol=legend_ncol, loc='right')
-        return ax
+                lines.append(line)
 
-    def plot_intensity_mean_vs_time(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
+        return ax, lines
+
+    def plot_intensity_mean_vs_time(self, ax: plt.Axes, ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
         return self.plot_quantity_vs_index(
-            a=self.intensity.mean(self.axis.xy), a_name='Mean intensity', ax=ax)
+            ax=ax,
+            a=self.intensity.mean(self.axis.xy),
+            a_name='Mean intensity',
+        )
 
-    def plot_exposure_length(self, ax: typ.Optional[plt.Axes] = None, ) -> plt.Axes:
-        return self.plot_quantity_vs_index(a=self.exposure_length, a_name='Exposure length', ax=ax)
+    def plot_exposure_length(self, ax: plt.Axes, ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
+        return self.plot_quantity_vs_index(
+            ax=ax,
+            a=self.exposure_length,
+            a_name='exposure length',
+        )
 
     def plot_channel(
             self,

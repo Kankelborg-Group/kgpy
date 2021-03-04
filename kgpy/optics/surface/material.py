@@ -26,7 +26,7 @@ class Material(
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            components: typ.Tuple[str, str] = ('x', 'y'),
             color: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
@@ -57,7 +57,7 @@ class Mirror(Material):
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[int, int] = (vector.ix, vector.iy),
+            components: typ.Tuple[str, str] = ('x', 'y'),
             color: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
@@ -77,25 +77,26 @@ class Mirror(Material):
 
                 c1, c2 = components
                 wire = aperture.wire.copy()
-                wire[vector.z] = self.thickness
+                wire.z = self.thickness
                 if transform_extra is not None:
                     wire = transform_extra(wire, num_extra_dims=1)
-                wire = wire.reshape((-1,) + wire.shape[~1:])
-                ax.fill(wire[..., c1].T, wire[..., c2].T, fill=False)
+                wire = wire.reshape((-1,) + wire.shape[~0:])
+                ax.fill(wire.get_component(c1).T, wire.get_component(c2).T, fill=False)
 
                 # todo: utilize polymorphsim here
                 if isinstance(aperture, Polygon):
 
                     front_vertices = aperture.vertices.copy()
                     back_vertices = aperture.vertices.copy()
-                    front_vertices[vector.z] = sag(front_vertices[vector.x], front_vertices[vector.y])
-                    back_vertices[vector.z] = self.thickness
+                    front_vertices.z = sag(front_vertices.x, front_vertices.y)
+                    back_vertices.z = self.thickness
 
-                    vertices = np.stack([front_vertices, back_vertices], axis=~1)
+                    vertices = np.stack([front_vertices, back_vertices], axis=~0)
                     if transform_extra is not None:
                         vertices = transform_extra(vertices, num_extra_dims=2)
-                    vertices = vertices.reshape((-1, ) + vertices.shape[~1:])
 
-                    ax.plot(vertices[..., c1].T, vertices[..., c2].T, color='black')
+                    vertices = vertices.reshape((-1, ) + vertices.shape[~0:])
+
+                    ax.plot(vertices.get_component(c1).T, vertices.get_component(c2).T, color='black')
 
         return ax

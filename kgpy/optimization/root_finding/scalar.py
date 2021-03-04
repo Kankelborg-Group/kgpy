@@ -55,6 +55,7 @@ def false_position(
 
         func_error = np.nanmax(np.abs(f2))
         if func_error < max_abs_error:
+            # print('   num false position iterations', i)
             return t2
 
         is_left = np.sign(f0) == np.sign(f2)
@@ -88,6 +89,7 @@ def secant(
         func_error = np.abs(f1)
         mask = func_error > max_abs_error
         if not mask.any():
+            # print('   num 1d secant iterations', i)
             return t1
 
         df = f1 - f0
@@ -95,11 +97,19 @@ def secant(
         t2 = (t0 * f1 - t1 * f0) / df
         f2 = func(t2)
 
-        t0[mask] = t1[mask]
-        t1[mask] = t2[mask]
+        t2[~mask] = t1[~mask]
+        t1[~mask] = t0[~mask]
+        t0, t1 = t1, t2
 
-        f0[mask] = f1[mask]
-        f1[mask] = f2[mask]
+        f2[~mask] = f1[~mask]
+        f1[~mask] = f0[~mask]
+        f0, f1 = f1, f2
+
+        # t0[mask] = t1[mask]
+        # t1[mask] = t2[mask]
+
+        # f0[mask] = f1[mask]
+        # f1[mask] = f2[mask]
 
     raise ValueError('Number of iterations exceeded')
 
