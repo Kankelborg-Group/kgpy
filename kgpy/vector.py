@@ -464,6 +464,35 @@ class Vector3D(Vector2D):
             y=self.y,
         )
 
+    @xy.setter
+    def xy(self, value: Vector2D):
+        self.x = value.x
+        self.y = value.y
+
+    @property
+    def yz(self) -> Vector2D:
+        return Vector2D(
+            x=self.y,
+            y=self.z,
+        )
+
+    @yz.setter
+    def yz(self, value: Vector2D):
+        self.y = value.x
+        self.z = value.y
+
+    @property
+    def zx(self) -> Vector2D:
+        return Vector2D(
+            x=self.z,
+            y=self.x,
+        )
+
+    @zx.setter
+    def zx(self, value: Vector2D):
+        self.z = value.x
+        self.x = value.y
+
     @property
     def broadcast(self):
         return np.broadcast(super().broadcast, self.z)
