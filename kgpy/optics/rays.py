@@ -10,7 +10,7 @@ import astropy.visualization
 import astropy.modeling
 # import kgpy.transform.rigid.transform_list
 from kgpy import mixin, vector, transform, format as fmt
-from .aberration import Distortion, Vignetting
+from .aberration import Distortion, Vignetting, Aberration
 
 __all__ = ['Rays', 'RaysList']
 
@@ -192,6 +192,10 @@ class Rays(transform.rigid.Transformable):
     @property
     def ndim(self):
         return len(self.shape)
+
+    @property
+    def size(self) -> int:
+        return np.prod(np.array(self.shape))
 
     @property
     def num_wavlength(self):
