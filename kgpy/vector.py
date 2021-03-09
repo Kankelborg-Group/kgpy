@@ -100,6 +100,10 @@ class Vector(
     def from_quantity(cls, value: u.Quantity):
         return cls()
 
+    @classmethod
+    def from_tuple(cls, value: typ.Tuple):
+        return cls()
+
     @property
     @abc.abstractmethod
     def quantity(self) -> u.Quantity:
@@ -119,6 +123,10 @@ class Vector(
 
     @abc.abstractmethod
     def __setitem__(self, key, value):
+        pass
+
+    @abc.abstractmethod
+    def to_tuple(self):
         pass
 
 
@@ -144,6 +152,13 @@ class Vector2D(Vector):
         self = super().from_quantity(value)
         self.x = value[..., cls.x_index]
         self.y = value[..., cls.y_index]
+        return self
+
+    @classmethod
+    def from_tuple(cls, value: typ.Tuple):
+        self = super().from_tuple(value=value)
+        self.x = value[ix]
+        self.y = value[iy]
         return self
 
     @classmethod
@@ -393,6 +408,9 @@ class Vector2D(Vector):
         other.z = z
         return other
 
+    def to_tuple(self) -> typ.Tuple:
+        return self.x, self.y
+
     def copy(self) -> 'Vector2D':
         return type(self)(
             x=self.x.copy(),
@@ -411,6 +429,12 @@ class Vector3D(Vector2D):
     def from_quantity(cls, value: u.Quantity):
         self = super().from_quantity(value=value)
         self.z = value[..., cls.z_index]
+        return self
+
+    @classmethod
+    def from_tuple(cls, value: typ.Tuple):
+        self = super().from_tuple(value=value)
+        self.z = value[iz]
         return self
 
     @classmethod
@@ -586,6 +610,9 @@ class Vector3D(Vector2D):
         other = super().to(unit)
         other.z = self.z.to(unit)
         return other
+
+    def to_tuple(self) -> typ.Tuple:
+        return super().to_tuple() + self.z
 
     def copy(self) -> 'Vector3D':
         other = super().copy()
