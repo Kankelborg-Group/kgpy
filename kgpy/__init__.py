@@ -4,6 +4,7 @@ kgpy root package
 import typing as typ
 import dataclasses
 import numpy as np
+import astropy.units as u
 from kgpy import vector
 
 __all__ = [
@@ -11,6 +12,7 @@ __all__ = [
     'Name',
     'fft',
     'rebin',
+    'Grid'
 ]
 
 
@@ -108,3 +110,10 @@ def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np
     i0[axis] = slice(None, ~0)
     i1[axis] = slice(1, None)
     return (a[i0] + a[i1]) / 2
+
+
+@dataclasses.dataclass
+class Grid:
+    start: u.Quantity
+    stop: u.Quantity
+    num_samples: int
