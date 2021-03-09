@@ -103,8 +103,11 @@ class Surface(
         rays.position = self.ray_intercept(rays, intercept_error=intercept_error)
 
         if self.rulings is not None:
-            a = self.rulings.effective_input_direction(rays, material=self.material)
-            n1 = self.rulings.effective_input_index(rays, material=self.material)
+            # a = self.rulings.effective_input_direction(rays, material=self.material)
+            # n1 = self.rulings.effective_input_index(rays, material=self.material)
+            v = self.rulings.effective_input_vector(rays=rays, material=self.material)
+            a = self.rulings.effective_input_direction(v)
+            n1 = self.rulings.effective_input_index(v)
         else:
             a = rays.direction
             n1 = rays.index_of_refraction
