@@ -276,6 +276,16 @@ class Rays(transform.rigid.Transformable):
             polynomial_degree=polynomial_degree,
         )
 
+    def aberration(
+            self,
+            distortion_polynomial_degree: int = 1,
+            vignetting_polynomial_degree: int = 1,
+    ) -> Aberration:
+        return Aberration(
+            distortion=self.distortion(polynomial_degree=distortion_polynomial_degree),
+            vignetting=self.vignetting(polynomial_degree=vignetting_polynomial_degree)
+        )
+
     def view(self) -> 'Rays':
         other = super().view()  # type: Rays
         other.wavelength = self.wavelength
