@@ -97,6 +97,11 @@ class Vector(
 
     @classmethod
     @abc.abstractmethod
+    def angular(cls) -> 'Vector':
+        return cls()
+
+    @classmethod
+    @abc.abstractmethod
     def from_quantity(cls, value: u.Quantity):
         return cls()
 
@@ -145,6 +150,13 @@ class Vector2D(Vector):
         self = super().spatial()
         self.x = self.x * u.mm
         self.y = self.y * u.mm
+        return self
+
+    @classmethod
+    def angular(cls) -> 'Vector2D':
+        self = super().angular()
+        self.x = self.x * u.deg
+        self.y = self.y * u.deg
         return self
 
     @classmethod
@@ -262,7 +274,7 @@ class Vector2D(Vector):
             return self._broadcast_arrays(*args, **kwargs)
         elif function in [
             np.min, np.max, np.median, np.mean, np.sum, np.prod, np.stack, np.moveaxis, np.roll, np.nanmin, np.nanmax,
-            np.nansum, np.nanmean
+            np.nansum, np.nanmean, np.linspace
         ]:
             return self._array_function_default(function, types, args, kwargs)
         else:
@@ -441,6 +453,12 @@ class Vector3D(Vector2D):
     def spatial(cls) -> 'Vector3D':
         self = super().spatial()    # type: Vector3D
         self.z = self.z * u.mm
+        return self
+
+    @classmethod
+    def angular(cls) -> 'Vector3D':
+        self = super().angular()    # type: Vector3D
+        self.z = self.z * u.deg
         return self
 
     @classmethod
