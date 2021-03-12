@@ -28,6 +28,7 @@ class Axis(mixin.AutoAxis):
 
     def __init__(self):
         super().__init__()
+        self.velocity_los = self.auto_axis_index()
         self.wavelength = self.auto_axis_index()
         self.pupil_y = self.auto_axis_index()
         self.pupil_x = self.auto_axis_index()
@@ -62,6 +63,7 @@ class Rays(transform.rigid.Transformable):
     wavelength: u.Quantity = 0 * u.nm
     position: vector.Vector3D = dataclasses.field(default_factory=vector.Vector3D)
     direction: vector.Vector3D = dataclasses.field(default_factory=vector.zhat_factory)
+    velocity_los: u.Quantity = 0 * u.km / u.s
     surface_normal: vector.Vector3D = dataclasses.field(default_factory=lambda: -vector.zhat_factory())
     index_of_refraction: u.Quantity = 1 * u.dimensionless_unscaled
     vignetted_mask: np.ndarray = np.array([True])
@@ -291,6 +293,7 @@ class Rays(transform.rigid.Transformable):
         other.wavelength = self.wavelength
         other.position = self.position
         other.direction = self.direction
+        other.velocity_los = self.velocity_los
         other.surface_normal = self.surface_normal
         other.index_of_refraction = self.index_of_refraction
         other.vignetted_mask = self.vignetted_mask
@@ -303,6 +306,7 @@ class Rays(transform.rigid.Transformable):
         other.wavelength = self.wavelength.copy()
         other.position = self.position.copy()
         other.direction = self.direction.copy()
+        other.velocity_los = self.velocity_los.copy()
         other.surface_normal = self.surface_normal.copy()
         other.index_of_refraction = self.index_of_refraction.copy()
         other.vignetted_mask = self.vignetted_mask.copy()
