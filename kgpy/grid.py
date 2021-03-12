@@ -108,6 +108,7 @@ class RegularGrid1D(Grid1D):
         other.min = self.min.copy()
         other.max = self.max.copy()
         other.num_samples = self.num_samples
+        return other
 
 
 @dataclasses.dataclass
