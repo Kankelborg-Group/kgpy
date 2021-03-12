@@ -137,8 +137,8 @@ class Vector(
 
 @dataclasses.dataclass
 class Vector2D(Vector):
-    x: u.Quantity = 0 * u.dimensionless_unscaled
-    y: u.Quantity = 0 * u.dimensionless_unscaled
+    x: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
+    y: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
 
     x_index: typ.ClassVar[int] = 0
     y_index: typ.ClassVar[int] = 1
@@ -432,7 +432,7 @@ class Vector2D(Vector):
 
 @dataclasses.dataclass
 class Vector3D(Vector2D):
-    z: u.Quantity = 0 * u.dimensionless_unscaled
+    z: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
     z_index: typ.ClassVar[int] = 2
 
     __array_priority__ = 1000000
