@@ -17,8 +17,8 @@ __all__ = [
 ]
 
 
+@dataclasses.dataclass
 class Grid1D(abc.ABC):
-    pass
 
     @property
     @abc.abstractmethod
@@ -41,6 +41,7 @@ class Grid1D(abc.ABC):
         return np.broadcast_to(self.points[sl], shape, subok=True)
 
 
+@dataclasses.dataclass
 class Grid2D(Grid1D):
 
     @property
@@ -169,7 +170,7 @@ class StratifiedRandomGrid2D(RegularGrid2D, StratifiedRandomGrid1D):
 
 @dataclasses.dataclass
 class IrregularGrid1D(Grid1D):
-    points: u.Quantity
+    points: u.Quantity = None
 
     @property
     def range(self) -> u.Quantity:
