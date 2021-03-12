@@ -60,6 +60,7 @@ class Rays(transform.rigid.Transformable):
     # polarization: u.Quantity = dataclasses.field(default_factory=lambda: [[1, 0]] * u.dimensionless_unscaled)
     # surface_normal: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, -1]] * u.dimensionless_unscaled)
     # index_of_refraction: u.Quantity = dataclasses.field(default_factory=lambda: [[1]] * u.dimensionless_unscaled)
+    intensity: u.Quantity = 1 * u.dimensionless_unscaled
     wavelength: u.Quantity = 0 * u.nm
     position: vector.Vector3D = dataclasses.field(default_factory=vector.Vector3D)
     direction: vector.Vector3D = dataclasses.field(default_factory=vector.zhat_factory)
@@ -290,6 +291,7 @@ class Rays(transform.rigid.Transformable):
 
     def view(self) -> 'Rays':
         other = super().view()  # type: Rays
+        other.intensity = self.intensity
         other.wavelength = self.wavelength
         other.position = self.position
         other.direction = self.direction
@@ -303,6 +305,7 @@ class Rays(transform.rigid.Transformable):
 
     def copy(self) -> 'Rays':
         other = super().copy()  # type: Rays
+        other.intensity = self.intensity.copy()
         other.wavelength = self.wavelength.copy()
         other.position = self.position.copy()
         other.direction = self.direction.copy()
