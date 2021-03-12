@@ -4,7 +4,7 @@ import dataclasses
 import numpy as np
 import numpy.typing
 import astropy.units as u
-from kgpy import linspace, vector
+from kgpy import linspace, vector, mixin
 
 __all__ = [
     'Grid1D',
@@ -18,7 +18,10 @@ __all__ = [
 
 
 @dataclasses.dataclass
-class Grid1D(abc.ABC):
+class Grid1D(
+    mixin.Copyable,
+    abc.ABC,
+):
 
     @property
     @abc.abstractmethod
@@ -55,10 +58,15 @@ class Grid2D(Grid1D):
         return super().points
 
     def mesh(self, shape: typ.Tuple[int, ...], axis: typ.Tuple[int, int]) -> vector.Vector2D:
-        sl = len(shape) * [np.newaxis]
-        sl[axis[0]] = slice(None)
-        sl[axis[1]] = slice(None)
-        return np.broadcast_to(self.points[sl], shape, subok=True)
+        sl_x = len(shape) * [np.newaxis]
+        sl_y = len(shape) * [np.newaxis]
+        sl_x[axis[0]] = slice(None)
+        sl_y[axis[1]] = slice(None)
+        points = self.points
+        return vector.Vector2D(
+            x=np.broadcast_to(points.x[sl_x], shape, subok=True),
+            y=np.broadcast_to(points.y[sl_y], shape, subok=True),
+        )
 
 
 @dataclasses.dataclass
@@ -87,6 +95,19 @@ class RegularGrid1D(Grid1D):
             num=self.num_samples,
             axis=~0
         )
+
+    def view(self) -> 'RegularGrid1D':
+        other = super().view()  # type: RegularGrid1D
+        other.min = self.min
+        other.max = self.max
+        other.num_samples = self.num_samples
+        return other
+
+    def copy(self) -> 'RegularGrid1D':
+        other = super().copy()  # type: RegularGrid1D
+        other.min = self.min.copy()
+        other.max = self.max.copy()
+        other.num_samples = self.num_samples
 
 
 @dataclasses.dataclass
@@ -131,6 +152,15 @@ class RegularGrid2D(RegularGrid1D, Grid2D):
             ),
         )
 
+    def view(self) -> 'RegularGrid2D':
+        return super().view()
+
+    def copy(self) -> 'RegularGrid2D':
+        other = super().copy()  # type: RegularGrid2D
+        if not isinstance(self.num_samples, int):
+            other.num_samples = self.num_samples.copy()
+        return other
+
 
 @dataclasses.dataclass
 class StratifiedRandomGrid1D(RegularGrid1D):
@@ -162,10 +192,17 @@ class StratifiedRandomGrid2D(RegularGrid2D, StratifiedRandomGrid1D):
         )
 
     def mesh(self, shape: typ.Tuple[int, ...], axis: typ.Tuple[int, int]) -> vector.Vector2D:
-        sl = len(shape) * [np.newaxis]
-        sl[axis[0]] = slice(None)
-        sl[axis[1]] = slice(None)
-        return self.points_base[sl] + self.perturbation(shape=shape)
+        sl_x = len(shape) * [np.newaxis]
+        sl_y = len(shape) * [np.newaxis]
+        sl_x[axis[0]] = slice(None)
+        sl_y[axis[1]] = slice(None)
+        points = self.points_base
+        perturbation = self.perturbation(shape=shape)
+        return vector.Vector2D(
+            x=points.x[sl_x] + perturbation.x,
+            y=points.y[sl_y] + perturbation.y,
+        )
+        # return self.points_base[sl] + self.perturbation(shape=shape)
 
 
 @dataclasses.dataclass
@@ -179,3 +216,13 @@ class IrregularGrid1D(Grid1D):
     @property
     def shape(self) -> typ.Tuple[int, ...]:
         return self.points.shape
+
+    def view(self) -> 'IrregularGrid1D':
+        other = super().view()  # type: IrregularGrid1D
+        other.points = self.points
+        return other
+
+    def copy(self) -> 'IrregularGrid1D':
+        other = super().view()  # type: IrregularGrid1D
+        other.points = self.points.copy()
+        return other
