@@ -38,7 +38,7 @@ class Grid1D(abc.ABC):
     def mesh(self, shape: typ.Tuple[int, ...], axis: int) -> u.Quantity:
         sl = len(shape) * [np.newaxis]
         sl[axis] = slice(None)
-        return np.broadcast_to(self.points[sl], shape)
+        return np.broadcast_to(self.points[sl], shape, subok=True)
 
 
 class Grid2D(Grid1D):
@@ -57,7 +57,7 @@ class Grid2D(Grid1D):
         sl = len(shape) * [np.newaxis]
         sl[axis[0]] = slice(None)
         sl[axis[1]] = slice(None)
-        return np.broadcast_to(self.points[sl], shape)
+        return np.broadcast_to(self.points[sl], shape, subok=True)
 
 
 @dataclasses.dataclass
