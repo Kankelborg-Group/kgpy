@@ -92,7 +92,14 @@ class RegularGrid1D(Grid1D):
 class RegularGrid2D(RegularGrid1D, Grid2D):
     min: vector.Vector2D = dataclasses.field(default_factory=vector.Vector2D)
     max: vector.Vector2D = dataclasses.field(default_factory=vector.Vector2D)
-    num_samples: vector.Vector2D = dataclasses.field(default_factory=lambda: vector.Vector2D(1, 1))
+    num_samples: typ.Union[int, vector.Vector2D] = 1
+
+    @property
+    def num_samples_normalized(self) -> vector.Vector2D:
+        num_samples = self.num_samples
+        if not isinstance(num_samples, vector.Vector):
+            num_samples = vector.Vector2D(x=num_samples, y=num_samples)
+        return num_samples
 
     @property
     def range(self) -> vector.Vector2D:
@@ -112,13 +119,13 @@ class RegularGrid2D(RegularGrid1D, Grid2D):
             x=np.linspace(
                 start=self.min.x,
                 stop=self.max.x,
-                num=self.num_samples.x,
+                num=self.num_samples_normalized.x,
                 axis=~0
             ),
             y=np.linspace(
                 start=self.min.y,
                 stop=self.max.y,
-                num=self.num_samples.y,
+                num=self.num_samples_normalized.y,
                 axis=~0
             ),
         )
