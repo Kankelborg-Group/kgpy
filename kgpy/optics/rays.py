@@ -43,12 +43,14 @@ class Axis(mixin.AutoAxis):
 
     @property
     def latex_names(self) -> typ.List[str]:
-        return [
-            # '$\\lambda$',
-            '$f_x$', '$f_y$',
-            '$p_x$', '$p_y$',
-            '$\\lambda$',
-        ]
+        names = [None] * self.ndim
+        names[self.field_x] = 'field $x$'
+        names[self.field_y] = 'field $y$'
+        names[self.pupil_x] = 'pupil $x$'
+        names[self.pupil_y] = 'pupil $y$'
+        names[self.wavelength] = '$\\lambda'
+        names[self.velocity_los] = '$v_{\\mathrm{LOS}}'
+        return names
 
 
 # class VAxis(Axis, CAxis):
@@ -610,7 +612,7 @@ class Rays(transform.rigid.Transformable):
                 plt.cm.ScalarMappable(cmap=colormap, norm=colornorm),
                 ax=ax,
                 fraction=0.02,
-                label=mesh.unit,
+                label=self.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
             )
 
             # try:
@@ -773,7 +775,7 @@ class RaysList(
             ax.figure.colorbar(
                 plt.cm.ScalarMappable(cmap=colormap, norm=colornorm),
                 ax=ax, fraction=0.02,
-                label=mesh.unit
+                label=img_rays.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
             )
 
         # grid = img_rays.input_grid.points_from_axis(color_axis)
