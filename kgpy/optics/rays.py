@@ -157,6 +157,7 @@ class Rays(transform.rigid.Transformable):
     vignetted_mask: np.ndarray = np.array([True])
     error_mask: np.ndarray = np.array([True])
     input_grid: typ.Optional[RayGrid] = None
+
     # input_wavelength: typ.Optional[u.Quantity] = None
     # input_field: typ.Optional[vector.Vector2D] = None
     # input_pupil: typ.Optional[vector.Vector2D] = None
@@ -754,7 +755,6 @@ class RaysList(
         mesh = img_rays.input_grid.points_from_axis(color_axis)
         mesh = np.broadcast_to(mesh, img_rays.grid_shape, subok=True)
 
-
         with astropy.visualization.quantity_support():
             colormap = plt.cm.viridis
             colornorm = plt.Normalize(vmin=mesh.value.min(), vmax=mesh.value.max())
@@ -770,7 +770,11 @@ class RaysList(
                     color=color[..., i, :],
                 )
 
-            ax.figure.colorbar(plt.cm.ScalarMappable(cmap=colormap, norm=colornorm), ax=ax, fraction=0.02, label=mesh.unit)
+            ax.figure.colorbar(
+                plt.cm.ScalarMappable(cmap=colormap, norm=colornorm),
+                ax=ax, fraction=0.02,
+                label=mesh.unit
+            )
 
         # grid = img_rays.input_grid.points_from_axis(color_axis)
         # grid = np.broadcast_to(grid, img_rays.shape + grid.shape[~0:])
