@@ -41,7 +41,8 @@ class Grid1D(
     def mesh(self, shape: typ.Tuple[int, ...], axis: int) -> u.Quantity:
         sl = len(shape) * [np.newaxis]
         sl[axis] = slice(None)
-        return np.broadcast_to(self.points[sl], shape, subok=True)
+        # return np.broadcast_to(self.points[sl], shape, subok=True)
+        return self.points[sl]
 
 
 @dataclasses.dataclass
@@ -63,9 +64,13 @@ class Grid2D(Grid1D):
         sl_x[axis[0]] = slice(None)
         sl_y[axis[1]] = slice(None)
         points = self.points
+        # return vector.Vector2D(
+        #     x=np.broadcast_to(points.x[sl_x], shape, subok=True),
+        #     y=np.broadcast_to(points.y[sl_y], shape, subok=True),
+        # )
         return vector.Vector2D(
-            x=np.broadcast_to(points.x[sl_x], shape, subok=True),
-            y=np.broadcast_to(points.y[sl_y], shape, subok=True),
+            x=points.x[sl_x],
+            y=points.y[sl_y],
         )
 
 
@@ -134,7 +139,7 @@ class RegularGrid2D(RegularGrid1D, Grid2D):
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
-        return self.range.shape + self.num_samples.to_tuple()
+        return self.range.shape + self.num_samples_normalized.to_tuple()
 
     @property
     def points(self) -> vector.Vector2D:
