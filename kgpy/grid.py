@@ -172,7 +172,8 @@ class RegularGrid2D(RegularGrid1D, Grid2D):
 class StratifiedRandomGrid1D(RegularGrid1D):
 
     def perturbation(self, shape: typ.Tuple[int, ...]) -> u.Quantity:
-        return self.step_size * (np.random.random_sample(shape) - 0.5)
+        rng = numpy.random.default_rng(42)
+        return self.step_size * (rng.random(shape) - 0.5)
 
     @property
     def points_base(self) -> u.Quantity:
@@ -192,9 +193,10 @@ class StratifiedRandomGrid1D(RegularGrid1D):
 class StratifiedRandomGrid2D(RegularGrid2D, StratifiedRandomGrid1D):
 
     def perturbation(self, shape: typ.Tuple[int, ...]) -> vector.Vector2D:
+        rng = numpy.random.default_rng(42)
         return vector.Vector2D(
-            x=self.step_size.x * (np.random.random_sample(shape) - 0.5),
-            y=self.step_size.y * (np.random.random_sample(shape) - 0.5),
+            x=self.step_size.x * (rng.random(shape) - 0.5),
+            y=self.step_size.y * (rng.random(shape) - 0.5),
         )
 
     def mesh(self, shape: typ.Tuple[int, ...], axis: typ.Tuple[int, int]) -> vector.Vector2D:
