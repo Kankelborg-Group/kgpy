@@ -590,21 +590,37 @@ class Rays(transform.rigid.Transformable):
             mask = self.mask
         mask = np.broadcast_to(mask, self.grid_shape)
 
+        mesh = self.input_grid.points_from_axis(color_axis)
+        # sl = self.axis.ndim * [np.newaxis]
+        # sl[color_axis] = slice(None)
+        # mesh = self.input_grid.grids[color_axis][sl]
+        mesh = np.broadcast_to(mesh, self.grid_shape, subok=True)
+
         with astropy.visualization.quantity_support():
+            colormap = plt.cm.viridis
+            colornorm = plt.Normalize(vmin=mesh.value.min(), vmax=mesh.value.max())
+            color = colormap(colornorm(mesh.value))
             scatter = ax.scatter(
                 x=attr_x[mask],
                 y=attr_y[mask],
-                c=self.colormesh(color_axis)[mask].value,
+                c=color[mask],
             )
-            try:
-                ax.legend(
-                    handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
-                    labels=list(self.grid_labels(color_axis).flatten()),
-                    loc='center left',
-                    bbox_to_anchor=(1.0, 0.5),
-                )
-            except ValueError:
-                pass
+            ax.figure.colorbar(
+                plt.cm.ScalarMappable(cmap=colormap, norm=colornorm),
+                ax=ax,
+                fraction=0.02,
+                label=mesh.unit,
+            )
+
+            # try:
+            #     ax.legend(
+            #         handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
+            #         labels=list(self.grid_labels(color_axis).flatten()),
+            #         loc='center left',
+            #         bbox_to_anchor=(1.0, 0.5),
+            #     )
+            # except ValueError:
+            #     pass
 
         return ax
 
