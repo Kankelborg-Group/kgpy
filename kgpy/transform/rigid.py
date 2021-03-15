@@ -95,13 +95,10 @@ class TransformList(
             if transform is not None:
                 if isinstance(transform, TiltAboutAxis):
                     if rotate:
-                        # rotation = transform.rotation_matrix @ rotation
                         rotation = rotation @ transform.rotation_matrix
                 elif isinstance(transform, Translate):
                     if translate:
                         translation = (rotation @ transform.value) + translation
-                        # translation = transform.value + translation
-
 
         extra_dims_slice = (Ellipsis, ) + num_extra_dims * (np.newaxis, )
         return (rotation[extra_dims_slice] @ value) + translation[extra_dims_slice]
