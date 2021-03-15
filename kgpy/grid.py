@@ -190,7 +190,14 @@ class StratifiedRandomGrid1D(RegularGrid1D):
 
 
 @dataclasses.dataclass
-class StratifiedRandomGrid2D(RegularGrid2D, StratifiedRandomGrid1D):
+class StratifiedRandomGrid2D(
+    RegularGrid2D,
+    StratifiedRandomGrid1D
+):
+
+    @property
+    def points_base(self) -> u.Quantity:
+        return super().points
 
     def perturbation(self, shape: typ.Tuple[int, ...]) -> vector.Vector2D:
         rng = numpy.random.default_rng(42)
@@ -210,7 +217,6 @@ class StratifiedRandomGrid2D(RegularGrid2D, StratifiedRandomGrid1D):
             x=points.x[sl_x] + perturbation.x,
             y=points.y[sl_y] + perturbation.y,
         )
-        # return self.points_base[sl] + self.perturbation(shape=shape)
 
 
 @dataclasses.dataclass
