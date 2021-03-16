@@ -6,6 +6,7 @@ import dataclasses
 import typing as typ
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines
 import astropy.units as u
 import astropy.visualization
 import shapely.geometry
@@ -32,6 +33,7 @@ class Aperture(
     mixin.Colorable,
     abc.ABC
 ):
+    color: str = 'black'
     num_samples: int = 1000
 
     @abc.abstractmethod
@@ -57,10 +59,11 @@ class Aperture(
             self,
             ax: plt.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[Sag] = None,
-    ) -> plt.Axes:
+    ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
@@ -74,8 +77,13 @@ class Aperture(
                 if transform_extra is not None:
                     wire = transform_extra(wire, num_extra_dims=1)
                 wire = wire.reshape((-1, wire.shape[~0]))
-                ax.fill(wire.get_component(c1).T, wire.get_component(c2).T, color=color, fill=False)
-            return ax
+                plot_kwargs_z = {}
+                if component_z is not None:
+                    plot_kwargs_z['zs'] = wire.get_component(component_z).T
+                return ax.plot(wire.get_component(c1).T, wire.get_component(c2).T, color=color, **plot_kwargs_z)
+
+            else:
+                return []
 
     def view(self) -> 'Aperture':
         other = super().view()  # type: Aperture
