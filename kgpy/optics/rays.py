@@ -781,15 +781,15 @@ class RaysList(
 
             lines = []
             for i in range(intercepts.shape[~0]):
-                plot_args = [
+                plot_kwargs_z = {}
+                if component_z is not None:
+                    plot_kwargs_z['zs'] = intercepts[..., i].get_component(component_z)
+                lines_i = ax.plot(
                     intercepts[..., i].get_component(components[0]),
                     intercepts[..., i].get_component(components[1]),
-                ]
-                plot_kwargs = {}
-                plot_kwargs['color'] = color[..., i, :]
-                if component_z is not None:
-                    plot_kwargs['zs'] = intercepts[..., i].get_component(component_z)
-                lines_i = ax.plot(*plot_args, **plot_kwargs)
+                    color=color[..., i, :],
+                    **plot_kwargs_z,
+                )
 
                 lines = lines + lines_i
 
