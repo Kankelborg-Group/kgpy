@@ -1,14 +1,10 @@
 import typing as typ
 import abc
-import collections
 import dataclasses
-import warnings
 import numpy as np
 import matplotlib.axes
 import matplotlib.lines
-import matplotlib.pyplot as plt
 import astropy.units as u
-import astropy.visualization
 from kgpy import mixin, vector, transform as tfrm, optimization
 from ..rays import Rays, RaysList
 from .sag import Sag
