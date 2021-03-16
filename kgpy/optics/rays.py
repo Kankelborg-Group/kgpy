@@ -747,6 +747,7 @@ class RaysList(
             self,
             ax: typ.Optional[plt.Axes],
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
@@ -780,11 +781,16 @@ class RaysList(
 
             lines = []
             for i in range(intercepts.shape[~0]):
-                lines_i = ax.plot(
+                plot_args = [
                     intercepts[..., i].get_component(components[0]),
                     intercepts[..., i].get_component(components[1]),
-                    color=color[..., i, :],
-                )
+                ]
+                plot_kwargs = {}
+                plot_kwargs['color'] = color[..., i, :]
+                if component_z is not None:
+                    plot_kwargs['zs'] = intercepts[..., i].get_component(component_z)
+                lines_i = ax.plot(*plot_args, **plot_kwargs)
+
                 lines = lines + lines_i
 
             colorbar = ax.figure.colorbar(
