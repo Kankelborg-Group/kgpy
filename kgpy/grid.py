@@ -144,13 +144,13 @@ class RegularGrid2D(RegularGrid1D, Grid2D):
     @property
     def points(self) -> vector.Vector2D:
         return vector.Vector2D(
-            x=np.linspace(
+            x=linspace(
                 start=self.min.x,
                 stop=self.max.x,
                 num=self.num_samples_normalized.x,
                 axis=~0
             ),
-            y=np.linspace(
+            y=linspace(
                 start=self.min.y,
                 stop=self.max.y,
                 num=self.num_samples_normalized.y,
