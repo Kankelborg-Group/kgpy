@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
 import matplotlib.cm
+import matplotlib.colorbar
 import astropy.units as u
 import astropy.visualization
 import astropy.modeling
@@ -749,7 +750,7 @@ class RaysList(
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
-    ) -> plt.Axes:
+    ) -> typ.Tuple[typ.List[plt.Line2D], matplotlib.colorbar.Colorbar]:
 
         if transform_extra is None:
             transform_extra = transform.rigid.TransformList()
@@ -777,17 +778,19 @@ class RaysList(
             intercepts = intercepts[:, mask]
             color = color[mask]
 
+            lines = []
             for i in range(intercepts.shape[~0]):
-                ax.plot(
+                lines_i = ax.plot(
                     intercepts[..., i].get_component(components[0]),
                     intercepts[..., i].get_component(components[1]),
                     color=color[..., i, :],
                 )
+                lines = lines + lines_i
 
-            ax.figure.colorbar(
+            colorbar = ax.figure.colorbar(
                 plt.cm.ScalarMappable(cmap=colormap, norm=colornorm),
                 ax=ax, fraction=0.02,
                 label=img_rays.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
             )
 
-        return ax
+        return lines, colorbar
