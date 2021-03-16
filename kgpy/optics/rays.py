@@ -95,16 +95,30 @@ class RayGrid(
     def points_velocity_los(self) -> u.Quantity:
         return self.velocity_los.mesh(shape=self.shape, axis=self.axis.velocity_los)
 
-    @property
-    def grids(self) -> typ.List[u.Quantity]:
-        return [
-            self.field.points.x,
-            self.field.points.y,
-            self.pupil.points.x,
-            self.pupil.points.y,
-            self.wavelength.points,
-            self.velocity_los.points,
-        ]
+    def points(self, component_axis: int = ~0) -> u.Quantity:
+
+        points_field = self.points_field
+        points_pupil = self.points_pupil
+
+        p = [None] * self.axis.ndim
+        p[self.axis.field_x] = points_field.x
+        p[self.axis.field_y] = points_field.y
+        p[self.axis.pupil_x] = points_pupil.x
+        p[self.axis.pupil_y] = points_pupil.y
+        p[self.axis.wavelength] = self.points_wavelength
+        p[self.axis.velocity_los] = self.points_velocity_los
+        return np.stack(arrays=p, axis=component_axis)
+
+    # @property
+    # def grids(self) -> typ.List[u.Quantity]:
+    #     return [
+    #         self.field.points.x,
+    #         self.field.points.y,
+    #         self.pupil.points.x,
+    #         self.pupil.points.y,
+    #         self.wavelength.points,
+    #         self.velocity_los.points,
+    #     ]
 
     def points_from_axis(self, axis: int):
         if axis == self.axis.field_x:
