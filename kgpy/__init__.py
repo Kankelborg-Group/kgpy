@@ -4,15 +4,13 @@ kgpy root package
 import typing as typ
 import dataclasses
 import numpy as np
-import astropy.units as u
-from kgpy import vector
+import numpy.typing
 
 __all__ = [
     'linspace', 'midspace',
     'Name',
     'fft',
     'rebin',
-    'Grid'
 ]
 
 
@@ -73,7 +71,7 @@ def rebin(arr: np.ndarray, scale_dims: typ.Tuple[int, ...]) -> np.ndarray:
     return new_arr
 
 
-def linspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np.ndarray:
+def linspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> numpy.typing.ArrayLike:
     """
     A modified version of :func:`numpy.linspace()` that returns a value in the center of the range between `start`
     and `stop` if `num == 1` unlike :func:`numpy.linspace` which would just return `start`.
@@ -94,7 +92,7 @@ def linspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np
         return np.linspace(start=start, stop=stop, num=num, axis=axis)
 
 
-def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np.ndarray:
+def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> numpy.typing.ArrayLike:
     """
     A modified version of :func:`numpy.linspace` that selects cell centers instead of cell edges.
 
@@ -110,10 +108,3 @@ def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> np
     i0[axis] = slice(None, ~0)
     i1[axis] = slice(1, None)
     return (a[i0] + a[i1]) / 2
-
-
-@dataclasses.dataclass
-class Grid:
-    start: u.Quantity
-    stop: u.Quantity
-    num_samples: int
