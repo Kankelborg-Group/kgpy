@@ -12,6 +12,9 @@ import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
 import matplotlib.colors
+import matplotlib.lines
+import matplotlib.colorbar
+import matplotlib.axes
 from kgpy import mixin, linspace, vector, optimization, transform, obs, grid
 from . import aberration, rays, surface, component, baffle, breadboard
 
@@ -581,8 +584,9 @@ class System(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             surface_first: typ.Optional[surface.Surface] = None,
             surface_last: typ.Optional[surface.Surface] = None,
@@ -591,9 +595,7 @@ class System(
             plot_vignetted: bool = False,
             plot_baffles: bool = True,
             plot_breadboard: bool = True,
-    ) -> plt.Axes:
-        if ax is None:
-            fig, ax = plt.subplots()
+    ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
 
         surfaces = self.surfaces_all.flat_local
 
@@ -610,20 +612,26 @@ class System(
 
         surf_slice = slice(surface_index_first, surface_index_last + 1)
 
+        lines = []
+
+        colorbar = None
         if plot_rays:
             raytrace_slice = self.raytrace[surf_slice]  # type: rays.RaysList
-            raytrace_slice.plot(
+            rlines, colorbar = raytrace_slice.plot(
                 ax=ax,
                 components=components,
+                component_z=component_z,
                 transform_extra=transform_extra,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
             )
+            lines += rlines
 
         surfaces_slice = self.surfaces_all.flat_global[surf_slice]  # type: surfaces.SurfaceList
-        surfaces_slice.plot(
+        lines += surfaces_slice.plot(
             ax=ax,
             components=components,
+            component_z=component_z,
             transform_extra=transform_extra,
             to_global=True,
         )
@@ -641,7 +649,7 @@ class System(
                     to_global=True,
                 )
 
-        return ax
+        return lines, colorbar
 
     @property
     def tol_iter(self) -> typ.Iterator['System']:

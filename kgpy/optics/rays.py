@@ -49,8 +49,8 @@ class Axis(mixin.AutoAxis):
         names[self.field_y] = 'field $y$'
         names[self.pupil_x] = 'pupil $x$'
         names[self.pupil_y] = 'pupil $y$'
-        names[self.wavelength] = '$\\lambda'
-        names[self.velocity_los] = '$v_{\\mathrm{LOS}}'
+        names[self.wavelength] = 'wavelength'
+        names[self.velocity_los] = 'LOS velocity'
         return names
 
 

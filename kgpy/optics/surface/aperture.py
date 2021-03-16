@@ -70,6 +70,7 @@ class Aperture(
         with astropy.visualization.quantity_support():
             c1, c2 = components
             wire = self.wire
+            lines = []
             if wire.x.unit.is_equivalent(u.mm):
                 if sag is not None:
                     wire.z = wire.z + sag(wire.x, wire.y)
@@ -77,12 +78,18 @@ class Aperture(
                     wire = transform_extra(wire, num_extra_dims=1)
                 wire = wire.reshape((-1, wire.shape[~0]))
                 plot_kwargs_z = {}
-                if component_z is not None:
-                    plot_kwargs_z['zs'] = wire.get_component(component_z).T
-                return ax.plot(wire.get_component(c1).T, wire.get_component(c2).T, color=color, **plot_kwargs_z)
 
-            else:
-                return []
+                for i in range(wire.shape[0]):
+                    if component_z is not None:
+                        plot_kwargs_z['zs'] = wire[i].get_component(component_z)
+                    lines += ax.plot(
+                        wire[i].get_component(c1),
+                        wire[i].get_component(c2),
+                        color=color,
+                        **plot_kwargs_z
+                    )
+
+        return lines
 
     def view(self) -> 'Aperture':
         other = super().view()  # type: Aperture
