@@ -55,14 +55,12 @@ class Aperture(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: plt.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             color: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[Sag] = None,
     ) -> plt.Axes:
-        if ax is None:
-            fig, ax = plt.subplots()
 
         if color is None:
             color = self.color
