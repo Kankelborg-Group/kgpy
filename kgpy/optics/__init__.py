@@ -82,16 +82,6 @@ class System(
     def surfaces_all(self) -> surface.SurfaceList:
         return surface.SurfaceList([self.object_surface]) + self.surfaces
 
-    @staticmethod
-    def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
-        if isinstance(samples, int):
-            samples = samples, samples
-        return samples
-
-    @property
-    def pupil_samples_normalized(self) -> typ.Tuple[int, int]:
-        return self._normalize_2d_samples(self.pupil_samples)
-
     @property
     def field_samples_normalized(self) -> typ.Tuple[int, int]:
         return self._normalize_2d_samples(self.field_samples)
