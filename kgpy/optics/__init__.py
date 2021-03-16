@@ -106,15 +106,30 @@ class System(
             num_samples=self.field_samples,
         )
 
-    def grid_pupil(self, surf: surface.Surface) -> grid.RegularGrid2D:
-        if self.pupil_is_stratified_random:
-            cls = grid.StratifiedRandomGrid2D
+    @classmethod
+    def _calc_grid_pupil(
+            cls,
+            surf: surface.Surface,
+            pupil_samples: typ.Union[int, vector.Vector2D],
+            pupil_margin: u.Quantity,
+            pupil_is_stratified_random: bool = False,
+    ) -> grid.RegularGrid2D:
+        if pupil_is_stratified_random:
+            type_grid = grid.StratifiedRandomGrid2D
         else:
-            cls = grid.RegularGrid2D
-        return cls(
-            min=surf.aperture.min.xy + self.pupil_margin,
-            max=surf.aperture.max.xy - self.pupil_margin,
-            num_samples=self.pupil_samples,
+            type_grid = grid.RegularGrid2D
+        return type_grid(
+            min=surf.aperture.min.xy + pupil_margin,
+            max=surf.aperture.max.xy - pupil_margin,
+            num_samples=pupil_samples,
+        )
+
+    def grid_pupil(self, surf: surface.Surface) -> grid.RegularGrid2D:
+        return self._calc_grid_pupil(
+            surf=surf,
+            pupil_samples=self.pupil_samples,
+            pupil_margin=self.pupil_margin,
+            pupil_is_stratified_random=self.pupil_is_stratified_random,
         )
 
     def grid_rays(self, surf: surface.Surface) -> rays.RayGrid:
