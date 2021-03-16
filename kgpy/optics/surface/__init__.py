@@ -139,6 +139,33 @@ class Surface(
 
         return rays
 
+    def histogram(self, rays: Rays, nbins: vector.Vector2D, weights: typ.Optional[u.Quantity] = None):
+
+        if self.aperture is not None:
+            hmin = self.aperture.min
+            hmax = self.aperture.max
+        else:
+            hmin = rays.position.min()
+            hmax = rays.position.max()
+
+        nbins = nbins.to_tuple()
+        hist = np.empty(rays.shape + nbins)
+
+        for i in range(rays.size):
+            index = np.unravel_index(i, rays.shape)
+            hist[index] = np.histogram2d(
+                x=rays.position.x,
+                y=rays.position.y,
+                bins=nbins,
+                range=[
+                    [hmin.x, hmax.x],
+                    [hmin.y, hmax.y],
+                ],
+                weights=weights,
+            )[0]
+
+        return hist
+
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
