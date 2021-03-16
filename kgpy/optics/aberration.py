@@ -77,28 +77,22 @@ class Distortion:
 
     def __call__(
             self,
-            cube: np.ndarray,
+            cube: u.Quantity,
             wavelength: u.Quantity,
-            # spatial_domain_input: vector.Vector2D,
-            # spatial_domain_output: vector.Vector2D,
             spatial_input_min: vector.Vector2D,
             spatial_input_max: vector.Vector2D,
             spatial_output_min: vector.Vector2D,
             spatial_output_max: vector.Vector2D,
             spatial_samples_output: typ.Union[int, vector.Vector2D],
             inverse: bool = False,
+            # channel_index: typ.Optional[int] = None,
             interp_order: int = 1,
             interp_prefilter: bool = False,
-            fill_value: float = 0,
+            fill_value: float = np.nan,
     ) -> np.ndarray:
 
-        if isinstance(spatial_samples_output, int):
-            spatial_samples_output = vector.Vector2D(spatial_samples_output, spatial_samples_output)
-        #     spatial_samples_output = 2 * (spatial_samples_output,)
-        # spatial_samples_output = np.array(spatial_samples_output)
-
-        # input_min, input_max = spatial_input_min, spatial_input_max
-        # output_min, output_max = spatial_domain_output
+        # if isinstance(spatial_samples_output, int):
+        #     spatial_samples_output = vector.Vector2D(spatial_samples_output, spatial_samples_output)
 
         output_grid = vector.Vector3D()
         output_grid.x = np.linspace(spatial_output_min.x, spatial_output_max.x, spatial_samples_output.x)
