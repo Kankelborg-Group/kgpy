@@ -33,7 +33,6 @@ class Aperture(
     mixin.Colorable,
     abc.ABC
 ):
-    color: str = 'black'
     num_samples: int = 1000
 
     @abc.abstractmethod
