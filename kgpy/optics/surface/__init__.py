@@ -343,7 +343,7 @@ class SurfaceList(
             self,
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
-            components_z: typ.Optional[str] = None,
+            component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
@@ -362,7 +362,7 @@ class SurfaceList(
             lines += surf.plot(
                 ax=ax,
                 components=components,
-                component_z=components_z,
+                component_z=component_z,
                 color=color,
                 transform_extra=transform_extra,
                 to_global=True,
