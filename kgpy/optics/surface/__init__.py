@@ -43,7 +43,7 @@ class Surface(
     """
     Interface for representing an optical surface.
     """
-
+    color: str = 'black'
     is_stop: bool = False
     is_stop_test: bool = False
     is_active: bool = True  #: Flag to disable the surface
