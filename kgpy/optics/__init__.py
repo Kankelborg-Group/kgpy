@@ -83,16 +83,11 @@ class System(
         return surface.SurfaceList([self.object_surface]) + self.surfaces
 
     @property
-    def field_samples_normalized(self) -> typ.Tuple[int, int]:
-        return self._normalize_2d_samples(self.field_samples)
-
-    @property
-    def field_min(self) -> vector.Vector2D:
-        return self.object_surface.aperture.min.xy
-
-    @property
-    def field_max(self) -> vector.Vector2D:
-        return self.object_surface.aperture.max.xy
+    def surface_stop(self):
+        for surf in self.surfaces_all.flat_global_iter:
+            if surf.is_stop:
+                return surf
+        raise self.error_no_stop
 
     @property
     def grid_wavelength(self) -> grid.IrregularGrid1D:
