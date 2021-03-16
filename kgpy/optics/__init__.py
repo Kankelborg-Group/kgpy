@@ -140,6 +140,10 @@ class System(
             velocity_los=self.grid_velocity_los,
         )
 
+    @property
+    def grid_rays_stop(self) -> rays.RayGrid:
+        return self.grid_rays(self.surface_stop)
+
     # @staticmethod
     # def _normalize_2d_samples(samples: typ.Union[int, vector.Vector2D]) -> vector.Vector2D:
     #     if isinstance(samples, int):
@@ -259,7 +263,7 @@ class System(
     @property
     def rays_input(self) -> rays.Rays:
         if self._rays_input_cache is None:
-            self._rays_input_cache = self._calc_rays_input(self.grid_rays(surf=self.surface_stop))
+            self._rays_input_cache = self._calc_rays_input(self.grid_rays_stop)
         return self._rays_input_cache
 
     error_no_stop = ValueError('no stop defined')
