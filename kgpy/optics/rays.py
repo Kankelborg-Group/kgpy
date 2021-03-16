@@ -792,38 +792,4 @@ class RaysList(
                 label=img_rays.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
             )
 
-        # grid = img_rays.input_grid.points_from_axis(color_axis)
-        # grid = np.broadcast_to(grid, img_rays.shape + grid.shape[~0:])
-        # grid = grid.flatten()
-        # grid_min, grid_max = grid.min(axis=~0, keepdims=True), grid.max(axis=~0, keepdims=True)
-        # grid_delta = grid_max - grid_min
-        # ngrid = (grid - grid_min) / grid_delta
-        # ngrid[~np.isfinite(ngrid)] = 0.5
-        # colors = plt.cm.viridis(ngrid)
-        # labels = img_rays.grid_labels(color_axis)
-        # labels = np.broadcast_to(labels, img_rays.shape + labels.shape[~0:])
-        # labels = labels.flatten()
-        #
-        # intercepts = np.moveaxis(intercepts, color_axis, img_rays.ndim + 1)
-        # mask = np.moveaxis(mask, color_axis, img_rays.ndim)
-        #
-        # new_shape = intercepts.shape[:1] + (-1,) + intercepts.shape[~(img_rays.axis.ndim - 2):]
-        # intercepts = intercepts.reshape(new_shape)
-        # mask = mask.reshape((-1,) + mask.shape[~(img_rays.axis.ndim - 2):])
-        #
-        # intercepts = np.moveaxis(intercepts, ~(img_rays.axis.ndim - 1), 0)
-        # mask = np.moveaxis(mask, ~(img_rays.axis.ndim - 1), 0)
-        #
-        # for intercept_c, mask_c, color, label in zip(intercepts, mask, colors, labels):
-        #     ax.plot(
-        #         intercept_c[:, mask_c].get_component(components[0]),
-        #         intercept_c[:, mask_c].get_component(components[1]),
-        #         color=color,
-        #         label=label,
-        #     )
-        #
-        # handles, labels = ax.get_legend_handles_labels()
-        # label_dict = dict(zip(labels, handles))
-        # ax.legend(label_dict.values(), label_dict.keys(), loc='center left', bbox_to_anchor=(1.0, 0.5))
-
         return ax
