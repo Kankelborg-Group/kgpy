@@ -4,6 +4,8 @@ import collections
 import dataclasses
 import warnings
 import numpy as np
+import matplotlib.axes
+import matplotlib.lines
 import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.visualization
@@ -168,14 +170,13 @@ class Surface(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
-    ) -> plt.Axes:
-        if ax is None:
-            fig, ax = plt.subplots()
+    ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
@@ -185,20 +186,24 @@ class Surface(
                 transform_extra = tfrm.rigid.TransformList()
             transform_extra = transform_extra + self.transform
 
+        lines = []
+
         if self.is_visible:
 
             if self.aperture is not None:
-                self.aperture.plot(
+                lines += self.aperture.plot(
                     ax=ax,
                     components=components,
+                    component_z=component_z,
                     transform_extra=transform_extra,
                     color=color,
                     sag=self.sag,
                 )
             if self.aperture_mechanical is not None:
-                self.aperture_mechanical.plot(
+                lines += self.aperture_mechanical.plot(
                     ax=ax,
                     components=components,
+                    component_z=component_z,
                     transform_extra=transform_extra,
                     color=color,
                     sag=self.sag,
@@ -206,25 +211,27 @@ class Surface(
 
             if self.material is not None:
                 if self.aperture_mechanical is not None:
-                    self.material.plot(
+                    lines += self.material.plot(
                         ax=ax,
                         components=components,
+                        component_z=component_z,
                         transform_extra=transform_extra,
                         color=color,
                         sag=self.sag,
                         aperture=self.aperture_mechanical,
                     )
                 elif self.aperture is not None:
-                    self.material.plot(
+                    lines += self.material.plot(
                         ax=ax,
                         components=components,
+                        component_z=component_z,
                         transform_extra=transform_extra,
                         color=color,
                         sag=self.sag,
                         aperture=self.aperture,
                     )
 
-        return ax
+        return lines
 
     def view(self) -> 'Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]':
         other = super().view()      # type: Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]
@@ -338,14 +345,13 @@ class SurfaceList(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            components_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
-    ) -> plt.Axes:
-        if ax is None:
-            _, ax = plt.subplots()
+    ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
@@ -355,16 +361,18 @@ class SurfaceList(
                 transform_extra = tfrm.rigid.TransformList()
             transform_extra = transform_extra + self.transform
 
+        lines = []
         for surf in self:
-            surf.plot(
+            lines += surf.plot(
                 ax=ax,
                 components=components,
+                component_z=components_z,
                 color=color,
                 transform_extra=transform_extra,
                 to_global=True,
             )
 
-        return ax
+        return lines
 
 
 from . import aperture
