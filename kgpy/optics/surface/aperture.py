@@ -5,7 +5,7 @@ import abc
 import dataclasses
 import typing as typ
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.axes
 import matplotlib.lines
 import astropy.units as u
 import astropy.visualization
@@ -56,7 +56,7 @@ class Aperture(
 
     def plot(
             self,
-            ax: plt.Axes,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
