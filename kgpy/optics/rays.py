@@ -744,14 +744,12 @@ class RaysList(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: typ.Optional[plt.Axes],
             components: typ.Tuple[str, str] = ('x', 'y'),
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
     ) -> plt.Axes:
-        if ax is None:
-            _, ax = plt.subplots()
 
         if transform_extra is None:
             transform_extra = transform.rigid.TransformList()
