@@ -745,7 +745,7 @@ class RaysList(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes],
+            ax: plt.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
