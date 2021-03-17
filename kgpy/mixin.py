@@ -48,10 +48,13 @@ class AutoAxis:
         self.all.append(i)
         return i
 
-    def perp_axes(self, axis: int) -> typ.Tuple[int, ...]:
+    def perp_axes(self, axis: typ.Union[int, typ.Sequence[int]]) -> typ.Tuple[int, ...]:
         axes = self.all.copy()
         axes = [a % self.ndim for a in axes]
-        axes.remove(axis % self.ndim)
+        if isinstance(axis, int):
+            axis = [axis]
+        for ax in axis:
+            axes.remove(ax % self.ndim)
         return tuple([a - self.ndim for a in axes])
 
 
