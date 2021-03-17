@@ -82,19 +82,19 @@ class RayGrid(
 
     @property
     def points_field(self) -> vector.Vector2D:
-        return self.field.mesh(shape=self.shape, axis=(self.axis.field_x, self.axis.field_y))
+        return self.field.mesh(shape=self.shape, new_axes=self.axis.perp_axes([self.axis.field_x, self.axis.field_y]))
 
     @property
     def points_pupil(self) -> vector.Vector2D:
-        return self.pupil.mesh(shape=self.shape, axis=(self.axis.pupil_x, self.axis.pupil_y))
+        return self.pupil.mesh(shape=self.shape, new_axes=self.axis.perp_axes([self.axis.pupil_x, self.axis.pupil_y]))
 
     @property
     def points_wavelength(self) -> u.Quantity:
-        return self.wavelength.mesh(shape=self.shape, axis=self.axis.wavelength)
+        return self.wavelength.mesh(shape=self.shape, new_axes=self.axis.perp_axes(self.axis.wavelength))
 
     @property
     def points_velocity_los(self) -> u.Quantity:
-        return self.velocity_los.mesh(shape=self.shape, axis=self.axis.velocity_los)
+        return self.velocity_los.mesh(shape=self.shape, new_axes=self.axis.perp_axes(self.axis.velocity_los))
 
     def points(self, component_axis: int = ~0) -> u.Quantity:
 
