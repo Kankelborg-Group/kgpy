@@ -207,6 +207,9 @@ class Vector2D(Vector):
     def get_component(self, comp: str) -> u.Quantity:
         return getattr(self, comp)
 
+    def set_component(self, comp: str, value: u.Quantity):
+        setattr(self, comp, value)
+
     @property
     def quantity(self) -> u.Quantity:
         return np.stack([self.x_final, self.y_final], axis=~0)
