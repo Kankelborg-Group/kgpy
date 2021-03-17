@@ -274,7 +274,7 @@ class Vector2D(Vector):
             return self._broadcast_arrays(*args, **kwargs)
         elif function in [
             np.min, np.max, np.median, np.mean, np.sum, np.prod, np.stack, np.moveaxis, np.roll, np.nanmin, np.nanmax,
-            np.nansum, np.nanmean, np.linspace
+            np.nansum, np.nanmean, np.linspace, np.where
         ]:
             return self._array_function_default(function, types, args, kwargs)
         else:
