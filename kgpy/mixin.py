@@ -38,7 +38,7 @@ class AutoAxis:
     def ndim(self) -> int:
         return self.num_left_dim + self.num_right_dim
 
-    def auto_axis_index(self, from_right: bool = True):
+    def auto_axis_index(self, from_right: bool = True) -> int:
         if from_right:
             i = ~self.num_right_dim
             self.num_right_dim += 1
