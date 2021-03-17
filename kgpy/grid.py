@@ -38,11 +38,8 @@ class Grid1D(
     def points(self) -> u.Quantity:
         pass
 
-    def mesh(self, shape: typ.Tuple[int, ...], axis: int) -> u.Quantity:
-        sl = len(shape) * [np.newaxis]
-        sl[axis] = slice(None)
-        # return np.broadcast_to(self.points[sl], shape, subok=True)
-        return self.points[sl]
+    def mesh(self, shape: typ.Tuple[int, ...], new_axes: typ.Sequence[int]) -> u.Quantity:
+        return np.expand_dims(self.points, axis=new_axes)
 
 
 @dataclasses.dataclass
@@ -58,19 +55,11 @@ class Grid2D(Grid1D):
     def points(self) -> vector.Vector2D:
         return super().points
 
-    def mesh(self, shape: typ.Tuple[int, ...], axis: typ.Tuple[int, int]) -> vector.Vector2D:
-        sl_x = len(shape) * [np.newaxis]
-        sl_y = len(shape) * [np.newaxis]
-        sl_x[axis[0]] = slice(None)
-        sl_y[axis[1]] = slice(None)
+    def mesh(self, shape: typ.Tuple[int, ...], new_axes: typ.Sequence[int]) -> vector.Vector2D:
         points = self.points
-        # return vector.Vector2D(
-        #     x=np.broadcast_to(points.x[sl_x], shape, subok=True),
-        #     y=np.broadcast_to(points.y[sl_y], shape, subok=True),
-        # )
         return vector.Vector2D(
-            x=points.x[sl_x],
-            y=points.y[sl_y],
+            x=np.expand_dims(points.x[..., :, np.newaxis], axis=new_axes),
+            y=np.expand_dims(points.y[..., np.newaxis, :], axis=new_axes),
         )
 
 
@@ -183,10 +172,8 @@ class StratifiedRandomGrid1D(RegularGrid1D):
     def points(self) -> u.Quantity:
         return self.points_base + self.perturbation(self.shape)
 
-    def mesh(self, shape: typ.Tuple[int, ...], axis: int) -> u.Quantity:
-        sl = len(shape) * [np.newaxis]
-        sl[axis] = slice(None)
-        return self.points_base[sl] + self.perturbation(shape=shape)
+    def mesh(self, shape: typ.Tuple[int, ...], new_axes: typ.Sequence[int]) -> u.Quantity:
+        return super().mesh(shape=shape, new_axes=new_axes) + self.perturbation(shape=shape)
 
 
 @dataclasses.dataclass
@@ -206,17 +193,8 @@ class StratifiedRandomGrid2D(
             y=self.step_size.y * (rng.random(shape) - 0.5),
         )
 
-    def mesh(self, shape: typ.Tuple[int, ...], axis: typ.Tuple[int, int]) -> vector.Vector2D:
-        sl_x = len(shape) * [np.newaxis]
-        sl_y = len(shape) * [np.newaxis]
-        sl_x[axis[0]] = slice(None)
-        sl_y[axis[1]] = slice(None)
-        points = self.points_base
-        perturbation = self.perturbation(shape=shape)
-        return vector.Vector2D(
-            x=points.x[sl_x] + perturbation.x,
-            y=points.y[sl_y] + perturbation.y,
-        )
+    def mesh(self, shape: typ.Tuple[int, ...], new_axes: typ.Sequence[int]) -> vector.Vector2D:
+        return super().mesh(shape=shape, new_axes=new_axes)
 
 
 @dataclasses.dataclass
