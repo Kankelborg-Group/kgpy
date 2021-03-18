@@ -86,7 +86,7 @@ class Aperture(
                         wire[i].get_component(c1),
                         wire[i].get_component(c2),
                         color=color,
-                        **plot_kwargs_z
+                        **plot_kwargs_z,
                     )
 
         return lines
