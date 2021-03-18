@@ -30,7 +30,7 @@ __all__ = [
 @dataclasses.dataclass
 class Aperture(
     mixin.Broadcastable,
-    mixin.Colorable,
+    mixin.Plottable,
     abc.ABC
 ):
     num_samples: int = 1000
@@ -60,12 +60,18 @@ class Aperture(
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[Sag] = None,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
+        if linewidth is None:
+            linewidth = self.linewidth
+        if linestyle is None:
+            linestyle = self.linestyle
 
         with astropy.visualization.quantity_support():
             c1, c2 = components
@@ -86,6 +92,8 @@ class Aperture(
                         wire[i].get_component(c1),
                         wire[i].get_component(c2),
                         color=color,
+                        linewidth=linewidth,
+                        linestyle=linestyle,
                         **plot_kwargs_z,
                     )
 

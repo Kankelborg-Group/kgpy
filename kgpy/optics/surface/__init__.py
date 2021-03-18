@@ -33,7 +33,7 @@ RulingsT = typ.TypeVar('RulingsT', bound=Rulings)
 class Surface(
     mixin.Broadcastable,
     tfrm.rigid.Transformable,
-    mixin.Colorable,
+    mixin.Plottable,
     mixin.Named,
     abc.ABC,
     typ.Generic[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT],
@@ -170,12 +170,18 @@ class Surface(
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
+        if linewidth is None:
+            linewidth = self.linewidth
+        if linestyle is None:
+            linestyle = self.linestyle
 
         if to_global:
             if transform_extra is None:
@@ -186,44 +192,67 @@ class Surface(
 
         if self.is_visible:
 
+            kwargs = dict(
+                ax=ax,
+                components=components,
+                component_z=component_z,
+                transform_extra=transform_extra,
+                color=color,
+                linewidth=linewidth,
+                linestyle=linestyle,
+                sag=self.sag,
+            )
+
             if self.aperture is not None:
                 lines += self.aperture.plot(
-                    ax=ax,
-                    components=components,
-                    component_z=component_z,
-                    transform_extra=transform_extra,
-                    color=color,
-                    sag=self.sag,
+                    # ax=ax,
+                    # components=components,
+                    # component_z=component_z,
+                    # transform_extra=transform_extra,
+                    # color=color,
+                    # linewidth=linewidth,
+                    # linestyle=linestyle,
+                    # sag=self.sag,
+                    **kwargs
                 )
             if self.aperture_mechanical is not None:
                 lines += self.aperture_mechanical.plot(
-                    ax=ax,
-                    components=components,
-                    component_z=component_z,
-                    transform_extra=transform_extra,
-                    color=color,
-                    sag=self.sag,
+                    # ax=ax,
+                    # components=components,
+                    # component_z=component_z,
+                    # transform_extra=transform_extra,
+                    # color=color,
+                    # linewidth=linewidth,
+                    # linestyle=linestyle,
+                    # sag=self.sag,
+                    **kwargs
                 )
 
             if self.material is not None:
                 if self.aperture_mechanical is not None:
                     lines += self.material.plot(
-                        ax=ax,
-                        components=components,
-                        component_z=component_z,
-                        transform_extra=transform_extra,
-                        color=color,
-                        sag=self.sag,
+                        # ax=ax,
+                        # components=components,
+                        # component_z=component_z,
+                        # transform_extra=transform_extra,
+                        # color=color,
+                        # linewidth=linewidth,
+                        # linestyle=linestyle,
+                        # sag=self.sag,
+                        **kwargs,
                         aperture=self.aperture_mechanical,
                     )
                 elif self.aperture is not None:
                     lines += self.material.plot(
-                        ax=ax,
-                        components=components,
-                        component_z=component_z,
-                        transform_extra=transform_extra,
-                        color=color,
-                        sag=self.sag,
+                        # ax=ax,
+                        # components=components,
+                        # component_z=component_z,
+                        # transform_extra=transform_extra,
+                        # color=color,
+                        # linewidth=linewidth,
+                        # linestyle=linestyle,
+                        # sag=self.sag,
+                        **kwargs,
                         aperture=self.aperture,
                     )
 
@@ -345,6 +374,8 @@ class SurfaceList(
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
     ) -> typ.List[matplotlib.lines.Line2D]:
@@ -364,6 +395,8 @@ class SurfaceList(
                 components=components,
                 component_z=component_z,
                 color=color,
+                linewidth=linewidth,
+                linestyle=linestyle,
                 transform_extra=transform_extra,
                 to_global=True,
             )

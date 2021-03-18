@@ -33,6 +33,7 @@ __all__ = [
 @dataclasses.dataclass
 class System(
     transform.rigid.Transformable,
+    mixin.Plottable,
     mixin.Broadcastable,
     mixin.Named,
 ):
@@ -587,6 +588,9 @@ class System(
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
+            color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             surface_first: typ.Optional[surface.Surface] = None,
             surface_last: typ.Optional[surface.Surface] = None,
@@ -596,6 +600,13 @@ class System(
             plot_baffles: bool = True,
             plot_breadboard: bool = True,
     ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
+
+        if color is None:
+            color = self.color
+        if linewidth is None:
+            linewidth = self.linewidth
+        if linestyle is None:
+            linestyle = self.linestyle
 
         surfaces = self.surfaces_all.flat_local
 
@@ -632,6 +643,9 @@ class System(
             ax=ax,
             components=components,
             component_z=component_z,
+            color=color,
+            linewidth=linewidth,
+            linestyle=linestyle,
             transform_extra=transform_extra,
             to_global=True,
         )

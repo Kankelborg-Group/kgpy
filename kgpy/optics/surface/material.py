@@ -16,6 +16,7 @@ __all__ = ['Material', 'Mirror']
 
 @dataclasses.dataclass
 class Material(
+    mixin.Plottable,
     mixin.Broadcastable,
     mixin.Copyable,
     abc.ABC
@@ -31,6 +32,8 @@ class Material(
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
             aperture: typ.Optional[Aperture] = None,
@@ -61,10 +64,20 @@ class Mirror(Material):
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
             aperture: typ.Optional[Aperture] = None,
     ) -> typ.List[matplotlib.lines.Line2D]:
+
+        if color is None:
+            color = self.color
+        if linewidth is None:
+            linewidth = self.linewidth
+        if linestyle is None:
+            linestyle = self.linestyle
+
         lines = []
         lines += super().plot(
             ax=ax,
@@ -89,7 +102,14 @@ class Mirror(Material):
                     plot_kwargs_z = {}
                     if component_z is not None:
                         plot_kwargs_z['zs'] = wire[i].get_component(component_z)
-                    lines += ax.plot(wire[i].get_component(c1), wire[i].get_component(c2), color=color, **plot_kwargs_z)
+                    lines += ax.plot(
+                        wire[i].get_component(c1),
+                        wire[i].get_component(c2),
+                        color=color,
+                        linewidth=linewidth,
+                        linestyle=linestyle,
+                        **plot_kwargs_z,
+                    )
 
                 # todo: utilize polymorphsim here
                 if isinstance(aperture, Polygon):
@@ -111,6 +131,12 @@ class Mirror(Material):
                             plot_kwargs_z['zs'] = vertices[i].get_component(component_z)
 
                         lines += ax.plot(
-                            vertices[i].get_component(c1), vertices[i].get_component(c2), color=color, **plot_kwargs_z)
+                            vertices[i].get_component(c1),
+                            vertices[i].get_component(c2),
+                            color=color,
+                            linewidth=linewidth,
+                            linestyle=linestyle,
+                            **plot_kwargs_z,
+                        )
 
         return lines
