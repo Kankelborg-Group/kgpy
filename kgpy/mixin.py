@@ -2,6 +2,8 @@ import abc
 import dataclasses
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines
+import matplotlib.axes
 import pandas
 import pathlib
 import pickle
@@ -132,18 +134,6 @@ class Named(Copyable, Dataframable):
         return dataframe
 
 
-class Plottable:
-
-    def plot(
-            self,
-            ax: typ.Optional[plt.Axes] = None,
-    ):
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        return ax
-
-
 class Toleranceable(abc.ABC):
 
     @property
@@ -164,6 +154,40 @@ class Colorable(Copyable):
     def copy(self) -> 'Colorable':
         other = super().copy()     # type: Colorable
         other.color = self.color
+        return other
+
+
+@dataclasses.dataclass
+class Plottable(
+    Colorable,
+    abc.ABC
+):
+    linewidth: typ.Optional[float] = None
+    linestyle: typ.Optional[str] = None
+
+    @abc.abstractmethod
+    def plot(
+            self,
+            ax: matplotlib.axes.Axes,
+            components: typ.Tuple[str, ...],
+            component_z: typ.Optional[str] = None,
+            color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
+            **kwargs,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        pass
+
+    def view(self) -> 'Plottable':
+        other = super().view()  # type: Plottable
+        other.linewidth = self.linewidth
+        other.linestyle = self.linestyle
+        return other
+
+    def copy(self) -> 'Plottable':
+        other = super().copy()     # type: Plottable
+        other.linewidth = self.linewidth
+        other.linestyle = self.linestyle
         return other
 
 
