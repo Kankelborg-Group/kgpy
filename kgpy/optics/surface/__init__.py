@@ -206,57 +206,15 @@ class Surface(
             )
 
             if self.aperture is not None:
-                lines += self.aperture.plot(
-                    # ax=ax,
-                    # components=components,
-                    # component_z=component_z,
-                    # transform_extra=transform_extra,
-                    # color=color,
-                    # linewidth=linewidth,
-                    # linestyle=linestyle,
-                    # sag=self.sag,
-                    **kwargs
-                )
+                lines += self.aperture.plot(**kwargs)
             if self.aperture_mechanical is not None:
-                lines += self.aperture_mechanical.plot(
-                    # ax=ax,
-                    # components=components,
-                    # component_z=component_z,
-                    # transform_extra=transform_extra,
-                    # color=color,
-                    # linewidth=linewidth,
-                    # linestyle=linestyle,
-                    # sag=self.sag,
-                    **kwargs
-                )
+                lines += self.aperture_mechanical.plot(**kwargs)
 
             if self.material is not None:
                 if self.aperture_mechanical is not None:
-                    lines += self.material.plot(
-                        # ax=ax,
-                        # components=components,
-                        # component_z=component_z,
-                        # transform_extra=transform_extra,
-                        # color=color,
-                        # linewidth=linewidth,
-                        # linestyle=linestyle,
-                        # sag=self.sag,
-                        **kwargs,
-                        aperture=self.aperture_mechanical,
-                    )
+                    lines += self.material.plot(**kwargs, aperture=self.aperture_mechanical, )
                 elif self.aperture is not None:
-                    lines += self.material.plot(
-                        # ax=ax,
-                        # components=components,
-                        # component_z=component_z,
-                        # transform_extra=transform_extra,
-                        # color=color,
-                        # linewidth=linewidth,
-                        # linestyle=linestyle,
-                        # sag=self.sag,
-                        **kwargs,
-                        aperture=self.aperture,
-                    )
+                    lines += self.material.plot(**kwargs, aperture=self.aperture, )
 
             if plot_annotations:
                 c_x, c_y = components
