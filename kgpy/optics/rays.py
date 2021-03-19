@@ -774,7 +774,10 @@ class RaysList(
         with astropy.visualization.quantity_support():
             colormap = plt.cm.viridis
             colornorm = plt.Normalize(vmin=mesh.value.min(), vmax=mesh.value.max())
-            color = colormap(colornorm(mesh.value))
+            if mesh.value.min() == mesh.value.max():
+                color = np.broadcast_to(colormap(0.5), mesh.shape + (4, ))
+            else:
+                color = colormap(colornorm(mesh.value))
 
             intercepts = intercepts[:, mask]
             color = color[mask]
