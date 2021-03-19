@@ -538,7 +538,7 @@ class System(
         surf_rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
         if plot_apertures:
-            surf.plot(ax=ax)
+            surf.plot(ax=ax, plot_annotations=False)
 
         return ax
 
@@ -599,6 +599,7 @@ class System(
             plot_vignetted: bool = False,
             plot_baffles: bool = True,
             plot_breadboard: bool = True,
+            plot_annotations: bool = True,
     ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
 
         if color is None:
@@ -648,6 +649,7 @@ class System(
             linestyle=linestyle,
             transform_extra=transform_extra,
             to_global=True,
+            plot_annotations=plot_annotations,
         )
 
         if plot_baffles:

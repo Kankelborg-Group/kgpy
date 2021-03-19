@@ -174,6 +174,7 @@ class Surface(
             linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
+            plot_annotations: bool = True,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
@@ -183,9 +184,10 @@ class Surface(
         if linestyle is None:
             linestyle = self.linestyle
 
+        if transform_extra is None:
+            transform_extra = tfrm.rigid.TransformList()
+
         if to_global:
-            if transform_extra is None:
-                transform_extra = tfrm.rigid.TransformList()
             transform_extra = transform_extra + self.transform
 
         lines = []
@@ -254,6 +256,43 @@ class Surface(
                         # sag=self.sag,
                         **kwargs,
                         aperture=self.aperture,
+                    )
+
+            if plot_annotations:
+                c_x, c_y = components
+                text_position_local = vector.Vector3D.spatial().reshape(-1)
+                if self.aperture_mechanical is not None:
+                    if self.aperture_mechanical.max.x.unit.is_equivalent(u.mm):
+                        text_position_local = self.aperture_mechanical.wire
+                elif self.aperture is not None:
+                    if self.aperture.max.x.unit.is_equivalent(u.mm):
+                        text_position_local = self.aperture.wire
+
+                text_position = transform_extra(text_position_local, num_extra_dims=1)
+                text_position = text_position.reshape(-1, text_position.shape[~0])
+
+                for i in range(1):
+
+                    wire_index = np.argmax(text_position[i].get_component(c_y))
+
+                    text_x = text_position[i][wire_index].get_component(c_x)
+                    text_y = text_position[i][wire_index].get_component(c_y)
+
+                    ax.annotate(
+                        text=self.name,
+                        xy=(text_x, text_y),
+                        xytext=(text_x, 1.05),
+                        # textcoords='offset points',
+                        horizontalalignment='left',
+                        verticalalignment='bottom',
+                        rotation=60,
+                        textcoords=ax.get_xaxis_transform(),
+                        arrowprops=dict(
+                            color='black',
+                            width=0.5,
+                            headwidth=4,
+                            alpha=0.5,
+                        ),
                     )
 
         return lines
@@ -378,14 +417,16 @@ class SurfaceList(
             linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
+            plot_annotations: bool = True,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
 
+        if transform_extra is None:
+            transform_extra = tfrm.rigid.TransformList()
+
         if to_global:
-            if transform_extra is None:
-                transform_extra = tfrm.rigid.TransformList()
             transform_extra = transform_extra + self.transform
 
         lines = []
@@ -399,6 +440,7 @@ class SurfaceList(
                 linestyle=linestyle,
                 transform_extra=transform_extra,
                 to_global=True,
+                plot_annotations=plot_annotations,
             )
 
         return lines
