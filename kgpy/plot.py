@@ -5,10 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates
 import matplotlib.ticker
+import matplotlib.axes
+import matplotlib.text
 from matplotlib.backend_bases import KeyEvent, MouseEvent, MouseButton
 import astropy.units as u
 import astropy.wcs
-from kgpy import format as fmt
+from kgpy import format as fmt, vector
 
 __all__ = ['ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
 
@@ -23,6 +25,29 @@ def datetime_prep(ax: plt.Axes):
     ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
     ax.set_xlabel('time (UTC)')
     return ax
+
+
+def annotate_distance(
+        ax: matplotlib.axes.Axes,
+        point_1: vector.Vector2D,
+        point_2: vector.Vector2D
+) -> typ.Tuple[matplotlib.text.Annotation, matplotlib.text.Annotation, matplotlib.text.Text]:
+    kwargs = dict(text='', xy=point_1.to_tuple(), xytext=point_2.to_tuple())
+    annotation_1 = ax.annotate(**kwargs, arrowprops=dict(arrowstyle='<->'))
+    annotation_2 = ax.annotate(**kwargs, arrowprops=dict(arrowstyle='|-|'))
+    midpoint = (point_1 + point_2) / 2
+    text = ax.text(
+        x=midpoint.x,
+        y=midpoint.y,
+        s=(point_2 - point_1).length,
+        horizontal_alignment='center',
+        vertical_alignment='center',
+        bbox=dict(
+            facecolor='white',
+            edgecolor=None,
+        )
+    )
+    return annotation_1, annotation_2, text
 
 
 class ImageSlicer:
