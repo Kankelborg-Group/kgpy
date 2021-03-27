@@ -600,6 +600,7 @@ class System(
             plot_baffles: bool = True,
             plot_breadboard: bool = True,
             plot_annotations: bool = True,
+            annotation_text_y: float = 1.05,
     ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
 
         if color is None:
@@ -650,6 +651,7 @@ class System(
             transform_extra=transform_extra,
             to_global=True,
             plot_annotations=plot_annotations,
+            annotation_text_y=annotation_text_y,
         )
 
         if plot_baffles:

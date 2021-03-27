@@ -175,6 +175,7 @@ class Surface(
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
             plot_annotations: bool = True,
+            annotation_text_y: float = 1.05,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
@@ -239,7 +240,7 @@ class Surface(
                     ax.annotate(
                         text=self.name,
                         xy=(text_x, text_y),
-                        xytext=(text_x, 1.05),
+                        xytext=(text_x, annotation_text_y),
                         # textcoords='offset points',
                         horizontalalignment='left',
                         verticalalignment='bottom',
@@ -376,6 +377,7 @@ class SurfaceList(
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
             plot_annotations: bool = True,
+            annotation_text_y: float = 1.05,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
@@ -399,6 +401,7 @@ class SurfaceList(
                 transform_extra=transform_extra,
                 to_global=True,
                 plot_annotations=plot_annotations,
+                annotation_text_y=annotation_text_y,
             )
 
         return lines
