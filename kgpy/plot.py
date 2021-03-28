@@ -107,15 +107,29 @@ def annotate_component(
     )
 
 
-    midpoint = (point_1 + point_2) / 2
-    midpoint_c = vector.Vector2D(position_orthogonal, position_orthogonal)
-    midpoint_c.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
+    text_pos = vector.Vector2D(position_orthogonal, position_orthogonal)
+    text_pos.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
     text_str = fmt.quantity(c2 - c1, digits_after_decimal=1)
+
+    bbox_margin = plt.rcParams['font.size'] / 2
+    if horizontal_alignment == 'left':
+        text_offset_x = bbox_margin
+    elif horizontal_alignment =='right':
+        text_offset_x = -bbox_margin
+    else:
+        text_offset_x = 0
+
+    if vertical_alignment == 'top':
+        text_offset_y = -bbox_margin
+    elif vertical_alignment =='bottom':
+        text_offset_y = bbox_margin
+    else:
+        text_offset_y = 0
 
     ax.annotate(
         text=text_str,
-        xy=midpoint_c.to_tuple(),
-        xytext=text_offset,
+        xy=text_pos.to_tuple(),
+        xytext=(text_offset_x, text_offset_y),
         xycoords=transform,
         textcoords='offset points',
         horizontalalignment=horizontal_alignment,
