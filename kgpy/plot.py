@@ -58,22 +58,10 @@ def annotate_component(
         component: str = 'x',
         position_orthogonal: float = 0,
         position_parallel: float = 0.5,
-        text_offset: typ.Tuple[float, float] = (0, 0),
-        # position_label: float = 0.5,
         horizontal_alignment: str = 'center',
         vertical_alignment: str = 'center',
         transform: typ.Optional[matplotlib.transforms.Transform] = None,
-        # orthogonal_in_axes_units: bool = True,
 ):
-    # if orthogonal_in_axes_units:
-    #     if component == 'x':
-    #         ax_transform = ax.get_xaxis_transform()
-    #     elif component == 'y':
-    #         ax_transform = ax.get_yaxis_transform()
-    #     else:
-    #         raise ValueError('component axes must be x or y for 2d plot')
-    # else:
-    #     ax_transform = ax.transData
 
     if transform is None:
         transform = ax.transData
@@ -137,19 +125,6 @@ def annotate_component(
             edgecolor='None',
         ),
     )
-
-    # text = ax.text(
-    #     x=midpoint_c.x,
-    #     y=midpoint_c.y,
-    #     s=text_str,
-    #     horizontalalignment=horizontal_alignment,
-    #     verticalalignment=vertical_alignment,
-    #     bbox=dict(
-    #         facecolor='white',
-    #         edgecolor='None',
-    #     ),
-    #     transform=transform,
-    # )
 
 
 
