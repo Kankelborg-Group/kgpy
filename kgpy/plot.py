@@ -249,7 +249,7 @@ class CubeSlicer:
         self.ind = 0
         self.update()
 
-    def save(self,path: str):
+    def save(self, path: str):
         """
         Method defined to save each image in the cube.  Images are saved in directory "path" in order as i.png
         :param path:
@@ -262,7 +262,7 @@ class CubeSlicer:
         for i in range(self.slices):
             self.ind = i
             self.update()
-            self.fig.savefig(os.path.join(os.path.dirname(path),str(i)+'.png'))
+            self.fig.savefig(os.path.join(os.path.dirname(path), str(i) + '.png'))
         self.ind = j
 
 
@@ -585,7 +585,7 @@ class HypercubeSlicer:
             self._ax_xy.set_title('Summed Z')
         else:
             self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
-        self._ax_xy.reset_wcs(wcs = self._wcs_xy)
+        self._ax_xy.reset_wcs(wcs=self._wcs_xy)
         self._img_xy.set_data(self._data_xy)
         self._xy_vline.set_xdata(self._x_index_int)
         self._xy_hline.set_ydata(self._y_index_int)
@@ -667,8 +667,6 @@ class HypercubeSlicer:
             self._ax_xy.set_title('Summed Z')
             self._img_xy.set_clim(vmax=self.vmax * self._data.shape[-1])
 
-
-
     def _increment_vmax(self):
         self.vmax = self.vmax + self._lim_increment
 
@@ -704,6 +702,7 @@ class HypercubeSlicer:
 
     def _decrement_z_index(self):
         self.z_index = (self.z_index - 1) % self.shape[self._axis.z]
+
 
 class TestHypercube:
 
