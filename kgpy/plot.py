@@ -7,6 +7,7 @@ import matplotlib.dates
 import matplotlib.ticker
 import matplotlib.axes
 import matplotlib.text
+import matplotlib.transforms
 from matplotlib.backend_bases import KeyEvent, MouseEvent, MouseButton
 import astropy.units as u
 import astropy.wcs
@@ -48,6 +49,108 @@ def annotate_distance(
         )
     )
     return annotation_1, annotation_2, text
+
+
+def annotate_component(
+        ax: matplotlib.axes.Axes,
+        point_1: vector.Vector2D,
+        point_2: vector.Vector2D,
+        component: str = 'x',
+        position_orthogonal: float = 0,
+        position_parallel: float = 0.5,
+        text_offset: typ.Tuple[float, float] = (0, 0),
+        # position_label: float = 0.5,
+        horizontal_alignment: str = 'center',
+        vertical_alignment: str = 'center',
+        transform: typ.Optional[matplotlib.transforms.Transform] = None,
+        # orthogonal_in_axes_units: bool = True,
+):
+    # if orthogonal_in_axes_units:
+    #     if component == 'x':
+    #         ax_transform = ax.get_xaxis_transform()
+    #     elif component == 'y':
+    #         ax_transform = ax.get_yaxis_transform()
+    #     else:
+    #         raise ValueError('component axes must be x or y for 2d plot')
+    # else:
+    #     ax_transform = ax.transData
+
+    if transform is None:
+        transform = ax.transData
+
+    point_1c = vector.Vector2D(position_orthogonal, position_orthogonal)
+    point_2c = vector.Vector2D(position_orthogonal, position_orthogonal)
+
+    c1 = point_1.get_component(component)
+    c2 = point_2.get_component(component)
+    point_1c.set_component(component, c1.value)
+    point_2c.set_component(component, c2.value)
+
+    print(point_1c.to_tuple())
+    print(point_2c.to_tuple())
+
+    annotation_kwargs = dict(
+        text='',
+        xy=point_1c.to_tuple(),
+        xytext=point_2c.to_tuple(),
+        annotation_clip=False,
+        xycoords=transform,
+        textcoords=transform,
+    )
+
+    annotation_1 = ax.annotate(**annotation_kwargs, arrowprops=dict(arrowstyle='<->', shrinkA=0.0, shrinkB=0.0))
+    # annotation_2 = ax.annotate(**annotation_kwargs, arrowprops=dict(arrowstyle='|-|', shrinkA=0.0, shrinkB=0.0))
+
+    annotation_kwargs_a = dict(
+        text='',
+        textcoords=transform,
+        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=0.0, linestyle='dotted', color='gray'),
+        annotation_clip=False,
+    )
+    annotation_1a = ax.annotate(
+        xy=point_1.to_tuple(),
+        xytext=point_1c.to_tuple(),
+        **annotation_kwargs_a,
+    )
+    annotation_2a = ax.annotate(
+        xy=point_2.to_tuple(),
+        xytext=point_2c.to_tuple(),
+        **annotation_kwargs_a
+    )
+
+
+    midpoint = (point_1 + point_2) / 2
+    midpoint_c = vector.Vector2D(position_orthogonal, position_orthogonal)
+    midpoint_c.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
+    text_str = fmt.quantity(c2 - c1, digits_after_decimal=1)
+
+    ax.annotate(
+        text=text_str,
+        xy=midpoint_c.to_tuple(),
+        xytext=text_offset,
+        xycoords=transform,
+        textcoords='offset points',
+        horizontalalignment=horizontal_alignment,
+        verticalalignment=vertical_alignment,
+        bbox=dict(
+            facecolor='white',
+            edgecolor='None',
+        ),
+    )
+
+    # text = ax.text(
+    #     x=midpoint_c.x,
+    #     y=midpoint_c.y,
+    #     s=text_str,
+    #     horizontalalignment=horizontal_alignment,
+    #     verticalalignment=vertical_alignment,
+    #     bbox=dict(
+    #         facecolor='white',
+    #         edgecolor='None',
+    #     ),
+    #     transform=transform,
+    # )
+
 
 
 class ImageSlicer:
