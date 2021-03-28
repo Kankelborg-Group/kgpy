@@ -74,9 +74,6 @@ def annotate_component(
     point_1c.set_component(component, c1.value)
     point_2c.set_component(component, c2.value)
 
-    print(point_1c.to_tuple())
-    print(point_2c.to_tuple())
-
     annotation_kwargs = dict(
         text='',
         xy=point_1c.to_tuple(),
