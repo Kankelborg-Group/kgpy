@@ -83,8 +83,27 @@ class System(
         self._baffles_cache = None
 
     @property
+    def transform_pointing(self) -> transform.rigid.TransformList:
+        return transform.rigid.TransformList([
+            transform.rigid.TiltX(self.pointing.y),
+            transform.rigid.TiltY(self.pointing.x),
+        ])
+
+    @property
+    def transform_roll(self) -> transform.rigid.TransformList:
+        return transform.rigid.TransformList([
+            transform.rigid.TiltZ(self.roll)
+        ])
+
+    @property
+    def transform_all(self) -> transform.rigid.TransformList:
+        return self.transform_pointing + self.transform_roll + self.transform
+
+    @property
     def surfaces_all(self) -> surface.SurfaceList:
-        return surface.SurfaceList([self.object_surface]) + self.surfaces
+        surfaces = surface.SurfaceList([self.object_surface]) + self.surfaces
+        surfaces.transform = self.transform_all
+        return surfaces
 
     @property
     def surface_stop(self):

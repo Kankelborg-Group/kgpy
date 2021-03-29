@@ -58,22 +58,10 @@ def annotate_component(
         component: str = 'x',
         position_orthogonal: float = 0,
         position_parallel: float = 0.5,
-        text_offset: typ.Tuple[float, float] = (0, 0),
-        # position_label: float = 0.5,
         horizontal_alignment: str = 'center',
         vertical_alignment: str = 'center',
         transform: typ.Optional[matplotlib.transforms.Transform] = None,
-        # orthogonal_in_axes_units: bool = True,
 ):
-    # if orthogonal_in_axes_units:
-    #     if component == 'x':
-    #         ax_transform = ax.get_xaxis_transform()
-    #     elif component == 'y':
-    #         ax_transform = ax.get_yaxis_transform()
-    #     else:
-    #         raise ValueError('component axes must be x or y for 2d plot')
-    # else:
-    #     ax_transform = ax.transData
 
     if transform is None:
         transform = ax.transData
@@ -85,9 +73,6 @@ def annotate_component(
     c2 = point_2.get_component(component)
     point_1c.set_component(component, c1.value)
     point_2c.set_component(component, c2.value)
-
-    print(point_1c.to_tuple())
-    print(point_2c.to_tuple())
 
     annotation_kwargs = dict(
         text='',
@@ -119,15 +104,29 @@ def annotate_component(
     )
 
 
-    midpoint = (point_1 + point_2) / 2
-    midpoint_c = vector.Vector2D(position_orthogonal, position_orthogonal)
-    midpoint_c.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
+    text_pos = vector.Vector2D(position_orthogonal, position_orthogonal)
+    text_pos.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
     text_str = fmt.quantity(c2 - c1, digits_after_decimal=1)
+
+    bbox_margin = plt.rcParams['font.size'] / 2
+    if horizontal_alignment == 'left':
+        text_offset_x = bbox_margin
+    elif horizontal_alignment =='right':
+        text_offset_x = -bbox_margin
+    else:
+        text_offset_x = 0
+
+    if vertical_alignment == 'top':
+        text_offset_y = -bbox_margin
+    elif vertical_alignment =='bottom':
+        text_offset_y = bbox_margin
+    else:
+        text_offset_y = 0
 
     ax.annotate(
         text=text_str,
-        xy=midpoint_c.to_tuple(),
-        xytext=text_offset,
+        xy=text_pos.to_tuple(),
+        xytext=(text_offset_x, text_offset_y),
         xycoords=transform,
         textcoords='offset points',
         horizontalalignment=horizontal_alignment,
@@ -137,19 +136,6 @@ def annotate_component(
             edgecolor='None',
         ),
     )
-
-    # text = ax.text(
-    #     x=midpoint_c.x,
-    #     y=midpoint_c.y,
-    #     s=text_str,
-    #     horizontalalignment=horizontal_alignment,
-    #     verticalalignment=vertical_alignment,
-    #     bbox=dict(
-    #         facecolor='white',
-    #         edgecolor='None',
-    #     ),
-    #     transform=transform,
-    # )
 
 
 
