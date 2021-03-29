@@ -2,6 +2,8 @@ import abc
 import dataclasses
 import typing as typ
 import numpy as np
+import matplotlib.axes
+import matplotlib.lines
 import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.visualization
@@ -14,6 +16,7 @@ __all__ = ['Material', 'Mirror']
 
 @dataclasses.dataclass
 class Material(
+    mixin.Plottable,
     mixin.Broadcastable,
     mixin.Copyable,
     abc.ABC
@@ -25,16 +28,17 @@ class Material(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
             aperture: typ.Optional[Aperture] = None,
-    ) -> plt.Axes:
-        if ax is None:
-            fig, ax = plt.subplots()
-        return ax
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        return []
 
 
 @dataclasses.dataclass
@@ -56,14 +60,26 @@ class Mirror(Material):
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
             aperture: typ.Optional[Aperture] = None,
-    ) -> plt.Axes:
-        super().plot(
+    ) -> typ.List[matplotlib.lines.Line2D]:
+
+        if color is None:
+            color = self.color
+        if linewidth is None:
+            linewidth = self.linewidth
+        if linestyle is None:
+            linestyle = self.linestyle
+
+        lines = []
+        lines += super().plot(
             ax=ax,
             components=components,
             color=color,
@@ -81,7 +97,19 @@ class Mirror(Material):
                 if transform_extra is not None:
                     wire = transform_extra(wire, num_extra_dims=1)
                 wire = wire.reshape((-1,) + wire.shape[~0:])
-                ax.fill(wire.get_component(c1).T, wire.get_component(c2).T, fill=False)
+
+                for i in range(wire.shape[0]):
+                    plot_kwargs_z = {}
+                    if component_z is not None:
+                        plot_kwargs_z['zs'] = wire[i].get_component(component_z)
+                    lines += ax.plot(
+                        wire[i].get_component(c1),
+                        wire[i].get_component(c2),
+                        color=color,
+                        linewidth=linewidth,
+                        linestyle=linestyle,
+                        **plot_kwargs_z,
+                    )
 
                 # todo: utilize polymorphsim here
                 if isinstance(aperture, Polygon):
@@ -97,6 +125,18 @@ class Mirror(Material):
 
                     vertices = vertices.reshape((-1, ) + vertices.shape[~0:])
 
-                    ax.plot(vertices.get_component(c1).T, vertices.get_component(c2).T, color='black')
+                    for i in range(vertices.shape[0]):
+                        plot_kwargs_z = {}
+                        if component_z is not None:
+                            plot_kwargs_z['zs'] = vertices[i].get_component(component_z)
 
-        return ax
+                        lines += ax.plot(
+                            vertices[i].get_component(c1),
+                            vertices[i].get_component(c2),
+                            color=color,
+                            linewidth=linewidth,
+                            linestyle=linestyle,
+                            **plot_kwargs_z,
+                        )
+
+        return lines

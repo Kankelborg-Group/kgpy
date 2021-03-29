@@ -5,7 +5,8 @@ import abc
 import dataclasses
 import typing as typ
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.axes
+import matplotlib.lines
 import astropy.units as u
 import astropy.visualization
 import shapely.geometry
@@ -29,7 +30,7 @@ __all__ = [
 @dataclasses.dataclass
 class Aperture(
     mixin.Broadcastable,
-    mixin.Colorable,
+    mixin.Plottable,
     abc.ABC
 ):
     num_samples: int = 1000
@@ -55,29 +56,48 @@ class Aperture(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[Sag] = None,
-    ) -> plt.Axes:
-        if ax is None:
-            fig, ax = plt.subplots()
+    ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
+        if linewidth is None:
+            linewidth = self.linewidth
+        if linestyle is None:
+            linestyle = self.linestyle
 
         with astropy.visualization.quantity_support():
             c1, c2 = components
             wire = self.wire
+            lines = []
             if wire.x.unit.is_equivalent(u.mm):
                 if sag is not None:
                     wire.z = wire.z + sag(wire.x, wire.y)
                 if transform_extra is not None:
                     wire = transform_extra(wire, num_extra_dims=1)
                 wire = wire.reshape((-1, wire.shape[~0]))
-                ax.fill(wire.get_component(c1).T, wire.get_component(c2).T, color=color, fill=False)
-            return ax
+                plot_kwargs_z = {}
+
+                for i in range(wire.shape[0]):
+                    if component_z is not None:
+                        plot_kwargs_z['zs'] = wire[i].get_component(component_z)
+                    lines += ax.plot(
+                        wire[i].get_component(c1),
+                        wire[i].get_component(c2),
+                        color=color,
+                        linewidth=linewidth,
+                        linestyle=linestyle,
+                        **plot_kwargs_z,
+                    )
+
+        return lines
 
     def view(self) -> 'Aperture':
         other = super().view()  # type: Aperture

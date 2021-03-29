@@ -97,7 +97,16 @@ class Vector(
 
     @classmethod
     @abc.abstractmethod
+    def angular(cls) -> 'Vector':
+        return cls()
+
+    @classmethod
+    @abc.abstractmethod
     def from_quantity(cls, value: u.Quantity):
+        return cls()
+
+    @classmethod
+    def from_tuple(cls, value: typ.Tuple):
         return cls()
 
     @property
@@ -121,11 +130,15 @@ class Vector(
     def __setitem__(self, key, value):
         pass
 
+    @abc.abstractmethod
+    def to_tuple(self):
+        pass
+
 
 @dataclasses.dataclass
 class Vector2D(Vector):
-    x: u.Quantity = 0 * u.dimensionless_unscaled
-    y: u.Quantity = 0 * u.dimensionless_unscaled
+    x: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
+    y: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
 
     x_index: typ.ClassVar[int] = 0
     y_index: typ.ClassVar[int] = 1
@@ -140,10 +153,24 @@ class Vector2D(Vector):
         return self
 
     @classmethod
+    def angular(cls) -> 'Vector2D':
+        self = super().angular()
+        self.x = self.x * u.deg
+        self.y = self.y * u.deg
+        return self
+
+    @classmethod
     def from_quantity(cls, value: u.Quantity):
         self = super().from_quantity(value)
         self.x = value[..., cls.x_index]
         self.y = value[..., cls.y_index]
+        return self
+
+    @classmethod
+    def from_tuple(cls, value: typ.Tuple):
+        self = super().from_tuple(value=value)
+        self.x = value[ix]
+        self.y = value[iy]
         return self
 
     @classmethod
@@ -179,6 +206,9 @@ class Vector2D(Vector):
 
     def get_component(self, comp: str) -> u.Quantity:
         return getattr(self, comp)
+
+    def set_component(self, comp: str, value: u.Quantity):
+        setattr(self, comp, value)
 
     @property
     def quantity(self) -> u.Quantity:
@@ -247,7 +277,7 @@ class Vector2D(Vector):
             return self._broadcast_arrays(*args, **kwargs)
         elif function in [
             np.min, np.max, np.median, np.mean, np.sum, np.prod, np.stack, np.moveaxis, np.roll, np.nanmin, np.nanmax,
-            np.nansum, np.nanmean
+            np.nansum, np.nanmean, np.linspace, np.where
         ]:
             return self._array_function_default(function, types, args, kwargs)
         else:
@@ -393,6 +423,9 @@ class Vector2D(Vector):
         other.z = z
         return other
 
+    def to_tuple(self) -> typ.Tuple:
+        return self.x, self.y
+
     def copy(self) -> 'Vector2D':
         return type(self)(
             x=self.x.copy(),
@@ -402,7 +435,7 @@ class Vector2D(Vector):
 
 @dataclasses.dataclass
 class Vector3D(Vector2D):
-    z: u.Quantity = 0 * u.dimensionless_unscaled
+    z: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
     z_index: typ.ClassVar[int] = 2
 
     __array_priority__ = 1000000
@@ -414,9 +447,21 @@ class Vector3D(Vector2D):
         return self
 
     @classmethod
+    def from_tuple(cls, value: typ.Tuple):
+        self = super().from_tuple(value=value)
+        self.z = value[iz]
+        return self
+
+    @classmethod
     def spatial(cls) -> 'Vector3D':
         self = super().spatial()    # type: Vector3D
         self.z = self.z * u.mm
+        return self
+
+    @classmethod
+    def angular(cls) -> 'Vector3D':
+        self = super().angular()    # type: Vector3D
+        self.z = self.z * u.deg
         return self
 
     @classmethod
@@ -439,6 +484,35 @@ class Vector3D(Vector2D):
             x=self.x,
             y=self.y,
         )
+
+    @xy.setter
+    def xy(self, value: Vector2D):
+        self.x = value.x
+        self.y = value.y
+
+    @property
+    def yz(self) -> Vector2D:
+        return Vector2D(
+            x=self.y,
+            y=self.z,
+        )
+
+    @yz.setter
+    def yz(self, value: Vector2D):
+        self.y = value.x
+        self.z = value.y
+
+    @property
+    def zx(self) -> Vector2D:
+        return Vector2D(
+            x=self.z,
+            y=self.x,
+        )
+
+    @zx.setter
+    def zx(self, value: Vector2D):
+        self.z = value.x
+        self.x = value.y
 
     @property
     def broadcast(self):
@@ -586,6 +660,9 @@ class Vector3D(Vector2D):
         other = super().to(unit)
         other.z = self.z.to(unit)
         return other
+
+    def to_tuple(self) -> typ.Tuple:
+        return super().to_tuple() + self.z
 
     def copy(self) -> 'Vector3D':
         other = super().copy()

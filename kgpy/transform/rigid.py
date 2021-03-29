@@ -58,16 +58,19 @@ class TransformList(
     def extrinsic(self) -> bool:
         return not self.intrinsic
 
-    # @property
-    # def rotation_eff(self) -> u.Quantity:
-    #     rotation = np.identity(3) << u.dimensionless_unscaled
-    #     for transform in self.transforms:
-    #         if transform is not None:
-    #             if transform.rotation_eff is not None:
-    #                 # rotation = matrix.mul(transform.rotation_eff, rotation)
-    #                 rotation = matrix.mul(rotation, transform.rotation_eff)
-    #     return rotation
-    #
+    @property
+    def rotation_eff(self) -> u.Quantity:
+        rotation = matrix.Matrix3D(
+            xx=1 * u.dimensionless_unscaled,
+            yy=1 * u.dimensionless_unscaled,
+            zz=1 * u.dimensionless_unscaled,
+        )
+        for transform in self.transforms:
+            if transform is not None:
+                if isinstance(transform, TiltAboutAxis):
+                    rotation = transform.rotation_matrix @ rotation
+        return rotation
+
     @property
     def translation_eff(self) -> vector.Vector3D:
         value = vector.Vector3D.spatial()
@@ -80,14 +83,35 @@ class TransformList(
             translate: bool = True,
             num_extra_dims: int = 0,
     ) -> vector.Vector3D:
-        for transform in self.transforms:
-            value = transform(
-                value=value,
-                rotate=rotate,
-                translate=translate,
-                num_extra_dims=num_extra_dims,
-            )
-        return value
+
+        rotation = matrix.Matrix3D(
+            xx=1 * u.dimensionless_unscaled,
+            yy=1 * u.dimensionless_unscaled,
+            zz=1 * u.dimensionless_unscaled,
+        )
+        translation = vector.Vector3D(x=0 * value.x.unit, y=0 * value.y.unit, z=0 * value.z.unit)
+
+        for transform in reversed(list(self.transforms)):
+            if transform is not None:
+                if isinstance(transform, TiltAboutAxis):
+                    if rotate:
+                        rotation = rotation @ transform.rotation_matrix
+                elif isinstance(transform, Translate):
+                    if translate:
+                        translation = (rotation @ transform.value) + translation
+
+        extra_dims_slice = (Ellipsis, ) + num_extra_dims * (np.newaxis, )
+        return (rotation[extra_dims_slice] @ value) + translation[extra_dims_slice]
+
+        # for transform in self.transforms:
+        #     value = transform(
+        #         value=value,
+        #         rotate=rotate,
+        #         translate=translate,
+        #         num_extra_dims=num_extra_dims,
+        #     )
+        # return value
+
 
     def __invert__(self) -> 'TransformList':
         other = self.copy()

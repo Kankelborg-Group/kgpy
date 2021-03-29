@@ -1,12 +1,10 @@
 import typing as typ
 import abc
-import collections
 import dataclasses
-import warnings
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.axes
+import matplotlib.lines
 import astropy.units as u
-import astropy.visualization
 from kgpy import mixin, vector, transform as tfrm, optimization
 from ..rays import Rays, RaysList
 from .sag import Sag
@@ -35,7 +33,7 @@ RulingsT = typ.TypeVar('RulingsT', bound=Rulings)
 class Surface(
     mixin.Broadcastable,
     tfrm.rigid.Transformable,
-    mixin.Colorable,
+    mixin.Plottable,
     mixin.Named,
     abc.ABC,
     typ.Generic[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT],
@@ -43,7 +41,7 @@ class Surface(
     """
     Interface for representing an optical surface.
     """
-
+    color: str = 'black'
     is_stop: bool = False
     is_stop_test: bool = False
     is_active: bool = True  #: Flag to disable the surface
@@ -103,8 +101,11 @@ class Surface(
         rays.position = self.ray_intercept(rays, intercept_error=intercept_error)
 
         if self.rulings is not None:
-            a = self.rulings.effective_input_direction(rays, material=self.material)
-            n1 = self.rulings.effective_input_index(rays, material=self.material)
+            # a = self.rulings.effective_input_direction(rays, material=self.material)
+            # n1 = self.rulings.effective_input_index(rays, material=self.material)
+            v = self.rulings.effective_input_vector(rays=rays, material=self.material)
+            a = self.rulings.effective_input_direction(v)
+            n1 = self.rulings.effective_input_index(v)
         else:
             a = rays.direction
             n1 = rays.index_of_refraction
@@ -136,65 +137,124 @@ class Surface(
 
         return rays
 
+    def histogram(self, rays: Rays, nbins: vector.Vector2D, weights: typ.Optional[u.Quantity] = None):
+
+        if self.aperture is not None:
+            hmin = self.aperture.min
+            hmax = self.aperture.max
+        else:
+            hmin = rays.position.min()
+            hmax = rays.position.max()
+
+        nbins = nbins.to_tuple()
+        hist = np.empty(rays.shape + nbins)
+
+        for i in range(rays.size):
+            index = np.unravel_index(i, rays.shape)
+            hist[index] = np.histogram2d(
+                x=rays.position.x,
+                y=rays.position.y,
+                bins=nbins,
+                range=[
+                    [hmin.x, hmax.x],
+                    [hmin.y, hmax.y],
+                ],
+                weights=weights,
+            )[0]
+
+        return hist
+
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
-    ) -> plt.Axes:
-        if ax is None:
-            fig, ax = plt.subplots()
+            plot_annotations: bool = True,
+            annotation_text_y: float = 1.05,
+    ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
+        if linewidth is None:
+            linewidth = self.linewidth
+        if linestyle is None:
+            linestyle = self.linestyle
+
+        if transform_extra is None:
+            transform_extra = tfrm.rigid.TransformList()
 
         if to_global:
-            if transform_extra is None:
-                transform_extra = tfrm.rigid.TransformList()
             transform_extra = transform_extra + self.transform
+
+        lines = []
 
         if self.is_visible:
 
+            kwargs = dict(
+                ax=ax,
+                components=components,
+                component_z=component_z,
+                transform_extra=transform_extra,
+                color=color,
+                linewidth=linewidth,
+                linestyle=linestyle,
+                sag=self.sag,
+            )
+
             if self.aperture is not None:
-                self.aperture.plot(
-                    ax=ax,
-                    components=components,
-                    transform_extra=transform_extra,
-                    color=color,
-                    sag=self.sag,
-                )
+                lines += self.aperture.plot(**kwargs)
             if self.aperture_mechanical is not None:
-                self.aperture_mechanical.plot(
-                    ax=ax,
-                    components=components,
-                    transform_extra=transform_extra,
-                    color=color,
-                    sag=self.sag,
-                )
+                lines += self.aperture_mechanical.plot(**kwargs)
 
             if self.material is not None:
                 if self.aperture_mechanical is not None:
-                    self.material.plot(
-                        ax=ax,
-                        components=components,
-                        transform_extra=transform_extra,
-                        color=color,
-                        sag=self.sag,
-                        aperture=self.aperture_mechanical,
-                    )
+                    lines += self.material.plot(**kwargs, aperture=self.aperture_mechanical, )
                 elif self.aperture is not None:
-                    self.material.plot(
-                        ax=ax,
-                        components=components,
-                        transform_extra=transform_extra,
-                        color=color,
-                        sag=self.sag,
-                        aperture=self.aperture,
+                    lines += self.material.plot(**kwargs, aperture=self.aperture, )
+
+            if plot_annotations:
+                c_x, c_y = components
+                text_position_local = vector.Vector3D.spatial().reshape(-1)
+                if self.aperture_mechanical is not None:
+                    if self.aperture_mechanical.max.x.unit.is_equivalent(u.mm):
+                        text_position_local = self.aperture_mechanical.wire
+                elif self.aperture is not None:
+                    if self.aperture.max.x.unit.is_equivalent(u.mm):
+                        text_position_local = self.aperture.wire
+
+                text_position = transform_extra(text_position_local, num_extra_dims=1)
+                text_position = text_position.reshape(-1, text_position.shape[~0])
+
+                for i in range(1):
+
+                    wire_index = np.argmax(text_position[i].get_component(c_y))
+
+                    text_x = text_position[i][wire_index].get_component(c_x)
+                    text_y = text_position[i][wire_index].get_component(c_y)
+
+                    ax.annotate(
+                        text=self.name,
+                        xy=(text_x, text_y),
+                        xytext=(text_x, annotation_text_y),
+                        # textcoords='offset points',
+                        horizontalalignment='left',
+                        verticalalignment='bottom',
+                        rotation=60,
+                        textcoords=ax.get_xaxis_transform(),
+                        arrowprops=dict(
+                            color='black',
+                            width=0.5,
+                            headwidth=4,
+                            alpha=0.5,
+                        ),
                     )
 
-        return ax
+        return lines
 
     def view(self) -> 'Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]':
         other = super().view()      # type: Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]
@@ -308,33 +368,43 @@ class SurfaceList(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
             color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
-    ) -> plt.Axes:
-        if ax is None:
-            _, ax = plt.subplots()
+            plot_annotations: bool = True,
+            annotation_text_y: float = 1.05,
+    ) -> typ.List[matplotlib.lines.Line2D]:
 
         if color is None:
             color = self.color
 
+        if transform_extra is None:
+            transform_extra = tfrm.rigid.TransformList()
+
         if to_global:
-            if transform_extra is None:
-                transform_extra = tfrm.rigid.TransformList()
             transform_extra = transform_extra + self.transform
 
+        lines = []
         for surf in self:
-            surf.plot(
+            lines += surf.plot(
                 ax=ax,
                 components=components,
+                component_z=component_z,
                 color=color,
+                linewidth=linewidth,
+                linestyle=linestyle,
                 transform_extra=transform_extra,
                 to_global=True,
+                plot_annotations=plot_annotations,
+                annotation_text_y=annotation_text_y,
             )
 
-        return ax
+        return lines
 
 
 from . import aperture

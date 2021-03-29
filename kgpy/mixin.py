@@ -2,6 +2,8 @@ import abc
 import dataclasses
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines
+import matplotlib.axes
 import pandas
 import pathlib
 import pickle
@@ -38,7 +40,7 @@ class AutoAxis:
     def ndim(self) -> int:
         return self.num_left_dim + self.num_right_dim
 
-    def auto_axis_index(self, from_right: bool = True):
+    def auto_axis_index(self, from_right: bool = True) -> int:
         if from_right:
             i = ~self.num_right_dim
             self.num_right_dim += 1
@@ -48,10 +50,13 @@ class AutoAxis:
         self.all.append(i)
         return i
 
-    def perp_axes(self, axis: int) -> typ.Tuple[int, ...]:
+    def perp_axes(self, axis: typ.Union[int, typ.Sequence[int]]) -> typ.Tuple[int, ...]:
         axes = self.all.copy()
         axes = [a % self.ndim for a in axes]
-        axes.remove(axis % self.ndim)
+        if isinstance(axis, int):
+            axis = [axis]
+        for ax in axis:
+            axes.remove(ax % self.ndim)
         return tuple([a - self.ndim for a in axes])
 
 
@@ -129,18 +134,6 @@ class Named(Copyable, Dataframable):
         return dataframe
 
 
-class Plottable:
-
-    def plot(
-            self,
-            ax: typ.Optional[plt.Axes] = None,
-    ):
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        return ax
-
-
 class Toleranceable(abc.ABC):
 
     @property
@@ -161,6 +154,40 @@ class Colorable(Copyable):
     def copy(self) -> 'Colorable':
         other = super().copy()     # type: Colorable
         other.color = self.color
+        return other
+
+
+@dataclasses.dataclass
+class Plottable(
+    Colorable,
+    abc.ABC
+):
+    linewidth: typ.Optional[float] = None
+    linestyle: typ.Optional[str] = None
+
+    @abc.abstractmethod
+    def plot(
+            self,
+            ax: matplotlib.axes.Axes,
+            components: typ.Tuple[str, ...],
+            component_z: typ.Optional[str] = None,
+            color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
+            **kwargs,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        pass
+
+    def view(self) -> 'Plottable':
+        other = super().view()  # type: Plottable
+        other.linewidth = self.linewidth
+        other.linestyle = self.linestyle
+        return other
+
+    def copy(self) -> 'Plottable':
+        other = super().copy()     # type: Plottable
+        other.linewidth = self.linewidth
+        other.linestyle = self.linestyle
         return other
 
 

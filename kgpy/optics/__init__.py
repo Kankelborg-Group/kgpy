@@ -12,7 +12,10 @@ import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
 import matplotlib.colors
-from kgpy import mixin, linspace, vector, optimization, transform
+import matplotlib.lines
+import matplotlib.colorbar
+import matplotlib.axes
+from kgpy import mixin, linspace, vector, optimization, transform, obs, grid
 from . import aberration, rays, surface, component, baffle, breadboard
 
 __all__ = [
@@ -30,6 +33,7 @@ __all__ = [
 @dataclasses.dataclass
 class System(
     transform.rigid.Transformable,
+    mixin.Plottable,
     mixin.Broadcastable,
     mixin.Named,
 ):
@@ -40,11 +44,30 @@ class System(
     #: Surface representing the light source
     object_surface: surface.Surface = dataclasses.field(default_factory=surface.Surface)
     surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
-    wavelengths: u.Quantity = 0 * u.nm  #: Source wavelengths
-    pupil_samples: typ.Union[int, typ.Tuple[int, int]] = 3  #: Number of samples across the pupil for each axis x, y
-    pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
-    field_samples: typ.Union[int, typ.Tuple[int, int]] = 3  #: Number of samples across the field for each axis x, y
+    wavelength: u.Quantity = 0 * u.nm  #: Source wavelengths
+    # grid_field: grid.Grid2D = dataclasses.field(default_factory=lambda: grid.RegularGrid2D(
+    #     min=vector.Vector2D.spatial(),
+    #     max=vector.Vector2D.spatial(),
+    #     num_samples=1,
+    # ))
+    field_samples: typ.Union[int, vector.Vector2D] = 3  #: Number of samples across the field for each axis x, y
     field_margin: u.Quantity = 1 * u.nrad  #: Margin between edge of field and nearest ray
+    field_is_stratified_random: bool = False
+    # grid_pupil: grid.Grid2D = dataclasses.field(default_factory=lambda: grid.RegularGrid2D(
+    #     min=vector.Vector2D(x=-1 * u.dimensionless_unscaled, y=-1 * u.dimensionless_unscaled),
+    #     max=vector.Vector2D(x=1 * u.dimensionless_unscaled, y=1 * u.dimensionless_unscaled),
+    #     num_samples=vector.Vector2D(1, 1),
+    # ))
+    pupil_samples: typ.Union[int, vector.Vector2D] = 3
+    pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
+    pupil_is_stratified_random: bool = False
+    grid_velocity_los: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(
+        min=0 * u.km / u.s,
+        max=0 * u.km / u.s,
+        num_samples=1,
+    ))
+    pointing: vector.Vector2D = dataclasses.field(default_factory=vector.Vector2D.angular)
+    roll: u.Quantity = 0 * u.deg
     baffles_blank: baffle.BaffleList = dataclasses.field(default_factory=baffle.BaffleList)
     baffles_hull_axes: typ.Optional[typ.Tuple[int, ...]] = None
     breadboard: typ.Optional[Breadboard] = None
@@ -59,75 +82,136 @@ class System(
         self._raytrace_cache = None
         self._baffles_cache = None
 
-    # @property
-    # def stop(self) -> surface.Surface:
-    #     return [s for s in self.surfaces if s.is_stop][0]
-    #
-    # @property
-    # def stop_tests(self) -> typ.List[surface.Surface]:
-    #     return [s for s in self.surfaces if s.is_stop_test]
-
     @property
     def surfaces_all(self) -> surface.SurfaceList:
         return surface.SurfaceList([self.object_surface]) + self.surfaces
 
-    @staticmethod
-    def _normalize_2d_samples(samples: typ.Union[int, typ.Tuple[int, int]]) -> typ.Tuple[int, int]:
-        if isinstance(samples, int):
-            samples = samples, samples
-        return samples
+    @property
+    def surface_stop(self):
+        for surf in self.surfaces_all.flat_global_iter:
+            if surf.is_stop:
+                return surf
+        raise self.error_no_stop
 
     @property
-    def pupil_samples_normalized(self) -> typ.Tuple[int, int]:
-        return self._normalize_2d_samples(self.pupil_samples)
+    def grid_wavelength(self) -> grid.IrregularGrid1D:
+        return grid.IrregularGrid1D(self.wavelength)
 
     @property
-    def field_samples_normalized(self) -> typ.Tuple[int, int]:
-        return self._normalize_2d_samples(self.field_samples)
+    def grid_field(self) -> grid.RegularGrid2D:
+        surf = self.object_surface
+        if self.field_is_stratified_random:
+            cls = grid.StratifiedRandomGrid2D
+        else:
+            cls = grid.RegularGrid2D
+        return cls(
+            min=surf.aperture.min.xy + self.field_margin,
+            max=surf.aperture.max.xy - self.field_margin,
+            num_samples=self.field_samples,
+        )
 
-    @property
-    def field_min(self) -> vector.Vector2D:
-        return self.object_surface.aperture.min.xy
+    @classmethod
+    def _calc_grid_pupil(
+            cls,
+            surf: surface.Surface,
+            pupil_samples: typ.Union[int, vector.Vector2D],
+            pupil_margin: u.Quantity,
+            pupil_is_stratified_random: bool = False,
+    ) -> grid.RegularGrid2D:
+        if pupil_is_stratified_random:
+            type_grid = grid.StratifiedRandomGrid2D
+        else:
+            type_grid = grid.RegularGrid2D
+        return type_grid(
+            min=surf.aperture.min.xy + pupil_margin,
+            max=surf.aperture.max.xy - pupil_margin,
+            num_samples=pupil_samples,
+        )
 
-    @property
-    def field_max(self) -> vector.Vector2D:
-        return self.object_surface.aperture.max.xy
+    def grid_pupil(self, surf: surface.Surface) -> grid.RegularGrid2D:
+        return self._calc_grid_pupil(
+            surf=surf,
+            pupil_samples=self.pupil_samples,
+            pupil_margin=self.pupil_margin,
+            pupil_is_stratified_random=self.pupil_is_stratified_random,
+        )
 
-    @property
-    def field_x(self) -> u.Quantity:
-        return linspace(
-            start=self.field_min.x + self.field_margin,
-            stop=self.field_max.x - self.field_margin,
-            num=self.field_samples_normalized[vector.ix],
-            axis=~0,
+    def grid_rays(self, surf: surface.Surface) -> rays.RayGrid:
+        return rays.RayGrid(
+            field=self.grid_field,
+            pupil=self.grid_pupil(surf=surf),
+            wavelength=self.grid_wavelength,
+            velocity_los=self.grid_velocity_los,
         )
 
     @property
-    def field_y(self) -> u.Quantity:
-        return linspace(
-            start=self.field_min.y + self.field_margin,
-            stop=self.field_max.y - self.field_margin,
-            num=self.field_samples_normalized[vector.iy],
-            axis=~0
-        )
+    def grid_rays_stop(self) -> rays.RayGrid:
+        return self.grid_rays(self.surface_stop)
 
-    def pupil_x(self, surf: surface.Surface) -> u.Quantity:
-        aper = surf.aperture
-        return linspace(
-            start=aper.min.x + self.pupil_margin,
-            stop=aper.max.x - self.pupil_margin,
-            num=self.pupil_samples_normalized[vector.ix],
-            axis=~0,
-        )
-
-    def pupil_y(self, surf: surface.Surface) -> u.Quantity:
-        aper = surf.aperture
-        return linspace(
-            start=aper.min.y + self.pupil_margin,
-            stop=aper.max.y - self.pupil_margin,
-            num=self.pupil_samples_normalized[vector.iy],
-            axis=~0,
-        )
+    # @staticmethod
+    # def _normalize_2d_samples(samples: typ.Union[int, vector.Vector2D]) -> vector.Vector2D:
+    #     if isinstance(samples, int):
+    #         samples = vector.Vector2D(x=samples, y=samples)
+    #     return samples
+    #
+    # @property
+    # def pupil_samples_normalized(self) -> vector.Vector2D:
+    #     return self._normalize_2d_samples(self.pupil_samples)
+    #
+    # @property
+    # def field_samples_normalized(self) -> vector.Vector2D:
+    #     return self._normalize_2d_samples(self.field_samples)
+    #
+    # @property
+    # def field_min(self) -> vector.Vector2D:
+    #     return self.object_surface.aperture.min.xy
+    #
+    # @property
+    # def field_max(self) -> vector.Vector2D:
+    #     return self.object_surface.aperture.max.xy
+    #
+    # @property
+    # def field_x(self) -> u.Quantity:
+    #     return linspace(
+    #         start=self.field_min.x + self.field_margin,
+    #         stop=self.field_max.x - self.field_margin,
+    #         num=self.field_samples_normalized.x,
+    #         axis=~0,
+    #     )
+    #
+    # @property
+    # def field_y(self) -> u.Quantity:
+    #     return linspace(
+    #         start=self.field_min.y + self.field_margin,
+    #         stop=self.field_max.y - self.field_margin,
+    #         num=self.field_samples_normalized.y,
+    #         axis=~0
+    #     )
+    #
+    # @property
+    # def field(self) -> vector.Vector2D:
+    #     return vector.Vector2D(x=self.field_x, y=self.field_y)
+    #
+    # def pupil_x(self, surf: surface.Surface) -> u.Quantity:
+    #     aper = surf.aperture
+    #     return linspace(
+    #         start=aper.min.x + self.pupil_margin,
+    #         stop=aper.max.x - self.pupil_margin,
+    #         num=self.pupil_samples_normalized.x,
+    #         axis=~0,
+    #     )
+    #
+    # def pupil_y(self, surf: surface.Surface) -> u.Quantity:
+    #     aper = surf.aperture
+    #     return linspace(
+    #         start=aper.min.y + self.pupil_margin,
+    #         stop=aper.max.y - self.pupil_margin,
+    #         num=self.pupil_samples_normalized.y,
+    #         axis=~0,
+    #     )
+    #
+    # def pupil(self, surf: surface.Surface) -> vector.Vector2D:
+    #     return vector.Vector2D(x=self.pupil_x(surf), y=self.pupil_y(surf))
 
     @property
     def baffle_lofts(self) -> typ.Dict[int, typ.Tuple[surface.Surface, surface.Surface]]:
@@ -183,121 +267,205 @@ class System(
     @property
     def rays_input(self) -> rays.Rays:
         if self._rays_input_cache is None:
-            self._rays_input_cache = self._calc_rays_input()
+            self._rays_input_cache = self._calc_rays_input(self.grid_rays_stop)
         return self._rays_input_cache
 
-    def _calc_rays_input(self) -> rays.Rays:
+    error_no_stop = ValueError('no stop defined')
 
-        rays_input = None
-
+    def _calc_rays_input_position(self, rays_input: rays.Rays) -> rays.Rays:
+        rays_input = rays_input.copy()
+        rays_input.transform = self.object_surface.transform
         for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
-
-            if not surf.is_stop and not surf.is_stop_test:
-                continue
-
-            if self.field_min.quantity.unit.is_equivalent(u.rad):
-
-                if rays_input is None:
-                    position_guess = vector.Vector2D.spatial()
-                else:
-                    position_guess = rays_input.position.xy
-
-                step_size = .1 * u.mm
-
-                px, py = self.pupil_x(surf), self.pupil_y(surf)
-                # px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
-                # py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
-                target_position = vector.Vector2D(
-                    x=np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x)),
-                    y=np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y)),
-                )
+            if surf.is_stop or surf.is_stop_test:
+                grid_surf = self.grid_rays(surf)
+                target_position = grid_surf.points_pupil
 
                 def position_error(pos: vector.Vector2D) -> vector.Vector2D:
-                    rays_in = rays.Rays.from_field_angles(
-                        wavelength_grid=self.wavelengths,
-                        position=pos.to_3d(),
-                        field_grid_x=self.field_x,
-                        field_grid_y=self.field_y,
-                        pupil_grid_x=px,
-                        pupil_grid_y=py
-                    )
-                    rays_in.transform = self.object_surface.transform
+                    rays_in = rays_input.view()
+                    rays_in.position = pos.to_3d()
+                    rays_in.input_grid.pupil = grid_surf.pupil
                     raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
-
                     return raytrace[~0].position.xy - target_position
 
                 position_final = optimization.root_finding.vector.secant_2d(
                     func=position_error,
-                    root_guess=position_guess,
-                    step_size=step_size,
+                    root_guess=rays_input.position.xy,
+                    step_size=0.1 * u.mm,
                     max_abs_error=1 * u.nm,
                     max_iterations=100,
                 )
-                rays_input = rays.Rays.from_field_angles(
-                    wavelength_grid=self.wavelengths,
-                    position=position_final.to_3d(),
-                    field_grid_x=self.field_x,
-                    field_grid_y=self.field_y,
-                    pupil_grid_x=px,
-                    pupil_grid_y=py
-                )
-                rays_input.transform = self.object_surface.transform
+                rays_input.position = position_final.to_3d()
+                rays_input.input_grid.pupil = grid_surf.pupil
 
-            else:
-                if rays_input is None:
-                    direction_guess = vector.Vector2D(x=0 * u.deg, y=0 * u.deg)
-                else:
-                    direction_guess = np.arcsin(rays_input.direction.xy)
+            if surf.is_stop:
+                return rays_input
 
-                step_size = 1e-10 * u.deg
+        raise self.error_no_stop
 
-                px, py = self.pupil_x(surf), self.pupil_y(surf)
-                # px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
-                # py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
-                target_position = vector.Vector2D(
-                    x=np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x)),
-                    y=np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y)),
-                )
+    def _calc_rays_input_direction(self, rays_input: rays.Rays) -> rays.Rays:
+        rays_input = rays_input.copy()
+        rays_input.transform = self.object_surface.transform
+        for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+            if surf.is_stop or surf.is_stop_test:
+                grid_surf = self.grid_rays(surf)
+                target_position = grid_surf.points_pupil
 
                 def position_error(angles: vector.Vector2D) -> vector.Vector2D:
+                    rays_in = rays_input.view()
                     direction = transform.rigid.TiltX(angles.y)(vector.z_hat)
                     direction = transform.rigid.TiltY(angles.x)(direction)
-                    rays_in = rays.Rays.from_field_positions(
-                        wavelength_grid=self.wavelengths,
-                        direction=direction,
-                        field_grid_x=self.field_x,
-                        field_grid_y=self.field_y,
-                        pupil_grid_x=px,
-                        pupil_grid_y=py,
-                    )
-                    rays_in.transform = self.object_surface.transform
+                    rays_in.direction = direction
+                    rays_in.input_grid.pupil = grid_surf.pupil
                     raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
-
                     return raytrace[~0].position.xy - target_position
 
                 angles_final = optimization.root_finding.vector.secant_2d(
                     func=position_error,
-                    root_guess=direction_guess,
-                    step_size=step_size,
+                    root_guess=rays_input.field_angles,
+                    step_size=1e-10 * u.deg,
                     max_abs_error=1 * u.nm,
                     max_iterations=100,
                 )
                 direction_final = transform.rigid.TiltX(angles_final.y)(vector.z_hat)
                 direction_final = transform.rigid.TiltY(angles_final.x)(direction_final)
-                rays_input = rays.Rays.from_field_positions(
-                    wavelength_grid=self.wavelengths,
-                    direction=direction_final,
-                    field_grid_x=self.field_x,
-                    field_grid_y=self.field_y,
-                    pupil_grid_x=px,
-                    pupil_grid_y=py,
-                )
-                rays_input.transform = self.object_surface.transform
+                rays_input.direction = direction_final
+                rays_input.input_grid.pupil = grid_surf.pupil
 
             if surf.is_stop:
                 return rays_input
 
-        raise ValueError('No stop defined')
+        raise self.error_no_stop
+
+
+    def _calc_rays_input(
+            self,
+            grid_rays: rays.RayGrid,
+    ) -> rays.Rays:
+
+        if grid_rays.field.points.x.unit.is_equivalent(u.rad):
+            rays_input = rays.Rays.from_field_angles(
+                input_grid=grid_rays,
+                position=vector.Vector3D.spatial(),
+            )
+            return self._calc_rays_input_position(rays_input=rays_input)
+
+        elif grid_rays.field.points.x.unit.is_equivalent(u.mm):
+            rays_input = rays.Rays.from_field_positions(
+                input_grid=grid_rays,
+                direction=vector.z_hat,
+            )
+            return self._calc_rays_input_direction(rays_input=rays_input)
+
+        # rays_input = None
+        #
+        # for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        #
+        #     if not surf.is_stop and not surf.is_stop_test:
+        #         continue
+        #
+        #     if self.field_min.quantity.unit.is_equivalent(u.rad):
+        #
+        #         if rays_input is None:
+        #             position_guess = vector.Vector2D.spatial()
+        #         else:
+        #             position_guess = rays_input.position.xy
+        #
+        #         step_size = .1 * u.mm
+        #
+        #         px, py = self.pupil_x(surf), self.pupil_y(surf)
+        #         # px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
+        #         # py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
+        #         target_position = vector.Vector2D(
+        #             x=np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x)),
+        #             y=np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y)),
+        #         )
+        #
+        #         def position_error(pos: vector.Vector2D) -> vector.Vector2D:
+        #             rays_in = rays.Rays.from_field_angles(
+        #                 wavelength_grid=self.wavelength,
+        #                 position=pos.to_3d(),
+        #                 field_grid_x=self.field_x,
+        #                 field_grid_y=self.field_y,
+        #                 pupil_grid_x=px,
+        #                 pupil_grid_y=py
+        #             )
+        #             rays_in.transform = self.object_surface.transform
+        #             raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
+        #
+        #             return raytrace[~0].position.xy - target_position
+        #
+        #         position_final = optimization.root_finding.vector.secant_2d(
+        #             func=position_error,
+        #             root_guess=position_guess,
+        #             step_size=step_size,
+        #             max_abs_error=1 * u.nm,
+        #             max_iterations=100,
+        #         )
+        #         rays_input = rays.Rays.from_field_angles(
+        #             wavelength_grid=self.wavelength,
+        #             position=position_final.to_3d(),
+        #             field_grid_x=self.field_x,
+        #             field_grid_y=self.field_y,
+        #             pupil_grid_x=px,
+        #             pupil_grid_y=py
+        #         )
+        #         rays_input.transform = self.object_surface.transform
+        #
+        #     else:
+        #         if rays_input is None:
+        #             direction_guess = vector.Vector2D(x=0 * u.deg, y=0 * u.deg)
+        #         else:
+        #             direction_guess = np.arcsin(rays_input.direction.xy)
+        #
+        #         step_size = 1e-10 * u.deg
+        #
+        #         px, py = self.pupil_x(surf), self.pupil_y(surf)
+        #         # px = np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x))
+        #         # py = np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y))
+        #         target_position = vector.Vector2D(
+        #             x=np.expand_dims(px, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_x)),
+        #             y=np.expand_dims(py, rays.Rays.axis.perp_axes(rays.Rays.axis.pupil_y)),
+        #         )
+        #
+        #         def position_error(angles: vector.Vector2D) -> vector.Vector2D:
+        #             direction = transform.rigid.TiltX(angles.y)(vector.z_hat)
+        #             direction = transform.rigid.TiltY(angles.x)(direction)
+        #             rays_in = rays.Rays.from_field_positions(
+        #                 wavelength_grid=self.wavelength,
+        #                 direction=direction,
+        #                 field_grid_x=self.field_x,
+        #                 field_grid_y=self.field_y,
+        #                 pupil_grid_x=px,
+        #                 pupil_grid_y=py,
+        #             )
+        #             rays_in.transform = self.object_surface.transform
+        #             raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
+        #
+        #             return raytrace[~0].position.xy - target_position
+        #
+        #         angles_final = optimization.root_finding.vector.secant_2d(
+        #             func=position_error,
+        #             root_guess=direction_guess,
+        #             step_size=step_size,
+        #             max_abs_error=1 * u.nm,
+        #             max_iterations=100,
+        #         )
+        #         direction_final = transform.rigid.TiltX(angles_final.y)(vector.z_hat)
+        #         direction_final = transform.rigid.TiltY(angles_final.x)(direction_final)
+        #         rays_input = rays.Rays.from_field_positions(
+        #             wavelength_grid=self.wavelength,
+        #             direction=direction_final,
+        #             field_grid_x=self.field_x,
+        #             field_grid_y=self.field_y,
+        #             pupil_grid_x=px,
+        #             pupil_grid_y=py,
+        #         )
+        #         rays_input.transform = self.object_surface.transform
+        #
+        #     if surf.is_stop:
+        #         return rays_input
+        #
+        # raise ValueError('No stop defined')
 
     def psf(
             self,
@@ -322,7 +490,7 @@ class System(
             return True
         if self.surfaces != other.surfaces:
             return False
-        if np.array(self.wavelengths != other.wavelengths).any():
+        if np.array(self.wavelength != other.wavelength).any():
             return False
         if self.pupil_samples != other.pupil_samples:
             return False
@@ -370,7 +538,7 @@ class System(
         surf_rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
 
         if plot_apertures:
-            surf.plot(ax=ax)
+            surf.plot(ax=ax, plot_annotations=False)
 
         return ax
 
@@ -417,8 +585,12 @@ class System(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            component_z: typ.Optional[str] = None,
+            color: typ.Optional[str] = None,
+            linewidth: typ.Optional[float] = None,
+            linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             surface_first: typ.Optional[surface.Surface] = None,
             surface_last: typ.Optional[surface.Surface] = None,
@@ -427,9 +599,16 @@ class System(
             plot_vignetted: bool = False,
             plot_baffles: bool = True,
             plot_breadboard: bool = True,
-    ) -> plt.Axes:
-        if ax is None:
-            fig, ax = plt.subplots()
+            plot_annotations: bool = True,
+            annotation_text_y: float = 1.05,
+    ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
+
+        if color is None:
+            color = self.color
+        if linewidth is None:
+            linewidth = self.linewidth
+        if linestyle is None:
+            linestyle = self.linestyle
 
         surfaces = self.surfaces_all.flat_local
 
@@ -446,22 +625,33 @@ class System(
 
         surf_slice = slice(surface_index_first, surface_index_last + 1)
 
+        lines = []
+
+        colorbar = None
         if plot_rays:
             raytrace_slice = self.raytrace[surf_slice]  # type: rays.RaysList
-            raytrace_slice.plot(
+            rlines, colorbar = raytrace_slice.plot(
                 ax=ax,
                 components=components,
+                component_z=component_z,
                 transform_extra=transform_extra,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
             )
+            lines += rlines
 
         surfaces_slice = self.surfaces_all.flat_global[surf_slice]  # type: surfaces.SurfaceList
-        surfaces_slice.plot(
+        lines += surfaces_slice.plot(
             ax=ax,
             components=components,
+            component_z=component_z,
+            color=color,
+            linewidth=linewidth,
+            linestyle=linestyle,
             transform_extra=transform_extra,
             to_global=True,
+            plot_annotations=plot_annotations,
+            annotation_text_y=annotation_text_y,
         )
 
         if plot_baffles:
@@ -477,7 +667,7 @@ class System(
                     to_global=True,
                 )
 
-        return ax
+        return lines, colorbar
 
     @property
     def tol_iter(self) -> typ.Iterator['System']:
@@ -492,11 +682,13 @@ class System(
         other = super().view()  # type: System
         other.object_surface = self.object_surface
         other.surfaces = self.surfaces
-        other.wavelengths = self.wavelengths
+        other.wavelength = self.wavelength
         other.pupil_samples = self.pupil_samples
         other.pupil_margin = self.pupil_margin
         other.field_samples = self.field_samples
         other.field_margin = self.field_margin
+        other.pointing = self.pointing
+        other.roll = self.roll
         other.baffles_blank = self.baffles_blank
         other.baffles_hull_axes = self.baffles_hull_axes
         other.breadboard = self.breadboard
@@ -506,11 +698,13 @@ class System(
         other = super().copy()  # type: System
         other.object_surface = self.object_surface.copy()
         other.surfaces = self.surfaces.copy()
-        other.wavelengths = self.wavelengths.copy()
+        other.wavelength = self.wavelength.copy()
         other.pupil_samples = self.pupil_samples
         other.pupil_margin = self.pupil_margin.copy()
         other.field_samples = self.field_samples
         other.field_margin = self.field_margin.copy()
+        other.pointing = self.pointing.copy()
+        other.roll = self.roll.copy()
         other.baffles_blank = self.baffles_blank.copy()
         other.baffles_hull_axes = self.baffles_hull_axes
         if self.breadboard is None:

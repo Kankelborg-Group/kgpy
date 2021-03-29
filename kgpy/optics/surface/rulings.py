@@ -21,26 +21,34 @@ class Rulings(
         pass
 
     @abc.abstractmethod
-    def _effective_input_vector(
+    def effective_input_vector(
             self,
             rays: Rays,
             material: typ.Optional[Material] = None,
     ) -> vector.Vector3D:
         pass
 
-    def effective_input_direction(
-            self,
-            rays: Rays,
-            material: typ.Optional[Material] = None,
-    ) -> vector.Vector3D:
-        return self._effective_input_vector(rays=rays, material=material).normalize()
+    @classmethod
+    def effective_input_direction(cls, input_vector: vector.Vector3D):
+        return input_vector.normalize()
 
-    def effective_input_index(
-            self,
-            rays: Rays,
-            material: typ.Optional[Material] = None,
-    ) -> u.Quantity:
-        return self._effective_input_vector(rays=rays, material=material).length
+    @classmethod
+    def effective_input_index(cls, input_vector: vector.Vector3D):
+        return input_vector.length
+
+    # def effective_input_direction(
+    #         self,
+    #         rays: Rays,
+    #         material: typ.Optional[Material] = None,
+    # ) -> vector.Vector3D:
+    #     return self.effective_input_vector(rays=rays, material=material).normalize()
+    #
+    # def effective_input_index(
+    #         self,
+    #         rays: Rays,
+    #         material: typ.Optional[Material] = None,
+    # ) -> u.Quantity:
+    #     return self.effective_input_vector(rays=rays, material=material).length
 
 
 @dataclasses.dataclass
@@ -56,7 +64,7 @@ class ConstantDensity(Rulings):
             z=0 * self.ruling_density
         )
 
-    def _effective_input_vector(
+    def effective_input_vector(
             self,
             rays: Rays,
             material: typ.Optional[Material] = None,
