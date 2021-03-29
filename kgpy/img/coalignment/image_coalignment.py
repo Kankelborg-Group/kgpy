@@ -150,7 +150,8 @@ class ImageTransform:
 
     def invert_quadratic_transform(self,img) -> np.ndarray:
         '''
-        Given a transformation object and the originally transformed image the transformation step can be inverted using this routine.
+        Given a transformation object and the originally transformed image the transformation step can be inverted
+        using this routine.
 
         '''
 
