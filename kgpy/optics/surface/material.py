@@ -43,7 +43,7 @@ class Material(
 
 @dataclasses.dataclass
 class Mirror(Material):
-    thickness: u.Quantity = 0 * u.mm
+    thickness: typ.Optional[u.Quantity] = None
 
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         return -np.sign(rays.index_of_refraction) * u.dimensionless_unscaled
@@ -55,7 +55,10 @@ class Mirror(Material):
 
     def copy(self) -> 'Mirror':
         other = super().copy()      # type: Mirror
-        other.thickness = self.thickness.copy()
+        if self.thickness is not None:
+            other.thickness = self.thickness.copy()
+        else:
+            other.thickness = self.thickness
         return other
 
     def plot(
@@ -88,7 +91,7 @@ class Mirror(Material):
             aperture=aperture
         )
 
-        if aperture is not None:
+        if aperture is not None and self.thickness is not None:
             with astropy.visualization.quantity_support():
 
                 c1, c2 = components
