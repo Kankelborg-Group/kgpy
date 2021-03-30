@@ -219,14 +219,11 @@ class Polynomial3D(mixin.Dataframable):
         input_names = self.input_names
         if input_names is not None:
             input_names = input_names.copy()
-        output_name = self.output_name
-        if output_name is not None:
-            output_name = output_name.copy()
         return Polynomial3D(
             degree=self.degree,
             coefficients=[c.copy() for c in self.coefficients],
             input_names=input_names,
-            output_name=output_name,
+            output_name=self.output_name,
         )
 
 
