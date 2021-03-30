@@ -386,8 +386,8 @@ class SurfaceList(
         if transform_extra is None:
             transform_extra = tfrm.rigid.TransformList()
 
-        if to_global:
-            transform_extra = transform_extra + self.transform
+        # if to_global:
+        #     transform_extra = transform_extra + self.transform
 
         lines = []
         for surf in self:
