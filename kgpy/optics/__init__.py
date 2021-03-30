@@ -293,7 +293,7 @@ class System(
 
     def _calc_rays_input_position(self, rays_input: rays.Rays) -> rays.Rays:
         rays_input = rays_input.copy()
-        rays_input.transform = self.object_surface.transform
+        rays_input.transform = self.transform_all + self.object_surface.transform
         for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
             if surf.is_stop or surf.is_stop_test:
                 grid_surf = self.grid_rays(surf)
@@ -323,7 +323,7 @@ class System(
 
     def _calc_rays_input_direction(self, rays_input: rays.Rays) -> rays.Rays:
         rays_input = rays_input.copy()
-        rays_input.transform = self.object_surface.transform
+        rays_input.transform = self.transform_all + self.object_surface.transform
         for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
             if surf.is_stop or surf.is_stop_test:
                 grid_surf = self.grid_rays(surf)
