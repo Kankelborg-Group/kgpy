@@ -427,10 +427,18 @@ class Vector2D(Vector):
         return self.x, self.y
 
     def copy(self) -> 'Vector2D':
-        return type(self)(
-            x=self.x.copy(),
-            y=self.y.copy(),
-        )
+        other = type(self)()
+        if isinstance(self.x, np.ndarray):
+            other.x = self.x.copy()
+        else:
+            other.x = self.x
+
+        if isinstance(self.y, np.ndarray):
+            other.y = self.y.copy()
+        else:
+            other.y = self.y
+
+        return other
 
 
 @dataclasses.dataclass
@@ -666,7 +674,10 @@ class Vector3D(Vector2D):
 
     def copy(self) -> 'Vector3D':
         other = super().copy()
-        other.z = self.z.copy()
+        if isinstance(self.z, np.ndarray):
+            other.z = self.z.copy()
+        else:
+            other.z = self.z
         return other
 
 
