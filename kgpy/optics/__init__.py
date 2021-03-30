@@ -633,7 +633,7 @@ class System(
 
         if transform_extra is None:
             transform_extra = transform.rigid.TransformList()
-        transform_extra = transform_extra + self.transform
+        # transform_extra = transform_extra + self.transform_all
 
         if surface_first is None:
             surface_first = surfaces[0]
