@@ -751,7 +751,8 @@ class RaysList(
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
-    ) -> typ.Tuple[typ.List[plt.Line2D], matplotlib.colorbar.Colorbar]:
+            plot_colorbar: bool = True,
+    ) -> typ.Tuple[typ.List[plt.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
 
         if transform_extra is None:
             transform_extra = transform.rigid.TransformList()
@@ -796,10 +797,13 @@ class RaysList(
 
                 lines = lines + lines_i
 
-            colorbar = ax.figure.colorbar(
-                plt.cm.ScalarMappable(cmap=colormap, norm=colornorm),
-                ax=ax, fraction=0.02,
-                label=img_rays.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
-            )
+            if plot_colorbar:
+                colorbar = ax.figure.colorbar(
+                    matplotlib.cm.ScalarMappable(cmap=colormap, norm=colornorm),
+                    ax=ax, fraction=0.02,
+                    label=img_rays.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
+                )
+            else:
+                colorbar = None
 
         return lines, colorbar
