@@ -616,6 +616,7 @@ class System(
             plot_rays: bool = True,
             color_axis: int = rays.Rays.axis.wavelength,
             plot_vignetted: bool = False,
+            plot_colorbar: bool = True,
             plot_baffles: bool = True,
             plot_breadboard: bool = True,
             plot_annotations: bool = True,
@@ -656,6 +657,7 @@ class System(
                 transform_extra=transform_extra,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
+                plot_colorbar=plot_colorbar,
             )
             lines += rlines
 
