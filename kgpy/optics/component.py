@@ -3,7 +3,7 @@ import abc
 import dataclasses
 import astropy.units as u
 import pandas
-from kgpy import mixin, format, vector, transform
+from kgpy import mixin, format, vector, transform as tfrm
 from .surface import Surface
 
 __all__ = ['Component', 'PistonComponent', 'TranslationComponent', 'CylindricalComponent']
@@ -20,8 +20,8 @@ class Component(
 
     @property
     @abc.abstractmethod
-    def transform(self) -> transform.rigid.TransformList:
-        return transform.rigid.TransformList()
+    def transform(self) -> tfrm.rigid.TransformList:
+        return tfrm.rigid.TransformList()
 
     @property
     def surface(self) -> SurfaceT:
@@ -36,9 +36,9 @@ class PistonComponent(Component[SurfaceT]):
     piston: u.Quantity = 0 * u.mm
 
     @property
-    def transform(self) -> transform.rigid.TransformList:
-        return super().transform + transform.rigid.TransformList([
-            transform.rigid.Translate(z=-self.piston)
+    def transform(self) -> tfrm.rigid.TransformList:
+        return super().transform + tfrm.rigid.TransformList([
+            tfrm.rigid.Translate(z=-self.piston)
         ])
 
     def view(self) -> 'PistonComponent':
@@ -60,11 +60,11 @@ class PistonComponent(Component[SurfaceT]):
 
 @dataclasses.dataclass
 class TranslationComponent(Component[SurfaceT]):
-    translation: transform.rigid.Translate = dataclasses.field(default_factory=transform.rigid.Translate)
+    translation: tfrm.rigid.Translate = dataclasses.field(default_factory=tfrm.rigid.Translate)
 
     @property
-    def transform(self) -> transform.rigid.TransformList:
-        return super().transform + transform.rigid.TransformList([self.translation])
+    def transform(self) -> tfrm.rigid.TransformList:
+        return super().transform + tfrm.rigid.TransformList([self.translation])
 
     def view(self) -> 'TranslationComponent':
         other = super().view()      # type: TranslationComponent
@@ -89,10 +89,10 @@ class CylindricalComponent(PistonComponent[SurfaceT]):
     cylindrical_azimuth: u.Quantity = 0 * u.deg
 
     @property
-    def transform(self) -> transform.rigid.TransformList:
-        return super().transform + transform.rigid.TransformList([
-            transform.rigid.TiltZ(self.cylindrical_azimuth),
-            transform.rigid.Translate(x=self.cylindrical_radius),
+    def transform(self) -> tfrm.rigid.TransformList:
+        return super().transform + tfrm.rigid.TransformList([
+            tfrm.rigid.TiltZ(self.cylindrical_azimuth),
+            tfrm.rigid.Translate(x=self.cylindrical_radius),
         ])
 
     def view(self) -> 'CylindricalComponent':
