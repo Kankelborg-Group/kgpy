@@ -41,7 +41,7 @@ class Surface(
     """
     Interface for representing an optical surface.
     """
-    color: str = 'black'
+    plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = dataclasses.field(default_factory=lambda: dict(color='black'))
     is_stop: bool = False
     is_stop_test: bool = False
     is_active: bool = True  #: Flag to disable the surface
@@ -319,7 +319,8 @@ class Surface(
 
 @dataclasses.dataclass
 class SurfaceList(
-    mixin.Colorable,
+    # mixin.Colorable,
+    mixin.Plottable,
     tfrm.rigid.Transformable,
     mixin.DataclassList[Surface],
 ):
@@ -378,17 +379,22 @@ class SurfaceList(
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
-            color: typ.Optional[str] = None,
-            linewidth: typ.Optional[float] = None,
-            linestyle: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
             plot_annotations: bool = True,
             annotation_text_y: float = 1.05,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
-        if color is None:
-            color = self.color
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
+        # if color is None:
+        #     color = self.color
 
         if transform_extra is None:
             transform_extra = tfrm.rigid.TransformList()
@@ -402,9 +408,10 @@ class SurfaceList(
                 ax=ax,
                 components=components,
                 component_z=component_z,
-                color=color,
-                linewidth=linewidth,
-                linestyle=linestyle,
+                plot_kwargs=plot_kwargs,
+                # color=color,
+                # linewidth=linewidth,
+                # linestyle=linestyle,
                 transform_extra=transform_extra,
                 to_global=True,
                 plot_annotations=plot_annotations,
