@@ -47,6 +47,10 @@ class Component(
             plot_annotations: bool = True,
             annotation_text_y: float = 1.05,
     ) -> typ.List[matplotlib.lines.Line2D]:
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
         return self.surface.plot(
             ax=ax,
             components=components,
