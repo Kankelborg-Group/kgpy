@@ -159,35 +159,32 @@ class Colorable(Copyable):
 
 @dataclasses.dataclass
 class Plottable(
-    Colorable,
+    Copyable,
     abc.ABC
 ):
-    linewidth: typ.Optional[float] = None
-    linestyle: typ.Optional[str] = None
+    plot_kwargs: typ.Dict[str, typ.Any] = dataclasses.field(default_factory=dict)
 
     @abc.abstractmethod
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            components: typ.Tuple[str, ...],
+            components: typ.Tuple[str, str],
             component_z: typ.Optional[str] = None,
-            color: typ.Optional[str] = None,
-            linewidth: typ.Optional[float] = None,
-            linestyle: typ.Optional[str] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
             **kwargs,
     ) -> typ.List[matplotlib.lines.Line2D]:
         pass
 
     def view(self) -> 'Plottable':
         other = super().view()  # type: Plottable
-        other.linewidth = self.linewidth
-        other.linestyle = self.linestyle
+        other.plot_kwargs = self.plot_kwargs
         return other
 
     def copy(self) -> 'Plottable':
         other = super().copy()     # type: Plottable
-        other.linewidth = self.linewidth
-        other.linestyle = self.linestyle
+        other.plot_kwargs = self.plot_kwargs
         return other
 
 
