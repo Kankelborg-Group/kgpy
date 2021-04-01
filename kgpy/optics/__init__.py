@@ -607,9 +607,10 @@ class System(
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
-            color: typ.Optional[str] = None,
-            linewidth: typ.Optional[float] = None,
-            linestyle: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             surface_first: typ.Optional[surface.Surface] = None,
             surface_last: typ.Optional[surface.Surface] = None,
@@ -623,12 +624,17 @@ class System(
             annotation_text_y: float = 1.05,
     ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
 
-        if color is None:
-            color = self.color
-        if linewidth is None:
-            linewidth = self.linewidth
-        if linestyle is None:
-            linestyle = self.linestyle
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
+
+        # if color is None:
+        #     color = self.color
+        # if linewidth is None:
+        #     linewidth = self.linewidth
+        # if linestyle is None:
+        #     linestyle = self.linestyle
 
         surfaces = self.surfaces_all.flat_local
 
@@ -666,9 +672,10 @@ class System(
             ax=ax,
             components=components,
             component_z=component_z,
-            color=color,
-            linewidth=linewidth,
-            linestyle=linestyle,
+            plot_kwargs=plot_kwargs,
+            # color=color,
+            # linewidth=linewidth,
+            # linestyle=linestyle,
             transform_extra=transform_extra,
             to_global=True,
             plot_annotations=plot_annotations,

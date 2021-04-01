@@ -59,19 +59,25 @@ class Aperture(
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
-            color: typ.Optional[str] = None,
-            linewidth: typ.Optional[float] = None,
-            linestyle: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[Sag] = None,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
-        if color is None:
-            color = self.color
-        if linewidth is None:
-            linewidth = self.linewidth
-        if linestyle is None:
-            linestyle = self.linestyle
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
+
+        # if color is None:
+        #     color = self.color
+        # if linewidth is None:
+        #     linewidth = self.linewidth
+        # if linestyle is None:
+        #     linestyle = self.linestyle
 
         with astropy.visualization.quantity_support():
             c1, c2 = components
@@ -82,18 +88,28 @@ class Aperture(
                     wire.z = wire.z + sag(wire.x, wire.y)
                 if transform_extra is not None:
                     wire = transform_extra(wire, num_extra_dims=1)
+
+                shape = wire.shape[:~0]
+
+                plot_kwargs_broadcasted = {}
+                for key in plot_kwargs:
+                    plot_kwargs_broadcasted[key] = np.broadcast_to(np.array(plot_kwargs[key]), shape).reshape(-1)
+
+                # linestyle = np.broadcast_to(np.array(linestyle), shape).reshape(-1)
+
                 wire = wire.reshape((-1, wire.shape[~0]))
                 plot_kwargs_z = {}
 
                 for i in range(wire.shape[0]):
+                    plot_kwargs_i = {}
+                    for key in plot_kwargs_broadcasted:
+                        plot_kwargs_i[key] = plot_kwargs_broadcasted[key][i]
                     if component_z is not None:
                         plot_kwargs_z['zs'] = wire[i].get_component(component_z)
                     lines += ax.plot(
                         wire[i].get_component(c1),
                         wire[i].get_component(c2),
-                        color=color,
-                        linewidth=linewidth,
-                        linestyle=linestyle,
+                        **plot_kwargs_i,
                         **plot_kwargs_z,
                     )
 

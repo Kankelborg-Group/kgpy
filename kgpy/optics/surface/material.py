@@ -31,9 +31,10 @@ class Material(
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
-            color: typ.Optional[str] = None,
-            linewidth: typ.Optional[float] = None,
-            linestyle: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
             aperture: typ.Optional[Aperture] = None,
@@ -66,26 +67,33 @@ class Mirror(Material):
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
-            color: typ.Optional[str] = None,
-            linewidth: typ.Optional[float] = None,
-            linestyle: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             sag: typ.Optional[typ.Callable[[u.Quantity, u.Quantity], u.Quantity]] = None,
             aperture: typ.Optional[Aperture] = None,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
-        if color is None:
-            color = self.color
-        if linewidth is None:
-            linewidth = self.linewidth
-        if linestyle is None:
-            linestyle = self.linestyle
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
+
+        # if color is None:
+        #     color = self.color
+        # if linewidth is None:
+        #     linewidth = self.linewidth
+        # if linestyle is None:
+        #     linestyle = self.linestyle
 
         lines = []
         lines += super().plot(
             ax=ax,
             components=components,
-            color=color,
+            plot_kwargs=plot_kwargs,
+            # color=color,
             transform_extra=transform_extra,
             sag=sag,
             aperture=aperture
@@ -108,9 +116,10 @@ class Mirror(Material):
                     lines += ax.plot(
                         wire[i].get_component(c1),
                         wire[i].get_component(c2),
-                        color=color,
-                        linewidth=linewidth,
-                        linestyle=linestyle,
+                        **plot_kwargs,
+                        # color=color,
+                        # linewidth=linewidth,
+                        # linestyle=linestyle,
                         **plot_kwargs_z,
                     )
 
@@ -136,9 +145,10 @@ class Mirror(Material):
                         lines += ax.plot(
                             vertices[i].get_component(c1),
                             vertices[i].get_component(c2),
-                            color=color,
-                            linewidth=linewidth,
-                            linestyle=linestyle,
+                            **plot_kwargs,
+                            # color=color,
+                            # linewidth=linewidth,
+                            # linestyle=linestyle,
                             **plot_kwargs_z,
                         )
 

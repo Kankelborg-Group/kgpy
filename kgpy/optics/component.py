@@ -1,6 +1,8 @@
 import typing as typ
 import abc
 import dataclasses
+import matplotlib.lines
+import matplotlib.axes
 import astropy.units as u
 import pandas
 from kgpy import mixin, format, vector, transform as tfrm
@@ -13,6 +15,7 @@ SurfaceT = typ.TypeVar('SurfaceT', bound=Surface)
 
 @dataclasses.dataclass
 class Component(
+    mixin.Plottable,
     mixin.Named,
     abc.ABC,
     typ.Generic[SurfaceT],
@@ -29,6 +32,30 @@ class Component(
         surface.name = self.name
         surface.transform = self.transform
         return surface
+
+    def plot(
+            self,
+            ax: matplotlib.axes.Axes,
+            components: typ.Tuple[str, str],
+            component_z: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
+            transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
+            to_global: bool = False,
+            plot_annotations: bool = True,
+            annotation_text_y: float = 1.05,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        return self.surface.plot(
+            ax=ax,
+            components=components,
+            component_z=component_z,
+            plot_kwargs=plot_kwargs,
+            transform_extra=transform_extra,
+            to_global=to_global,
+            plot_annotations=plot_annotations,
+        )
 
 
 @dataclasses.dataclass

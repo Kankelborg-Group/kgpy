@@ -169,21 +169,27 @@ class Surface(
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
-            color: typ.Optional[str] = None,
-            linewidth: typ.Optional[float] = None,
-            linestyle: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
             to_global: bool = False,
             plot_annotations: bool = True,
             annotation_text_y: float = 1.05,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
-        if color is None:
-            color = self.color
-        if linewidth is None:
-            linewidth = self.linewidth
-        if linestyle is None:
-            linestyle = self.linestyle
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
+
+        # if color is None:
+        #     color = self.color
+        # if linewidth is None:
+        #     linewidth = self.linewidth
+        # if linestyle is None:
+        #     linestyle = self.linestyle
 
         if transform_extra is None:
             transform_extra = tfrm.rigid.TransformList()
@@ -199,10 +205,11 @@ class Surface(
                 ax=ax,
                 components=components,
                 component_z=component_z,
+                plot_kwargs=plot_kwargs,
                 transform_extra=transform_extra,
-                color=color,
-                linewidth=linewidth,
-                linestyle=linestyle,
+                # color=color,
+                # linewidth=linewidth,
+                # linestyle=linestyle,
                 sag=self.sag,
             )
 
