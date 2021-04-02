@@ -184,7 +184,9 @@ class Plottable(
 
     def copy(self) -> 'Plottable':
         other = super().copy()     # type: Plottable
-        other.plot_kwargs = self.plot_kwargs
+        other.plot_kwargs = {}
+        for key in self.plot_kwargs:
+            other.plot_kwargs[key] = self.plot_kwargs[key]
         return other
 
 
