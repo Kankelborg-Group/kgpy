@@ -31,6 +31,7 @@ class Component(
         surface = Surface()
         surface.name = self.name
         surface.transform = self.transform
+        surface.plot_kwargs = {**surface.plot_kwargs, **self.plot_kwargs}
         return surface
 
     def plot(
