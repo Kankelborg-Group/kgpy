@@ -109,14 +109,22 @@ class Mirror(Material):
                     wire = transform_extra(wire, num_extra_dims=1)
                 wire = wire.reshape((-1,) + wire.shape[~0:])
 
+                plot_kwargs_broadcasted = {}
+                for key in plot_kwargs:
+                    plot_kwargs_broadcasted[key] = np.broadcast_to(
+                        np.array(plot_kwargs[key]), wire.shape[:~0]).reshape(-1)
+
                 for i in range(wire.shape[0]):
                     plot_kwargs_z = {}
                     if component_z is not None:
                         plot_kwargs_z['zs'] = wire[i].get_component(component_z)
+                    plot_kwargs_i = {}
+                    for key in plot_kwargs_broadcasted:
+                        plot_kwargs_i[key] = plot_kwargs_broadcasted[key][i]
                     lines += ax.plot(
                         wire[i].get_component(c1),
                         wire[i].get_component(c2),
-                        **plot_kwargs,
+                        **plot_kwargs_i,
                         # color=color,
                         # linewidth=linewidth,
                         # linestyle=linestyle,
@@ -135,17 +143,24 @@ class Mirror(Material):
                     if transform_extra is not None:
                         vertices = transform_extra(vertices, num_extra_dims=2)
 
+                    plot_kwargs_broadcasted = {}
+                    for key in plot_kwargs:
+                        plot_kwargs_broadcasted[key] = np.broadcast_to(
+                            np.array(plot_kwargs[key])[..., np.newaxis], vertices.shape[:~0]).reshape(-1)
+
                     vertices = vertices.reshape((-1, ) + vertices.shape[~0:])
 
                     for i in range(vertices.shape[0]):
                         plot_kwargs_z = {}
                         if component_z is not None:
                             plot_kwargs_z['zs'] = vertices[i].get_component(component_z)
-
+                        plot_kwargs_i = {}
+                        for key in plot_kwargs_broadcasted:
+                            plot_kwargs_i[key] = plot_kwargs_broadcasted[key][i]
                         lines += ax.plot(
                             vertices[i].get_component(c1),
                             vertices[i].get_component(c2),
-                            **plot_kwargs,
+                            **plot_kwargs_i,
                             # color=color,
                             # linewidth=linewidth,
                             # linestyle=linestyle,
