@@ -101,9 +101,12 @@ class System(
 
     @property
     def surfaces_all(self) -> surface.SurfaceList:
-        surfaces = surface.SurfaceList([self.object_surface]) + self.surfaces
+        surfaces = self.surfaces.copy()
         surfaces.transform = self.transform_all
-        return surfaces
+        return surface.SurfaceList([self.object_surface, surfaces])
+        # surfaces = surface.SurfaceList([self.object_surface]) + self.surfaces
+        # surfaces.transform = self.transform_all
+        # return surfaces
 
     @property
     def surface_stop(self):
@@ -293,8 +296,11 @@ class System(
 
     def _calc_rays_input_position(self, rays_input: rays.Rays) -> rays.Rays:
         rays_input = rays_input.copy()
-        rays_input.transform = self.transform_all + self.object_surface.transform
-        for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        surfaces_all_global = self.surfaces_all.flat_global
+        # rays_input.transform = self.transform + self.object_surface.transform
+        rays_input.transform = surfaces_all_global[0].transform
+        # for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        for surf_index, surf in enumerate(surfaces_all_global):
             if surf.is_stop or surf.is_stop_test:
                 grid_surf = self.grid_rays(surf)
                 target_position = grid_surf.points_pupil
@@ -323,8 +329,11 @@ class System(
 
     def _calc_rays_input_direction(self, rays_input: rays.Rays) -> rays.Rays:
         rays_input = rays_input.copy()
-        rays_input.transform = self.transform_all + self.object_surface.transform
-        for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        surfaces_all_global = self.surfaces_all.flat_global
+        # rays_input.transform = self.transform + self.object_surface.transform
+        rays_input.transform = surfaces_all_global[0].transform
+        # for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        for surf_index, surf in enumerate(surfaces_all_global):
             if surf.is_stop or surf.is_stop_test:
                 grid_surf = self.grid_rays(surf)
                 target_position = grid_surf.points_pupil
