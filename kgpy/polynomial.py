@@ -52,6 +52,16 @@ class Polynomial3D(mixin.Dataframable):
             result += c * v
         return result
 
+    def dz(
+            self,
+            vector_input: vector.Vector3D,
+    ) -> u.Quantity:
+        result = 0
+        for c, v in zip(self.coefficients, self._vandermonde_dz(vector_input, degree=self.degree)):
+            result += c * v
+        return result
+
+
     @classmethod
     def from_lstsq_fit(
             cls,
@@ -306,6 +316,15 @@ class Vector2DValuedPolynomial3D(
         return vector.Vector2D(
             x=self.x.dy(vector_input=vector_input),
             y=self.y.dy(vector_input=vector_input),
+        )
+
+    def dz(
+            self,
+            vector_input: vector.Vector3D,
+    ):
+        return vector.Vector2D(
+            x=self.x.dz(vector_input=vector_input),
+            y=self.y.dz(vector_input=vector_input),
         )
 
     @property
