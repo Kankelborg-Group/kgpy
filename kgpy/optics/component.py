@@ -37,7 +37,7 @@ class Component(
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            components: typ.Tuple[str, str],
+            components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
             # color: typ.Optional[str] = None,
