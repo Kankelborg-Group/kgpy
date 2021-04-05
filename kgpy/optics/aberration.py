@@ -61,7 +61,7 @@ class Distortion:
     def dispersion(self) -> u.Quantity:
         model = self.model()
         center_fov = vector.Vector3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
-        return 1 / model.dz(center_fov)
+        return 1 / model.dz(center_fov).length
 
     def residual(
             self,
