@@ -53,8 +53,8 @@ class Distortion:
         center_fov = vector.Vector3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
         # return 1 / model.dx(center_fov)
         return vector.Vector2D(
-            x=1 / model.dx(center_fov).x,
-            y=1 / model.dy(center_fov).y,
+            x=1 / model.dx(center_fov).length,
+            y=1 / model.dy(center_fov).length,
         )
 
     def residual(
