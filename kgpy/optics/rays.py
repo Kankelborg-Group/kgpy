@@ -234,6 +234,7 @@ class Rays(transform.rigid.Transformable):
             position=input_grid.points_field.to_3d(z=0 * u.mm),
             direction=direction,
             velocity_los=input_grid.points_velocity_los,
+            input_grid=input_grid,
             # input_wavelength=wavelength_grid,
             # input_field=field_grid,
             # input_pupil=pupil_grid,
