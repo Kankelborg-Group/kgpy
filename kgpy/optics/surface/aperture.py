@@ -90,6 +90,10 @@ class Aperture(
                     wire = transform_extra(wire, num_extra_dims=1)
 
                 shape = wire.shape[:~0]
+                for key in plot_kwargs:
+                    shape = np.broadcast_shapes(shape, np.array(plot_kwargs[key]).shape,)
+
+                wire = np.broadcast_to(wire, shape + wire.shape[~0:], subok=True)
 
                 plot_kwargs_broadcasted = {}
                 for key in plot_kwargs:
