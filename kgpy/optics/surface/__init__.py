@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.axes
 import matplotlib.lines
 import astropy.units as u
+import astropy.visualization
 from kgpy import mixin, vector, transform as tfrm, optimization
 from ..rays import Rays, RaysList
 from .sag import Sag
@@ -244,22 +245,23 @@ class Surface(
                     text_x = text_position[i][wire_index].get_component(c_x)
                     text_y = text_position[i][wire_index].get_component(c_y)
 
-                    ax.annotate(
-                        text=self.name,
-                        xy=(text_x, text_y),
-                        xytext=(text_x, annotation_text_y),
-                        # textcoords='offset points',
-                        horizontalalignment='left',
-                        verticalalignment='bottom',
-                        rotation=60,
-                        textcoords=ax.get_xaxis_transform(),
-                        arrowprops=dict(
-                            color='black',
-                            width=0.5,
-                            headwidth=4,
-                            alpha=0.5,
-                        ),
-                    )
+                    with astropy.visualization.quantity_support():
+                        ax.annotate(
+                            text=self.name,
+                            xy=(text_x, text_y),
+                            xytext=(text_x, annotation_text_y),
+                            # textcoords='offset points',
+                            horizontalalignment='left',
+                            verticalalignment='bottom',
+                            rotation=60,
+                            textcoords=ax.get_xaxis_transform(),
+                            arrowprops=dict(
+                                color='black',
+                                width=0.5,
+                                headwidth=4,
+                                alpha=0.5,
+                            ),
+                        )
 
         return lines
 
