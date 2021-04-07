@@ -640,7 +640,7 @@ class System(
                 self.breadboard.plot(
                     ax=ax,
                     components=components,
-                    transform_extra=transform_extra,
+                    transform_extra=transform_extra + self.transform_all,
                     to_global=True,
                 )
 
