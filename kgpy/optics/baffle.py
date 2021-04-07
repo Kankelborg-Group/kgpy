@@ -21,7 +21,7 @@ ObscurationT = typ.TypeVar('ObscurationT', bound=surface.aperture.Polygon)
 @dataclasses.dataclass
 class Baffle(
     mixin.Broadcastable,
-    mixin.Colorable,
+    mixin.Plottable,
     transform.rigid.Transformable,
     mixin.Named,
     typ.Generic[ObscurationT],
@@ -258,7 +258,7 @@ class Baffle(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[str, str] = ('x', 'y'),
-            color: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             to_global: bool = False,
             plot_apertures_base: bool = False
@@ -267,8 +267,10 @@ class Baffle(
         if ax is None:
             fig, ax = plt.subplots()
 
-        if color is None:
-            color = self.color
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
 
         if to_global:
             if transform_extra is None:
@@ -277,17 +279,17 @@ class Baffle(
 
         if self.apertures is not None:
             for aper in self.apertures:
-                aper.plot(ax=ax, components=components, transform_extra=transform_extra, color=color)
+                aper.plot(ax=ax, components=components, transform_extra=transform_extra, plot_kwargs=plot_kwargs)
 
         for aper in self.apertures_extra:
-            aper.plot(ax=ax, components=components, transform_extra=transform_extra, color=color)
+            aper.plot(ax=ax, components=components, transform_extra=transform_extra, plot_kwargs=plot_kwargs)
 
         if self.obscuration is not None:
-            self.obscuration.plot(ax=ax, components=components, transform_extra=transform_extra, color=color)
+            self.obscuration.plot(ax=ax, components=components, transform_extra=transform_extra, plot_kwargs=plot_kwargs)
 
         if plot_apertures_base:
             for aper in self.apertures_base:
-                aper.plot(ax=ax, components=components, transform_extra=transform_extra, color=None)
+                aper.plot(ax=ax, components=components, transform_extra=transform_extra, plot_kwargs={})
 
         return ax
 
@@ -403,6 +405,7 @@ class BaffleList(
             self,
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[str, str] = ('x', 'y'),
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             plot_apertures_base: bool = False
     ) -> plt.Axes:
@@ -416,6 +419,7 @@ class BaffleList(
             baffle.plot(
                 ax=ax,
                 components=components,
+                plot_kwargs=plot_kwargs,
                 transform_extra=transform_extra,
                 to_global=True,
                 plot_apertures_base=plot_apertures_base
