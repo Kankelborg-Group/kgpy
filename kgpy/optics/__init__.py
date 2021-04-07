@@ -726,6 +726,7 @@ class SystemList(
             color_axis: int = rays.Rays.axis.wavelength,
             plot_vignetted: bool = False,
             plot_baffles: bool = True,
+            plot_colorbar: bool = True,
     ) -> plt.Axes:
 
         if ax is None:
@@ -739,7 +740,8 @@ class SystemList(
                 plot_rays=plot_rays,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
-                plot_baffles=plot_baffles
+                plot_baffles=plot_baffles,
+                plot_colorbar=plot_colorbar,
             )
 
         if plot_baffles:
