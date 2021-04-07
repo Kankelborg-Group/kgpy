@@ -84,7 +84,7 @@ iz = 2
 # def from_components_cylindrical(r: u.Quantity = 0, phi: u.Quantity = 0, z: u.Quantity = 0) -> u.Quantity:
 #     return from_components(r * np.cos(phi), r * np.sin(phi), z)
 
-
+@dataclasses.dataclass(eq=False)
 class Vector(
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
@@ -135,7 +135,7 @@ class Vector(
         pass
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Vector2D(Vector):
     x: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
     y: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
@@ -441,7 +441,7 @@ class Vector2D(Vector):
         return other
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Vector3D(Vector2D):
     z: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
     z_index: typ.ClassVar[int] = 2
