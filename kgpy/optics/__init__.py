@@ -284,7 +284,7 @@ class System(
 
                 angles_final = optimization.root_finding.vector.secant_2d(
                     func=position_error,
-                    root_guess=rays_input.field_angles,
+                    root_guess=np.arcsin(rays_input.direction.xy),
                     step_size=1e-10 * u.deg,
                     max_abs_error=1 * u.nm,
                     max_iterations=100,
