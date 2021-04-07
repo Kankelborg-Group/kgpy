@@ -628,7 +628,12 @@ class System(
 
         if plot_baffles:
             if self.baffles is not None:
-                self.baffles.plot(ax=ax, components=components, transform_extra=transform_extra)
+                self.baffles.plot(
+                    ax=ax,
+                    components=components,
+                    plot_kwargs=plot_kwargs,
+                    transform_extra=transform_extra,
+                )
 
         if plot_breadboard:
             if self.breadboard is not None:
