@@ -168,12 +168,6 @@ class Image(mixin.Pickleable):
     ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
         ax = plot.datetime_prep(ax)
 
-        # ax2 = ax.secondary_xaxis(
-        #     location='top',
-        #     functions=(self._time_to_index, self._index_to_time),
-        # )
-        # ax2.set_xlabel('exposure index')
-
         with astropy.visualization.quantity_support():
             lines = []
             for c in range(self.num_channels):
