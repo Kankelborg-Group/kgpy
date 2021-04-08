@@ -96,22 +96,6 @@ class Image(mixin.Pickleable):
         # return ['Ch' + str(int(c.value)) for c in self.channel[0]]
         return ['ch' + str(int(c.value)) for c in self.channel]
 
-    # @property
-    # def time_mid(self) -> astropy.time.Time:
-    #     return self.time + self.exposure_length / 2
-
-    # @property
-    # def _time_to_index_params(self):
-    #     if self._time_to_index_parameters is None:
-    #         self._time_to_index_parameters = scipy.stats.linregress(self.time[:, 0].to_value('mjd'), self.time_index, )
-    #     return self._time_to_index_parameters
-    #
-    # @property
-    # def _index_to_time_params(self):
-    #     if self._index_to_time_parameters is None:
-    #         self._index_to_time_parameters = scipy.stats.linregress(self.time_index, self.time[:, 0].to_value('mjd'), )
-    #     return self._index_to_time_parameters
-
     @property
     def _time_plot_grid(self):
         return matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
