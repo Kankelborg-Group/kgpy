@@ -64,12 +64,16 @@ class Image(mixin.Pickleable):
         return self
 
     @property
+    def exposure_half_length(self):
+        return self.exposure_length / 2
+
+    @property
     def time_exp_start(self) -> astropy.time.Time:
-        return self.time - self.exposure_length / 2
+        return self.time - self.exposure_half_length
 
     @property
     def time_exp_end(self) -> astropy.time.Time:
-        return self.time + self.exposure_length / 2
+        return self.time + self.exposure_half_length
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
