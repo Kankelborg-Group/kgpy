@@ -151,15 +151,22 @@ class Image(mixin.Pickleable):
             self,
             ax: plt.Axes,
             a: u.Quantity,
+            t: typ.Optional[u.Quantity] = None,
             a_name: str = '',
             # drawstyle: str = 'steps-mid',
     ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
         ax = plot.datetime_prep(ax)
 
+        if t is None:
+            t = self.time
+
+        t_left = t - self.exposure_half_length
+        t_right = t + self.exposure_half_length
+
         with astropy.visualization.quantity_support():
             lines = []
             for c in range(self.num_channels):
-                time = astropy.time.Time(np.stack([self.time_exp_start[:, c], self.time_exp_end[:, c]], axis=~0).reshape(-1))
+                time = astropy.time.Time(np.stack([t_left[:, c], t_right[:, c]], axis=~0).reshape(-1))
                 q = np.stack([a[:, c], a[:, c]], axis=~0).reshape(-1)
                 line, = ax.plot(
                     time.to_datetime(),
