@@ -106,6 +106,12 @@ class Trajectory(mixin.Copyable):
             height=self.altitude,
         )
 
+    @property
+    def sun_alt_az(self) -> astropy.coordinates.SkyCoord:
+        sun = astropy.coordinates.get_sun(self.time)
+        alt_az = astropy.coordinates.AltAz(obstime=self.time, location=self.earth_location)
+        return sun.transform_to(alt_az)
+
     def plot_quantity_vs_time(
             self,
             quantity: u.Quantity,
