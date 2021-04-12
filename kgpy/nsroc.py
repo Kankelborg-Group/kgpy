@@ -112,6 +112,13 @@ class Trajectory(mixin.Copyable):
         alt_az = astropy.coordinates.AltAz(obstime=self.time, location=self.earth_location)
         return sun.transform_to(alt_az)
 
+    @property
+    def sun_zenith_angle(self):
+        return self.sun_alt_az.zen
+
+    def sun_zenith_angle_interp(self, t: astropy.time.Time) -> u.Quantity:
+        return self._interp_quantity_vs_time(a=self.sun_zenith_angle, t=t)
+
     def plot_quantity_vs_time(
             self,
             quantity: u.Quantity,
