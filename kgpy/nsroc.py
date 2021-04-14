@@ -9,6 +9,7 @@ import astropy.units as u
 import astropy.time
 import astropy.visualization
 import astropy.modeling
+import astropy.coordinates
 import pandas
 from kgpy import mixin, Name, vector, plot
 
@@ -96,6 +97,27 @@ class Trajectory(mixin.Copyable):
 
     def longitude_interp(self, t: astropy.time.Time) -> u.Quantity:
         return self._interp_quantity_vs_time(self.longitude, t)
+
+    @property
+    def earth_location(self) -> astropy.coordinates.EarthLocation:
+        return astropy.coordinates.EarthLocation(
+            lat=self.latitude,
+            lon=self.longitude,
+            height=self.altitude,
+        )
+
+    @property
+    def sun_alt_az(self) -> astropy.coordinates.SkyCoord:
+        sun = astropy.coordinates.get_sun(self.time)
+        alt_az = astropy.coordinates.AltAz(obstime=self.time, location=self.earth_location)
+        return sun.transform_to(alt_az)
+
+    @property
+    def sun_zenith_angle(self):
+        return self.sun_alt_az.zen
+
+    def sun_zenith_angle_interp(self, t: astropy.time.Time) -> u.Quantity:
+        return self._interp_quantity_vs_time(a=self.sun_zenith_angle, t=t)
 
     def plot_quantity_vs_time(
             self,

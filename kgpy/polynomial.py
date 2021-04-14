@@ -52,6 +52,16 @@ class Polynomial3D(mixin.Dataframable):
             result += c * v
         return result
 
+    def dz(
+            self,
+            vector_input: vector.Vector3D,
+    ) -> u.Quantity:
+        result = 0
+        for c, v in zip(self.coefficients, self._vandermonde_dz(vector_input, degree=self.degree)):
+            result += c * v
+        return result
+
+
     @classmethod
     def from_lstsq_fit(
             cls,
@@ -182,6 +192,22 @@ class Polynomial3D(mixin.Dataframable):
                             vander.append(val)
         return vander
 
+    @staticmethod
+    def _vandermonde_dz(vector_input: vector.Vector3D, degree: int = 1) -> typ.List[u.Quantity]:
+        vander = []
+        for d in range(degree + 1):
+            for k in range(d + 1):
+                for j in range(d + 1):
+                    for i in range(d + 1):
+                        if i + j + k == d:
+                            val_x = vector_input.x ** i
+                            val_y = vector_input.y ** j
+                            val_z = k * vector_input.z ** (k - 1)
+                            val = val_x * val_y * val_z
+                            val = np.nan_to_num(val)
+                            vander.append(val)
+        return vander
+
     @property
     def coefficient_names(self):
         names = []
@@ -219,14 +245,11 @@ class Polynomial3D(mixin.Dataframable):
         input_names = self.input_names
         if input_names is not None:
             input_names = input_names.copy()
-        output_name = self.output_name
-        if output_name is not None:
-            output_name = output_name.copy()
         return Polynomial3D(
             degree=self.degree,
             coefficients=[c.copy() for c in self.coefficients],
             input_names=input_names,
-            output_name=output_name,
+            output_name=self.output_name,
         )
 
 
@@ -293,6 +316,15 @@ class Vector2DValuedPolynomial3D(
         return vector.Vector2D(
             x=self.x.dy(vector_input=vector_input),
             y=self.y.dy(vector_input=vector_input),
+        )
+
+    def dz(
+            self,
+            vector_input: vector.Vector3D,
+    ):
+        return vector.Vector2D(
+            x=self.x.dz(vector_input=vector_input),
+            y=self.y.dz(vector_input=vector_input),
         )
 
     @property

@@ -84,7 +84,7 @@ iz = 2
 # def from_components_cylindrical(r: u.Quantity = 0, phi: u.Quantity = 0, z: u.Quantity = 0) -> u.Quantity:
 #     return from_components(r * np.cos(phi), r * np.sin(phi), z)
 
-
+@dataclasses.dataclass(eq=False)
 class Vector(
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
@@ -135,7 +135,7 @@ class Vector(
         pass
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Vector2D(Vector):
     x: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
     y: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
@@ -427,13 +427,21 @@ class Vector2D(Vector):
         return self.x, self.y
 
     def copy(self) -> 'Vector2D':
-        return type(self)(
-            x=self.x.copy(),
-            y=self.y.copy(),
-        )
+        other = type(self)()
+        if isinstance(self.x, np.ndarray):
+            other.x = self.x.copy()
+        else:
+            other.x = self.x
+
+        if isinstance(self.y, np.ndarray):
+            other.y = self.y.copy()
+        else:
+            other.y = self.y
+
+        return other
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Vector3D(Vector2D):
     z: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
     z_index: typ.ClassVar[int] = 2
@@ -666,7 +674,10 @@ class Vector3D(Vector2D):
 
     def copy(self) -> 'Vector3D':
         other = super().copy()
-        other.z = self.z.copy()
+        if isinstance(self.z, np.ndarray):
+            other.z = self.z.copy()
+        else:
+            other.z = self.z
         return other
 
 

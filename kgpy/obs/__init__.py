@@ -64,12 +64,16 @@ class Image(mixin.Pickleable):
         return self
 
     @property
+    def exposure_half_length(self):
+        return self.exposure_length / 2
+
+    @property
     def time_exp_start(self) -> astropy.time.Time:
-        return self.time - self.exposure_length / 2
+        return self.time - self.exposure_half_length
 
     @property
     def time_exp_end(self) -> astropy.time.Time:
-        return self.time + self.exposure_length / 2
+        return self.time + self.exposure_half_length
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
@@ -96,32 +100,20 @@ class Image(mixin.Pickleable):
         # return ['Ch' + str(int(c.value)) for c in self.channel[0]]
         return ['ch' + str(int(c.value)) for c in self.channel]
 
-    # @property
-    # def time_mid(self) -> astropy.time.Time:
-    #     return self.time + self.exposure_length / 2
+    @property
+    def _time_plot_grid(self):
+        return matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
 
-    # @property
-    # def _time_to_index_params(self):
-    #     if self._time_to_index_parameters is None:
-    #         self._time_to_index_parameters = scipy.stats.linregress(self.time[:, 0].to_value('mjd'), self.time_index, )
-    #     return self._time_to_index_parameters
-    #
-    # @property
-    # def _index_to_time_params(self):
-    #     if self._index_to_time_parameters is None:
-    #         self._index_to_time_parameters = scipy.stats.linregress(self.time_index, self.time[:, 0].to_value('mjd'), )
-    #     return self._index_to_time_parameters
+    @property
+    def _index_plot_grid(self):
+        return self.time_index
 
     @property
     def _time_to_index(self) -> typ.Callable[[np.ndarray], np.ndarray]:
         if self._time_to_index_cache is None:
-            t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
-            t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
-            time = np.stack([t0, t1]).flatten()
-            index = np.stack([self.time_index, self.time_index + 1]).flatten()
             self._time_to_index_cache = scipy.interpolate.interp1d(
-                x=time,
-                y=index,
+                x=self._time_plot_grid,
+                y=self._index_plot_grid,
                 fill_value='extrapolate',
             )
         return self._time_to_index_cache
@@ -129,13 +121,9 @@ class Image(mixin.Pickleable):
     @property
     def _index_to_time(self):
         if self._index_to_time_cache is None:
-            t0 = matplotlib.dates.date2num(self.time_exp_start.min(axis=~0).to_datetime())
-            t1 = matplotlib.dates.date2num(self.time_exp_end.min(axis=~0).to_datetime())
-            time = np.stack([t0, t1]).flatten()
-            index = np.stack([self.time_index, self.time_index + 1]).flatten()
             self._index_to_time_cache = scipy.interpolate.interp1d(
-                x=index,
-                y=time,
+                x=self._index_plot_grid,
+                y=self._time_plot_grid,
                 fill_value='extrapolate',
             )
         return self._index_to_time_cache
@@ -163,25 +151,28 @@ class Image(mixin.Pickleable):
             self,
             ax: plt.Axes,
             a: u.Quantity,
+            t: typ.Optional[u.Quantity] = None,
             a_name: str = '',
-            drawstyle: str = 'steps-mid',
+            # drawstyle: str = 'steps-mid',
     ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
         ax = plot.datetime_prep(ax)
 
-        # ax2 = ax.secondary_xaxis(
-        #     location='top',
-        #     functions=(self._time_to_index, self._index_to_time),
-        # )
-        # ax2.set_xlabel('exposure index')
+        if t is None:
+            t = self.time
+
+        t_left = t - self.exposure_half_length
+        t_right = t + self.exposure_half_length
 
         with astropy.visualization.quantity_support():
             lines = []
             for c in range(self.num_channels):
+                time = astropy.time.Time(np.stack([t_left[:, c], t_right[:, c]], axis=~0).reshape(-1))
+                q = np.stack([a[:, c], a[:, c]], axis=~0).reshape(-1)
                 line, = ax.plot(
-                    self.time[:, c].to_datetime(),
-                    a[:, c],
+                    time.to_datetime(),
+                    q,
                     label=a_name + ', ' + self.channel_labels[c],
-                    drawstyle=drawstyle,
+                    # drawstyle=drawstyle,
                 )
                 lines.append(line)
 

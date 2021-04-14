@@ -101,9 +101,12 @@ class System(
 
     @property
     def surfaces_all(self) -> surface.SurfaceList:
-        surfaces = surface.SurfaceList([self.object_surface]) + self.surfaces
+        surfaces = self.surfaces.copy()
         surfaces.transform = self.transform_all
-        return surfaces
+        return surface.SurfaceList([self.object_surface, surfaces])
+        # surfaces = surface.SurfaceList([self.object_surface]) + self.surfaces
+        # surfaces.transform = self.transform_all
+        # return surfaces
 
     @property
     def surface_stop(self):
@@ -167,71 +170,6 @@ class System(
     def grid_rays_stop(self) -> rays.RayGrid:
         return self.grid_rays(self.surface_stop)
 
-    # @staticmethod
-    # def _normalize_2d_samples(samples: typ.Union[int, vector.Vector2D]) -> vector.Vector2D:
-    #     if isinstance(samples, int):
-    #         samples = vector.Vector2D(x=samples, y=samples)
-    #     return samples
-    #
-    # @property
-    # def pupil_samples_normalized(self) -> vector.Vector2D:
-    #     return self._normalize_2d_samples(self.pupil_samples)
-    #
-    # @property
-    # def field_samples_normalized(self) -> vector.Vector2D:
-    #     return self._normalize_2d_samples(self.field_samples)
-    #
-    # @property
-    # def field_min(self) -> vector.Vector2D:
-    #     return self.object_surface.aperture.min.xy
-    #
-    # @property
-    # def field_max(self) -> vector.Vector2D:
-    #     return self.object_surface.aperture.max.xy
-    #
-    # @property
-    # def field_x(self) -> u.Quantity:
-    #     return linspace(
-    #         start=self.field_min.x + self.field_margin,
-    #         stop=self.field_max.x - self.field_margin,
-    #         num=self.field_samples_normalized.x,
-    #         axis=~0,
-    #     )
-    #
-    # @property
-    # def field_y(self) -> u.Quantity:
-    #     return linspace(
-    #         start=self.field_min.y + self.field_margin,
-    #         stop=self.field_max.y - self.field_margin,
-    #         num=self.field_samples_normalized.y,
-    #         axis=~0
-    #     )
-    #
-    # @property
-    # def field(self) -> vector.Vector2D:
-    #     return vector.Vector2D(x=self.field_x, y=self.field_y)
-    #
-    # def pupil_x(self, surf: surface.Surface) -> u.Quantity:
-    #     aper = surf.aperture
-    #     return linspace(
-    #         start=aper.min.x + self.pupil_margin,
-    #         stop=aper.max.x - self.pupil_margin,
-    #         num=self.pupil_samples_normalized.x,
-    #         axis=~0,
-    #     )
-    #
-    # def pupil_y(self, surf: surface.Surface) -> u.Quantity:
-    #     aper = surf.aperture
-    #     return linspace(
-    #         start=aper.min.y + self.pupil_margin,
-    #         stop=aper.max.y - self.pupil_margin,
-    #         num=self.pupil_samples_normalized.y,
-    #         axis=~0,
-    #     )
-    #
-    # def pupil(self, surf: surface.Surface) -> vector.Vector2D:
-    #     return vector.Vector2D(x=self.pupil_x(surf), y=self.pupil_y(surf))
-
     @property
     def baffle_lofts(self) -> typ.Dict[int, typ.Tuple[surface.Surface, surface.Surface]]:
         lofts = {}
@@ -293,8 +231,11 @@ class System(
 
     def _calc_rays_input_position(self, rays_input: rays.Rays) -> rays.Rays:
         rays_input = rays_input.copy()
-        rays_input.transform = self.object_surface.transform
-        for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        surfaces_all_global = self.surfaces_all.flat_global
+        # rays_input.transform = self.transform + self.object_surface.transform
+        rays_input.transform = surfaces_all_global[0].transform
+        # for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        for surf_index, surf in enumerate(surfaces_all_global):
             if surf.is_stop or surf.is_stop_test:
                 grid_surf = self.grid_rays(surf)
                 target_position = grid_surf.points_pupil
@@ -323,8 +264,11 @@ class System(
 
     def _calc_rays_input_direction(self, rays_input: rays.Rays) -> rays.Rays:
         rays_input = rays_input.copy()
-        rays_input.transform = self.object_surface.transform
-        for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        surfaces_all_global = self.surfaces_all.flat_global
+        # rays_input.transform = self.transform + self.object_surface.transform
+        rays_input.transform = surfaces_all_global[0].transform
+        # for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
+        for surf_index, surf in enumerate(surfaces_all_global):
             if surf.is_stop or surf.is_stop_test:
                 grid_surf = self.grid_rays(surf)
                 target_position = grid_surf.points_pupil
@@ -340,7 +284,7 @@ class System(
 
                 angles_final = optimization.root_finding.vector.secant_2d(
                     func=position_error,
-                    root_guess=rays_input.field_angles,
+                    root_guess=np.arcsin(rays_input.direction.xy),
                     step_size=1e-10 * u.deg,
                     max_abs_error=1 * u.nm,
                     max_iterations=100,
@@ -607,33 +551,40 @@ class System(
             ax: matplotlib.axes.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
-            color: typ.Optional[str] = None,
-            linewidth: typ.Optional[float] = None,
-            linestyle: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            # color: typ.Optional[str] = None,
+            # linewidth: typ.Optional[float] = None,
+            # linestyle: typ.Optional[str] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             surface_first: typ.Optional[surface.Surface] = None,
             surface_last: typ.Optional[surface.Surface] = None,
             plot_rays: bool = True,
             color_axis: int = rays.Rays.axis.wavelength,
             plot_vignetted: bool = False,
+            plot_colorbar: bool = True,
             plot_baffles: bool = True,
             plot_breadboard: bool = True,
             plot_annotations: bool = True,
             annotation_text_y: float = 1.05,
     ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
 
-        if color is None:
-            color = self.color
-        if linewidth is None:
-            linewidth = self.linewidth
-        if linestyle is None:
-            linestyle = self.linestyle
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
+
+        # if color is None:
+        #     color = self.color
+        # if linewidth is None:
+        #     linewidth = self.linewidth
+        # if linestyle is None:
+        #     linestyle = self.linestyle
 
         surfaces = self.surfaces_all.flat_local
 
         if transform_extra is None:
             transform_extra = transform.rigid.TransformList()
-        transform_extra = transform_extra + self.transform
+        # transform_extra = transform_extra + self.transform_all
 
         if surface_first is None:
             surface_first = surfaces[0]
@@ -656,6 +607,7 @@ class System(
                 transform_extra=transform_extra,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
+                plot_colorbar=plot_colorbar,
             )
             lines += rlines
 
@@ -664,9 +616,10 @@ class System(
             ax=ax,
             components=components,
             component_z=component_z,
-            color=color,
-            linewidth=linewidth,
-            linestyle=linestyle,
+            plot_kwargs=plot_kwargs,
+            # color=color,
+            # linewidth=linewidth,
+            # linestyle=linestyle,
             transform_extra=transform_extra,
             to_global=True,
             plot_annotations=plot_annotations,
@@ -675,14 +628,19 @@ class System(
 
         if plot_baffles:
             if self.baffles is not None:
-                self.baffles.plot(ax=ax, components=components, transform_extra=transform_extra)
+                self.baffles.plot(
+                    ax=ax,
+                    components=components,
+                    plot_kwargs=plot_kwargs,
+                    transform_extra=transform_extra,
+                )
 
         if plot_breadboard:
             if self.breadboard is not None:
                 self.breadboard.plot(
                     ax=ax,
                     components=components,
-                    transform_extra=transform_extra,
+                    transform_extra=transform_extra + self.transform_all,
                     to_global=True,
                 )
 
@@ -768,6 +726,7 @@ class SystemList(
             color_axis: int = rays.Rays.axis.wavelength,
             plot_vignetted: bool = False,
             plot_baffles: bool = True,
+            plot_colorbar: bool = True,
     ) -> plt.Axes:
 
         if ax is None:
@@ -781,7 +740,8 @@ class SystemList(
                 plot_rays=plot_rays,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
-                plot_baffles=plot_baffles
+                plot_baffles=plot_baffles,
+                plot_colorbar=plot_colorbar,
             )
 
         if plot_baffles:

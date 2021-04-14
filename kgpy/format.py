@@ -27,7 +27,7 @@ def quantity(
             return estr.format(a)
 
     else:
-        return '{0} {1:latex}'.format(np.array2string(
+        return '{0} {1:latex_inline}'.format(np.array2string(
             a=a.value,
             precision=digits_after_decimal,
             separator=', ',
