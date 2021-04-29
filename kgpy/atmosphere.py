@@ -349,12 +349,12 @@ class TransmissionBates:
                 num_samples_depth=num_samples_depth,
                 num_samples_density=num_samples_density,
             )
-            # intensity_corrected = intensity_observed / transmission
-            # # intensity_corrected = scipy.signal.detrend(intensity_corrected, axis=axis_fit) << intensity_corrected.unit
-            # value = np.sqrt(np.mean(np.square(np.std(intensity_corrected, axis=axis_fit))))
-            intensity_normalized = intensity_observed / intensity_observed.max(axis_fit)
-            intensity_normalized = intensity_normalized * transmission.max(axis_fit)
-            value = np.sqrt(np.mean(np.square(intensity_normalized - transmission)))
+            intensity_corrected = intensity_observed / transmission
+            # intensity_corrected = scipy.signal.detrend(intensity_corrected, axis=axis_fit) << intensity_corrected.unit
+            value = np.sqrt(np.mean(np.square(np.std(intensity_corrected, axis=axis_fit))))
+            # intensity_normalized = intensity_observed / intensity_observed.max(axis_fit)
+            # intensity_normalized = intensity_normalized * transmission.max(axis_fit)
+            # value = np.sqrt(np.mean(np.square(intensity_normalized - transmission)))
             return value.value
 
         params_optimized = scipy.optimize.brute(
