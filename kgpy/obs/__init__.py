@@ -151,7 +151,7 @@ class Image(mixin.Pickleable):
             self,
             ax: plt.Axes,
             a: u.Quantity,
-            t: typ.Optional[u.Quantity] = None,
+            t: typ.Optional[astropy.time.Time] = None,
             a_name: str = '',
             # drawstyle: str = 'steps-mid',
     ) -> typ.Tuple[plt.Axes, typ.List[plt.Line2D]]:
