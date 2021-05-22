@@ -5,6 +5,12 @@ import astropy.units as u
 
 __all__ = ['TolQuantity']
 
+mAA = u.def_unit(
+    s=['milliAngstrom', 'mAA', 'milliangstrom'],
+    represents=1e-3 * u.AA,
+    format={'latex': r'm\mathring{A}', 'unicode': 'mÅ'},
+)
+
 
 class TolArray(np.ndarray):
 
