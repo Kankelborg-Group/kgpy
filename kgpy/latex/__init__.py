@@ -29,7 +29,7 @@ class Abstract(pylatex.base_classes.Environment):
 
 class Document(pylatex.Document):
 
-    def set_quantity(
+    def set_variable_quantity(
             self,
             name: str,
             value: u.Quantity,
