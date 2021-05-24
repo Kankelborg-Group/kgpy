@@ -1,14 +1,16 @@
 import typing as typ
 import numpy as np
+import numpy.typing
+
 import astropy.units as u
 
 __all__ = ['false_position', 'secant']
 
 
 def false_position(
-        func: typ.Callable[[np.ndarray], np.ndarray],
-        bracket_min: np.ndarray,
-        bracket_max: np.ndarray,
+        func: typ.Callable[[numpy.typing.ArrayLike], numpy.typing.ArrayLike],
+        bracket_min: numpy.typing.ArrayLike,
+        bracket_max: numpy.typing.ArrayLike,
         max_abs_error: float = 1e-9,
         max_iterations: int = 100,
 ) -> np.ndarray:
@@ -71,8 +73,8 @@ def false_position(
 
 
 def secant(
-        func: typ.Callable[[np.ndarray], np.ndarray],
-        root_guess: np.ndarray = np.array(0),
+        func: typ.Callable[[numpy.typing.ArrayLike], numpy.typing.ArrayLike],
+        root_guess: numpy.typing.ArrayLike = 0,
         step_size: float = 1,
         max_abs_error: float = 1e-9,
         max_iterations: int = 100,

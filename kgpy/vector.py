@@ -92,6 +92,11 @@ class Vector(
 
     @classmethod
     @abc.abstractmethod
+    def dimensionless(cls) -> 'Vector':
+        return cls()
+
+    @classmethod
+    @abc.abstractmethod
     def spatial(cls) -> 'Vector':
         return cls()
 
@@ -137,13 +142,20 @@ class Vector(
 
 @dataclasses.dataclass(eq=False)
 class Vector2D(Vector):
-    x: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
-    y: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
+    x: numpy.typing.ArrayLike = 0
+    y: numpy.typing.ArrayLike = 0
 
     x_index: typ.ClassVar[int] = 0
     y_index: typ.ClassVar[int] = 1
 
     __array_priority__ = 100000
+
+    @classmethod
+    def dimensionless(cls) -> 'Vector2D':
+        self = super().dimensionless()
+        self.x = self.x * u.dimensionless_unscaled
+        self.y = self.y * u.dimensionless_unscaled
+        return self
 
     @classmethod
     def spatial(cls) -> 'Vector2D':
@@ -443,7 +455,7 @@ class Vector2D(Vector):
 
 @dataclasses.dataclass(eq=False)
 class Vector3D(Vector2D):
-    z: numpy.typing.ArrayLike = 0 * u.dimensionless_unscaled
+    z: numpy.typing.ArrayLike = 0
     z_index: typ.ClassVar[int] = 2
 
     __array_priority__ = 1000000
@@ -458,6 +470,12 @@ class Vector3D(Vector2D):
     def from_tuple(cls, value: typ.Tuple):
         self = super().from_tuple(value=value)
         self.z = value[iz]
+        return self
+
+    @classmethod
+    def dimensionless(cls) -> 'Vector3D':
+        self = super().dimensionless()    # type: Vector3D
+        self.z = self.z * u.dimensionless_unscaled
         return self
 
     @classmethod
@@ -682,15 +700,21 @@ class Vector3D(Vector2D):
 
 
 def xhat_factory():
-    return Vector3D(x=1 * u.dimensionless_unscaled)
+    a = Vector3D.dimensionless()
+    a.x = 1 * u.dimensionless_unscaled
+    return a
 
 
 def yhat_factory():
-    return Vector3D(y=1 * u.dimensionless_unscaled)
+    a = Vector3D.dimensionless()
+    a.y = 1 * u.dimensionless_unscaled
+    return a
 
 
 def zhat_factory():
-    return Vector3D(z=1 * u.dimensionless_unscaled)
+    a = Vector3D.dimensionless()
+    a.z = 1 * u.dimensionless_unscaled
+    return a
 
 
 x_hat = xhat_factory()
