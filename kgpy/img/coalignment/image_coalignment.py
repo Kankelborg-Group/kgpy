@@ -184,13 +184,16 @@ class ImageTransform:
         return transform[0].T.reshape(12)
 
 
-def normalized_cc(im1, im2):
+def normalized_cc(im1, im2, mode = 'same'):
     if im1.std() != 0:
         im1 = (im1 - im1.mean()) / im1.std()
     if im2.std() != 0:
         im2 = (im2 - im2.mean()) / im2.std()
-    cc = scipy.signal.correlate(im1, im2, mode='same')
-    cc /= cc.size
+    cc = scipy.signal.correlate(im1, im2, mode=mode)
+    if mode == 'full':
+        cc /= cc.size/2
+    if mode == 'same':
+        cc /= cc.size
     return cc
 
 
