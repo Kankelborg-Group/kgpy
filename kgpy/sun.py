@@ -43,6 +43,7 @@ def spectrum_qs_tr() -> ChiantiPy.core.bunch:
             minAbund=1e-5,
             em=emission,
             abundance='sun_coronal_2012_schmelz',
+            keepIons=True,
         )
         with open(spectrum_qs_tr_cache, 'wb') as f:
             pickle.dump(bunch, f)
