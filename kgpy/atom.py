@@ -52,6 +52,4 @@ class Transition(kgpy.mixin.Dataframable):
                     ha='center',
                     va='bottom',
                 ))
-                # ax.text(wavelength_qs[i], intensity_qs[i], ' ' + ion_qs[i] + ' ' + str(wavelength_qs[i].value),
-                #         ha='center', va='bottom', rotation=90)
         return lines, text
