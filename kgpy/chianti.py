@@ -31,5 +31,6 @@ def ion_tolatex(ions):
     ion_latex = []
     for ion in ions:
         element, ion = ion.split('_')
-        ion_latex.append(element[0].upper()+element[1:]+'\,{\sc '+write_roman(int(ion))+'}')
+        # ion_latex.append(element[0].upper()+element[1:]+'\,{\sc '+write_roman(int(ion))+'}')
+        ion_latex.append(element[0].upper()+element[1:]+'\,$\textsc{'+write_roman(int(ion))+'}$')
     return ion_latex
