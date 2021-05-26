@@ -31,7 +31,7 @@ def secant_2d(
 
         converged = f1.length < max_abs_error
         if converged.all():
-            print('num 2d secant iterations', i)
+            # print('num 2d secant iterations', i)
             return x1
 
         if (i == 0) or not broydens_good_method:

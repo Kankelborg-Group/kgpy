@@ -111,7 +111,7 @@ class ImageTransform:
         img = big_img[self.post_transform_crop]
         return img
 
-    def img_pre_process(self, img):
+    def img_pre_process(self, img, reverse=None):
         img = img[self.initial_crop]
         img = np.pad(img, self.initial_pad)
         return img
@@ -134,23 +134,31 @@ class ImageTransform:
 
         return coords
 
-    def coord_post_process(self, coords):
+    def coord_post_process(self, coords, reverse=None):
         post_crop = np.array([self.post_transform_crop[1].start, self.post_transform_crop[0].start], dtype=np.float)
         post_crop[np.isnan(post_crop)] = 0
-        coords = coords + np.array(self.post_transform_translation[::-1]).reshape(2, 1, 1) - post_crop.reshape(2, 1, 1)
+        if reverse:
+            coords = coords - np.array(self.post_transform_translation[::-1]).reshape(2, 1, 1) + post_crop.reshape(2, 1, 1)
+        else:
+            coords = coords + np.array(self.post_transform_translation[::-1]).reshape(2, 1, 1) - post_crop.reshape(2, 1, 1)
         return coords
 
-    def coord_pre_process(self, coords):
+
+    def coord_pre_process(self, coords, reverse=None):
         crop = np.array([self.initial_crop[1].start, self.initial_crop[0].start], dtype=np.float)
         crop[np.isnan(crop)] = 0
         pad = self.initial_pad
         pad = np.array([pad[1][0], pad[0][0]])
-        coords = coords - crop.reshape(2, 1, 1) + pad.reshape(2, 1, 1)
+        if reverse:
+            coords = coords + crop.reshape(2, 1, 1) - pad.reshape(2, 1, 1)
+        else:
+            coords = coords - crop.reshape(2, 1, 1) + pad.reshape(2, 1, 1)
         return coords
 
     def invert_quadratic_transform(self,img) -> np.ndarray:
         '''
-        Given a transformation object and the originally transformed image the transformation step can be inverted using this routine.
+        Given a transformation object and the originally transformed image the transformation step can be inverted
+        using this routine.
 
         '''
 
@@ -176,6 +184,16 @@ class ImageTransform:
         return transform[0].T.reshape(12)
 
 
+def normalized_cc(im1, im2):
+    if im1.std() != 0:
+        im1 = (im1 - im1.mean()) / im1.std()
+    if im2.std() != 0:
+        im2 = (im2 - im2.mean()) / im2.std()
+    cc = scipy.signal.correlate(im1, im2, mode='same')
+    cc /= cc.size
+    return cc
+
+
 def test_alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transformation_object: 'ImageTransform') -> float:
     """
     Apply a chosen transform to Image 1 and cross-correlate with Image 2 to check coalignment
@@ -189,13 +207,7 @@ def test_alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarr
     transformation_object.transform = transform
     im1 = transformation_object.transform_image(im1)
 
-    if im1.std() != 0:
-        im1 = (im1 - im1.mean()) / im1.std()
-    if im2.std() != 0:
-        im2 = (im2 - im2.mean()) / im2.std()
-
-    cc = scipy.signal.correlate(im1,im2, mode='same')
-    cc /= cc.size
+    cc = normalized_cc(im1, im2)
 
     # fit_quality = np.max(cc)
     center = np.array(cc.shape) // 2
@@ -204,6 +216,9 @@ def test_alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarr
 
     # print(fit_quality)
     return -fit_quality
+
+
+
 
 
 def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, transform_func, origin = np.array([0,0]),
@@ -224,14 +239,8 @@ def alignment_quality(transform: np.ndarray, im1: np.ndarray, im2: np.ndarray, t
     transformed_coord = transform_func(im1, transform, origin, **kwargs)
     im1 = scipy.ndimage.map_coordinates(im1,transformed_coord)
     im1 = im1.T
+    cc = normalized_cc(im1,im2)
 
-    if im1.std() != 0:
-        im1 = (im1 - im1.mean()) / im1.std()
-    if im2.std() != 0:
-        im2 = (im2 - im2.mean()) / im2.std()
-
-    cc = scipy.signal.correlate(im1,im2, mode='same')
-    cc /= cc.size
     fit_quality = np.max(cc)
 
 
@@ -244,17 +253,9 @@ def affine_alignment_quality(transform, im1, im2):
 
     origin = np.array(im1.shape) // 2
     im1 = modified_affine(im1, transform, origin)
-
-    if im1.std() != 0:
-        im1 = (im1 - im1.mean()) / im1.std()
-    if im2.std() != 0:
-        im2 = (im2 - im2.mean()) / im2.std()
-    cc = scipy.signal.correlate(im2, im1, mode='same')
-    cc /= cc.size
+    cc = normalized_cc(im1,im2)
     fit_quality = np.max(cc)
 
-
-    # print(fit_quzality)
     return -fit_quality
 
 
@@ -332,47 +333,7 @@ def modified_affine_to_quadratic(transform: np.ndarray, origin: np.ndarray) -> n
                                -transform[5],affine_m[1, 0], affine_m[1, 1], 0, 0, 0])
     return quad_transform
 
-def esis_geometric_transform(transform: np.ndarray,coords:np.ndarray):
 
-    '''
-    A coordinate transform to go from detector coordinates to solar coordinates based on ESIS Geometrical Correction
-    started by CCK.
-    '''
-    Delta = transform[0]
-    alpha = np.deg2rad(transform[1])
-    beta = np.deg2rad(transform[2])
-    d = transform[3]
-    delta = transform[4]
-    D = transform[5]
-    eta = np.deg2rad(transform[6])
-    theta = np.deg2rad(transform[7])
-    pomega = np.deg2rad(transform[8])
-    x_0 = transform[9]
-    y_0 = transform[10]
-
-    wave = 629.7
-    wave_0 = 629.7
-
-    m=1
-    M=4
-
-    gamma = -(np.pi/8*(1+2*m)+delta)
-    gamma_rot = np.array([[np.cos(gamma), -np.sin(gamma)], [np.sin(gamma), np.cos(gamma)]])
-    x_i = np.array([np.cos(alpha) / np.cos(beta) * (coords[0, ...]), coords[1, ...]]) + np.array(
-        [(1 + Delta) * D * (wave - wave_0), 0]).reshape(2, 1, 1)
-
-
-    x_d = M * (1 + Delta) * np.array([gamma_rot[0,0]*x_i[0]+gamma_rot[0,1]*x_i[1],gamma_rot[1,0]*x_i[0]+gamma_rot[1,1]*x_i[1]])
-
-    eta_rot = np.array([[np.cos(eta), -np.sin(eta)], [np.sin(eta), np.cos(eta)]])
-    x_t = np.array([eta_rot[0,0]*x_d[0]+eta_rot[0,1]*x_d[1],eta_rot[1,0]*x_d[0]+eta_rot[1,1]*x_d[1]])
-
-    x_k = x_t * (1+ x_d*np.sin(theta)/(d*(1+Delta))) * np.array([(1/np.cos(theta)),1]).reshape(2,1,1)
-
-    pomega_rot = np.array([[np.cos(pomega), -np.sin(pomega)], [np.sin(pomega), np.cos(pomega)]])
-    x_prime = x_t = np.array([pomega_rot[0,0]*x_k[0]+pomega_rot[0,1]*x_t[1],pomega_rot[1,0]*x_t[0]+pomega_rot[1,1]*x_t[1]]) + np.array([x_0, y_0]).reshape(2, 1, 1)
-
-    return x_prime
 
 
 # path = level_3.default_pickle_path
