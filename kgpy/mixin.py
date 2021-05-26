@@ -62,7 +62,7 @@ class AutoAxis:
 
 class Pickleable(abc.ABC):
     """
-    Class for adding 'to_pickle' and 'from_pickle' methods for objects will long creation times.
+    Class for adding 'to_pickle' and 'from_pickle' methods for objects with long creation times.
     """
 
     @classmethod
