@@ -1,3 +1,5 @@
+import numpy as np
+import astropy.units as u
 import ChiantiPy.core as ch
 import kgpy.mixin
 from collections import OrderedDict
@@ -34,3 +36,7 @@ def ion_tolatex(ions):
         # ion_latex.append(element[0].upper()+element[1:]+'\,{\sc '+write_roman(int(ion))+'}')
         ion_latex.append(element[0].upper()+element[1:]+'\,$\textsc{'+write_roman(int(ion))+'}$')
     return ion_latex
+
+
+def temperature() -> u.Quantity:
+    return 10 ** np.arange(4, 8.1, 0.1) * u.K
