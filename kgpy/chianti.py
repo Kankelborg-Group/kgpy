@@ -1,4 +1,9 @@
+import typing as typ
+import os
+import pathlib
+import csv
 import numpy as np
+import scipy.interpolate
 import astropy.units as u
 import ChiantiPy.core as ch
 import kgpy.mixin
@@ -40,3 +45,32 @@ def ion_tolatex(ions):
 
 def temperature() -> u.Quantity:
     return 10 ** np.arange(4, 8.1, 0.1) * u.K
+
+
+def dem(file: pathlib.Path) -> u.Quantity:
+    temp = []
+    emission = []
+    with open(file, newline='') as fp:
+        dem_reader = csv.reader(fp, delimiter=' ', skipinitialspace=True)
+        for row in dem_reader:
+            if float(row[0]) == -1:
+                break
+            temp.append(10 ** float(row[0]))
+            emission.append(10 ** float(row[1]))
+
+    temp = temp * u.K
+    emission = emission * u.dimensionless_unscaled
+
+    emission_interp = scipy.interpolate.interp1d(
+        x=temp,
+        y=emission,
+        fill_value=0,
+        bounds_error=False,
+    )
+
+    return emission_interp(temperature())
+
+
+def dem_qs() -> u.Quantity:
+    dem_file = pathlib.Path(os.environ['XUVTOP']) / 'dem/quiet_sun.dem'
+    return dem(dem_file)
