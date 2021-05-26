@@ -1,10 +1,8 @@
 import typing as typ
 import os
-import pickle
 import pathlib
 import astropy.units as u
 import pandas
-import ChiantiPy.core
 import kgpy.chianti
 
 __all__ = ['angular_radius_max']
