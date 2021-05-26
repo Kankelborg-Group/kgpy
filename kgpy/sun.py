@@ -13,15 +13,15 @@ angular_radius_max = (32 * u.arcmin + 32 * u.arcsec) / 2  # type: u.Quantity
 
 
 def dem(dem_file: pathlib.Path) -> typ.Tuple[u.Quantity, u.Quantity]:
-    dem = pandas.read_csv(
+    dem_csv = pandas.read_csv(
         filepath_or_buffer=dem_file,
         sep=' ',
         skipinitialspace=True,
         skipfooter=9,
         names=['logT', 'logEM'],
     )
-    temperature = 10 ** dem['logT'].to_numpy() * u.K
-    em = 10 ** dem['logEM'].to_numpy() * u.dimensionless_unscaled
+    temperature = 10 ** dem_csv['logT'].to_numpy() * u.K
+    em = 10 ** dem_csv['logEM'].to_numpy() * u.dimensionless_unscaled
     return temperature, em
 
 
