@@ -4,6 +4,7 @@ import pathlib
 import astropy.units as u
 import pandas
 import ChiantiPy.core
+import kgpy.chianti
 
 __all__ = ['angular_radius_max']
 
@@ -26,17 +27,17 @@ def dem(dem_file: pathlib.Path) -> typ.Tuple[u.Quantity, u.Quantity]:
 
 
 def dem_qs() -> typ.Tuple[u.Quantity, u.Quantity]:
-    dem_file = pathlib.Path(r'C:\Users\royts\chianti\dem\quiet_sun.dem')
+    dem_file =  pathlib.Path.home() / pathlib.Path(r'chianti/dem/quiet_sun.dem')
     return dem(dem_file)
 
 
-def spectrum_qs_tr() -> ChiantiPy.core.bunch:
+def spectrum_qs_tr() -> kgpy.chianti.Bunch:
     spectrum_qs_tr_cache = pathlib.Path(__file__).parent / 'spectrum_qs_tr_cache.pickle'
     if not spectrum_qs_tr_cache.exists():
         temperature, emission = dem_qs()
         pressure = 1e15 * u.K * u.cm ** -3
         density_electron = pressure / temperature
-        bunch = ChiantiPy.core.bunch(
+        bunch = kgpy.chianti.Bunch(
             temperature=temperature.value,
             eDensity=density_electron.value,
             wvlRange=[10, 1000],
@@ -45,11 +46,9 @@ def spectrum_qs_tr() -> ChiantiPy.core.bunch:
             abundance='sun_coronal_2012_schmelz',
             keepIons=True,
         )
-        with open(spectrum_qs_tr_cache, 'wb') as f:
-            pickle.dump(bunch, f)
+        bunch.to_pickle(spectrum_qs_tr_cache)
 
     else:
-        with open(spectrum_qs_tr_cache, 'rb') as f:
-            bunch = pickle.load(f)
+        bunch = kgpy.chianti.Bunch.from_pickle(spectrum_qs_tr_cache)
 
     return bunch
