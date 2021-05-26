@@ -1,4 +1,5 @@
 import typing as typ
+import os
 import pickle
 import pathlib
 import astropy.units as u
@@ -27,7 +28,7 @@ def dem(dem_file: pathlib.Path) -> typ.Tuple[u.Quantity, u.Quantity]:
 
 
 def dem_qs() -> typ.Tuple[u.Quantity, u.Quantity]:
-    dem_file =  pathlib.Path.home() / pathlib.Path(r'chianti/dem/quiet_sun.dem')
+    dem_file = pathlib.Path(os.environ['XUVTOP']) / 'dem/quiet_sun.dem'
     return dem(dem_file)
 
 
