@@ -20,6 +20,7 @@ setup(
         'sphinx-autodoc-typehints',
         'astropy-sphinx-theme',
         'roman',
+        'ipyparallel',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',
