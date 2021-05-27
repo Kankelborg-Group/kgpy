@@ -31,23 +31,50 @@ def datetime_prep(ax: plt.Axes):
 def annotate_distance(
         ax: matplotlib.axes.Axes,
         point_1: vector.Vector2D,
-        point_2: vector.Vector2D
+        point_2: vector.Vector2D,
+        point_text: typ.Optional[vector.Vector2D] = None,
+        horizontal_alignment: str = 'center',
+        vertical_alignment: str = 'center',
+        annotation_textcoords: typ.Optional = None,
 ) -> typ.Tuple[matplotlib.text.Annotation, matplotlib.text.Annotation, matplotlib.text.Text]:
-    kwargs = dict(text='', xy=point_1.to_tuple(), xytext=point_2.to_tuple())
-    annotation_1 = ax.annotate(**kwargs, arrowprops=dict(arrowstyle='<->'))
-    annotation_2 = ax.annotate(**kwargs, arrowprops=dict(arrowstyle='|-|'))
-    midpoint = (point_1 + point_2) / 2
-    text = ax.text(
-        x=midpoint.x,
-        y=midpoint.y,
-        s=(point_2 - point_1).length,
-        horizontal_alignment='center',
-        vertical_alignment='center',
-        bbox=dict(
-            facecolor='white',
-            edgecolor=None,
-        )
+    kwargs = dict(
+        text='',
+        xy=point_1.to_tuple(),
+        xytext=point_2.to_tuple(),
+        annotation_clip=False,
+        # textcoords=annotation_textcoords,
+        # textcoords=ax.transData,
     )
+    annotation_1 = ax.annotate(**kwargs, arrowprops=dict(arrowstyle='<->', shrinkA=0.0, shrinkB=0.0))
+    annotation_2 = ax.annotate(**kwargs, arrowprops=dict(arrowstyle='|-|', shrinkA=0.0, shrinkB=0.0))
+    midpoint = (point_1 + point_2) / 2
+    text_str = fmt.quantity((point_2 - point_1).length, digits_after_decimal=1)
+    if point_text is None:
+        text = ax.text(
+            x=midpoint.x,
+            y=midpoint.y,
+            s=text_str,
+            horizontalalignment=horizontal_alignment,
+            verticalalignment=vertical_alignment,
+            bbox=dict(
+                facecolor='white',
+                edgecolor='None',
+            )
+        )
+    else:
+        text = ax.annotate(
+            text=text_str,
+            xy=midpoint.to_tuple(),
+            xytext=point_text.to_tuple(),
+            horizontalalignment=horizontal_alignment,
+            verticalalignment=vertical_alignment,
+            arrowprops=dict(
+                arrowstyle='-',
+                shrinkA=0,
+                shrinkB=0
+            ),
+            annotation_clip=False,
+        )
     return annotation_1, annotation_2, text
 
 
@@ -106,7 +133,7 @@ def annotate_component(
 
     text_pos = vector.Vector2D(position_orthogonal, position_orthogonal)
     text_pos.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
-    text_str = fmt.quantity(c2 - c1, digits_after_decimal=1)
+    text_str = fmt.quantity(np.abs(c2 - c1), digits_after_decimal=2)
 
     bbox_margin = plt.rcParams['font.size'] / 2
     if horizontal_alignment == 'left':
@@ -135,6 +162,55 @@ def annotate_component(
             facecolor='white',
             edgecolor='None',
         ),
+    )
+
+
+def annotate_angle(
+        ax: matplotlib.axes.Axes,
+        point_center: vector.Vector2D,
+        radius: u.Quantity,
+        angle_1: u.Quantity,
+        angle_2: u.Quantity,
+        angle_label: u.Quantity,
+        component: str = 'x',
+        position_orthogonal: float = 0,
+        position_parallel: float = 0.5,
+        horizontal_alignment: str = 'center',
+        vertical_alignment: str = 'center',
+        transform: typ.Optional[matplotlib.transforms.Transform] = None,
+):
+
+    print(point_center)
+    print(vector.Vector2D.from_cylindrical(radius, angle_1))
+    point_1 = point_center + vector.Vector2D.from_cylindrical(radius, angle_1)
+    point_2 = point_center + vector.Vector2D.from_cylindrical(radius, angle_2)
+    point_label = point_center + vector.Vector2D.from_cylindrical(radius, angle_label)
+
+    annotation_arrows = ax.annotate(
+        text='',
+        xy=point_1.to_tuple(),
+        xytext=point_2.to_tuple(),
+        annotation_clip=False,
+        arrowprops=dict(arrowstyle='<->', shrinkA=0.0, shrinkB=0.0)
+    )
+
+    annotation_bars_kwargs = dict(
+        text='',
+        # textcoords=transform,
+        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=0.0, linestyle='dotted', color='gray'),
+        annotation_clip=False,
+    )
+
+    annotation_bar_1 = ax.annotate(
+        xy=point_center.to_tuple(),
+        xytext=point_1.to_tuple(),
+        **annotation_bars_kwargs,
+    )
+
+    annotation_bar_2 = ax.annotate(
+        xy=point_center.to_tuple(),
+        xytext=point_2.to_tuple(),
+        **annotation_bars_kwargs,
     )
 
 
