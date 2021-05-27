@@ -89,7 +89,6 @@ def bunch_tr(emission_measure: u.Quantity) -> Bunch:
             wvlRange=[10, 1000],
             minAbund=1e-5,
             abundance='sun_coronal_2012_schmelz',
-            keepIons=True,
         )
         bunch.to_pickle(bunch_tr_cache)
 
