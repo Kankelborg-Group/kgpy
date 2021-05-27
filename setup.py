@@ -19,6 +19,7 @@ setup(
         'ezdxf',
         'sphinx-autodoc-typehints',
         'astropy-sphinx-theme',
+        'roman',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',

@@ -7,6 +7,7 @@ import numpy.typing
 import matplotlib.axes
 import matplotlib.collections
 import matplotlib.text
+import roman
 import scipy.interpolate
 import astropy.units as u
 import astropy.visualization
@@ -14,18 +15,17 @@ import pandas
 import ChiantiPy.core
 import kgpy.mixin
 import kgpy.format
-from collections import OrderedDict
 
 __all__ = [
     'Bunch',
-    'write_roman',
-    'ion_tolatex',
+    'to_spectroscopic',
     'temperature',
     'dem',
     'dem_qs',
     'bunch_tr',
     'bunch_tr_qs',
 ]
+
 
 class Bunch(
     kgpy.mixin.Pickleable,
@@ -90,9 +90,10 @@ class Bunch(
     def dataframe(self, num_emission_lines: int = 10) -> pandas.DataFrame:
         wavelength = self.wavelength[:num_emission_lines]
         intensity = self.intensity[:num_emission_lines]
+        ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
         return pandas.DataFrame(
             data=[
-                self.ion[:num_emission_lines],
+                ion,
                 [kgpy.format.quantity(w) for w in wavelength],
                 intensity / intensity.max()
             ],
@@ -108,7 +109,7 @@ class Bunch(
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
-            ion = self.ion[:num_emission_lines]
+            ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
             lines = ax.vlines(
                 x=wavelength,
                 ymin=0,
@@ -127,38 +128,25 @@ class Bunch(
         return lines, text
 
 
-
-def write_roman(num):
-    roman = OrderedDict()
-    roman[40] = "xl"
-    roman[10] = "x"
-    roman[9] = "ix"
-    roman[5] = "v"
-    roman[4] = "iv"
-    roman[1] = "i"
-
-    def roman_num(num):
-        for r in roman.keys():
-            x, y = divmod(num, r)
-            yield roman[r] * x
-            num -= (r * x)
-            if num <= 0:
-                break
-
-    return "".join([a for a in roman_num(num)])
-
-
-def ion_tolatex(ions: str, use_latex:bool = True) -> str:
+def to_spectroscopic(ions: typ.Sequence[str], use_latex: bool = True) -> np.ndarray:
     ion_latex = []
     for ion in ions:
         element, ion = ion.split('_')
 
-        if use_latex:
-            ion_latex.append(element[0].upper() + element[1:] + '\,{\sc ' + write_roman(int(ion)) + '}')
-        else:
-            ion_latex.append(element[0].upper() + element[1:] + ' ' + write_roman(int(ion)).upper())
-    return ion_latex
+        element = list(element)
+        element[0] = element[0].upper()
+        element = ''.join(element)
+        ion = roman.toRoman(int(ion))
 
+        if use_latex:
+            ion = ion.lower()
+            ion = r'\,\sc{' + ion + '}'
+        else:
+            ion = ' ' + ion
+
+        ion_latex.append(element + ion)
+
+    return numpy.array(ion_latex)
 
 
 def temperature() -> u.Quantity:
