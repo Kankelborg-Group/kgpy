@@ -3,10 +3,16 @@ import os
 import pathlib
 import csv
 import numpy as np
+import matplotlib.axes
+import matplotlib.collections
+import matplotlib.text
 import scipy.interpolate
 import astropy.units as u
-import ChiantiPy.core as ch
+import astropy.visualization
+import pandas
+import ChiantiPy.core
 import kgpy.mixin
+import kgpy.format
 from collections import OrderedDict
 
 __all__ = [
@@ -20,8 +26,59 @@ __all__ = [
     'bunch_tr_qs',
 ]
 
-class Bunch(kgpy.mixin.Pickleable, ch.bunch):
-    pass
+
+class Bunch(
+    kgpy.mixin.Dataframable,
+    kgpy.mixin.Pickleable,
+    ChiantiPy.core.bunch,
+):
+    @property
+    def ion(self) -> np.ndarray:
+        return self.Intensity['IonS']
+
+    @property
+    def wavelength(self) -> u.Quantity:
+        return self.Intensity['wvl'] << u.AA
+
+    @property
+    def intensity(self) -> u.Quantity:
+        return self.Intensity['intensity'] << u.dimensionless_unscaled
+
+    @property
+    def dataframe(self) -> pandas.DataFrame:
+        return pandas.DataFrame(
+            data=[
+                self.ion,
+                [kgpy.format.quantity(w) for w in self.wavelength],
+                self.intensity / self.intensity.max()
+            ],
+            index=['ion', 'wavelength', 'intensity']
+        ).T
+
+    def plot(
+            self,
+            ax: matplotlib.axes.Axes,
+    ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
+
+        with astropy.visualization.quantity_support():
+            lines = ax.vlines(
+                x=self.wavelength,
+                ymin=0,
+                ymax=self.intensity,
+            )
+            text = []
+            for i in range(self.wavelength.size):
+                index = np.unravel_index(i, shape=self.wavelength.size)
+                text.append(ax.text(
+                    x=self.wavelength[index],
+                    y=self.intensity[index],
+                    s=' ' + self.ion[index] + ' ' + str(self.wavelength[index].value),
+                    rotation=90,
+                    ha='center',
+                    va='bottom',
+                ))
+        return lines, text
+
 
 def write_roman(num):
 
