@@ -3,6 +3,7 @@ import os
 import pathlib
 import csv
 import numpy as np
+import numpy.typing
 import matplotlib.axes
 import matplotlib.collections
 import matplotlib.text
@@ -28,29 +29,73 @@ __all__ = [
 
 
 class Bunch(
-    kgpy.mixin.Dataframable,
     kgpy.mixin.Pickleable,
     ChiantiPy.core.bunch,
 ):
-    @property
-    def ion(self) -> np.ndarray:
-        return self.Intensity['IonS']
 
     @property
-    def wavelength(self) -> u.Quantity:
+    def wavelength_min(self) -> u.Quantity:
+        return self.WvlRange[0] << u.AA
+
+    @wavelength_min.setter
+    def wavelength_min(self, value: u.Quantity):
+        self.WvlRange[0] = value.to(u.AA).value
+
+    @property
+    def wavelength_max(self) -> u.Quantity:
+        return self.WvlRange[1] << u.AA
+
+    @wavelength_max.setter
+    def wavelength_max(self, value: u.Quantity):
+        self.WvlRange[1] = value.to(u.AA).value
+
+    @property
+    def temperature(self) -> u.Quantity:
+        return self.Temperature
+
+    @property
+    def ion_all(self) -> np.ndarray:
+        return self.Intensity['ionS']
+
+    @property
+    def wavelength_all(self) -> u.Quantity:
         return self.Intensity['wvl'] << u.AA
 
     @property
-    def intensity(self) -> u.Quantity:
-        return self.Intensity['intensity'] << u.dimensionless_unscaled
+    def intensity_all(self) -> u.Quantity:
+        return np.trapz(self.Intensity['intensity'], self.temperature[..., np.newaxis], axis=0) << u.dimensionless_unscaled
 
     @property
-    def dataframe(self) -> pandas.DataFrame:
+    def wavelength_mask(self) -> np.ndarray:
+        return (self.wavelength_all > self.wavelength_min) & (self.wavelength_all < self.wavelength_max)
+
+    @property
+    def indices_masked_sorted(self) -> np.ndarray:
+        return np.argsort(self.intensity_all[self.wavelength_mask])
+
+    def _mask_and_sort(self, arr: numpy.typing.ArrayLike) -> numpy.typing.ArrayLike:
+        return arr[self.wavelength_mask][self.indices_masked_sorted][::-1]
+
+    @property
+    def ion(self) -> np.ndarray:
+        return self._mask_and_sort(self.ion_all)
+
+    @property
+    def wavelength(self) -> u.Quantity:
+        return self._mask_and_sort(self.wavelength_all)
+
+    @property
+    def intensity(self) -> u.Quantity:
+        return self._mask_and_sort(self.intensity_all)
+
+    def dataframe(self, num_emission_lines: int = 10) -> pandas.DataFrame:
+        wavelength = self.wavelength[:num_emission_lines]
+        intensity = self.intensity[:num_emission_lines]
         return pandas.DataFrame(
             data=[
-                self.ion,
-                [kgpy.format.quantity(w) for w in self.wavelength],
-                self.intensity / self.intensity.max()
+                self.ion[:num_emission_lines],
+                [kgpy.format.quantity(w) for w in wavelength],
+                intensity / intensity.max()
             ],
             index=['ion', 'wavelength', 'intensity']
         ).T
@@ -58,21 +103,24 @@ class Bunch(
     def plot(
             self,
             ax: matplotlib.axes.Axes,
+            num_emission_lines: int = 10
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
 
         with astropy.visualization.quantity_support():
+            wavelength = self.wavelength[:num_emission_lines]
+            intensity = self.intensity[:num_emission_lines]
+            ion = self.ion[:num_emission_lines]
             lines = ax.vlines(
-                x=self.wavelength,
+                x=wavelength,
                 ymin=0,
-                ymax=self.intensity,
+                ymax=intensity,
             )
             text = []
-            for i in range(self.wavelength.size):
-                index = np.unravel_index(i, shape=self.wavelength.size)
+            for i in range(wavelength.shape[0]):
                 text.append(ax.text(
-                    x=self.wavelength[index],
-                    y=self.intensity[index],
-                    s=' ' + self.ion[index] + ' ' + str(self.wavelength[index].value),
+                    x=wavelength[i],
+                    y=intensity[i],
+                    s=' ' + ion[i] + ' ' + str(wavelength[i].value),
                     rotation=90,
                     ha='center',
                     va='bottom',
