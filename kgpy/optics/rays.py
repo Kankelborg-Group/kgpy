@@ -22,12 +22,6 @@ __all__ = [
 ]
 
 
-# class CAxis(mixin.AutoAxis):
-#     def __init__(self):
-#         super().__init__()
-#         self.components = self.auto_axis_index()
-
-
 class Axis(mixin.AutoAxis):
     ndim_pupil: typ.ClassVar[int] = 2
     ndim_field: typ.ClassVar[int] = 2
@@ -52,10 +46,6 @@ class Axis(mixin.AutoAxis):
         names[self.wavelength] = 'wavelength'
         names[self.velocity_los] = 'LOS velocity'
         return names
-
-
-# class VAxis(Axis, CAxis):
-#     pass
 
 
 @dataclasses.dataclass
