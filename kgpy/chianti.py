@@ -140,7 +140,7 @@ def to_spectroscopic(ions: typ.Sequence[str], use_latex: bool = True) -> np.ndar
 
         if use_latex:
             ion = ion.lower()
-            ion = r'\,\sc{' + ion + '}'
+            ion = r'\,\textsc{' + ion + '}'
         else:
             ion = ' ' + ion
 
