@@ -129,6 +129,7 @@ class Polynomial3D(mixin.Dataframable):
                 a=np.stack(vander_value, axis=~0),
                 # b=data_output[i][m].quantity,
                 b=b,
+                rcond=None,
             )[0]
 
             coefficients.append([c / unit for c, unit in zip(coeffs, vander_unit)])
