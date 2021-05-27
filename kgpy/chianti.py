@@ -96,7 +96,7 @@ def bunch_tr(emission_measure: u.Quantity) -> Bunch:
     else:
         bunch = kgpy.chianti.Bunch.from_pickle(bunch_tr_cache)
 
-    bunch.Intensity['intensity'] = bunch.Intensity['intensity'] * emission_measure
+    bunch.Intensity['intensity'] = bunch.Intensity['intensity'] * emission_measure[..., np.newaxis]
 
     return bunch
 
