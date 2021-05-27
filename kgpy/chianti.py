@@ -84,7 +84,7 @@ def bunch_tr(emission_measure: u.Quantity) -> Bunch:
         pressure = 1e15 * u.K * u.cm ** -3
         density_electron = pressure / temp
         bunch = kgpy.chianti.Bunch(
-            temperature=temperature.value,
+            temperature=temp.value,
             eDensity=density_electron.value,
             wvlRange=[10, 1000],
             minAbund=1e-5,
