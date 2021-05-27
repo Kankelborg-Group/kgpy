@@ -3,12 +3,11 @@ import kgpy.mixin
 from collections import OrderedDict
 
 
-
 class Bunch(kgpy.mixin.Pickleable, ch.bunch):
     pass
 
-def write_roman(num):
 
+def write_roman(num):
     roman = OrderedDict()
     roman[40] = "xl"
     roman[10] = "x"
@@ -27,10 +26,14 @@ def write_roman(num):
 
     return "".join([a for a in roman_num(num)])
 
-def ion_tolatex(ions):
+
+def ion_tolatex(ions: str, use_latex:bool = True) -> str:
     ion_latex = []
     for ion in ions:
         element, ion = ion.split('_')
-        # ion_latex.append(element[0].upper()+element[1:]+'\,{\sc '+write_roman(int(ion))+'}')
-        ion_latex.append(element[0].upper()+element[1:]+'\,$\textsc{'+write_roman(int(ion))+'}$')
+        if use_latex:
+            ion_latex.append(element[0].upper() + element[1:] + '\,{\sc ' + write_roman(int(ion)) + '}')
+        else:
+            ion_latex.append(element[0].upper() + element[1:] + ' ' + write_roman(int(ion)).upper())
+
     return ion_latex
