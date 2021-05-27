@@ -721,9 +721,10 @@ class Rays(transform.rigid.Transformable):
         return fig
 
 
+@dataclasses.dataclass
 class RaysList(
-    collections.UserList,
-    typ.List[Rays],
+    mixin.Plottable,
+    mixin.DataclassList[Rays],
 ):
     @property
     def intercepts(self) -> vector.Vector3D:
@@ -739,11 +740,17 @@ class RaysList(
             ax: plt.Axes,
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
+            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
             transform_extra: typ.Optional[transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
             plot_colorbar: bool = True,
     ) -> typ.Tuple[typ.List[plt.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
+
+        if plot_kwargs is not None:
+            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
+        else:
+            plot_kwargs = self.plot_kwargs
 
         if transform_extra is None:
             transform_extra = transform.rigid.TransformList()
@@ -784,6 +791,7 @@ class RaysList(
                     intercepts[..., i].get_component(components[1]),
                     color=color[..., i, :],
                     **plot_kwargs_z,
+                    **plot_kwargs,
                 )
 
                 lines = lines + lines_i

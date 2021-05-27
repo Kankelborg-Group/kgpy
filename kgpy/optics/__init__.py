@@ -604,6 +604,7 @@ class System(
                 ax=ax,
                 components=components,
                 component_z=component_z,
+                plot_kwargs=plot_kwargs,
                 transform_extra=transform_extra,
                 color_axis=color_axis,
                 plot_vignetted=plot_vignetted,
