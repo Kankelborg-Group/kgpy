@@ -52,4 +52,29 @@ class FigureStar(pylatex.Figure):
         self._latex_name = 'figure*'
 
 
+@dataclasses.dataclass
+class Acronym(pylatex.base_classes.LatexObject):
+    acronym: str
+    name_full: str
+    name_short: typ.Optional[str] = None
+    plural: bool = False
+
+    def dumps(self):
+        command = pylatex.Command(
+            command='newacro',
+            arguments=[self.acronym, pylatex.NoEscape(self.name_full)],
+            options=self.name_short,
+        ).dumps()
+        command += pylatex.Command(
+            command='newcommand',
+            arguments=[pylatex.NoEscape('\\' + self.acronym), pylatex.NoEscape(r'\ac{' + self.acronym + '}')],
+        ).dumps()
+        if self.plural:
+            command += pylatex.Command(
+                command='newcommand',
+                arguments=[pylatex.NoEscape('\\' + self.acronym + 's'), pylatex.NoEscape(r'\acp{' + self.acronym + '}')],
+            ).dumps()
+        return command
+
+
 from . import aas
