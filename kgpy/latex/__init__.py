@@ -46,4 +46,10 @@ class Document(pylatex.Document):
         )
 
 
+class FigureStar(pylatex.Figure):
+    def __init__(self, *, position: str = None, **kwargs):
+        super().__init__(position=position, **kwargs)
+        self._latex_name = 'figure*'
+
+
 from . import aas
