@@ -175,3 +175,19 @@ class Mirror(Material):
                         )
 
         return lines
+
+
+@dataclasses.dataclass
+class AluminumThinFilm(Material):
+    name: str = 'thin film Al'
+    thickness: u.Quantity = 0 * u.nm
+    mesh_ratio: u.Quantity = 100 * u.percent
+
+    def index_of_refraction(self, rays: Rays) -> u.Quantity:
+        return 1 * u.dimensionless_unscaled
+
+    def copy(self) -> 'AluminumThinFilm':
+        other = super().copy()
+        other.thickness = self.thickness.copy()
+        other.mesh_ratio = self.mesh_ratio.copy()
+        return other
