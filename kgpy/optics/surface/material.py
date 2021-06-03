@@ -21,10 +21,16 @@ class Material(
     mixin.Copyable,
     abc.ABC
 ):
+    name: str = ''
 
     @abc.abstractmethod
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         pass
+
+    def copy(self) -> 'Material':
+        other = super().copy()
+        other.name = self.name
+        return other
 
     def plot(
             self,
@@ -44,6 +50,7 @@ class Material(
 
 @dataclasses.dataclass
 class Mirror(Material):
+    name: str = 'mirror'
     thickness: typ.Optional[u.Quantity] = None
 
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
