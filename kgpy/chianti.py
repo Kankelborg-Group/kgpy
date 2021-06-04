@@ -13,6 +13,7 @@ import astropy.units as u
 import astropy.visualization
 import pandas
 import ChiantiPy.core
+import adjustText
 import kgpy.mixin
 import kgpy.format
 
@@ -105,7 +106,6 @@ class Bunch(
             ax: matplotlib.axes.Axes,
             num_emission_lines: int = 10
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
-
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
@@ -116,16 +116,44 @@ class Bunch(
                 ymax=intensity,
             )
             text = []
+            ha = 'right'
+            va = 'top'
+            virtual_y = []
+            virtual_x = []
             for i in range(wavelength.shape[0]):
                 text.append(ax.text(
                     x=wavelength[i],
                     y=intensity[i],
                     s=ion[i] + ' ' + kgpy.format.quantity(wavelength[i], digits_after_decimal=1),
-                    # rotation=90,
-                    ha='center',
-                    va='baseline',
+                    # rotation='vertical',
+                    ha=ha,
+                    va=va,
                     fontsize='small',
                 ))
+                num = int(100 * intensity[i] / intensity[0])
+                vy = np.linspace(start=0, stop=intensity[i], num=num, axis=0)
+                virtual_y.append(vy)
+                virtual_x.append(np.broadcast_to(wavelength[i], vy.shape, subok=True))
+
+            virtual_x = np.concatenate(virtual_x)
+            virtual_y = np.concatenate(virtual_y)
+
+            # ax.scatter(virtual_x, virtual_y)
+            adjustText.adjust_text(
+                texts=text,
+                ax=ax,
+                arrowprops=dict(
+                    arrowstyle='-',
+                    connectionstyle='arc3',
+                    alpha=0.5,
+                    linewidth=0.5,
+                ),
+                # ha=ha,
+                # va=va,
+                x=virtual_x.value,
+                y=virtual_y.value,
+                force_points=(0.01, 2),
+            )
         return lines, text
 
 
@@ -209,4 +237,3 @@ def bunch_tr(emission_measure: u.Quantity) -> Bunch:
 
 def bunch_tr_qs() -> Bunch:
     return bunch_tr(emission_measure=dem_qs())
-

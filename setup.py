@@ -21,6 +21,7 @@ setup(
         'astropy-sphinx-theme',
         'roman',
         'ipyparallel',
+        'adjustText',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',
