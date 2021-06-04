@@ -206,8 +206,15 @@ def dem(file: pathlib.Path) -> u.Quantity:
     return emission_interp(temperature())
 
 
+dem_qs_file = 'quiet_sun.dem'
+
+abundance_qs_tr_file = 'sun_coronal_2012_schmelz'
+
+pressure_qs = 1e15 * u.K * u.cm ** -3
+
+
 def dem_qs() -> u.Quantity:
-    dem_file = pathlib.Path(os.environ['XUVTOP']) / 'dem/quiet_sun.dem'
+    dem_file = pathlib.Path(os.environ['XUVTOP']) / 'dem' / dem_qs_file
     return dem(dem_file)
 
 
@@ -216,14 +223,13 @@ def bunch_tr(emission_measure: u.Quantity) -> Bunch:
 
     if not bunch_tr_cache.exists():
         temp = temperature()
-        pressure = 1e15 * u.K * u.cm ** -3
-        density_electron = pressure / temp
+        density_electron = pressure_qs / temp
         bunch = kgpy.chianti.Bunch(
             temperature=temp.value,
             eDensity=density_electron.value,
             wvlRange=[10, 1000],
             minAbund=1e-5,
-            abundance='sun_coronal_2012_schmelz',
+            abundance=abundance_qs_tr_file,
         )
         bunch.to_pickle(bunch_tr_cache)
 
