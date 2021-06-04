@@ -120,10 +120,11 @@ class Bunch(
                 text.append(ax.text(
                     x=wavelength[i],
                     y=intensity[i],
-                    s=' ' + ion[i] + ' ' + str(wavelength[i].value),
-                    rotation=90,
+                    s=ion[i] + ' ' + kgpy.format.quantity(wavelength[i], digits_after_decimal=1),
+                    # rotation=90,
                     ha='center',
-                    va='bottom',
+                    va='baseline',
+                    fontsize='small',
                 ))
         return lines, text
 
