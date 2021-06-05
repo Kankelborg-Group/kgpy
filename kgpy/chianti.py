@@ -63,7 +63,8 @@ class Bunch(
 
     @property
     def intensity_all(self) -> u.Quantity:
-        return np.trapz(self.Intensity['intensity'], self.temperature[..., np.newaxis], axis=0) << u.dimensionless_unscaled
+        intensity = np.trapz(self.Intensity['intensity'], self.temperature[..., np.newaxis], axis=0)
+        return intensity * u.erg / u.cm ** 2 / u.s / u.sr
 
     @property
     def wavelength_mask(self) -> np.ndarray:
@@ -115,6 +116,7 @@ class Bunch(
                 ymin=0,
                 ymax=intensity,
             )
+            ax.set_ylabel('{0:latex_inline}'.format(intensity.unit))
             text = []
             ha = 'right'
             va = 'top'
