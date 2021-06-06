@@ -256,10 +256,13 @@ class Surface(
                             rotation=60,
                             textcoords=ax.get_xaxis_transform(),
                             arrowprops=dict(
-                                color='black',
-                                width=0.5,
-                                headwidth=4,
-                                alpha=0.5,
+                                arrowstyle='-|>',
+                                linewidth=0.5,
+                                color='red',
+                                relpos=(0, 0)
+                                # width=0.5,
+                                # headwidth=4,
+                                # alpha=0.5,
                             ),
                         )
 

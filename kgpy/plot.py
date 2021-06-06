@@ -88,6 +88,7 @@ def annotate_component(
         horizontal_alignment: str = 'center',
         vertical_alignment: str = 'center',
         transform: typ.Optional[matplotlib.transforms.Transform] = None,
+        transparent: bool = False,
 ):
 
     if transform is None:
@@ -110,13 +111,20 @@ def annotate_component(
         textcoords=transform,
     )
 
-    annotation_1 = ax.annotate(**annotation_kwargs, arrowprops=dict(arrowstyle='<->', shrinkA=0.0, shrinkB=0.0))
+    annotation_1 = ax.annotate(**annotation_kwargs, arrowprops=dict(
+        linewidth=0.5,
+        arrowstyle='<->',
+        shrinkA=0.0,
+        shrinkB=0.0,
+        # head_length=0.4,
+        # head_width=0.2,
+    ))
     # annotation_2 = ax.annotate(**annotation_kwargs, arrowprops=dict(arrowstyle='|-|', shrinkA=0.0, shrinkB=0.0))
 
     annotation_kwargs_a = dict(
         text='',
         textcoords=transform,
-        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=0.0, linestyle='dotted', color='gray'),
+        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=0.0, color='gray', linewidth=0.4),
         annotation_clip=False,
     )
     annotation_1a = ax.annotate(
@@ -150,16 +158,21 @@ def annotate_component(
     else:
         text_offset_y = 0
 
+    if transparent:
+        facecolor = 'None'
+    else:
+        facecolor = 'white'
     ax.annotate(
         text=text_str,
         xy=text_pos.to_tuple(),
         xytext=(text_offset_x, text_offset_y),
         xycoords=transform,
         textcoords='offset points',
+        size='small',
         horizontalalignment=horizontal_alignment,
         verticalalignment=vertical_alignment,
         bbox=dict(
-            facecolor='white',
+            facecolor=facecolor,
             edgecolor='None',
         ),
     )
