@@ -93,6 +93,12 @@ class Bunch(
     def intensity(self) -> u.Quantity:
         return self._mask_and_sort(self.intensity_all)
 
+    def fullname(self, digits_after_decimal: int = 3, use_latex: bool = False) -> np.ndarray:
+        k = dict(digits_after_decimal=digits_after_decimal, scientific_notation=False)
+        ion = to_spectroscopic(self.ion, use_latex=use_latex)
+        result = [i + ' ' + kgpy.format.quantity(w, **k) for i, w in zip(ion, self.wavelength)]
+        return np.array(result)
+
     def dataframe(self, num_emission_lines: int = 10) -> pandas.DataFrame:
         wavelength = self.wavelength[:num_emission_lines]
         intensity = self.intensity[:num_emission_lines]
@@ -109,12 +115,14 @@ class Bunch(
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            num_emission_lines: int = 10
+            num_emission_lines: int = 10,
+            digits_after_decimal: int = 3
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
             ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
+            fullname = self.fullname(digits_after_decimal=digits_after_decimal)[:num_emission_lines]
             lines = ax.vlines(
                 x=wavelength,
                 ymin=0,
@@ -130,7 +138,8 @@ class Bunch(
                 text.append(ax.text(
                     x=wavelength[i],
                     y=intensity[i],
-                    s=ion[i] + ' ' + kgpy.format.quantity(wavelength[i], digits_after_decimal=1),
+                    # s=ion[i] + ' ' + kgpy.format.quantity(wavelength[i], digits_after_decimal=1),
+                    s=fullname[i],
                     # rotation='vertical',
                     ha=ha,
                     va=va,
@@ -158,7 +167,7 @@ class Bunch(
                 # va=va,
                 x=virtual_x.value,
                 y=virtual_y.value,
-                force_points=(0.01, 2),
+                force_points=(0.01, 3),
             )
         return lines, text
 
