@@ -82,6 +82,10 @@ class Bunch(
         return self._mask_and_sort(self.ion_all)
 
     @property
+    def ion_spectroscopic(self):
+        return to_spectroscopic(self.ion, use_latex=False)
+
+    @property
     def wavelength(self) -> u.Quantity:
         return self._mask_and_sort(self.wavelength_all)
 
