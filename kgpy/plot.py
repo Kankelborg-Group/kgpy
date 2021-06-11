@@ -91,6 +91,8 @@ def annotate_component(
         transform: typ.Optional[matplotlib.transforms.Transform] = None,
         transparent: bool = False,
         shrink: float = 5,
+        plot_bar_1: bool = True,
+        plot_bar_2: bool = True,
 ):
 
     if transform is None:
@@ -131,16 +133,18 @@ def annotate_component(
         arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=shrink, color='gray', linewidth=0.4),
         annotation_clip=False,
     )
-    annotation_1a = ax.annotate(
-        xy=point_1.to_tuple(),
-        xytext=point_1c.to_tuple(),
-        **annotation_kwargs_a,
-    )
-    annotation_2a = ax.annotate(
-        xy=point_2.to_tuple(),
-        xytext=point_2c.to_tuple(),
-        **annotation_kwargs_a,
-    )
+    if plot_bar_1:
+        annotation_1a = ax.annotate(
+            xy=point_1.to_tuple(),
+            xytext=point_1c.to_tuple(),
+            **annotation_kwargs_a,
+        )
+    if plot_bar_2:
+        annotation_2a = ax.annotate(
+            xy=point_2.to_tuple(),
+            xytext=point_2c.to_tuple(),
+            **annotation_kwargs_a,
+        )
 
 
     text_pos = vector.Vector2D(position_orthogonal, position_orthogonal)
