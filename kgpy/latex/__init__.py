@@ -6,6 +6,9 @@ import kgpy.format
 
 __all__ = ['Title', 'Author', 'Abstract', 'aas']
 
+textwidth = pylatex.NoEscape(r'\textwidth')
+columnwidth = pylatex.NoEscape(r'\columnwidth')
+
 
 @dataclasses.dataclass
 class Title(pylatex.base_classes.LatexObject):
