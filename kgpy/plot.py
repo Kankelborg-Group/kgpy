@@ -130,7 +130,7 @@ def annotate_component(
     annotation_kwargs_a = dict(
         text='',
         textcoords=transform,
-        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=shrink, color='gray', linewidth=0.4),
+        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=shrink, color='black', linewidth=0.4),
         annotation_clip=False,
     )
     if plot_bar_1:
@@ -201,6 +201,7 @@ def annotate_angle(
         transform: typ.Optional[matplotlib.transforms.Transform] = None,
         radius_inner: u.Quantity = 0 * u.mm,
         shrink: float = 5,
+        digits_after_decimal: int = 3,
 ):
     point_1 = point_center + vector.Vector2D.from_cylindrical(1.1 * radius, angle_1)
     point_2 = point_center + vector.Vector2D.from_cylindrical(1.1 * radius, angle_2)
@@ -222,14 +223,14 @@ def annotate_angle(
     ax.plot(
         radius * np.cos(angles) + point_center.x,
         radius * np.sin(angles) + point_center.y,
-        color='gray',
+        color='black',
         linewidth=0.4,
     )
 
     annotation_bars_kwargs = dict(
         text='',
         # textcoords=transform,
-        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=shrink, color='gray', linewidth=0.4),
+        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=shrink, color='black', linewidth=0.4),
         annotation_clip=False,
     )
 
