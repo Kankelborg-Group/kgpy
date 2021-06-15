@@ -93,6 +93,7 @@ def annotate_component(
         shrink: float = 5,
         plot_bar_1: bool = True,
         plot_bar_2: bool = True,
+        digits_after_decimal: int = 3,
 ):
 
     if transform is None:
@@ -149,7 +150,7 @@ def annotate_component(
 
     text_pos = vector.Vector2D(position_orthogonal, position_orthogonal)
     text_pos.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
-    text_str = fmt.quantity(np.abs(c2 - c1), digits_after_decimal=2)
+    text_str = fmt.quantity(np.abs(c2 - c1), digits_after_decimal=digits_after_decimal)
 
     bbox_margin = plt.rcParams['font.size'] / 2
     if horizontal_alignment == 'left':
@@ -249,7 +250,7 @@ def annotate_angle(
     ax.text(
         x=point_label.x,
         y=point_label.y,
-        s=kgpy.format.quantity(angle_delta),
+        s=kgpy.format.quantity(angle_delta, digits_after_decimal=digits_after_decimal),
         size='small',
         ha=horizontal_alignment,
         va=vertical_alignment,
