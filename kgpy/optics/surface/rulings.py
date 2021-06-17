@@ -177,21 +177,21 @@ class CubicPolySpacing(ConstantDensity):
     @property
     def broadcasted(self):
         out = super().broadcasted
-        out = np.broadcast(out, self.ruling_density_linear)
-        out = np.broadcast(out, self.ruling_density_quadratic)
-        out = np.broadcast(out, self.ruling_density_cubic)
+        out = np.broadcast(out, self.ruling_spacing_linear)
+        out = np.broadcast(out, self.ruling_spacing_quadratic)
+        out = np.broadcast(out, self.ruling_spacing_cubic)
         return out
 
-    def view(self) -> 'CubicPolyDensity':
+    def view(self) -> 'CubicPolySpacing':
         other = super().view()  # type: CubicPolyDensity
-        other.ruling_density_linear = self.ruling_density_linear
-        other.ruling_density_quadratic = self.ruling_density_quadratic
-        other.ruling_density_cubic = self.ruling_density_cubic
+        other.ruling_spacing_linear = self.ruling_spacing_linear
+        other.ruling_spacing_quadratic = self.ruling_spacing_quadratic
+        other.ruling_spacing_cubic = self.ruling_spacing_cubic
         return other
 
-    def copy(self) -> 'CubicPolyDensity':
+    def copy(self) -> 'CubicPolySpacing':
         other = super().copy()  # type: CubicPolyDensity
-        other.ruling_density_linear = self.ruling_density_linear.copy()
-        other.ruling_density_quadratic = self.ruling_density_quadratic.copy()
-        other.ruling_density_cubic = self.ruling_density_cubic.copy()
+        other.ruling_spacing_linear = self.ruling_spacing_linear.copy()
+        other.ruling_spacing_quadratic = self.ruling_spacing_quadratic.copy()
+        other.ruling_spacing_cubic = self.ruling_spacing_cubic.copy()
         return other
