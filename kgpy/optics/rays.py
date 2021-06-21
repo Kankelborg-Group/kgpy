@@ -10,7 +10,6 @@ import matplotlib.colorbar
 import astropy.units as u
 import astropy.visualization
 import astropy.modeling
-# import kgpy.transform.rigid.transform_list
 from kgpy import mixin, vector, transform, format as fmt, grid
 from .aberration import Distortion, Vignetting, Aberration
 
