@@ -664,6 +664,7 @@ class Rays(transform.rigid.Transformable):
             sharex='all',
             sharey='all',
             squeeze=False,
+            constrained_layout=True,
         )
 
         if hist.ndim > self.axis.ndim:
