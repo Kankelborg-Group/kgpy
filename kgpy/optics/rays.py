@@ -708,7 +708,7 @@ class Rays(transform.rigid.Transformable):
                     axs_ij.set_ylabel('{0.value:0.0f} {0.unit:latex}'.format(field_y[i]))
                     axs_ij.yaxis.set_label_position('right')
 
-                axs_ij.tick_params(axis='both', labelsize=8)
+                # axs_ij.tick_params(axis='both', labelsize=8)
 
         # wavelength = self.input_grids[self.axis.wavelength]
         wavelength = self.input_grid.wavelength.points
