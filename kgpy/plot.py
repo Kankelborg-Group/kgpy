@@ -177,7 +177,6 @@ def annotate_component(
         xytext=(text_offset_x, text_offset_y),
         xycoords=transform,
         textcoords='offset points',
-        size='small',
         horizontalalignment=horizontal_alignment,
         verticalalignment=vertical_alignment,
         bbox=dict(
@@ -251,7 +250,6 @@ def annotate_angle(
         x=point_label.x,
         y=point_label.y,
         s=kgpy.format.quantity(angle_delta, digits_after_decimal=digits_after_decimal),
-        size='small',
         ha=horizontal_alignment,
         va=vertical_alignment,
     )
