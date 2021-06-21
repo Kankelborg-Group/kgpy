@@ -643,7 +643,12 @@ class Rays(transform.rigid.Transformable):
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (True, True),
             norm: typ.Optional[matplotlib.colors.Normalize] = None,
+            cmap: str = 'viridis',
+            kwargs_colorbar: typ.Optional[typ.Dict[str, typ.Any]] = None,
     ) -> plt.Figure:
+
+        if kwargs_colorbar is None:
+            kwargs_colorbar = {}
 
         # field_x = self.input_grids[self.axis.field_x]
         # field_y = self.input_grids[self.axis.field_y]
@@ -695,6 +700,7 @@ class Rays(transform.rigid.Transformable):
                     vmin=hist[w].min(),
                     vmax=hist[w].max(),
                     norm=norm,
+                    cmap=cmap,
                 )
                 if i == 0:
                     axs_ij.set_xlabel('{0.value:0.0f} {0.unit:latex}'.format(field_x[j]))
@@ -717,7 +723,7 @@ class Rays(transform.rigid.Transformable):
         wavl_str = wavelength[wavlen_index]
         wavl_str = '{0.value:0.3f} {0.unit:latex}'.format(wavl_str)
         fig.suptitle('configuration = ' + str(config_index) + ', wavelength = ' + wavl_str)
-        fig.colorbar(img, ax=axs, fraction=0.05)
+        fig.colorbar(img, ax=axs, fraction=0.05, **kwargs_colorbar)
 
         return fig
 
