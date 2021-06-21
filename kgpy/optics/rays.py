@@ -690,7 +690,7 @@ class Rays(transform.rigid.Transformable):
                 img = axs_ij.imshow(
                     X=hist[cwji].T,
                     extent=limits,
-                    aspect='auto',
+                    aspect='equal',
                     origin='lower',
                     vmin=hist[w].min(),
                     vmax=hist[w].max(),
