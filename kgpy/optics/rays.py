@@ -391,11 +391,15 @@ class Rays(transform.rigid.Transformable):
             axs: typ.Optional[typ.MutableSequence[plt.Axes]] = None,
             config_index: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
             velocity_los_index: int = 0,
+            kwargs_colorbar: typ.Optional[typ.Dict[str, typ.Any]] = None
     ) -> typ.MutableSequence[plt.Axes]:
         if axs is None:
             fig, axs = plt.subplots(ncols=self.num_wavlength)
         else:
             fig = axs[0].figure
+
+        if kwargs_colorbar is None:
+            kwargs_colorbar = {}
 
         wavelength = self.input_grid.wavelength.points
         field_x, field_y = self.input_grid.field.points.to_tuple()
@@ -424,7 +428,12 @@ class Rays(transform.rigid.Transformable):
 
         axs[0].set_ylabel('input $y$ ' + '(' + "{0:latex}".format(field_y.unit) + ')')
 
-        fig.colorbar(img, ax=axs, label='RMS spot radius (' + '{0:latex}'.format(sizes.unit) + ')')
+        fig.colorbar(
+            img,
+            ax=axs,
+            label='RMS spot radius (' + '{0:latex}'.format(sizes.unit) + ')',
+            **kwargs_colorbar,
+        )
 
         return axs
 
