@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 import matplotlib.cm
 import matplotlib.colorbar
+import matplotlib.axes
 import astropy.units as u
 import astropy.visualization
 import astropy.modeling
@@ -644,7 +645,7 @@ class Rays(transform.rigid.Transformable):
             norm: typ.Optional[matplotlib.colors.Normalize] = None,
             cmap: str = 'viridis',
             kwargs_colorbar: typ.Optional[typ.Dict[str, typ.Any]] = None,
-    ) -> plt.Figure:
+    ) -> typ.Tuple[plt.Figure, np.ndarray]:
 
         if kwargs_colorbar is None:
             kwargs_colorbar = {}
@@ -729,7 +730,7 @@ class Rays(transform.rigid.Transformable):
         fig.suptitle('configuration = ' + str(config_index) + ', wavelength = ' + wavl_str)
         fig.colorbar(img, ax=axs, fraction=0.05, **kwargs_colorbar)
 
-        return fig
+        return fig, axs
 
 
 @dataclasses.dataclass
