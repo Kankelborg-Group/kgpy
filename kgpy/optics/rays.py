@@ -1,7 +1,6 @@
 import typing as typ
 import abc
 import dataclasses
-import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
