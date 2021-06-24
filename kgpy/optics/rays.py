@@ -404,10 +404,17 @@ class Rays(transform.rigid.Transformable):
         wavelength = self.input_grid.wavelength.points
         field_x, field_y = self.input_grid.field.points.to_tuple()
         sizes = self.spot_size_rms
+
         if config_index is not None:
             field_x, field_y = field_x[config_index], field_y[config_index]
             wavelength = wavelength[config_index]
             sizes = sizes[config_index]
+
+        sorted_indices = np.argsort(wavelength)
+        sorted_slice = [slice(None)] * sizes.ndim
+        sorted_slice[self.axis.wavelength] = sorted_indices
+        wavelength = wavelength[sorted_indices]
+        sizes = sizes[sorted_slice]
 
         vmin, vmax = sizes.min(), sizes.max()
 
