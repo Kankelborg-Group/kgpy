@@ -674,7 +674,7 @@ class Rays(transform.rigid.Transformable):
         if hist.ndim > self.axis.ndim:
             hist, edges_x, edges_y = hist[config_index], edges_x[config_index], edges_y[config_index]
 
-        for i, axs_i in enumerate(axs):
+        for i, axs_i in enumerate(reversed(axs)):
             for j, axs_ij in enumerate(axs_i):
                 axs_ij.invert_xaxis()
                 cwji = [slice(None)] * hist.ndim
@@ -701,17 +701,22 @@ class Rays(transform.rigid.Transformable):
                     norm=norm,
                     cmap=cmap,
                 )
-                if i == 0:
-                    axs_ij.set_xlabel('{0.value:0.0f} {0.unit:latex}'.format(field_x[j]))
+                if i == len(axs) - 1:
+                    axs_ij.set_xlabel(fmt.quantity(field_x[j], digits_after_decimal=1))
                     axs_ij.xaxis.set_label_position('top')
-                elif i == len(axs) - 1:
+                elif i == 0:
                     axs_ij.set_xlabel(edges_x.unit)
 
                 if j == 0:
                     axs_ij.set_ylabel(edges_y.unit)
                 elif j == len(axs_i) - 1:
-                    axs_ij.set_ylabel('{0.value:0.0f} {0.unit:latex}'.format(field_y[i]))
                     axs_ij.yaxis.set_label_position('right')
+                    axs_ij.set_ylabel(
+                        fmt.quantity(field_y[i], digits_after_decimal=1),
+                        rotation='horizontal',
+                        ha='left',
+                        va='center',
+                    )
 
                 # axs_ij.tick_params(axis='both', labelsize=8)
 
