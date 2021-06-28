@@ -382,7 +382,7 @@ class Rays(transform.rigid.Transformable):
         pupil_axes = self.axis.pupil_x, self.axis.pupil_y
         sz = np.sqrt(np.ma.average(r2.value, axis=pupil_axes, weights=self.mask) << r2.unit)
         mask = self.mask.any(pupil_axes)
-        sz[~mask] = 0
+        sz[~mask] = np.nan
         return sz
 
     def plot_spot_size_vs_field(
@@ -415,7 +415,7 @@ class Rays(transform.rigid.Transformable):
         wavelength = wavelength[sorted_indices]
         sizes = sizes[sorted_slice]
 
-        vmin, vmax = sizes.min(), sizes.max()
+        vmin, vmax = np.nanmin(sizes), np.nanmax(sizes)
 
         # for ax, wavl, sz in zip(axs, wavelength, sizes):
         for i in range(len(axs)):
