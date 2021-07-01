@@ -333,9 +333,9 @@ class Image(mixin.Pickleable):
 
         vmin, vmax = norm_vmin, norm_vmax
         if vmin is None:
-            vmin = np.percentile(images[0], thresh_min.value)
-        if norm_vmax is None:
-            vmax = np.percentile(images[0], thresh_max.value)
+            vmin = np.nanpercentile(images[0], thresh_min.value)
+        if vmax is None:
+            vmax = np.nanpercentile(images[0], thresh_max.value)
         img = ax.imshow(
             X=images[0].value,
             cmap=colormap,
@@ -353,10 +353,7 @@ class Image(mixin.Pickleable):
         def func(i: int):
             img.set_data(images[i].value)
             title.set_text(image_names[i])
-            if norm_vmin is None:
-                img.set_clim(vmin=np.percentile(images[i], thresh_min.value).value)
-            if norm_vmax is None:
-                img.set_clim(vmax=np.percentile(images[i], thresh_max.value).value)
+            img.set_clim(vmin=vmin.value, vmax=vmax.value)
 
         fig.set_constrained_layout(False)
 
