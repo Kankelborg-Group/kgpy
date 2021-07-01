@@ -11,6 +11,7 @@ import matplotlib.transforms
 from matplotlib.backend_bases import KeyEvent, MouseEvent, MouseButton
 import astropy.units as u
 import astropy.wcs
+import kgpy.format
 from kgpy import format as fmt, vector
 
 __all__ = ['ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
@@ -88,6 +89,11 @@ def annotate_component(
         horizontal_alignment: str = 'center',
         vertical_alignment: str = 'center',
         transform: typ.Optional[matplotlib.transforms.Transform] = None,
+        transparent: bool = False,
+        shrink: float = 5,
+        plot_bar_1: bool = True,
+        plot_bar_2: bool = True,
+        digits_after_decimal: int = 3,
 ):
 
     if transform is None:
@@ -110,30 +116,41 @@ def annotate_component(
         textcoords=transform,
     )
 
-    annotation_1 = ax.annotate(**annotation_kwargs, arrowprops=dict(arrowstyle='<->', shrinkA=0.0, shrinkB=0.0))
+    annotation_1 = ax.annotate(**annotation_kwargs, arrowprops=dict(
+        linewidth=0.5,
+        arrowstyle='<|-|>',
+        shrinkA=0.0,
+        shrinkB=0.0,
+        mutation_scale=5,
+        color='black'
+        # head_length=0.4,
+        # head_width=0.2,
+    ))
     # annotation_2 = ax.annotate(**annotation_kwargs, arrowprops=dict(arrowstyle='|-|', shrinkA=0.0, shrinkB=0.0))
 
     annotation_kwargs_a = dict(
         text='',
         textcoords=transform,
-        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=0.0, linestyle='dotted', color='gray'),
+        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=shrink, color='black', linewidth=0.4),
         annotation_clip=False,
     )
-    annotation_1a = ax.annotate(
-        xy=point_1.to_tuple(),
-        xytext=point_1c.to_tuple(),
-        **annotation_kwargs_a,
-    )
-    annotation_2a = ax.annotate(
-        xy=point_2.to_tuple(),
-        xytext=point_2c.to_tuple(),
-        **annotation_kwargs_a
-    )
+    if plot_bar_1:
+        annotation_1a = ax.annotate(
+            xy=point_1.to_tuple(),
+            xytext=point_1c.to_tuple(),
+            **annotation_kwargs_a,
+        )
+    if plot_bar_2:
+        annotation_2a = ax.annotate(
+            xy=point_2.to_tuple(),
+            xytext=point_2c.to_tuple(),
+            **annotation_kwargs_a,
+        )
 
 
     text_pos = vector.Vector2D(position_orthogonal, position_orthogonal)
     text_pos.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
-    text_str = fmt.quantity(np.abs(c2 - c1), digits_after_decimal=2)
+    text_str = fmt.quantity(np.abs(c2 - c1), digits_after_decimal=digits_after_decimal)
 
     bbox_margin = plt.rcParams['font.size'] / 2
     if horizontal_alignment == 'left':
@@ -150,16 +167,21 @@ def annotate_component(
     else:
         text_offset_y = 0
 
+    if transparent:
+        facecolor = 'None'
+    else:
+        facecolor = 'white'
     ax.annotate(
         text=text_str,
         xy=text_pos.to_tuple(),
         xytext=(text_offset_x, text_offset_y),
         xycoords=transform,
         textcoords='offset points',
+        size='small',
         horizontalalignment=horizontal_alignment,
         verticalalignment=vertical_alignment,
         bbox=dict(
-            facecolor='white',
+            facecolor=facecolor,
             edgecolor='None',
         ),
     )
@@ -178,41 +200,61 @@ def annotate_angle(
         horizontal_alignment: str = 'center',
         vertical_alignment: str = 'center',
         transform: typ.Optional[matplotlib.transforms.Transform] = None,
+        radius_inner: u.Quantity = 0 * u.mm,
+        shrink: float = 5,
+        digits_after_decimal: int = 3,
 ):
-
-    print(point_center)
-    print(vector.Vector2D.from_cylindrical(radius, angle_1))
-    point_1 = point_center + vector.Vector2D.from_cylindrical(radius, angle_1)
-    point_2 = point_center + vector.Vector2D.from_cylindrical(radius, angle_2)
+    point_1 = point_center + vector.Vector2D.from_cylindrical(1.1 * radius, angle_1)
+    point_2 = point_center + vector.Vector2D.from_cylindrical(1.1 * radius, angle_2)
+    point_inner_1 = point_center + vector.Vector2D.from_cylindrical(radius_inner, angle_1)
+    point_inner_2 = point_center + vector.Vector2D.from_cylindrical(radius_inner, angle_2)
     point_label = point_center + vector.Vector2D.from_cylindrical(radius, angle_label)
 
-    annotation_arrows = ax.annotate(
-        text='',
-        xy=point_1.to_tuple(),
-        xytext=point_2.to_tuple(),
-        annotation_clip=False,
-        arrowprops=dict(arrowstyle='<->', shrinkA=0.0, shrinkB=0.0)
+    angle_delta = angle_1 - angle_2
+    rad = (1 - np.cos(angle_delta / 2)) / (2 * np.sin(angle_delta / 2))
+
+    # annotation_arrows = ax.annotate(
+    #     text='',
+    #     xy=point_1.to_tuple(),
+    #     xytext=point_2.to_tuple(),
+    #     annotation_clip=False,
+    #     arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=0.0, connectionstyle='arc3,rad=' + str(rad.value))
+    # )
+    angles = np.linspace(angle_1, angle_2, 100)
+    ax.plot(
+        radius * np.cos(angles) + point_center.x,
+        radius * np.sin(angles) + point_center.y,
+        color='black',
+        linewidth=0.4,
     )
 
     annotation_bars_kwargs = dict(
         text='',
         # textcoords=transform,
-        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=0.0, linestyle='dotted', color='gray'),
+        arrowprops=dict(arrowstyle='-', shrinkA=0.0, shrinkB=shrink, color='black', linewidth=0.4),
         annotation_clip=False,
     )
 
     annotation_bar_1 = ax.annotate(
-        xy=point_center.to_tuple(),
+        xy=point_inner_1.to_tuple(),
         xytext=point_1.to_tuple(),
         **annotation_bars_kwargs,
     )
 
     annotation_bar_2 = ax.annotate(
-        xy=point_center.to_tuple(),
+        xy=point_inner_2.to_tuple(),
         xytext=point_2.to_tuple(),
         **annotation_bars_kwargs,
     )
 
+    ax.text(
+        x=point_label.x,
+        y=point_label.y,
+        s=kgpy.format.quantity(angle_delta, digits_after_decimal=digits_after_decimal),
+        size='small',
+        ha=horizontal_alignment,
+        va=vertical_alignment,
+    )
 
 
 class ImageSlicer:

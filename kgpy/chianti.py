@@ -13,6 +13,7 @@ import astropy.units as u
 import astropy.visualization
 import pandas
 import ChiantiPy.core
+import adjustText
 import kgpy.mixin
 import kgpy.format
 
@@ -62,7 +63,8 @@ class Bunch(
 
     @property
     def intensity_all(self) -> u.Quantity:
-        return np.trapz(self.Intensity['intensity'], self.temperature[..., np.newaxis], axis=0) << u.dimensionless_unscaled
+        intensity = np.trapz(self.Intensity['intensity'], self.temperature[..., np.newaxis], axis=0)
+        return intensity * u.erg / u.cm ** 2 / u.s / u.sr
 
     @property
     def wavelength_mask(self) -> np.ndarray:
@@ -80,12 +82,22 @@ class Bunch(
         return self._mask_and_sort(self.ion_all)
 
     @property
+    def ion_spectroscopic(self):
+        return to_spectroscopic(self.ion, use_latex=False)
+
+    @property
     def wavelength(self) -> u.Quantity:
         return self._mask_and_sort(self.wavelength_all)
 
     @property
     def intensity(self) -> u.Quantity:
         return self._mask_and_sort(self.intensity_all)
+
+    def fullname(self, digits_after_decimal: int = 3, use_latex: bool = False) -> np.ndarray:
+        k = dict(digits_after_decimal=digits_after_decimal, scientific_notation=False)
+        ion = to_spectroscopic(self.ion, use_latex=use_latex)
+        result = [i + ' ' + kgpy.format.quantity(w, **k) for i, w in zip(ion, self.wavelength)]
+        return np.array(result)
 
     def dataframe(self, num_emission_lines: int = 10) -> pandas.DataFrame:
         wavelength = self.wavelength[:num_emission_lines]
@@ -103,28 +115,60 @@ class Bunch(
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            num_emission_lines: int = 10
+            num_emission_lines: int = 10,
+            digits_after_decimal: int = 3
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
-
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
             ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
+            fullname = self.fullname(digits_after_decimal=digits_after_decimal)[:num_emission_lines]
             lines = ax.vlines(
                 x=wavelength,
                 ymin=0,
                 ymax=intensity,
             )
+            ax.set_ylabel('{0:latex_inline}'.format(intensity.unit))
             text = []
+            ha = 'right'
+            va = 'top'
+            virtual_y = []
+            virtual_x = []
             for i in range(wavelength.shape[0]):
                 text.append(ax.text(
                     x=wavelength[i],
                     y=intensity[i],
-                    s=' ' + ion[i] + ' ' + str(wavelength[i].value),
-                    rotation=90,
-                    ha='center',
-                    va='bottom',
+                    # s=ion[i] + ' ' + kgpy.format.quantity(wavelength[i], digits_after_decimal=1),
+                    s=fullname[i],
+                    # rotation='vertical',
+                    ha=ha,
+                    va=va,
+                    fontsize='small',
                 ))
+                num = int(100 * intensity[i] / intensity[0])
+                vy = np.linspace(start=0, stop=intensity[i], num=num, axis=0)
+                virtual_y.append(vy)
+                virtual_x.append(np.broadcast_to(wavelength[i], vy.shape, subok=True))
+
+            virtual_x = np.concatenate(virtual_x)
+            virtual_y = np.concatenate(virtual_y)
+
+            # ax.scatter(virtual_x, virtual_y)
+            adjustText.adjust_text(
+                texts=text,
+                ax=ax,
+                arrowprops=dict(
+                    arrowstyle='-',
+                    connectionstyle='arc3',
+                    alpha=0.5,
+                    linewidth=0.5,
+                ),
+                # ha=ha,
+                # va=va,
+                x=virtual_x.value,
+                y=virtual_y.value,
+                force_points=(0.01, 3),
+            )
         return lines, text
 
 
@@ -177,8 +221,15 @@ def dem(file: pathlib.Path) -> u.Quantity:
     return emission_interp(temperature())
 
 
+dem_qs_file = 'quiet_sun.dem'
+
+abundance_qs_tr_file = 'sun_coronal_2012_schmelz'
+
+pressure_qs = 1e15 * u.K * u.cm ** -3
+
+
 def dem_qs() -> u.Quantity:
-    dem_file = pathlib.Path(os.environ['XUVTOP']) / 'dem/quiet_sun.dem'
+    dem_file = pathlib.Path(os.environ['XUVTOP']) / 'dem' / dem_qs_file
     return dem(dem_file)
 
 
@@ -187,14 +238,13 @@ def bunch_tr(emission_measure: u.Quantity) -> Bunch:
 
     if not bunch_tr_cache.exists():
         temp = temperature()
-        pressure = 1e15 * u.K * u.cm ** -3
-        density_electron = pressure / temp
+        density_electron = pressure_qs / temp
         bunch = kgpy.chianti.Bunch(
             temperature=temp.value,
             eDensity=density_electron.value,
             wvlRange=[10, 1000],
             minAbund=1e-5,
-            abundance='sun_coronal_2012_schmelz',
+            abundance=abundance_qs_tr_file,
         )
         bunch.to_pickle(bunch_tr_cache)
 
@@ -208,4 +258,3 @@ def bunch_tr(emission_measure: u.Quantity) -> Bunch:
 
 def bunch_tr_qs() -> Bunch:
     return bunch_tr(emission_measure=dem_qs())
-

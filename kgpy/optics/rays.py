@@ -277,7 +277,7 @@ class Rays(transform.rigid.Transformable):
 
     @property
     def size(self) -> int:
-        return np.prod(np.array(self.shape))
+        return int(np.prod(np.array(self.shape)))
 
     @property
     def num_wavlength(self):

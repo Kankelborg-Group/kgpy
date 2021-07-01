@@ -253,13 +253,16 @@ class Surface(
                             # textcoords='offset points',
                             horizontalalignment='left',
                             verticalalignment='bottom',
-                            rotation=60,
+                            rotation='vertical',
                             textcoords=ax.get_xaxis_transform(),
                             arrowprops=dict(
-                                color='black',
-                                width=0.5,
-                                headwidth=4,
-                                alpha=0.5,
+                                arrowstyle='-|>',
+                                linewidth=0.5,
+                                color='red',
+                                relpos=(0, 0)
+                                # width=0.5,
+                                # headwidth=4,
+                                # alpha=0.5,
                             ),
                         )
 
