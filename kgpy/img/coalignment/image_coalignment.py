@@ -258,6 +258,7 @@ def affine_alignment_quality(transform, im1, im2):
     im1 = modified_affine(im1, transform, origin)
     cc = normalized_cc(im1,im2)
     fit_quality = np.max(cc)
+    print(fit_quality)
 
     return -fit_quality
 
