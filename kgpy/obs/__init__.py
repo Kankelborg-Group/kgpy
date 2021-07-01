@@ -355,7 +355,7 @@ class Image(mixin.Pickleable):
             title.set_text(image_names[i])
             img.set_clim(vmin=vmin.value, vmax=vmax.value)
 
-        fig.set_constrained_layout(False)
+        # fig.set_constrained_layout(False)
 
         return matplotlib.animation.FuncAnimation(
             fig=fig,
