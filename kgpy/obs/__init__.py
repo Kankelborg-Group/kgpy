@@ -324,6 +324,7 @@ class Image(mixin.Pickleable):
             norm_vmin: typ.Optional[u.Quantity] = None,
             norm_vmax: typ.Optional[u.Quantity] = None,
             frame_interval: u.Quantity = 1 * u.s,
+            colormap: typ.Optional[str] = None
     ):
         if ax is None:
             fig, ax = plt.subplots()
@@ -337,6 +338,7 @@ class Image(mixin.Pickleable):
             vmax = np.percentile(images[0], thresh_max.value)
         img = ax.imshow(
             X=images[0].value,
+            cmap=colormap,
             norm=matplotlib.colors.PowerNorm(gamma=norm_gamma),
             vmin=vmin.value,
             vmax=vmax.value,
@@ -374,6 +376,7 @@ class Image(mixin.Pickleable):
             thresh_max: u.Quantity = 99.9 * u.percent,
             norm_gamma: float = 1,
             frame_interval: u.Quantity = 100 * u.ms,
+            colormap: typ.Optional[str] = None,
     ) -> matplotlib.animation.FuncAnimation:
 
         if time_slice is None:
@@ -396,6 +399,7 @@ class Image(mixin.Pickleable):
             norm_vmin=np.percentile(images, thresh_min.value),
             norm_vmax=np.percentile(images, thresh_max.value),
             frame_interval=frame_interval,
+            colormap=colormap,
         )
 
     def animate(
