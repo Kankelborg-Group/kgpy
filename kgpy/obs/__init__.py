@@ -372,6 +372,8 @@ class Image(mixin.Pickleable):
             thresh_min: u.Quantity = 0.01 * u.percent,
             thresh_max: u.Quantity = 99.9 * u.percent,
             norm_gamma: float = 1,
+            norm_vmin: typ.Optional[u.Quantity] = None,
+            norm_vmax: typ.Optional[u.Quantity] = None,
             frame_interval: u.Quantity = 100 * u.ms,
             colormap: typ.Optional[str] = None,
     ) -> matplotlib.animation.FuncAnimation:
@@ -393,8 +395,8 @@ class Image(mixin.Pickleable):
             thresh_min=thresh_min,
             thresh_max=thresh_max,
             norm_gamma=norm_gamma,
-            norm_vmin=np.percentile(images, thresh_min.value),
-            norm_vmax=np.percentile(images, thresh_max.value),
+            norm_vmin=norm_vmin,
+            norm_vmax=norm_vmax,
             frame_interval=frame_interval,
             colormap=colormap,
         )
