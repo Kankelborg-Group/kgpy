@@ -27,6 +27,9 @@ class Material(
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         pass
 
+    def transmissivity(self, wavelength: u.Quantity) -> u.Quantity:
+        return 100 * u.percent
+
     def copy(self) -> 'Material':
         other = super().copy()
         other.name = self.name
