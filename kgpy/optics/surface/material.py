@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.visualization
 from kgpy import mixin, vector, transform
+import kgpy.format
 from ..rays import Rays
 from .aperture import Aperture, Polygon
 
@@ -178,6 +179,93 @@ class Mirror(Material):
                         )
 
         return lines
+
+
+@dataclasses.dataclass
+class MultilayerMirror(Mirror):
+    layer_material: np.ndarray = dataclasses.field(default_factory=lambda: np.array([]))
+    layer_thickness: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity([]))
+    # material_color: typ.Dict[str, str] = dataclasses.field(default_factory=lambda: {})
+    # label_x: typ.Dict[str, float] = dataclasses.field(default_factory=lambda: {})
+
+    def __eq__(self, other):
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, MultilayerMirror):
+            return False
+        if not (self.layer_material == other.layer_material).all():
+            return False
+        if not (self.layer_thickness == other.layer_thickness).all():
+            return False
+        # if not self.material_color == other.material_color:
+        #     return False
+        return True
+
+    def transmissivity(self, wavelength: u.Quantity) -> u.Quantity:
+        raise NotImplementedError
+
+    def view(self) -> 'MultilayerMirror':
+        other = super().view()  # type: MultilayerMirror
+        other.layer_element = self.layer_element
+        other.layer_thickness = self.layer_thickness
+        return other
+
+    def copy(self) -> 'MultilayerMirror':
+        other = super().copy()  # type: MultilayerMirror
+        if self.layer_material is not None:
+            other.layer_element = self.layer_material.copy()
+        if self.layer_thickness is not None:
+            other.layer_thickness = self.layer_thickness.copy()
+        return other
+
+    def plot_layers(
+            self,
+            ax: matplotlib.axes.Axes,
+            layer_material_color: typ.Dict[str, str],
+            layer_label_x: typ.Dict[str, float],
+            layer_label_x_text: typ.Dict[str, float],
+    ):
+        with astropy.visualization.quantity_support():
+            z = 0 * u.nm
+            for material, thickness in zip(self.layer_material, self.layer_thickness):
+                z_new = z + thickness
+                ax.axhspan(
+                    ymin=z,
+                    ymax=z_new,
+                    color=layer_material_color[material],
+                )
+                lx = layer_label_x[material]
+                lx_text = layer_label_x_text[material]
+                if lx_text >= 1.0:
+                    ha = 'left'
+                elif lx_text <= 0.0:
+                    ha = 'right'
+                else:
+                    ha = 'center'
+
+                if lx != lx_text:
+                    arrowprops=dict(
+                        arrowstyle='->',
+                    )
+                else:
+                    arrowprops=None
+                z_mid = (z + z_new) / 2
+                ax.annotate(
+                    text=f'{material} ({kgpy.format.quantity(thickness, digits_after_decimal=0)})',
+                    xy=(lx, z_mid),
+                    xytext=(lx_text, z_mid),
+                    ha=ha,
+                    va='center',
+                    arrowprops=arrowprops,
+                )
+                z = z_new
+
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['bottom'].set_visible(False)
+            ax.spines['left'].set_visible(False)
 
 
 @dataclasses.dataclass
