@@ -13,8 +13,8 @@ import astropy.units as u
 import astropy.wcs
 import kgpy.format
 from kgpy import format as fmt, vector
-
-__all__ = ['ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
+from .curlyBrace import curlyBrace
+__all__ = ['curlyBrace', 'ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
 
 
 def datetime_prep(ax: plt.Axes):
