@@ -162,8 +162,10 @@ class Distortion:
             other = self
 
         wavelength = other.wavelength
+        sorted_indices = np.argsort(wavelength[0, 0])
+        wavelength = wavelength[..., sorted_indices]
         mesh_input = other.spatial_mesh_input
-        residual = self.residual(other, inverse=inverse)
+        residual = self.residual(other, inverse=inverse)[..., sorted_indices]
         residual_mag = residual.length
         # residual_mag = vector.length(residual, keepdims=False)
 
