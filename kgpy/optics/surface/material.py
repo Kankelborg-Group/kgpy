@@ -4,11 +4,12 @@ import typing as typ
 import numpy as np
 import matplotlib.axes
 import matplotlib.lines
-import matplotlib.pyplot as plt
+import matplotlib.patches
 import astropy.units as u
 import astropy.visualization
 from kgpy import mixin, vector, transform
 import kgpy.format
+import kgpy.plot
 from ..rays import Rays
 from .aperture import Aperture, Polygon
 
@@ -182,58 +183,75 @@ class Mirror(Material):
 
 
 @dataclasses.dataclass
-class MultilayerMirror(Mirror):
-    layer_material: np.ndarray = dataclasses.field(default_factory=lambda: np.array([]))
-    layer_thickness: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity([]))
-    # material_color: typ.Dict[str, str] = dataclasses.field(default_factory=lambda: {})
-    # label_x: typ.Dict[str, float] = dataclasses.field(default_factory=lambda: {})
+class Layer(mixin.Copyable):
+    material: np.ndarray = dataclasses.field(default_factory=lambda: np.array([]))
+    thickness: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity([]))
+    num_periods: int = 1
 
     def __eq__(self, other):
         if not super().__eq__(other):
             return False
-        if not isinstance(other, MultilayerMirror):
+        if not isinstance(other, Layer):
             return False
-        if not (self.layer_material == other.layer_material).all():
+        if not (self.material == other.material).all():
             return False
-        if not (self.layer_thickness == other.layer_thickness).all():
+        if not (self.thickness == other.thickness).all():
             return False
-        # if not self.material_color == other.material_color:
-        #     return False
+        if not (self.num_periods == other.num_periods):
+            return False
         return True
 
-    def transmissivity(self, wavelength: u.Quantity) -> u.Quantity:
-        raise NotImplementedError
-
-    def view(self) -> 'MultilayerMirror':
-        other = super().view()  # type: MultilayerMirror
-        other.layer_element = self.layer_element
-        other.layer_thickness = self.layer_thickness
+    def view(self) -> 'Layer':
+        other = super().view()  # type: Layer
+        other.material = self.material
+        other.thickness = self.thickness
         return other
 
-    def copy(self) -> 'MultilayerMirror':
-        other = super().copy()  # type: MultilayerMirror
-        if self.layer_material is not None:
-            other.layer_element = self.layer_material.copy()
-        if self.layer_thickness is not None:
-            other.layer_thickness = self.layer_thickness.copy()
+    def copy(self) -> 'Layer':
+        other = super().copy()  # type: Layer
+        other.material = self.material.copy()
+        other.thickness = self.thickness.copy()
         return other
 
-    def plot_layers(
+    def plot(
             self,
             ax: matplotlib.axes.Axes,
+            z: u.Quantity,
             layer_material_color: typ.Dict[str, str],
             layer_label_x: typ.Dict[str, float],
             layer_label_x_text: typ.Dict[str, float],
-    ):
+    ) -> u.Quantity:
         with astropy.visualization.quantity_support():
-            z = 0 * u.nm
-            for material, thickness in zip(self.layer_material, self.layer_thickness):
+
+            x_substrate = np.linspace(0, 1, 1000)
+            substrate_amplitude = 5 * u.nm
+            y_substrate = substrate_amplitude * np.sin(2 * np.pi * x_substrate)
+            substrate_thickness = 20 * u.nm
+            ax.fill_between(
+                x=x_substrate,
+                y1=0,
+                y2=-(y_substrate + substrate_thickness),
+                facecolor='gray',
+                edgecolor='none',
+            )
+            ax.text(
+                x=0.5,
+                y=-(substrate_thickness - substrate_amplitude)/2,
+                s='substrate',
+                va='center',
+                ha='center',
+            )
+
+            z_start = z
+            for material, thickness in zip(self.material, self.thickness):
                 z_new = z + thickness
-                ax.axhspan(
-                    ymin=z,
-                    ymax=z_new,
-                    color=layer_material_color[material],
-                )
+                ax.add_patch(matplotlib.patches.Rectangle(
+                    xy=(0, z),
+                    width=1,
+                    height=thickness,
+                    facecolor=layer_material_color[material],
+                    edgecolor='none',
+                ))
                 lx = layer_label_x[material]
                 lx_text = layer_label_x_text[material]
                 if lx_text >= 1.0:
@@ -260,12 +278,77 @@ class MultilayerMirror(Mirror):
                 )
                 z = z_new
 
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['bottom'].set_visible(False)
-            ax.spines['left'].set_visible(False)
+            ax.autoscale_view()
+
+            if self.num_periods > 1:
+                kgpy.plot.brace.vertical(
+                    ax=ax,
+                    x=0,
+                    ymin=z_start,
+                    ymax=z_new,
+                    width=-0.1,
+                    text=f'$\\times${self.num_periods}',
+                    beta=3 / u.nm,
+                )
+
+        return z_new
+
+
+@dataclasses.dataclass
+class MultilayerMirror(Mirror):
+    cap: Layer = dataclasses.field(default_factory=Layer)
+    main: Layer = dataclasses.field(default_factory=Layer)
+    base: Layer = dataclasses.field(default_factory=Layer)
+    num_periods: int = 1
+
+    def transmissivity(self, wavelength: u.Quantity) -> u.Quantity:
+        raise NotImplementedError
+
+    def view(self) -> 'MultilayerMirror':
+        other = super().view()  # type: MultilayerMirror
+        other.cap = self.cap
+        other.main = self.main
+        other.base = self.base
+        other.num_periods = self.num_periods
+        return other
+
+    def copy(self) -> 'MultilayerMirror':
+        other = super().copy()  # type: MultilayerMirror
+        other.cap = self.cap.copy()
+        other.main = self.main.copy()
+        other.base = self.base.copy()
+        other.num_periods = self.num_periods
+        return other
+
+    def plot_layers(
+            self,
+            ax: matplotlib.axes.Axes,
+            layer_material_color: typ.Dict[str, str],
+            layer_label_x: typ.Dict[str, float],
+            layer_label_x_text: typ.Dict[str, float],
+    ):
+        z = 0 * u.nm
+        z = self.base.plot(
+            ax=ax,
+            z=z,
+            layer_material_color=layer_material_color,
+            layer_label_x=layer_label_x,
+            layer_label_x_text=layer_label_x_text,
+        )
+        z = self.main.plot(
+            ax=ax,
+            z=z,
+            layer_material_color=layer_material_color,
+            layer_label_x=layer_label_x,
+            layer_label_x_text=layer_label_x_text,
+        )
+        z = self.cap.plot(
+            ax=ax,
+            z=z,
+            layer_material_color=layer_material_color,
+            layer_label_x=layer_label_x,
+            layer_label_x_text=layer_label_x_text,
+        )
 
 
 @dataclasses.dataclass
