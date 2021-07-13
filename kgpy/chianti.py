@@ -122,8 +122,7 @@ class Bunch(
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
-            ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
-            fullname = self.fullname(digits_after_decimal=digits_after_decimal)[:num_emission_lines]
+            fullname = self.fullname(digits_after_decimal=digits_after_decimal, use_latex=True)[:num_emission_lines]
             lines = ax.vlines(
                 x=wavelength,
                 ymin=0,
