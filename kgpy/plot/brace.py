@@ -34,7 +34,7 @@ def vertical(
 
     line, = ax.plot(f, y, color='black', lw=1, clip_on=False, solid_capstyle='round')
 
-    text, = ax.text(
+    text = ax.text(
         x=x + 1.2 * width,
         y=(ymax + ymin) / 2.,
         s=s,
