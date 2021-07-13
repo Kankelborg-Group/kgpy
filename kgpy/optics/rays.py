@@ -698,25 +698,31 @@ class Rays(transform.rigid.Transformable):
                 cwji[self.axis.velocity_los] = velocity_los_index
                 cwji[self.axis.field_x] = j
                 cwji[self.axis.field_y] = i
-                # cwji = config_index, wavlen_index, j, i
-                w = [slice(None)] * hist.ndim
-                w[self.axis.wavelength] = wavlen_index
-                limits = [
-                    edges_x[cwji].min().value,
-                    edges_x[cwji].max().value,
-                    edges_y[cwji].min().value,
-                    edges_y[cwji].max().value,
-                ]
-                img = axs_ij.imshow(
-                    X=hist[cwji].T,
-                    extent=limits,
-                    aspect='equal',
-                    origin='lower',
-                    vmin=hist[w].min(),
-                    vmax=hist[w].max(),
-                    norm=norm,
-                    cmap=cmap,
-                )
+                if hist[cwji].sum() > 0:
+                    w = [slice(None)] * hist.ndim
+                    w[self.axis.wavelength] = wavlen_index
+                    limits = [
+                        edges_x[cwji].min().value,
+                        edges_x[cwji].max().value,
+                        edges_y[cwji].min().value,
+                        edges_y[cwji].max().value,
+                    ]
+                    img = axs_ij.imshow(
+                        X=hist[cwji].T,
+                        extent=limits,
+                        aspect='equal',
+                        origin='lower',
+                        vmin=hist[w].min(),
+                        vmax=hist[w].max(),
+                        norm=norm,
+                        cmap=cmap,
+                    )
+                else:
+                    axs_ij.spines['top'].set_visible(False)
+                    axs_ij.spines['right'].set_visible(False)
+                    axs_ij.spines['bottom'].set_visible(False)
+                    axs_ij.spines['left'].set_visible(False)
+
                 if i == len(axs) - 1:
                     axs_ij.set_xlabel(fmt.quantity(field_x[j], digits_after_decimal=1))
                     axs_ij.xaxis.set_label_position('top')
