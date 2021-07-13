@@ -128,7 +128,8 @@ class Bunch(
                 ymin=0,
                 ymax=intensity,
             )
-            ax.set_ylabel('{0:latex_inline}'.format(intensity.unit))
+            ax.set_xlabel(f'wavelength ({ax.get_xlabel()})')
+            ax.set_ylabel(f'radiance ({ax.get_ylabel()})')
             text = []
             ha = 'right'
             va = 'top'
