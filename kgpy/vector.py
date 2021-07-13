@@ -254,6 +254,20 @@ class Vector2D(Vector):
         return values_new
 
     @classmethod
+    def _extract_attr_dict(cls, values: typ.Dict, attr: str) -> typ.Dict:
+        values_new = dict()
+        for key in values:
+            v = values[key]
+            if isinstance(v, cls):
+                values_new[key] = getattr(v, attr)
+            elif isinstance(v, list):
+                values_new[key] = cls._extract_attr(v, attr)
+            else:
+                values_new[key] = v
+
+        return values_new
+
+    @classmethod
     def _extract_x(cls, values: typ.List) -> typ.List:
         return cls._extract_attr(values, 'x')
 
@@ -287,9 +301,15 @@ class Vector2D(Vector):
             return self._broadcast_to(*args, **kwargs)
         elif function is np.broadcast_arrays:
             return self._broadcast_arrays(*args, **kwargs)
+        elif function is np.result_type:
+            return type(self)
+        elif function is np.ndim:
+            return self.ndim
         elif function in [
-            np.min, np.max, np.median, np.mean, np.sum, np.prod, np.stack, np.moveaxis, np.roll, np.nanmin, np.nanmax,
-            np.nansum, np.nanmean, np.linspace, np.where
+            np.min, np.max, np.median, np.mean, np.sum, np.prod,
+            np.stack,
+            np.moveaxis, np.roll, np.nanmin, np.nanmax,
+            np.nansum, np.nanmean, np.linspace, np.where,
         ]:
             return self._array_function_default(function, types, args, kwargs)
         else:
@@ -311,11 +331,13 @@ class Vector2D(Vector):
     def _array_function_default(self, function, types, args, kwargs):
         args_x = tuple(self._extract_x_final(args))
         args_y = tuple(self._extract_y_final(args))
+        kwargs_x = self._extract_attr_dict(kwargs, 'x')
+        kwargs_y = self._extract_attr_dict(kwargs, 'y')
         types_x = [type(a) for a in args_x if getattr(a, '__array_function__', None) is not None]
         types_y = [type(a) for a in args_y if getattr(a, '__array_function__', None) is not None]
         return type(self)(
-            x=self.x.__array_function__(function, types_x, args_x, kwargs),
-            y=self.y.__array_function__(function, types_y, args_y, kwargs),
+            x=self.x.__array_function__(function, types_x, args_x, kwargs_x),
+            y=self.y.__array_function__(function, types_y, args_y, kwargs_y),
         )
 
     @classmethod
@@ -595,8 +617,9 @@ class Vector3D(Vector2D):
     def _array_function_default(self, function, types, args, kwargs):
         result = super()._array_function_default(function, types, args, kwargs)
         args_z = tuple(self._extract_z_final(args))
+        kwargs_z = self._extract_attr_dict(kwargs, 'z')
         types_z = [type(a) for a in args_z if getattr(a, '__array_function__', None) is not None]
-        result.z = self.z.__array_function__(function, types_z, args_z, kwargs)
+        result.z = self.z.__array_function__(function, types_z, args_z, kwargs_z)
         return result
 
         # args_x = tuple(self._extract_x_final(args))
