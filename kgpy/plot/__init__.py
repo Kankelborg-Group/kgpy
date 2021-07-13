@@ -14,6 +14,7 @@ import astropy.wcs
 import kgpy.format
 from kgpy import format as fmt, vector
 from .curlyBrace import curlyBrace
+from . import brace
 __all__ = ['curlyBrace', 'ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
 
 
