@@ -116,7 +116,8 @@ class Bunch(
             self,
             ax: matplotlib.axes.Axes,
             num_emission_lines: int = 10,
-            digits_after_decimal: int = 3
+            digits_after_decimal: int = 3,
+            label_fontsize: typ.Union[str, int] = 'small'
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
@@ -143,7 +144,7 @@ class Bunch(
                     # rotation='vertical',
                     ha=ha,
                     va=va,
-                    fontsize='small',
+                    fontsize=label_fontsize,
                 ))
                 num = int(100 * intensity[i] / intensity[0])
                 vy = np.linspace(start=0, stop=intensity[i], num=num, axis=0)
