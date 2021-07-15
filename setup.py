@@ -24,6 +24,7 @@ setup(
         'adjustText',
         'ChiantiPy',
         'xrt',
+        'thermo'
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',
