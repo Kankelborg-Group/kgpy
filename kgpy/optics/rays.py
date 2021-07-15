@@ -8,6 +8,7 @@ import matplotlib.cm
 import matplotlib.colorbar
 import matplotlib.axes
 import astropy.units as u
+import astropy.constants
 import astropy.visualization
 import astropy.modeling
 from kgpy import mixin, vector, transform, format as fmt, grid
@@ -296,6 +297,10 @@ class Rays(transform.rigid.Transformable):
     #         x=self.input_field.x[..., :, np.newaxis],
     #         y=self.input_field.y[..., np.newaxis, :],
     #     )
+
+    @property
+    def energy(self) -> u.Quantity:
+        return (astropy.constants.h * astropy.constants.c / self.wavelength).to(u.eV)
 
     @property
     def position_pupil_avg(self) -> vector.Vector3D:
