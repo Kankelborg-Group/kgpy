@@ -29,7 +29,7 @@ class Material(
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         pass
 
-    def transmissivity(self, wavelength: u.Quantity) -> u.Quantity:
+    def transmissivity(self, rays: Rays) -> u.Quantity:
         return 100 * u.percent
 
     def copy(self) -> 'Material':
@@ -301,7 +301,7 @@ class MultilayerMirror(Mirror):
     base: Layer = dataclasses.field(default_factory=Layer)
     num_periods: int = 1
 
-    def transmissivity(self, wavelength: u.Quantity) -> u.Quantity:
+    def transmissivity(self, rays: Rays) -> u.Quantity:
         raise NotImplementedError
 
     def view(self) -> 'MultilayerMirror':
