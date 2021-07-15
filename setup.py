@@ -23,6 +23,7 @@ setup(
         'ipyparallel',
         'adjustText',
         'ChiantiPy',
+        'xrt',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',
