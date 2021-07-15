@@ -6,7 +6,10 @@ import matplotlib.axes
 import matplotlib.lines
 import matplotlib.patches
 import astropy.units as u
+import astropy.constants
 import astropy.visualization
+import xrt.backends.raycing.materials
+import thermo
 from kgpy import mixin, vector, transform
 import kgpy.format
 import kgpy.plot
@@ -355,13 +358,65 @@ class MultilayerMirror(Mirror):
 class AluminumThinFilm(Material):
     name: str = 'thin film Al'
     thickness: u.Quantity = 0 * u.nm
+    thickness_oxide: u.Quantity = 0 * u.nm
     mesh_ratio: u.Quantity = 100 * u.percent
+    density_ratio: float = 0.9
+    xrt_table: str = 'Henke'
+
+    @property
+    def xrt_aluminum(self) -> xrt.backends.raycing.materials.Material:
+        return xrt.backends.raycing.materials.Material(
+            elements='Al',
+            kind='plate',
+            t=self.thickness.to(u.mm).value,
+            table=self.xrt_table,
+            rho=self.density_ratio * (thermo.Chemical('Al').rho * u.kg / u.m ** 3).to(u.g / u.cm ** 3).value,
+        )
+
+    @property
+    def xrt_aluminum_oxide(self) -> xrt.backends.raycing.materials.Material:
+        return xrt.backends.raycing.materials.Material(
+            elements=['Al', 'O', ],
+            quantities=[2, 3],
+            kind='plate',
+            t=self.thickness_oxide.to(u.mm).value,
+            table=self.xrt_table,
+            rho=self.density_ratio * (thermo.Chemical('Al2O3').rho * u.kg / u.m ** 3).to(u.g / u.cm ** 3).value,
+        )
+
+    def transmissivity_aluminum(self, rays: Rays) -> u.Quantity:
+        absorption = self.xrt_aluminum.get_absorption_coefficient(rays.energy.to(u.eV).value) / u.cm
+        transmissivity = np.exp(-absorption * self.thickness / rays.direction.z)
+        return transmissivity
+
+    def transmissivity_aluminum_oxide(self, rays: Rays) -> u.Quantity:
+        absorption = self.xrt_aluminum_oxide.get_absorption_coefficient(rays.energy.to(u.eV).value) / u.cm
+        transmissivity = np.exp(-absorption * 2 * self.thickness_oxide / rays.direction.z)
+        return transmissivity
+
+    def transmissivity(self, rays: Rays) -> u.Quantity:
+        return self.mesh_ratio * self.transmissivity_aluminum(rays) * self.transmissivity_aluminum_oxide(rays)
 
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         return 1 * u.dimensionless_unscaled
 
     def copy(self) -> 'AluminumThinFilm':
-        other = super().copy()
+        other = super().copy()  # type: AluminumThinFilm
         other.thickness = self.thickness.copy()
+        other.thickness_oxide = self.thickness_oxide.copy()
+        other.density_ratio = self.density_ratio
         other.mesh_ratio = self.mesh_ratio.copy()
         return other
+
+    def plot_transmissivity_vs_wavelength(
+            self,
+            ax: matplotlib.axes.Axes,
+            wavelength: u.Quantity,
+    ):
+        with astropy.visualization.quantity_support():
+            rays = Rays()
+            rays.wavelength = wavelength
+            ax.plot(
+                wavelength,
+                self.transmissivity(rays),
+            )
