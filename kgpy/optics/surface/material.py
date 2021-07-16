@@ -407,16 +407,3 @@ class AluminumThinFilm(Material):
         other.density_ratio = self.density_ratio
         other.mesh_ratio = self.mesh_ratio.copy()
         return other
-
-    def plot_transmissivity_vs_wavelength(
-            self,
-            ax: matplotlib.axes.Axes,
-            wavelength: u.Quantity,
-    ):
-        with astropy.visualization.quantity_support():
-            rays = Rays()
-            rays.wavelength = wavelength
-            ax.plot(
-                wavelength,
-                self.transmissivity(rays),
-            )
