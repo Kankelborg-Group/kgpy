@@ -2,6 +2,7 @@ import abc
 import dataclasses
 import typing as typ
 import numpy as np
+import scipy.interpolate
 import matplotlib.axes
 import matplotlib.lines
 import matplotlib.patches
@@ -352,6 +353,16 @@ class MultilayerMirror(Mirror):
             layer_label_x=layer_label_x,
             layer_label_x_text=layer_label_x_text,
         )
+
+
+@dataclasses.dataclass
+class MeasuredMultilayerMirror(MultilayerMirror):
+    efficiency_data: typ.Optional[u.Quantity] = None
+    wavelength_data: typ.Optional[u.Quantity] = None
+
+    def transmissivity(self, rays: Rays) -> u.Quantity:
+        interp = scipy.interpolate.interp1d(self.wavelength_data, self.efficiency_data)
+        return interp(rays.wavelength.to(self.wavelength_data.unit)) * self.efficiency_data.unit
 
 
 @dataclasses.dataclass
