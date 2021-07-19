@@ -418,3 +418,81 @@ class AluminumThinFilm(Material):
         other.density_ratio = self.density_ratio
         other.mesh_ratio = self.mesh_ratio.copy()
         return other
+
+
+@dataclasses.dataclass
+class CCDStern1994(Material):
+
+    quantum_efficiency_data: typ.ClassVar[u.Quantity] = [
+        0.91,
+        0.80,
+        0.48,
+        0.32,
+        0.42,
+        0.86,
+        0.82,
+        0.60,
+        0.58,
+        0.53,
+        0.30,
+        0.085,
+        0.055,
+        0.06,
+        0.13,
+        0.09,
+        0.33,
+        0.29,
+        0.50,
+        0.53,
+        0.62,
+        0.63,
+        0.65,
+        0.65,
+        0.65,
+        0.61,
+        0.47,
+        0.33,
+        0.21,
+        0.19,
+    ] * u.electron / u.photon
+
+    wavelength_data: typ.ClassVar[u.Quantity] = [
+        13.3,
+        23.6,
+        44.7,
+        67.6,
+        114.0,
+        135.5,
+        171.4,
+        256.0,
+        303.8,
+        461.0,
+        584.0,
+        736.0,
+        1215.5,
+        2537.0,
+        3500.0,
+        3650.0,
+        4000.0,
+        4050.0,
+        4500.0,
+        5000.0,
+        5500.0,
+        6000.0,
+        6500.0,
+        7000.0,
+        7500.0,
+        8000.0,
+        8500.0,
+        9000.0,
+        9500.0,
+        10000.0,
+    ] * u.AA
+
+    def transmissivity(self, rays: Rays) -> u.Quantity:
+        qe_interp = scipy.interpolate.interp1d(self.wavelength_data, self.quantum_efficiency_data)
+        qe = qe_interp(rays.wavelength.to(self.wavelength_data.unit)) * self.quantum_efficiency_data.unit
+        return qe
+
+    def index_of_refraction(self, rays: Rays) -> u.Quantity:
+        return 1 * u.dimensionless_unscaled
