@@ -363,6 +363,27 @@ class MeasuredMultilayerMirror(MultilayerMirror):
         interp = scipy.interpolate.interp1d(self.wavelength_data, self.efficiency_data)
         return interp(rays.wavelength.to(self.wavelength_data.unit)) * self.efficiency_data.unit
 
+    def __eq__(self, other):
+        if not super().__eq__(other):
+            return False
+        if not (self.efficiency_data == other.efficiency_data).all():
+            return False
+        if not (self.wavelength_data == other.wavelength_data).all():
+            return False
+        return True
+
+    def view(self) -> 'MeasuredMultilayerMirror':
+        other = super().view()  # type: MeasuredMultilayerMirror
+        other.efficiency_data = self.efficiency_data
+        other.wavelength_data = self.wavelength_data
+        return other
+
+    def copy(self) -> 'MeasuredMultilayerMirror':
+        other = super().copy()  # type: MeasuredMultilayerMirror
+        other.efficiency_data = self.efficiency_data.copy()
+        other.wavelength_data = self.wavelength_data.copy()
+        return other
+
 
 @dataclasses.dataclass
 class AluminumThinFilm(Material):
