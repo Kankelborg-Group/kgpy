@@ -54,8 +54,8 @@ class RayGrid(
     abc.ABC,
 ):
     axis: typ.ClassVar[Axis] = Axis()
-    field: grid.Grid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
-    pupil: grid.Grid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
+    field: grid.RegularGrid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
+    pupil: grid.RegularGrid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
     wavelength: grid.Grid1D = dataclasses.field(default_factory=grid.RegularGrid1D)
     velocity_los: grid.Grid1D = dataclasses.field(default_factory=grid.RegularGrid1D)
 
