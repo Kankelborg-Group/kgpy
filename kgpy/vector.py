@@ -658,6 +658,16 @@ class Vector3D(Vector2D):
         else:
             return NotImplementedError
 
+    def cross(self, other):
+        if isinstance(other, type(self)):
+            return type(self)(
+                x=self.y * other.z - self.z * other.y,
+                y=self.z * other.x - self.x * other.z,
+                z=self.x * other.y - self.y * other.x,
+            )
+        else:
+            return NotImplementedError
+
     def __getitem__(self, item):
         other = super().__getitem__(item)
         other.z = self.z_final.__getitem__(item)
