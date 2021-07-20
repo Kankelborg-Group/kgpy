@@ -209,12 +209,14 @@ class Layer(mixin.Copyable):
         other = super().view()  # type: Layer
         other.material = self.material
         other.thickness = self.thickness
+        other.num_periods = self.num_periods
         return other
 
     def copy(self) -> 'Layer':
         other = super().copy()  # type: Layer
         other.material = self.material.copy()
         other.thickness = self.thickness.copy()
+        other.num_periods = self.num_periods
         return other
 
     def plot(
@@ -303,7 +305,6 @@ class MultilayerMirror(Mirror):
     cap: Layer = dataclasses.field(default_factory=Layer)
     main: Layer = dataclasses.field(default_factory=Layer)
     base: Layer = dataclasses.field(default_factory=Layer)
-    num_periods: int = 1
 
     def transmissivity(self, rays: Rays) -> u.Quantity:
         raise NotImplementedError
@@ -313,7 +314,6 @@ class MultilayerMirror(Mirror):
         other.cap = self.cap
         other.main = self.main
         other.base = self.base
-        other.num_periods = self.num_periods
         return other
 
     def copy(self) -> 'MultilayerMirror':
@@ -321,7 +321,6 @@ class MultilayerMirror(Mirror):
         other.cap = self.cap.copy()
         other.main = self.main.copy()
         other.base = self.base.copy()
-        other.num_periods = self.num_periods
         return other
 
     def plot_layers(
