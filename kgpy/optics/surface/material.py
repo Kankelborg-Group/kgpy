@@ -306,8 +306,8 @@ class MultilayerMirror(Mirror):
     main: Layer = dataclasses.field(default_factory=Layer)
     base: Layer = dataclasses.field(default_factory=Layer)
 
-    def transmissivity(self, rays: Rays) -> u.Quantity:
-        raise NotImplementedError
+    # def transmissivity(self, rays: Rays) -> u.Quantity:
+    #     raise NotImplementedError
 
     def view(self) -> 'MultilayerMirror':
         other = super().view()  # type: MultilayerMirror
