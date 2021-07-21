@@ -370,6 +370,8 @@ class Vignetting:
             use_xlabels: bool = True,
     ) -> typ.MutableSequence[plt.Axes]:
 
+        wavelength, spatial_mesh, data = np.broadcast_arrays(wavelength, spatial_mesh, data, subok=True)
+
         if config_index is not None:
             wavelength = wavelength[config_index]
             spatial_mesh = spatial_mesh[config_index]
@@ -391,7 +393,7 @@ class Vignetting:
         # for ax, wavl, mesh, d in zip(axs, wavelength, spatial_mesh, data):
         for i in range(len(axs)):
             if use_titles:
-                axs[i].set_title(fmt.quantity(wavelength[..., i].squeeze()))
+                axs[i].set_title(fmt.quantity(wavelength[..., i].mean()))
 
             mesh = spatial_mesh[..., i]
             min_x, min_y = mesh.x.min(), mesh.y.min()
