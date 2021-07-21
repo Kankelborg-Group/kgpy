@@ -11,6 +11,7 @@ import astropy.units as u
 import astropy.constants
 import astropy.visualization
 import astropy.modeling
+import kgpy.plot
 from kgpy import mixin, vector, transform, format as fmt, grid
 from .aberration import Distortion, Vignetting, Aberration
 
@@ -428,12 +429,19 @@ class Rays(transform.rigid.Transformable):
             sl = [slice(None)] * sizes.ndim
             sl[self.axis.wavelength] = i
             sl[self.axis.velocity_los] = velocity_los_index
+
+            extent = kgpy.plot.calc_extent(
+                data_min=vector.Vector2D(field_x.min(), field_y.min()),
+                data_max=vector.Vector2D(field_x.max(), field_y.max()),
+                num_steps=vector.Vector2D.from_quantity(sizes[sl].shape * u.dimensionless_unscaled),
+            )
+
             img = axs[i].imshow(
                 X=sizes[sl].T.value,
                 vmin=vmin.value,
                 vmax=vmax.value,
                 origin='lower',
-                extent=[field_x[0].value, field_x[~0].value, field_y[0].value, field_y[~0].value],
+                extent=[e.value for e in extent],
             )
             axs[i].set_xlabel('input $x$ ' + '(' + "{0:latex}".format(field_x.unit) + ')')
 
