@@ -34,7 +34,7 @@ class Material(
         pass
 
     def transmissivity(self, rays: Rays) -> u.Quantity:
-        return 100 * u.percent
+        return 1 * u.dimensionless_unscaled
 
     def copy(self) -> 'Material':
         other = super().copy()
@@ -426,7 +426,8 @@ class AluminumThinFilm(Material):
         return transmissivity
 
     def transmissivity(self, rays: Rays) -> u.Quantity:
-        return self.mesh_ratio * self.transmissivity_aluminum(rays) * self.transmissivity_aluminum_oxide(rays)
+        mesh_ratio = self.mesh_ratio.to(u.dimensionless_unscaled)
+        return mesh_ratio * self.transmissivity_aluminum(rays) * self.transmissivity_aluminum_oxide(rays)
 
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         return 1 * u.dimensionless_unscaled
@@ -474,7 +475,7 @@ class CCDStern1994(Material):
         0.33,
         0.21,
         0.19,
-    ] * u.electron / u.photon
+    ] * u.dimensionless_unscaled
 
     wavelength_data: typ.ClassVar[u.Quantity] = [
         13.3,
