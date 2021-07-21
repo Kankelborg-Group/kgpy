@@ -128,6 +128,9 @@ class Surface(
         b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * rays.surface_normal
         rays.direction = b.normalize()
 
+        if self.material is not None:
+            rays.intensity = self.material.transmissivity(rays) * rays.intensity
+
         if self.aperture is not None:
             if self.aperture.max.x.unit.is_equivalent(u.rad):
                 new_vignetted_mask = self.aperture.is_unvignetted(rays.field_angles, num_extra_dims=rays.axis.ndim)
