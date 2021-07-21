@@ -522,7 +522,7 @@ class CCDStern1994(Material):
 
 
 @dataclasses.dataclass
-class CCDStern2004:
+class CCDStern2004(Material):
 
     data_path: typ.ClassVar[pathlib.Path] = pathlib.Path(__file__).parent / 'stern_2004_model_1.50e05.csv'
 
