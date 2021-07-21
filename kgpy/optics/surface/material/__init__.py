@@ -14,8 +14,8 @@ import thermo
 from kgpy import mixin, vector, transform
 import kgpy.format
 import kgpy.plot
-from ..rays import Rays
-from .aperture import Aperture, Polygon
+from ...rays import Rays
+from ..aperture import Aperture, Polygon
 
 __all__ = ['Material', 'Mirror']
 
