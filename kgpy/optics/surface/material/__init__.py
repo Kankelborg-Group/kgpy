@@ -1,7 +1,9 @@
 import abc
 import dataclasses
+import pathlib
 import typing as typ
 import numpy as np
+import pandas
 import scipy.interpolate
 import matplotlib.axes
 import matplotlib.lines
@@ -509,6 +511,32 @@ class CCDStern1994(Material):
         9500.0,
         10000.0,
     ] * u.AA
+
+    def transmissivity(self, rays: Rays) -> u.Quantity:
+        qe_interp = scipy.interpolate.interp1d(self.wavelength_data, self.quantum_efficiency_data)
+        qe = qe_interp(rays.wavelength.to(self.wavelength_data.unit)) * self.quantum_efficiency_data.unit
+        return qe
+
+    def index_of_refraction(self, rays: Rays) -> u.Quantity:
+        return 1 * u.dimensionless_unscaled
+
+
+@dataclasses.dataclass
+class CCDStern2004:
+
+    data_path: typ.ClassVar[pathlib.Path] = pathlib.Path(__file__).parent / 'stern_2004_model_1.50e05.csv'
+
+    @property
+    def dataframe(self) -> pandas.DataFrame:
+        return pandas.read_csv(self.data_path, header=None)
+
+    @property
+    def quantum_efficiency_data(self):
+        return self.dataframe[1].to_numpy() * u.dimensionless_unscaled
+
+    @property
+    def wavelength_data(self):
+        return self.dataframe[0].to_numpy() * u.AA
 
     def transmissivity(self, rays: Rays) -> u.Quantity:
         qe_interp = scipy.interpolate.interp1d(self.wavelength_data, self.quantum_efficiency_data)
