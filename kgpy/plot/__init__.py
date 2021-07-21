@@ -15,7 +15,21 @@ import kgpy.format
 from kgpy import format as fmt, vector
 from .curlyBrace import curlyBrace
 from . import brace
-__all__ = ['curlyBrace', 'ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
+__all__ = ['calc_extent', 'curlyBrace', 'ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
+
+
+def calc_extent(
+        data_min: vector.Vector2D,
+        data_max: vector.Vector2D,
+        num_steps: vector.Vector2D,
+):
+    delta = (data_max - data_min) / (num_steps - 1)
+
+    extent_min = data_min - 0.5 * delta
+    extent_max = data_max + 0.5 * delta
+
+    return [extent_min.x, extent_max.x, extent_min.y, extent_max.y]
+
 
 
 def datetime_prep(ax: plt.Axes):
