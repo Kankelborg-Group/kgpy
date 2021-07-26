@@ -330,15 +330,18 @@ class Rays(transform.rigid.Transformable):
         )
 
     def vignetting(self, polynomial_degree: int = 1) -> Vignetting:
-        counts = self.mask.sum((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los))
+        intensity = self.intensity.copy()
+        intensity, mask = np.broadcast_arrays(intensity, self.mask, subok=True)
+        intensity[~mask] = 0
+        counts = intensity.sum((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los))
         return Vignetting(
             wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
             spatial_mesh=vector.Vector2D(
                 x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
                 y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
             ),
-            unvignetted_percent=100 * counts / counts.max() * u.percent,
-            mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
+            unvignetted_percent=counts,
+            mask=mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
             polynomial_degree=polynomial_degree,
         )
 
