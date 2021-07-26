@@ -413,6 +413,12 @@ class Rays(transform.rigid.Transformable):
         field_x, field_y = self.input_grid.field.points.to_tuple()
         sizes = self.spot_size_rms
 
+        sl = [slice(None)] * sizes.ndim
+        wsl = slice(None, len(axs))
+        sl[self.axis.wavelength] = wsl
+        wavelength = wavelength[..., wsl]
+        sizes = sizes[sl]
+
         if config_index is not None:
             field_x, field_y = field_x[config_index], field_y[config_index]
             wavelength = wavelength[config_index]
