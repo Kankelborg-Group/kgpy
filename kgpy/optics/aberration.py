@@ -162,10 +162,10 @@ class Distortion:
             other = self
 
         wavelength = other.wavelength
-        sorted_indices = np.argsort(wavelength[0, 0])
-        wavelength = wavelength[..., sorted_indices]
+        # sorted_indices = np.argsort(wavelength[0, 0])
+        wavelength = wavelength
         mesh_input = other.spatial_mesh_input
-        residual = self.residual(other, inverse=inverse)[..., sorted_indices]
+        residual = self.residual(other, inverse=inverse)
         residual_mag = residual.length
         # residual_mag = vector.length(residual, keepdims=False)
 
@@ -184,6 +184,14 @@ class Distortion:
             fig, axs = plt.subplots(ncols=len(wavelength))
         else:
             fig = axs[0].figure
+
+        wsl = slice(None, len(axs))
+        wavelength = wavelength[..., wsl]
+        residual_mag = residual_mag[..., wsl]
+
+        sorted_indices = np.argsort(wavelength[0, 0])
+        wavelength = wavelength[..., sorted_indices]
+        residual_mag = residual_mag[..., sorted_indices]
 
         vmin, vmax = residual_mag.min(), residual_mag.max()
 
@@ -388,7 +396,12 @@ class Vignetting:
         else:
             fig = axs[0].figure
 
-        vmin, vmax = data.min(), data.max()
+        wsl = slice(None, len(axs))
+        wavelength = wavelength[..., wsl]
+        data = data[..., wsl]
+
+        # vmin, vmax = data.min(), data.max()
+        vmin, vmax = np.nanmin(data), np.nanmax(data)
 
         # for ax, wavl, mesh, d in zip(axs, wavelength, spatial_mesh, data):
         for i in range(len(axs)):
