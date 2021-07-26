@@ -4,7 +4,7 @@ import numpy as np
 import scipy.ndimage
 import matplotlib.pyplot as plt
 import astropy.units as u
-import pandas
+import kgpy.plot
 from kgpy import mixin, vector, format as fmt, polynomial
 
 __all__ = ['Distortion', 'Vignetting', 'Aberration']
@@ -396,15 +396,19 @@ class Vignetting:
                 axs[i].set_title(fmt.quantity(wavelength[..., i].mean()))
 
             mesh = spatial_mesh[..., i]
-            min_x, min_y = mesh.x.min(), mesh.y.min()
-            max_x, max_y = mesh.x.max(), mesh.y.max()
+
+            extent = kgpy.plot.calc_extent(
+                data_min=mesh.min(),
+                data_max=mesh.max(),
+                num_steps=kgpy.vector.Vector2D.from_quantity(mesh.shape * u.dimensionless_unscaled),
+            )
 
             img = axs[i].imshow(
                 X=data[..., i].value.T,
                 vmin=vmin.value,
                 vmax=vmax.value,
                 origin='lower',
-                extent=[min_x.value, max_x.value, min_y.value, max_y.value],
+                extent=[e.value for e in extent],
             )
             if use_xlabels:
                 axs[i].set_xlabel('input $x$ ' + '(' + "{0:latex}".format(spatial_mesh.x.unit) + ')')
