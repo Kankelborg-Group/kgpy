@@ -353,6 +353,7 @@ class Vignetting:
         if other is None:
             other = self
         data = self.unvignetted_percent
+        data[data == 0] = np.nan
         if inverse:
             data = 1 / data
         return Vignetting.plot(
@@ -361,7 +362,7 @@ class Vignetting:
             data=data,
             axs=axs,
             config_index=config_index,
-            data_name='relative illumination',
+            data_name='effective area',
             use_titles=use_titles,
             use_xlabels=use_xlabels,
         )
