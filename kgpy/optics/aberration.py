@@ -156,6 +156,7 @@ class Distortion:
             inverse: bool = False,
             use_titles: bool = True,
             use_xlabels: bool = True,
+            wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
 
         if other is None:
@@ -191,6 +192,7 @@ class Distortion:
 
         sorted_indices = np.argsort(wavelength[0, 0])
         wavelength = wavelength[..., sorted_indices]
+        wavelength_name = wavelength_name[..., sorted_indices]
         residual_mag = residual_mag[..., sorted_indices]
 
         vmin, vmax = residual_mag.min(), residual_mag.max()
@@ -200,7 +202,7 @@ class Distortion:
         for i in range(len(axs)):
             wavl = wavelength[..., i].squeeze()
             if use_titles:
-                axs[i].set_title(fmt.quantity(wavl))
+                axs[i].set_title(f'{wavelength_name[i]} {fmt.quantity(wavl)}')
 
             mesh_in = mesh_input[..., i]
             min_x, min_y = mesh_in.x.min(), mesh_in.y.min()
@@ -327,6 +329,7 @@ class Vignetting:
             inverse: bool = False,
             use_titles: bool = True,
             use_xlabels: bool = True,
+            wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
         if other is None:
             other = self
@@ -339,6 +342,7 @@ class Vignetting:
             data_name='residual',
             use_titles=use_titles,
             use_xlabels=use_xlabels,
+            wavelength_name=wavelength_name,
         )
 
     def plot_unvignetted(
@@ -349,6 +353,7 @@ class Vignetting:
             inverse: bool = False,
             use_titles: bool = True,
             use_xlabels: bool = True,
+            wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
         if other is None:
             other = self
@@ -365,6 +370,7 @@ class Vignetting:
             data_name='effective area',
             use_titles=use_titles,
             use_xlabels=use_xlabels,
+            wavelength_name=wavelength_name,
         )
 
     @staticmethod
@@ -377,6 +383,7 @@ class Vignetting:
             data_name: str = '',
             use_titles: bool = True,
             use_xlabels: bool = True,
+            wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
 
         wavelength, spatial_mesh, data = np.broadcast_arrays(wavelength, spatial_mesh, data, subok=True)
@@ -407,7 +414,7 @@ class Vignetting:
         # for ax, wavl, mesh, d in zip(axs, wavelength, spatial_mesh, data):
         for i in range(len(axs)):
             if use_titles:
-                axs[i].set_title(fmt.quantity(wavelength[..., i].mean()))
+                axs[i].set_title(f'{wavelength_name[i]} {fmt.quantity(wavelength[..., i].mean())}')
 
             mesh = spatial_mesh[..., i]
 

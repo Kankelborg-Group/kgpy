@@ -47,7 +47,6 @@ class System(
     #: Surface representing the light source
     object_surface: surface.Surface = dataclasses.field(default_factory=surface.Surface)
     surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
-    wavelength: u.Quantity = 0 * u.nm  #: Source wavelengths
     # grid_field: grid.Grid2D = dataclasses.field(default_factory=lambda: grid.RegularGrid2D(
     #     min=vector.Vector2D.spatial(),
     #     max=vector.Vector2D.spatial(),
@@ -64,6 +63,10 @@ class System(
     pupil_samples: typ.Union[int, vector.Vector2D] = 3
     pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
     pupil_is_stratified_random: bool = False
+    grid_wavelength: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(
+        min=0 * u.nm,
+        max=0 * u.nm,
+    ))
     grid_velocity_los: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(
         min=0 * u.km / u.s,
         max=0 * u.km / u.s,
@@ -119,8 +122,8 @@ class System(
         raise self.error_no_stop
 
     @property
-    def grid_wavelength(self) -> grid.IrregularGrid1D:
-        return grid.IrregularGrid1D(self.wavelength)
+    def wavelength(self) -> u.Quantity:
+        return self.grid_wavelength.points
 
     @property
     def grid_field(self) -> grid.RegularGrid2D:

@@ -399,7 +399,8 @@ class Rays(transform.rigid.Transformable):
             axs: typ.Optional[typ.MutableSequence[plt.Axes]] = None,
             config_index: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
             velocity_los_index: int = 0,
-            kwargs_colorbar: typ.Optional[typ.Dict[str, typ.Any]] = None
+            kwargs_colorbar: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            digits_after_decimal: int = 3,
     ) -> typ.MutableSequence[plt.Axes]:
         if axs is None:
             fig, axs = plt.subplots(ncols=self.num_wavlength)
@@ -410,6 +411,7 @@ class Rays(transform.rigid.Transformable):
             kwargs_colorbar = {}
 
         wavelength = self.input_grid.wavelength.points
+        wavelength_name = self.input_grid.wavelength.name
         field_x, field_y = self.input_grid.field.points.to_tuple()
         sizes = self.spot_size_rms
 
@@ -417,6 +419,7 @@ class Rays(transform.rigid.Transformable):
         wsl = slice(None, len(axs))
         sl[self.axis.wavelength] = wsl
         wavelength = wavelength[..., wsl]
+        wavelength_name = wavelength_name[..., wsl]
         sizes = sizes[sl]
 
         if config_index is not None:
@@ -428,13 +431,15 @@ class Rays(transform.rigid.Transformable):
         sorted_slice = [slice(None)] * sizes.ndim
         sorted_slice[self.axis.wavelength] = sorted_indices
         wavelength = wavelength[sorted_indices]
+        wavelength_name = wavelength_name[sorted_indices]
         sizes = sizes[sorted_slice]
 
         vmin, vmax = np.nanmin(sizes), np.nanmax(sizes)
 
         # for ax, wavl, sz in zip(axs, wavelength, sizes):
         for i in range(len(axs)):
-            axs[i].set_title(fmt.quantity(wavelength[i]))
+            wavelength_formatted = fmt.quantity(wavelength[i], digits_after_decimal=digits_after_decimal)
+            axs[i].set_title(f'{wavelength_name[i]} {wavelength_formatted}')
             sl = [slice(None)] * sizes.ndim
             sl[self.axis.wavelength] = i
             sl[self.axis.velocity_los] = velocity_los_index
