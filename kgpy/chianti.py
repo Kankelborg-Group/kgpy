@@ -84,7 +84,7 @@ class Bunch(
 
     @property
     def ion_spectroscopic(self):
-        return to_spectroscopic(self.ion, use_latex=False)
+        return to_spectroscopic(self.ion, use_latex=True)
 
     @property
     def wavelength(self) -> u.Quantity:
