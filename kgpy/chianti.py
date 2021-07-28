@@ -94,7 +94,7 @@ class Bunch(
     def intensity(self) -> u.Quantity:
         return self._mask_and_sort(self.intensity_all)
 
-    def fullname(self, digits_after_decimal: int = 3, use_latex: bool = False) -> np.ndarray:
+    def fullname(self, digits_after_decimal: int = 3, use_latex: bool = True) -> np.ndarray:
         k = dict(digits_after_decimal=digits_after_decimal, scientific_notation=False)
         ion = to_spectroscopic(self.ion, use_latex=use_latex)
         result = [i + ' ' + kgpy.format.quantity(w, **k) for i, w in zip(ion, self.wavelength)]
