@@ -115,14 +115,26 @@ class Bunch(
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            num_emission_lines: int = 10,
-            digits_after_decimal: int = 3
+            num_emission_lines = None,
+            num_labels: int = None,
+            digits_after_decimal: int = 3,
+            relative_int = False,
+            force_points = (0.01, 3),
+            line_mask = slice(None,None),
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
+            if relative_int:
+                intensity /= intensity.max()
             ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
             fullname = self.fullname(digits_after_decimal=digits_after_decimal)[:num_emission_lines]
+
+            if line_mask != slice(None,None):
+                wavelength = wavelength[line_mask]
+                intensity = intensity[line_mask]
+                fullname = fullname[line_mask]
+
             lines = ax.vlines(
                 x=wavelength,
                 ymin=0,
@@ -134,7 +146,7 @@ class Bunch(
             va = 'top'
             virtual_y = []
             virtual_x = []
-            for i in range(wavelength.shape[0]):
+            for i in range(num_labels):
                 text.append(ax.text(
                     x=wavelength[i],
                     y=intensity[i],
@@ -167,7 +179,7 @@ class Bunch(
                 # va=va,
                 x=virtual_x.value,
                 y=virtual_y.value,
-                force_points=(0.01, 3),
+                force_points=force_points,
             )
         return lines, text
 
