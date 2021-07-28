@@ -362,7 +362,7 @@ class MeasuredMultilayerMirror(MultilayerMirror):
     wavelength_data: typ.Optional[u.Quantity] = None
 
     def transmissivity(self, rays: Rays) -> u.Quantity:
-        interp = scipy.interpolate.interp1d(self.wavelength_data, self.efficiency_data)
+        interp = scipy.interpolate.interp1d(self.wavelength_data, self.efficiency_data, bounds_error=False)
         return interp(rays.wavelength.to(self.wavelength_data.unit)) * self.efficiency_data.unit
 
     def __eq__(self, other):
