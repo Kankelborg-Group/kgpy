@@ -393,6 +393,7 @@ class AluminumThinFilm(Material):
     thickness: u.Quantity = 0 * u.nm
     thickness_oxide: u.Quantity = 0 * u.nm
     mesh_ratio: u.Quantity = 100 * u.percent
+    mesh_material: str = ''
     density_ratio: float = 0.9
     xrt_table: str = 'Henke'
 
