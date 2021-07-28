@@ -324,6 +324,7 @@ class Image(mixin.Pickleable):
             norm_vmin: typ.Optional[u.Quantity] = None,
             norm_vmax: typ.Optional[u.Quantity] = None,
             frame_interval: u.Quantity = 1 * u.s,
+            colormap: typ.Optional[str] = None
     ):
         if ax is None:
             fig, ax = plt.subplots()
@@ -332,11 +333,12 @@ class Image(mixin.Pickleable):
 
         vmin, vmax = norm_vmin, norm_vmax
         if vmin is None:
-            vmin = np.percentile(images[0], thresh_min.value)
-        if norm_vmax is None:
-            vmax = np.percentile(images[0], thresh_max.value)
+            vmin = np.nanpercentile(images[0], thresh_min.value)
+        if vmax is None:
+            vmax = np.nanpercentile(images[0], thresh_max.value)
         img = ax.imshow(
             X=images[0].value,
+            cmap=colormap,
             norm=matplotlib.colors.PowerNorm(gamma=norm_gamma),
             vmin=vmin.value,
             vmax=vmax.value,
@@ -351,12 +353,9 @@ class Image(mixin.Pickleable):
         def func(i: int):
             img.set_data(images[i].value)
             title.set_text(image_names[i])
-            if norm_vmin is None:
-                img.set_clim(vmin=np.percentile(images[i], thresh_min.value).value)
-            if norm_vmax is None:
-                img.set_clim(vmax=np.percentile(images[i], thresh_max.value).value)
+            img.set_clim(vmin=vmin.value, vmax=vmax.value)
 
-        fig.set_constrained_layout(False)
+        # fig.set_constrained_layout(False)
 
         return matplotlib.animation.FuncAnimation(
             fig=fig,
@@ -373,7 +372,10 @@ class Image(mixin.Pickleable):
             thresh_min: u.Quantity = 0.01 * u.percent,
             thresh_max: u.Quantity = 99.9 * u.percent,
             norm_gamma: float = 1,
+            norm_vmin: typ.Optional[u.Quantity] = None,
+            norm_vmax: typ.Optional[u.Quantity] = None,
             frame_interval: u.Quantity = 100 * u.ms,
+            colormap: typ.Optional[str] = None,
     ) -> matplotlib.animation.FuncAnimation:
 
         if time_slice is None:
@@ -393,9 +395,10 @@ class Image(mixin.Pickleable):
             thresh_min=thresh_min,
             thresh_max=thresh_max,
             norm_gamma=norm_gamma,
-            norm_vmin=np.percentile(images, thresh_min.value),
-            norm_vmax=np.percentile(images, thresh_max.value),
+            norm_vmin=norm_vmin,
+            norm_vmax=norm_vmax,
             frame_interval=frame_interval,
+            colormap=colormap,
         )
 
     def animate(

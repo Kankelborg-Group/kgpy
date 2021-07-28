@@ -24,12 +24,14 @@ def quantity(
         if not scientific_notation:
             return fstr.format(a)
         else:
-            # return estr.format(a)
-            unit = a.unit
-            exponent = np.floor(np.log10(a.value))
-            mantissa = a / 10 ** exponent
-            format_str = '${0:0.' + str(digits_after_decimal) + 'f} \\times 10^{{{1}}}\\,${2:latex_inline}'
-            return format_str.format(mantissa.value, exponent.astype(np.int), unit)
+            if a != 0:
+                unit = a.unit
+                exponent = np.floor(np.log10(np.abs(a.value)))
+                mantissa = a / 10 ** exponent
+                format_str = '${0:0.' + str(digits_after_decimal) + 'f} \\times 10^{{{1}}}\\,${2:latex_inline}'
+                return format_str.format(mantissa.value, exponent.astype(np.int), unit)
+            else:
+                return fstr.format(a)
 
     else:
 

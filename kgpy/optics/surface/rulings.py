@@ -56,6 +56,10 @@ class ConstantDensity(Rulings):
     diffraction_order: u.Quantity = 1 * u.dimensionless_unscaled
     ruling_density: u.Quantity = 0 * (1 / u.mm)
 
+    @property
+    def ruling_spacing(self) -> u.Quantity:
+        return 1 / self.ruling_density
+
     def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0) -> vector.Vector3D:
         extra_dims_slice = (Ellipsis, ) + num_extra_dims * (np.newaxis, )
         return vector.Vector3D(
@@ -152,3 +156,42 @@ class CubicPolyDensity(ConstantDensity):
         other.ruling_density_cubic = self.ruling_density_cubic.copy()
         return other
 
+
+@dataclasses.dataclass
+class CubicPolySpacing(ConstantDensity):
+    ruling_spacing_linear: u.Quantity = 0 * u.dimensionless_unscaled
+    ruling_spacing_quadratic: u.Quantity = 0 / (u.mm ** 1)
+    ruling_spacing_cubic: u.Quantity = 0 / (u.mm ** 2)
+
+    def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> vector.Vector3D:
+        extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
+        x2 = np.square(x)
+        term0 = self.ruling_spacing[extra_dims_slice]
+        term1 = self.ruling_spacing_linear[extra_dims_slice] * x
+        term2 = self.ruling_spacing_quadratic[extra_dims_slice] * x2
+        term3 = self.ruling_spacing_cubic[extra_dims_slice] * x * x2
+        ruling_spacing = term0 + term1 + term2 + term3
+        groove_density = 1 / ruling_spacing
+        return vector.Vector3D(x=groove_density, y=0 * groove_density, z=0 * groove_density)
+
+    @property
+    def broadcasted(self):
+        out = super().broadcasted
+        out = np.broadcast(out, self.ruling_spacing_linear)
+        out = np.broadcast(out, self.ruling_spacing_quadratic)
+        out = np.broadcast(out, self.ruling_spacing_cubic)
+        return out
+
+    def view(self) -> 'CubicPolySpacing':
+        other = super().view()  # type: CubicPolyDensity
+        other.ruling_spacing_linear = self.ruling_spacing_linear
+        other.ruling_spacing_quadratic = self.ruling_spacing_quadratic
+        other.ruling_spacing_cubic = self.ruling_spacing_cubic
+        return other
+
+    def copy(self) -> 'CubicPolySpacing':
+        other = super().copy()  # type: CubicPolyDensity
+        other.ruling_spacing_linear = self.ruling_spacing_linear.copy()
+        other.ruling_spacing_quadratic = self.ruling_spacing_quadratic.copy()
+        other.ruling_spacing_cubic = self.ruling_spacing_cubic.copy()
+        return other

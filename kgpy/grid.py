@@ -38,6 +38,10 @@ class Grid1D(
     def points(self) -> u.Quantity:
         pass
 
+    @property
+    def name(self) -> typ.Optional[np.ndarray]:
+        return None
+
     def mesh(self, shape: typ.Tuple[int, ...], new_axes: typ.Sequence[int]) -> u.Quantity:
         return np.expand_dims(self.points, axis=new_axes)
 
@@ -200,6 +204,7 @@ class StratifiedRandomGrid2D(
 @dataclasses.dataclass
 class IrregularGrid1D(Grid1D):
     points: u.Quantity = None
+    name: typ.Optional[np.ndarray] = None
 
     @property
     def range(self) -> u.Quantity:
@@ -212,9 +217,12 @@ class IrregularGrid1D(Grid1D):
     def view(self) -> 'IrregularGrid1D':
         other = super().view()  # type: IrregularGrid1D
         other.points = self.points
+        other.name = self.name
         return other
 
     def copy(self) -> 'IrregularGrid1D':
         other = super().view()  # type: IrregularGrid1D
         other.points = self.points.copy()
+        if self.name is not None:
+            other.name = self.name.copy()
         return other

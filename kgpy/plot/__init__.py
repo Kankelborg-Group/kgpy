@@ -13,8 +13,23 @@ import astropy.units as u
 import astropy.wcs
 import kgpy.format
 from kgpy import format as fmt, vector
+from .curlyBrace import curlyBrace
+from . import brace
+__all__ = ['calc_extent', 'curlyBrace', 'ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
 
-__all__ = ['ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
+
+def calc_extent(
+        data_min: vector.Vector2D,
+        data_max: vector.Vector2D,
+        num_steps: vector.Vector2D,
+):
+    delta = (data_max - data_min) / (num_steps - 1)
+
+    extent_min = data_min - 0.5 * delta
+    extent_max = data_max + 0.5 * delta
+
+    return [extent_min.x, extent_max.x, extent_min.y, extent_max.y]
+
 
 
 def datetime_prep(ax: plt.Axes):
@@ -177,7 +192,6 @@ def annotate_component(
         xytext=(text_offset_x, text_offset_y),
         xycoords=transform,
         textcoords='offset points',
-        size='small',
         horizontalalignment=horizontal_alignment,
         verticalalignment=vertical_alignment,
         bbox=dict(
@@ -251,7 +265,6 @@ def annotate_angle(
         x=point_label.x,
         y=point_label.y,
         s=kgpy.format.quantity(angle_delta, digits_after_decimal=digits_after_decimal),
-        size='small',
         ha=horizontal_alignment,
         va=vertical_alignment,
     )

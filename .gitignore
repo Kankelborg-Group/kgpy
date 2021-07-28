@@ -1,3 +1,5 @@
+*.pickle
+
 # Microsoft lock files
 ~$*
 

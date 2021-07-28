@@ -4,7 +4,7 @@ import numpy as np
 import scipy.ndimage
 import matplotlib.pyplot as plt
 import astropy.units as u
-import pandas
+import kgpy.plot
 from kgpy import mixin, vector, format as fmt, polynomial
 
 __all__ = ['Distortion', 'Vignetting', 'Aberration']
@@ -156,12 +156,15 @@ class Distortion:
             inverse: bool = False,
             use_titles: bool = True,
             use_xlabels: bool = True,
+            wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
 
         if other is None:
             other = self
 
         wavelength = other.wavelength
+        # sorted_indices = np.argsort(wavelength[0, 0])
+        wavelength = wavelength
         mesh_input = other.spatial_mesh_input
         residual = self.residual(other, inverse=inverse)
         residual_mag = residual.length
@@ -175,6 +178,7 @@ class Distortion:
         grid_shape = np.broadcast(wavelength, mesh_input, residual_mag).shape
         # vgrid_shape = grid_shape + mesh_input.shape[~0:]
         # wavelength = np.broadcast_to(wavelength, grid_shape, subok=True)
+        wavelength = wavelength.squeeze()
         mesh_input = np.broadcast_to(mesh_input, grid_shape, subok=True)
         residual_mag = np.broadcast_to(residual_mag, grid_shape, subok=True)
 
@@ -183,14 +187,26 @@ class Distortion:
         else:
             fig = axs[0].figure
 
+        if wavelength_name is None:
+            wavelength_name = wavelength.copy()
+
+        wsl = slice(None, len(axs))
+        wavelength = wavelength[..., wsl]
+        residual_mag = residual_mag[..., wsl]
+
+        sorted_indices = np.argsort(wavelength)
+        wavelength = wavelength[..., sorted_indices]
+        wavelength_name = wavelength_name[..., sorted_indices]
+        residual_mag = residual_mag[..., sorted_indices]
+
         vmin, vmax = residual_mag.min(), residual_mag.max()
 
         model = self.model()
         # for ax, wavl, mesh_in, res in zip(axs, wavelength, mesh_input, residual_mag):
         for i in range(len(axs)):
-            wavl = wavelength[..., i].squeeze()
+            wavl = wavelength[i]
             if use_titles:
-                axs[i].set_title(fmt.quantity(wavl))
+                axs[i].set_title(wavelength_name[i])
 
             mesh_in = mesh_input[..., i]
             min_x, min_y = mesh_in.x.min(), mesh_in.y.min()
@@ -317,6 +333,7 @@ class Vignetting:
             inverse: bool = False,
             use_titles: bool = True,
             use_xlabels: bool = True,
+            wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
         if other is None:
             other = self
@@ -329,6 +346,7 @@ class Vignetting:
             data_name='residual',
             use_titles=use_titles,
             use_xlabels=use_xlabels,
+            wavelength_name=wavelength_name,
         )
 
     def plot_unvignetted(
@@ -339,10 +357,12 @@ class Vignetting:
             inverse: bool = False,
             use_titles: bool = True,
             use_xlabels: bool = True,
+            wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
         if other is None:
             other = self
         data = self.unvignetted_percent
+        data[data == 0] = np.nan
         if inverse:
             data = 1 / data
         return Vignetting.plot(
@@ -351,9 +371,10 @@ class Vignetting:
             data=data,
             axs=axs,
             config_index=config_index,
-            data_name='relative illumination',
+            data_name='effective area',
             use_titles=use_titles,
             use_xlabels=use_xlabels,
+            wavelength_name=wavelength_name,
         )
 
     @staticmethod
@@ -366,6 +387,7 @@ class Vignetting:
             data_name: str = '',
             use_titles: bool = True,
             use_xlabels: bool = True,
+            wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
 
         if config_index is not None:
@@ -376,31 +398,44 @@ class Vignetting:
         grid_shape = np.broadcast(wavelength, spatial_mesh, data).shape
         # vgrid_shape = grid_shape + spatial_mesh.shape[~0:]
         # wavelength = np.broadcast_to(wavelength, grid_shape, subok=True)
+        wavelength = wavelength[0, 0]
         spatial_mesh = np.broadcast_to(spatial_mesh, grid_shape, subok=True)
         data = np.broadcast_to(data, grid_shape, subok=True)
+
+        if wavelength_name is None:
+            wavelength_name = wavelength
 
         if axs is None:
             fig, axs = plt.subplots(ncols=len(wavelength))
         else:
             fig = axs[0].figure
 
-        vmin, vmax = data.min(), data.max()
+        wsl = slice(None, len(axs))
+        wavelength = wavelength[..., wsl]
+        data = data[..., wsl]
+
+        # vmin, vmax = data.min(), data.max()
+        vmin, vmax = np.nanmin(data), np.nanmax(data)
 
         # for ax, wavl, mesh, d in zip(axs, wavelength, spatial_mesh, data):
         for i in range(len(axs)):
             if use_titles:
-                axs[i].set_title(fmt.quantity(wavelength[..., i].squeeze()))
+                axs[i].set_title(wavelength_name[i])
 
             mesh = spatial_mesh[..., i]
-            min_x, min_y = mesh.x.min(), mesh.y.min()
-            max_x, max_y = mesh.x.max(), mesh.y.max()
+
+            extent = kgpy.plot.calc_extent(
+                data_min=mesh.min(),
+                data_max=mesh.max(),
+                num_steps=kgpy.vector.Vector2D.from_quantity(mesh.shape * u.dimensionless_unscaled),
+            )
 
             img = axs[i].imshow(
                 X=data[..., i].value.T,
                 vmin=vmin.value,
                 vmax=vmax.value,
                 origin='lower',
-                extent=[min_x.value, max_x.value, min_y.value, max_y.value],
+                extent=[e.value for e in extent],
             )
             if use_xlabels:
                 axs[i].set_xlabel('input $x$ ' + '(' + "{0:latex}".format(spatial_mesh.x.unit) + ')')

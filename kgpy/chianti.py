@@ -7,6 +7,7 @@ import numpy.typing
 import matplotlib.axes
 import matplotlib.collections
 import matplotlib.text
+import matplotlib.lines
 import roman
 import scipy.interpolate
 import astropy.units as u
@@ -83,7 +84,7 @@ class Bunch(
 
     @property
     def ion_spectroscopic(self):
-        return to_spectroscopic(self.ion, use_latex=False)
+        return to_spectroscopic(self.ion, use_latex=True)
 
     @property
     def wavelength(self) -> u.Quantity:
@@ -93,7 +94,7 @@ class Bunch(
     def intensity(self) -> u.Quantity:
         return self._mask_and_sort(self.intensity_all)
 
-    def fullname(self, digits_after_decimal: int = 3, use_latex: bool = False) -> np.ndarray:
+    def fullname(self, digits_after_decimal: int = 3, use_latex: bool = True) -> np.ndarray:
         k = dict(digits_after_decimal=digits_after_decimal, scientific_notation=False)
         ion = to_spectroscopic(self.ion, use_latex=use_latex)
         result = [i + ' ' + kgpy.format.quantity(w, **k) for i, w in zip(ion, self.wavelength)]
@@ -115,22 +116,25 @@ class Bunch(
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            num_emission_lines = None,
+            num_emission_lines=None,
             num_labels: int = None,
             digits_after_decimal: int = 3,
-            relative_int = False,
-            force_points = (0.01, 3),
-            line_mask = slice(None,None),
+            relative_int=False,
+            force_points=(0.01, 3),
+            line_mask=slice(None, None),
+            label_fontsize: typ.Union[str, int] = 'small'
+
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
+
             if relative_int:
                 intensity /= intensity.max()
             ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
             fullname = self.fullname(digits_after_decimal=digits_after_decimal)[:num_emission_lines]
 
-            if line_mask != slice(None,None):
+            if line_mask != slice(None, None):
                 wavelength = wavelength[line_mask]
                 intensity = intensity[line_mask]
                 fullname = fullname[line_mask]
@@ -140,7 +144,8 @@ class Bunch(
                 ymin=0,
                 ymax=intensity,
             )
-            ax.set_ylabel('{0:latex_inline}'.format(intensity.unit))
+            ax.set_xlabel(f'wavelength ({ax.get_xlabel()})')
+            ax.set_ylabel(f'radiance ({ax.get_ylabel()})')
             text = []
             ha = 'right'
             va = 'top'
@@ -155,7 +160,7 @@ class Bunch(
                     # rotation='vertical',
                     ha=ha,
                     va=va,
-                    fontsize='small',
+                    fontsize=label_fontsize,
                 ))
                 num = int(100 * intensity[i] / intensity[0])
                 vy = np.linspace(start=0, stop=intensity[i], num=num, axis=0)
@@ -182,6 +187,31 @@ class Bunch(
                 force_points=force_points,
             )
         return lines, text
+
+    def plot_wavelength(
+            self,
+            ax: matplotlib.axes.Axes,
+            num_emission_lines: int = 10,
+            digits_after_decimal: int = 3,
+            colors: typ.Optional[typ.Sequence[str]] = None,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        if colors is None:
+            colors = num_emission_lines * ['black']
+        with astropy.visualization.quantity_support():
+            wavelength = self.wavelength[:num_emission_lines]
+            fullname = self.fullname(digits_after_decimal=digits_after_decimal, use_latex=True)[:num_emission_lines]
+            # ax.set_ylabel('{0:latex_inline}'.format(intensity.unit))
+            lines = []
+
+            for i in range(wavelength.shape[0]):
+                lines.append(ax.axvline(
+                    x=wavelength[i],
+                    label=fullname[i],
+                    linestyle='dashed',
+                    color=colors[i],
+                ))
+
+        return lines
 
 
 def to_spectroscopic(ions: typ.Sequence[str], use_latex: bool = True) -> np.ndarray:

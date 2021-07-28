@@ -8,6 +8,9 @@ import pickle
 import numpy as np
 import typing as typ
 import scipy.spatial.transform
+import scipy.signal
+import scipy.optimize
+import scipy.interpolate
 import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
@@ -44,7 +47,6 @@ class System(
     #: Surface representing the light source
     object_surface: surface.Surface = dataclasses.field(default_factory=surface.Surface)
     surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
-    wavelength: u.Quantity = 0 * u.nm  #: Source wavelengths
     # grid_field: grid.Grid2D = dataclasses.field(default_factory=lambda: grid.RegularGrid2D(
     #     min=vector.Vector2D.spatial(),
     #     max=vector.Vector2D.spatial(),
@@ -61,6 +63,10 @@ class System(
     pupil_samples: typ.Union[int, vector.Vector2D] = 3
     pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
     pupil_is_stratified_random: bool = False
+    grid_wavelength: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(
+        min=0 * u.nm,
+        max=0 * u.nm,
+    ))
     grid_velocity_los: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(
         min=0 * u.km / u.s,
         max=0 * u.km / u.s,
@@ -116,8 +122,8 @@ class System(
         raise self.error_no_stop
 
     @property
-    def grid_wavelength(self) -> grid.IrregularGrid1D:
-        return grid.IrregularGrid1D(self.wavelength)
+    def wavelength(self) -> u.Quantity:
+        return self.grid_wavelength.points
 
     @property
     def grid_field(self) -> grid.RegularGrid2D:
@@ -256,6 +262,46 @@ class System(
                 )
                 rays_input.position = position_final.to_3d()
                 rays_input.input_grid.pupil = grid_surf.pupil
+
+                s1 = [slice(None)] * rays_input.position.ndim
+                s2 = [slice(None)] * rays_input.position.ndim
+                s3 = [slice(None)] * rays_input.position.ndim
+                s4 = [slice(None)] * rays_input.position.ndim
+                s1[rays_input.axis.pupil_x] = slice(None, ~0)
+                s1[rays_input.axis.pupil_y] = slice(None, ~0)
+                s2[rays_input.axis.pupil_x] = slice(1, None)
+                s2[rays_input.axis.pupil_y] = slice(None, ~0)
+                s3[rays_input.axis.pupil_x] = slice(1, None)
+                s3[rays_input.axis.pupil_y] = slice(1, None)
+                s4[rays_input.axis.pupil_x] = slice(None, ~0)
+                s4[rays_input.axis.pupil_y] = slice(1, None)
+                p1 = rays_input.position[s1]
+                p2 = rays_input.position[s2]
+                p3 = rays_input.position[s3]
+                p4 = rays_input.position[s4]
+                v31 = p1 - p3
+                v42 = p2 - p4
+                area = (v31.cross(v42)).length / 2
+                area = area.to(u.cm ** 2)
+
+                sh = [1, ] * rays_input.position.ndim
+                sh[rays_input.axis.pupil_x] = 2
+                sh[rays_input.axis.pupil_y] = 2
+                kernel = np.ones(sh)
+                kernel = kernel / kernel.sum()
+
+                pad_width = [(0, 0)] * area.ndim
+                pad_width[rays_input.axis.pupil_x] = (1, 1)
+                pad_width[rays_input.axis.pupil_y] = (1, 1)
+
+                if area.size > kernel.size:
+                    area = np.pad(area, pad_width=pad_width, mode='edge')
+                    rays_input.intensity = scipy.signal.convolve(area, kernel, mode='valid') * area.unit
+                else:
+                    rays_input.intensity = area
+
+                # subtent = rays_input.input_grid.field.step_size
+                # subtent = (subtent.x * subtent.y).to(u.sr)
 
             if surf.is_stop:
                 return rays_input

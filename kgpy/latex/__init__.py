@@ -85,7 +85,7 @@ class Label(pylatex.base_classes.LatexObject):
     name: str
 
     def dumps(self):
-        return pylatex.Command('label', self.name).dumps()
+        return pylatex.Command('label', pylatex.NoEscape(self.name)).dumps()
 
 
 from . import aas

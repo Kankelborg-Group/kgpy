@@ -1,16 +1,17 @@
 import typing as typ
 import abc
 import dataclasses
-import collections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
 import matplotlib.cm
 import matplotlib.colorbar
+import matplotlib.axes
 import astropy.units as u
+import astropy.constants
 import astropy.visualization
 import astropy.modeling
-# import kgpy.transform.rigid.transform_list
+import kgpy.plot
 from kgpy import mixin, vector, transform, format as fmt, grid
 from .aberration import Distortion, Vignetting, Aberration
 
@@ -54,8 +55,8 @@ class RayGrid(
     abc.ABC,
 ):
     axis: typ.ClassVar[Axis] = Axis()
-    field: grid.Grid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
-    pupil: grid.Grid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
+    field: grid.RegularGrid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
+    pupil: grid.RegularGrid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
     wavelength: grid.Grid1D = dataclasses.field(default_factory=grid.RegularGrid1D)
     velocity_los: grid.Grid1D = dataclasses.field(default_factory=grid.RegularGrid1D)
 
@@ -299,6 +300,10 @@ class Rays(transform.rigid.Transformable):
     #     )
 
     @property
+    def energy(self) -> u.Quantity:
+        return (astropy.constants.h * astropy.constants.c / self.wavelength).to(u.eV)
+
+    @property
     def position_pupil_avg(self) -> vector.Vector3D:
         axes = (self.axis.pupil_x, self.axis.pupil_y)
         # mask = np.broadcast_to(self.mask[..., None], self.position.shape)
@@ -325,15 +330,18 @@ class Rays(transform.rigid.Transformable):
         )
 
     def vignetting(self, polynomial_degree: int = 1) -> Vignetting:
-        counts = self.mask.sum((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los))
+        intensity = self.intensity.copy()
+        intensity, mask = np.broadcast_arrays(intensity, self.mask, subok=True)
+        intensity[~mask] = 0
+        counts = intensity.sum((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los))
         return Vignetting(
             wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
             spatial_mesh=vector.Vector2D(
                 x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
                 y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
             ),
-            unvignetted_percent=100 * counts / counts.max() * u.percent,
-            mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
+            unvignetted_percent=counts,
+            mask=mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
             polynomial_degree=polynomial_degree,
         )
 
@@ -383,7 +391,7 @@ class Rays(transform.rigid.Transformable):
         pupil_axes = self.axis.pupil_x, self.axis.pupil_y
         sz = np.sqrt(np.ma.average(r2.value, axis=pupil_axes, weights=self.mask) << r2.unit)
         mask = self.mask.any(pupil_axes)
-        sz[~mask] = 0
+        sz[~mask] = np.nan
         return sz
 
     def plot_spot_size_vs_field(
@@ -391,40 +399,74 @@ class Rays(transform.rigid.Transformable):
             axs: typ.Optional[typ.MutableSequence[plt.Axes]] = None,
             config_index: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
             velocity_los_index: int = 0,
+            kwargs_colorbar: typ.Optional[typ.Dict[str, typ.Any]] = None,
+            digits_after_decimal: int = 3,
     ) -> typ.MutableSequence[plt.Axes]:
         if axs is None:
             fig, axs = plt.subplots(ncols=self.num_wavlength)
         else:
             fig = axs[0].figure
 
+        if kwargs_colorbar is None:
+            kwargs_colorbar = {}
+
         wavelength = self.input_grid.wavelength.points
+        wavelength_name = self.input_grid.wavelength.name
         field_x, field_y = self.input_grid.field.points.to_tuple()
         sizes = self.spot_size_rms
+
+        sl = [slice(None)] * sizes.ndim
+        wsl = slice(None, len(axs))
+        sl[self.axis.wavelength] = wsl
+        wavelength = wavelength[..., wsl]
+        wavelength_name = wavelength_name[..., wsl]
+        sizes = sizes[sl]
+
         if config_index is not None:
             field_x, field_y = field_x[config_index], field_y[config_index]
             wavelength = wavelength[config_index]
             sizes = sizes[config_index]
 
-        vmin, vmax = sizes.min(), sizes.max()
+        sorted_indices = np.argsort(wavelength)
+        sorted_slice = [slice(None)] * sizes.ndim
+        sorted_slice[self.axis.wavelength] = sorted_indices
+        wavelength = wavelength[sorted_indices]
+        wavelength_name = wavelength_name[sorted_indices]
+        sizes = sizes[sorted_slice]
+
+        vmin, vmax = np.nanmin(sizes), np.nanmax(sizes)
 
         # for ax, wavl, sz in zip(axs, wavelength, sizes):
         for i in range(len(axs)):
-            axs[i].set_title(fmt.quantity(wavelength[i]))
+            wavelength_formatted = fmt.quantity(wavelength[i], digits_after_decimal=digits_after_decimal)
+            axs[i].set_title(f'{wavelength_name[i]} {wavelength_formatted}')
             sl = [slice(None)] * sizes.ndim
             sl[self.axis.wavelength] = i
             sl[self.axis.velocity_los] = velocity_los_index
+
+            extent = kgpy.plot.calc_extent(
+                data_min=vector.Vector2D(field_x.min(), field_y.min()),
+                data_max=vector.Vector2D(field_x.max(), field_y.max()),
+                num_steps=vector.Vector2D.from_quantity(sizes[sl].shape * u.dimensionless_unscaled),
+            )
+
             img = axs[i].imshow(
                 X=sizes[sl].T.value,
                 vmin=vmin.value,
                 vmax=vmax.value,
                 origin='lower',
-                extent=[field_x[0].value, field_x[~0].value, field_y[0].value, field_y[~0].value],
+                extent=[e.value for e in extent],
             )
             axs[i].set_xlabel('input $x$ ' + '(' + "{0:latex}".format(field_x.unit) + ')')
 
         axs[0].set_ylabel('input $y$ ' + '(' + "{0:latex}".format(field_y.unit) + ')')
 
-        fig.colorbar(img, ax=axs, label='RMS spot radius (' + '{0:latex}'.format(sizes.unit) + ')')
+        fig.colorbar(
+            img,
+            ax=axs,
+            label='RMS spot radius (' + '{0:latex}'.format(sizes.unit) + ')',
+            **kwargs_colorbar,
+        )
 
         return axs
 
@@ -643,7 +685,12 @@ class Rays(transform.rigid.Transformable):
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (True, True),
             norm: typ.Optional[matplotlib.colors.Normalize] = None,
-    ) -> plt.Figure:
+            cmap: str = 'viridis',
+            kwargs_colorbar: typ.Optional[typ.Dict[str, typ.Any]] = None,
+    ) -> typ.Tuple[plt.Figure, np.ndarray]:
+
+        if kwargs_colorbar is None:
+            kwargs_colorbar = {}
 
         # field_x = self.input_grids[self.axis.field_x]
         # field_y = self.input_grids[self.axis.field_y]
@@ -664,12 +711,13 @@ class Rays(transform.rigid.Transformable):
             sharex='all',
             sharey='all',
             squeeze=False,
+            constrained_layout=True,
         )
 
         if hist.ndim > self.axis.ndim:
             hist, edges_x, edges_y = hist[config_index], edges_x[config_index], edges_y[config_index]
 
-        for i, axs_i in enumerate(axs):
+        for i, axs_i in enumerate(reversed(axs)):
             for j, axs_ij in enumerate(axs_i):
                 axs_ij.invert_xaxis()
                 cwji = [slice(None)] * hist.ndim
@@ -677,37 +725,49 @@ class Rays(transform.rigid.Transformable):
                 cwji[self.axis.velocity_los] = velocity_los_index
                 cwji[self.axis.field_x] = j
                 cwji[self.axis.field_y] = i
-                # cwji = config_index, wavlen_index, j, i
-                w = [slice(None)] * hist.ndim
-                w[self.axis.wavelength] = wavlen_index
-                limits = [
-                    edges_x[cwji].min().value,
-                    edges_x[cwji].max().value,
-                    edges_y[cwji].min().value,
-                    edges_y[cwji].max().value,
-                ]
-                img = axs_ij.imshow(
-                    X=hist[cwji].T,
-                    extent=limits,
-                    aspect='auto',
-                    origin='lower',
-                    vmin=hist[w].min(),
-                    vmax=hist[w].max(),
-                    norm=norm,
-                )
-                if i == 0:
-                    axs_ij.set_xlabel('{0.value:0.0f} {0.unit:latex}'.format(field_x[j]))
+                if hist[cwji].sum() > 0:
+                    w = [slice(None)] * hist.ndim
+                    w[self.axis.wavelength] = wavlen_index
+                    limits = [
+                        edges_x[cwji].min().value,
+                        edges_x[cwji].max().value,
+                        edges_y[cwji].min().value,
+                        edges_y[cwji].max().value,
+                    ]
+                    img = axs_ij.imshow(
+                        X=hist[cwji].T,
+                        extent=limits,
+                        aspect='equal',
+                        origin='lower',
+                        vmin=hist[w].min(),
+                        vmax=hist[w].max(),
+                        norm=norm,
+                        cmap=cmap,
+                    )
+                else:
+                    axs_ij.spines['top'].set_visible(False)
+                    axs_ij.spines['right'].set_visible(False)
+                    axs_ij.spines['bottom'].set_visible(False)
+                    axs_ij.spines['left'].set_visible(False)
+
+                if i == len(axs) - 1:
+                    axs_ij.set_xlabel(fmt.quantity(field_x[j], digits_after_decimal=1))
                     axs_ij.xaxis.set_label_position('top')
-                elif i == len(axs) - 1:
+                elif i == 0:
                     axs_ij.set_xlabel(edges_x.unit)
 
                 if j == 0:
                     axs_ij.set_ylabel(edges_y.unit)
                 elif j == len(axs_i) - 1:
-                    axs_ij.set_ylabel('{0.value:0.0f} {0.unit:latex}'.format(field_y[i]))
                     axs_ij.yaxis.set_label_position('right')
+                    axs_ij.set_ylabel(
+                        fmt.quantity(field_y[i], digits_after_decimal=1),
+                        rotation='horizontal',
+                        ha='left',
+                        va='center',
+                    )
 
-                axs_ij.tick_params(axis='both', labelsize=8)
+                # axs_ij.tick_params(axis='both', labelsize=8)
 
         # wavelength = self.input_grids[self.axis.wavelength]
         wavelength = self.input_grid.wavelength.points
@@ -716,9 +776,9 @@ class Rays(transform.rigid.Transformable):
         wavl_str = wavelength[wavlen_index]
         wavl_str = '{0.value:0.3f} {0.unit:latex}'.format(wavl_str)
         fig.suptitle('configuration = ' + str(config_index) + ', wavelength = ' + wavl_str)
-        fig.colorbar(img, ax=axs, fraction=0.05)
+        fig.colorbar(img, ax=axs, fraction=0.05, **kwargs_colorbar)
 
-        return fig
+        return fig, axs
 
 
 @dataclasses.dataclass
