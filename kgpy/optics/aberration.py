@@ -178,6 +178,7 @@ class Distortion:
         grid_shape = np.broadcast(wavelength, mesh_input, residual_mag).shape
         # vgrid_shape = grid_shape + mesh_input.shape[~0:]
         # wavelength = np.broadcast_to(wavelength, grid_shape, subok=True)
+        wavelength = wavelength.squeeze()
         mesh_input = np.broadcast_to(mesh_input, grid_shape, subok=True)
         residual_mag = np.broadcast_to(residual_mag, grid_shape, subok=True)
 
@@ -186,11 +187,14 @@ class Distortion:
         else:
             fig = axs[0].figure
 
+        if wavelength_name is None:
+            wavelength_name = wavelength.copy()
+
         wsl = slice(None, len(axs))
         wavelength = wavelength[..., wsl]
         residual_mag = residual_mag[..., wsl]
 
-        sorted_indices = np.argsort(wavelength[0, 0])
+        sorted_indices = np.argsort(wavelength)
         wavelength = wavelength[..., sorted_indices]
         wavelength_name = wavelength_name[..., sorted_indices]
         residual_mag = residual_mag[..., sorted_indices]
@@ -200,9 +204,9 @@ class Distortion:
         model = self.model()
         # for ax, wavl, mesh_in, res in zip(axs, wavelength, mesh_input, residual_mag):
         for i in range(len(axs)):
-            wavl = wavelength[..., i].squeeze()
+            wavl = wavelength[i]
             if use_titles:
-                axs[i].set_title(f'{wavelength_name[i]} {fmt.quantity(wavl)}')
+                axs[i].set_title(wavelength_name[i])
 
             mesh_in = mesh_input[..., i]
             min_x, min_y = mesh_in.x.min(), mesh_in.y.min()
@@ -386,8 +390,6 @@ class Vignetting:
             wavelength_name: typ.Optional[np.ndarray] = None,
     ) -> typ.MutableSequence[plt.Axes]:
 
-        wavelength, spatial_mesh, data = np.broadcast_arrays(wavelength, spatial_mesh, data, subok=True)
-
         if config_index is not None:
             wavelength = wavelength[config_index]
             spatial_mesh = spatial_mesh[config_index]
@@ -396,8 +398,12 @@ class Vignetting:
         grid_shape = np.broadcast(wavelength, spatial_mesh, data).shape
         # vgrid_shape = grid_shape + spatial_mesh.shape[~0:]
         # wavelength = np.broadcast_to(wavelength, grid_shape, subok=True)
+        wavelength = wavelength[0, 0]
         spatial_mesh = np.broadcast_to(spatial_mesh, grid_shape, subok=True)
         data = np.broadcast_to(data, grid_shape, subok=True)
+
+        if wavelength_name is None:
+            wavelength_name = wavelength
 
         if axs is None:
             fig, axs = plt.subplots(ncols=len(wavelength))
@@ -414,7 +420,7 @@ class Vignetting:
         # for ax, wavl, mesh, d in zip(axs, wavelength, spatial_mesh, data):
         for i in range(len(axs)):
             if use_titles:
-                axs[i].set_title(f'{wavelength_name[i]} {fmt.quantity(wavelength[..., i].mean())}')
+                axs[i].set_title(wavelength_name[i])
 
             mesh = spatial_mesh[..., i]
 
