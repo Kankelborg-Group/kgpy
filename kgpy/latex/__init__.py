@@ -61,6 +61,7 @@ class Acronym(pylatex.base_classes.LatexObject):
     name_full: str
     name_short: typ.Optional[str] = None
     plural: bool = False
+    short: bool = False
 
     def dumps(self):
         name_short = self.name_short
@@ -79,6 +80,11 @@ class Acronym(pylatex.base_classes.LatexObject):
             command += pylatex.Command(
                 command='newcommand',
                 arguments=[pylatex.NoEscape('\\' + self.acronym + 's'), pylatex.NoEscape(r'\acp{' + name_short + '}')],
+            ).dumps()
+        if self.short:
+            command += pylatex.Command(
+                command='newcommand',
+                arguments=[pylatex.NoEscape('\\' + self.acronym + 'Short'), pylatex.NoEscape(r'\acs{' + name_short + '}')],
             ).dumps()
         return command
 
