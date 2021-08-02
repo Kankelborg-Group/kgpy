@@ -389,7 +389,7 @@ class MeasuredMultilayerMirror(MultilayerMirror):
 
 @dataclasses.dataclass
 class AluminumThinFilm(Material):
-    name: str = 'thin film Al'
+    name: str = 'Al'
     thickness: u.Quantity = 0 * u.nm
     thickness_oxide: u.Quantity = 0 * u.nm
     mesh_ratio: u.Quantity = 100 * u.percent
