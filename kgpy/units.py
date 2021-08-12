@@ -11,6 +11,10 @@ mAA = u.def_unit(
     format={'latex': r'm\mathring{A}', 'unicode': 'mÅ'},
 )
 
+line = u.def_unit(
+    s=['line'],
+)
+
 
 class TolArray(np.ndarray):
 
