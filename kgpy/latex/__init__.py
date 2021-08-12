@@ -61,21 +61,30 @@ class Acronym(pylatex.base_classes.LatexObject):
     name_full: str
     name_short: typ.Optional[str] = None
     plural: bool = False
+    short: bool = False
 
     def dumps(self):
+        name_short = self.name_short
+        if name_short is None:
+            name_short = self.acronym
+
         command = pylatex.Command(
             command='newacro',
-            arguments=[self.acronym, pylatex.NoEscape(self.name_full)],
-            options=self.name_short,
+            arguments=[name_short, pylatex.NoEscape(self.name_full)],
         ).dumps()
         command += pylatex.Command(
             command='newcommand',
-            arguments=[pylatex.NoEscape('\\' + self.acronym), pylatex.NoEscape(r'\ac{' + self.acronym + '}')],
+            arguments=[pylatex.NoEscape('\\' + self.acronym), pylatex.NoEscape(r'\ac{' + name_short + '}')],
         ).dumps()
         if self.plural:
             command += pylatex.Command(
                 command='newcommand',
-                arguments=[pylatex.NoEscape('\\' + self.acronym + 's'), pylatex.NoEscape(r'\acp{' + self.acronym + '}')],
+                arguments=[pylatex.NoEscape('\\' + self.acronym + 's'), pylatex.NoEscape(r'\acp{' + name_short + '}')],
+            ).dumps()
+        if self.short:
+            command += pylatex.Command(
+                command='newcommand',
+                arguments=[pylatex.NoEscape('\\' + self.acronym + 'Short'), pylatex.NoEscape(r'\acs{' + name_short + '}')],
             ).dumps()
         return command
 

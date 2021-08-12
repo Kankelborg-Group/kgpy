@@ -362,7 +362,7 @@ class MeasuredMultilayerMirror(MultilayerMirror):
     wavelength_data: typ.Optional[u.Quantity] = None
 
     def transmissivity(self, rays: Rays) -> u.Quantity:
-        interp = scipy.interpolate.interp1d(self.wavelength_data, self.efficiency_data)
+        interp = scipy.interpolate.interp1d(self.wavelength_data, self.efficiency_data, bounds_error=False)
         return interp(rays.wavelength.to(self.wavelength_data.unit)) * self.efficiency_data.unit
 
     def __eq__(self, other):
@@ -389,10 +389,11 @@ class MeasuredMultilayerMirror(MultilayerMirror):
 
 @dataclasses.dataclass
 class AluminumThinFilm(Material):
-    name: str = 'thin film Al'
+    name: str = 'Al'
     thickness: u.Quantity = 0 * u.nm
     thickness_oxide: u.Quantity = 0 * u.nm
     mesh_ratio: u.Quantity = 100 * u.percent
+    mesh_material: str = ''
     density_ratio: float = 0.9
     xrt_table: str = 'Henke'
 
