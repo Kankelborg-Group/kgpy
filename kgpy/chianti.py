@@ -130,6 +130,9 @@ class Bunch(
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
 
+            if num_labels == None:
+                num_labels = num_emission_lines
+
             if relative_int:
                 intensity /= intensity.max()
             ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
