@@ -122,17 +122,21 @@ class Bunch(
             relative_int=False,
             force_points=(0.01, 3),
             line_mask=slice(None, None),
-            label_fontsize: typ.Union[str, int] = 'small'
+            label_fontsize: typ.Union[str, int] = 'small',
+            use_latex = True
 
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
         with astropy.visualization.quantity_support():
             wavelength = self.wavelength[:num_emission_lines]
             intensity = self.intensity[:num_emission_lines]
 
+            if num_labels == None:
+                num_labels = num_emission_lines
+
             if relative_int:
                 intensity /= intensity.max()
             ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
-            fullname = self.fullname(digits_after_decimal=digits_after_decimal)[:num_emission_lines]
+            fullname = self.fullname(digits_after_decimal=digits_after_decimal,use_latex=use_latex)[:num_emission_lines]
 
             if line_mask != slice(None, None):
                 wavelength = wavelength[line_mask]
