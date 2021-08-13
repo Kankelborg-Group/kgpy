@@ -70,21 +70,23 @@ class Acronym(pylatex.base_classes.LatexObject):
 
         command = pylatex.Command(
             command='newacro',
-            arguments=[name_short, pylatex.NoEscape(self.name_full)],
+            arguments=[self.acronym, ],
+            options=[name_short],
+            extra_arguments=[pylatex.NoEscape(self.name_full), ]
         ).dumps()
         command += pylatex.Command(
             command='newcommand',
-            arguments=[pylatex.NoEscape('\\' + self.acronym), pylatex.NoEscape(r'\ac{' + name_short + '}')],
+            arguments=[pylatex.NoEscape('\\' + self.acronym), pylatex.NoEscape(r'\ac{' + self.acronym + '}')],
         ).dumps()
         if self.plural:
             command += pylatex.Command(
                 command='newcommand',
-                arguments=[pylatex.NoEscape('\\' + self.acronym + 's'), pylatex.NoEscape(r'\acp{' + name_short + '}')],
+                arguments=[pylatex.NoEscape('\\' + self.acronym + 's'), pylatex.NoEscape(r'\acp{' + self.acronym + '}')],
             ).dumps()
         if self.short:
             command += pylatex.Command(
                 command='newcommand',
-                arguments=[pylatex.NoEscape('\\' + self.acronym + 'Short'), pylatex.NoEscape(r'\acs{' + name_short + '}')],
+                arguments=[pylatex.NoEscape('\\' + self.acronym + 'Short'), pylatex.NoEscape(r'\acs{' + self.acronym + '}')],
             ).dumps()
         return command
 
