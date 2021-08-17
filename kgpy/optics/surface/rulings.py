@@ -56,6 +56,15 @@ class ConstantDensity(Rulings):
     diffraction_order: u.Quantity = 1 * u.dimensionless_unscaled
     ruling_density: u.Quantity = 0 * (1 / u.mm)
 
+    def __eq__(self, other: 'ConstantDensity') -> bool:
+        if not super().__eq__(other):
+            return False
+        if not (other.diffraction_order == self.diffraction_order).all():
+            return False
+        if not (other.ruling_density == self.ruling_density).all():
+            return False
+        return True
+
     @property
     def ruling_spacing(self) -> u.Quantity:
         return 1 / self.ruling_density
