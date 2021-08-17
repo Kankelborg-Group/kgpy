@@ -172,6 +172,15 @@ class CubicPolySpacing(ConstantDensity):
     ruling_spacing_quadratic: u.Quantity = 0 / (u.mm ** 1)
     ruling_spacing_cubic: u.Quantity = 0 / (u.mm ** 2)
 
+    def __eq__(self, other: 'CubicPolySpacing') -> bool:
+        if not super().__eq__(other):
+            return False
+        if not (other.ruling_spacing_linear == self.ruling_spacing_linear).all():
+            return False
+        if not (other.ruling_spacing_quadratic == self.ruling_spacing_quadratic).all():
+            return False
+        return True
+
     def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> vector.Vector3D:
         extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
         x2 = np.square(x)
