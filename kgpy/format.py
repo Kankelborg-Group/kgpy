@@ -10,8 +10,8 @@ def quantity(
         scientific_notation: typ.Optional[bool] = None,
         digits_after_decimal: int = 3
 ) -> str:
-    estr = '{0.value:0.' + str(digits_after_decimal) + 'e}$\,${0.unit:latex_inline}'
-    fstr = '{0.value:0.' + str(digits_after_decimal) + 'f}$\,${0.unit:latex_inline}'
+    estr = '${0.value:0.' + str(digits_after_decimal) + 'e}\,${0.unit:latex_inline}'
+    fstr = '${0.value:0.' + str(digits_after_decimal) + 'f}\,${0.unit:latex_inline}'
 
     if scientific_notation is None:
         if np.abs(a.value).any() > 0.1:
