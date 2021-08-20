@@ -43,6 +43,15 @@ class Standard(Sag):
         sz[mask] = 0
         return sz
 
+    def __eq__(self, other: 'Standard'):
+        if not super().__eq__(other):
+            return False
+        if (self.radius != other.radius).any():
+            return False
+        if (self.conic != other.conic).any():
+            return False
+        return True
+
     def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> vector.Vector3D:
         extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
         x2, y2 = np.square(x), np.square(y)
@@ -96,6 +105,13 @@ class Toroidal(Standard):
         z = r - np.sqrt(np.square(r - zy) - x2)
         z[mask] = (r - np.sqrt(np.square(r - zy) - np.square(r)))[mask]
         return z
+
+    def __eq__(self, other: 'Toroidal') -> bool:
+        if not super().__eq__(other):
+            return False
+        if (self.radius_of_rotation != other.radius_of_rotation).any():
+            return False
+        return True
 
     def normal(self, x: u.Quantity, y: u.Quantity, num_extra_dims: int = 0, ) -> vector.Vector3D:
         extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
