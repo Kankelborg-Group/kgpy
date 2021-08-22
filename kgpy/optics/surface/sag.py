@@ -5,7 +5,64 @@ import astropy.units as u
 from kgpy import mixin, vector, optimization
 from ..rays import Rays
 
-__all__ = ['Sag', 'Standard', 'Toroidal']
+__all__ = [
+    'Sag',
+    'Standard',
+    'Toroidal',
+    'SlopeErrorRMS',
+    'RoughnessRMS',
+    'RippleRMS',
+]
+
+
+@dataclasses.dataclass
+class SlopeErrorRMS(
+    mixin.Copyable,
+):
+    value: u.Quantity = 0 * u.urad
+    length_integration: u.Quantity = 0 * u.mm
+    length_sample: u.Quantity = 0 * u.mm
+
+    def view(self) -> 'SlopeErrorRMS':
+        other = super().view()  # type: SlopeErrorRMS
+        other.value = self.value
+        other.length_integration = self.length_integration
+        other.length_sample = self.length_sample
+        return other
+
+    def copy(self) -> 'SlopeErrorRMS':
+        other = super().copy()  # type: SlopeErrorRMS
+        other.value = self.value.copy()
+        other.length_integration = self.length_integration.copy()
+        other.length_sample = self.length_sample.copy()
+        return other
+
+
+@dataclasses.dataclass
+class RoughnessRMS(
+    mixin.Copyable,
+):
+    value: u.Quantity = 0 * u.mm
+    periods_min: u.Quantity = 0 * u.mm
+    periods_max: u.Quantity = 0 * u.mm
+
+    def view(self) -> 'RoughnessRMS':
+        other = super().view()  # type: RoughnessRMS
+        other.value = self.value
+        other.periods_min = self.periods_min
+        other.periods_max = self.periods_max
+        return other
+
+    def copy(self) -> 'RoughnessRMS':
+        other = super().copy()  # type: RoughnessRMS
+        other.value = self.value.copy()
+        other.periods_min = self.periods_min.copy()
+        other.periods_max = self.periods_max.copy()
+        return other
+
+
+class RippleRMS(RoughnessRMS):
+    pass
 
 
 @dataclasses.dataclass
