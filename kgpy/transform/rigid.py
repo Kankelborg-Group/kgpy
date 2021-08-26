@@ -59,22 +59,30 @@ class TransformList(
         return not self.intrinsic
 
     @property
-    def rotation_eff(self) -> u.Quantity:
+    def rotation_and_translation_eff(self) -> typ.Tuple[matrix.Matrix3D, vector.Vector3D]:
         rotation = matrix.Matrix3D(
             xx=1 * u.dimensionless_unscaled,
             yy=1 * u.dimensionless_unscaled,
             zz=1 * u.dimensionless_unscaled,
         )
-        for transform in self.transforms:
+        translation = vector.Vector3D.spatial()
+
+        for transform in reversed(list(self.transforms)):
             if transform is not None:
-                if isinstance(transform, TiltAboutAxis):
-                    rotation = transform.rotation_matrix @ rotation
-        return rotation
+                if isinstance(transform, Tilt):
+                    rotation = rotation @ transform.rotation_matrix
+                elif isinstance(transform, Translate):
+                    translation = (rotation @ transform.value) + translation
+
+        return rotation, translation
+
+    @property
+    def rotation_eff(self) -> matrix.Matrix3D:
+        return self.rotation_and_translation_eff[0]
 
     @property
     def translation_eff(self) -> vector.Vector3D:
-        value = vector.Vector3D.spatial()
-        return self(value)
+        return self.rotation_and_translation_eff[1]
 
     def __call__(
             self,
@@ -84,24 +92,17 @@ class TransformList(
             num_extra_dims: int = 0,
     ) -> vector.Vector3D:
 
-        rotation = matrix.Matrix3D(
-            xx=1 * u.dimensionless_unscaled,
-            yy=1 * u.dimensionless_unscaled,
-            zz=1 * u.dimensionless_unscaled,
-        )
-        translation = vector.Vector3D(x=0 * value.x.unit, y=0 * value.y.unit, z=0 * value.z.unit)
+        extra_dims_slice = (Ellipsis,) + num_extra_dims * (np.newaxis,)
 
-        for transform in reversed(list(self.transforms)):
-            if transform is not None:
-                if isinstance(transform, TiltAboutAxis):
-                    if rotate:
-                        rotation = rotation @ transform.rotation_matrix
-                elif isinstance(transform, Translate):
-                    if translate:
-                        translation = (rotation @ transform.value) + translation
+        rotation, translation = self.rotation_and_translation_eff
 
-        extra_dims_slice = (Ellipsis, ) + num_extra_dims * (np.newaxis, )
-        return (rotation[extra_dims_slice] @ value) + translation[extra_dims_slice]
+        if rotate:
+            value = rotation[extra_dims_slice] @ value
+
+        if translate:
+            value = value + translation[extra_dims_slice]
+
+        return value
 
         # for transform in self.transforms:
         #     value = transform(
