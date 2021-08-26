@@ -104,15 +104,13 @@ class TransformList(
 
         return value
 
-        # for transform in self.transforms:
-        #     value = transform(
-        #         value=value,
-        #         rotate=rotate,
-        #         translate=translate,
-        #         num_extra_dims=num_extra_dims,
-        #     )
-        # return value
-
+    @property
+    def simplified(self) -> 'TransformList':
+        rotation, translation = self.rotation_and_translation_eff
+        return TransformList([
+            Translate.from_vector(translation),
+            TiltGeneral(rotation),
+        ])
 
     def __invert__(self) -> 'TransformList':
         other = self.copy()
@@ -221,11 +219,6 @@ class TiltAboutAxis(Tilt, abc.ABC):
 
     def __invert__(self) -> 'TiltAboutAxis':
         return type(self)(angle=-self.angle)
-
-    @property
-    @abc.abstractmethod
-    def rotation_matrix(self) -> matrix.Matrix3D:
-        pass
 
     @property
     def tol_iter(self) -> typ.Iterator['TiltAboutAxis']:
