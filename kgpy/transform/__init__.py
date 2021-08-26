@@ -7,7 +7,6 @@ from kgpy import mixin
 
 
 class Transform(
-    mixin.Toleranceable,
     mixin.Copyable,
     mixin.Broadcastable,
     abc.ABC,
