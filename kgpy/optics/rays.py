@@ -235,6 +235,7 @@ class Rays(transform.rigid.Transformable):
     def apply_transform_list(self, transform_list: transform.rigid.TransformList) -> 'Rays':
         # other = self.copy()
         other = self.view()
+        transform_list = transform_list.simplified
         other.position = transform_list(other.position, num_extra_dims=self.axis.ndim)
         other.direction = transform_list(other.direction, translate=False, num_extra_dims=self.axis.ndim)
         other.surface_normal = transform_list(other.surface_normal, translate=False, num_extra_dims=self.axis.ndim)
