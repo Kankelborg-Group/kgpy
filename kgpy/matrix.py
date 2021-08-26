@@ -104,6 +104,15 @@ class Matrix2D(np.lib.mixins.NDArrayOperatorsMixin):
     def determinant(self) -> u.Quantity:
         return self.xx * self.yy - self.xy * self.yx
 
+    @property
+    def transpose(self) -> 'Matrix2D':
+        return type(self)(
+            xx=self.xx,
+            xy=self.yx,
+            yx=self.xy,
+            yy=self.yy,
+        )
+
     @classmethod
     def _extract_attr(cls, values: typ.List, attr: str) -> typ.List:
         values_new = []
@@ -273,6 +282,16 @@ class Matrix3D(Matrix2D):
         dy = self.xy * (self.yz * self.zx - self.yx * self.zz)
         dz = self.xz * (self.yx * self.zy - self.yy * self.zx)
         return dx + dy + dz
+
+    @property
+    def transpose(self) -> 'Matrix3D':
+        other = super().transpose
+        other.xz = self.zx
+        other.yz = self.zy
+        other.zx = self.xz
+        other.zy = self.yz
+        other.zz = self.zz
+        return other
 
     @classmethod
     def _extract_xz(cls, values: typ.List) -> typ.List:
