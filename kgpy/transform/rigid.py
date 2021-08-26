@@ -162,15 +162,12 @@ class Transformable(
 
 
 @dataclasses.dataclass
-class TiltAboutAxis(Transform, abc.ABC):
-    angle: typ.Union[u.Quantity, units.TolQuantity] = 0 * u.deg
+class Tilt(Transform, abc.ABC):
 
     @property
-    def broadcasted(self):
-        return np.broadcast(super().broadcasted, self.angle)
-
-    def __eq__(self, other: 'TiltAboutAxis') -> bool:
-        return np.array(self.angle == other.angle).all()
+    @abc.abstractmethod
+    def rotation_matrix(self) -> matrix.Matrix3D:
+        pass
 
     def __call__(
             self,
@@ -183,6 +180,43 @@ class TiltAboutAxis(Transform, abc.ABC):
             extra_dims_slice = (Ellipsis, ) + num_extra_dims * (np.newaxis, )
             value = self.rotation_matrix[extra_dims_slice] @ value
         return value
+
+
+@dataclasses.dataclass
+class TiltGeneral(Tilt):
+    rotation: matrix.Matrix3D = dataclasses.field(default_factory=matrix.Matrix3D)
+
+    @property
+    def rotation_matrix(self) -> matrix.Matrix3D:
+        return self.rotation
+
+    def __eq__(self, other: 'TiltGeneral') -> bool:
+        return self.rotation_matrix == other.rotation_matrix
+
+    def __invert__(self) -> 'TiltGeneral':
+        return type(self)(rotation=self.rotation_matrix.transpose)
+
+    def view(self) -> 'TiltGeneral':
+        other = super().view()     # type: TiltGeneral
+        other.rotation = self.rotation
+        return other
+
+    def copy(self) -> 'TiltGeneral':
+        other = super().copy()  # type: TiltGeneral
+        other.rotation = self.rotation.copy()
+        return other
+
+
+@dataclasses.dataclass
+class TiltAboutAxis(Tilt, abc.ABC):
+    angle: typ.Union[u.Quantity, units.TolQuantity] = 0 * u.deg
+
+    @property
+    def broadcasted(self):
+        return np.broadcast(super().broadcasted, self.angle)
+
+    def __eq__(self, other: 'TiltAboutAxis') -> bool:
+        return np.array(self.angle == other.angle).all()
 
     def __invert__(self) -> 'TiltAboutAxis':
         return type(self)(angle=-self.angle)
