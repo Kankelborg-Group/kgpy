@@ -97,25 +97,29 @@ class PistonComponent(Component[SurfaceT]):
 @dataclasses.dataclass
 class TranslationComponent(Component[SurfaceT]):
     translation: tfrm.rigid.Translate = dataclasses.field(default_factory=tfrm.rigid.Translate)
+    translation_error: tfrm.rigid.Translate = dataclasses.field(default_factory=tfrm.rigid.Translate)
 
     @property
     def transform(self) -> tfrm.rigid.TransformList:
-        return super().transform + tfrm.rigid.TransformList([self.translation])
+        return super().transform + tfrm.rigid.TransformList([self.translation + self.translation_error])
 
     def view(self) -> 'TranslationComponent':
         other = super().view()      # type: TranslationComponent
         other.translation = self.translation
+        other.translation_error = self.translation_error
         return other
 
     def copy(self) -> 'TranslationComponent':
         other = super().copy()      # type: TranslationComponent
         other.translation = self.translation.copy()
+        other.translation_error = self.translation_error.copy()
         return other
 
     @property
     def dataframe(self) -> pandas.DataFrame:
         dataframe = super().dataframe
         dataframe['translation'] = [format.quantity(self.translation.value.quantity)]
+        dataframe['translation error'] = [format.quantity(self.translation_error.value.quantity)]
         return dataframe
 
 
