@@ -108,3 +108,8 @@ def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> nu
     i0[axis] = slice(None, ~0)
     i1[axis] = slice(1, None)
     return (a[i0] + a[i1]) / 2
+
+
+def rms(a: np.ndarray, axis: typ.Optional[typ.Union[int, typ.Sequence[int]]] = None):
+    return np.sqrt(np.mean(np.square(a), axis=axis))
+
