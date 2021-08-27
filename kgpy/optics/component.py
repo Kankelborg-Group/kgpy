@@ -66,27 +66,31 @@ class Component(
 @dataclasses.dataclass
 class PistonComponent(Component[SurfaceT]):
     piston: u.Quantity = 0 * u.mm
+    piston_error: u.Quantity = 0 * u.mm
 
     @property
     def transform(self) -> tfrm.rigid.TransformList:
         return super().transform + tfrm.rigid.TransformList([
-            tfrm.rigid.Translate(z=-self.piston)
+            tfrm.rigid.Translate(z=-(self.piston + self.piston_error))
         ])
 
     def view(self) -> 'PistonComponent':
         other = super().view()  # type: PistonComponent
         other.piston = self.piston
+        other.piston_error = self.piston_error
         return other
 
     def copy(self) -> 'PistonComponent':
         other = super().copy()      # type: PistonComponent
         other.piston = self.piston.copy()
+        other.piston_error = self.piston_error.copy()
         return other
 
     @property
     def dataframe(self) -> pandas.DataFrame:
         dataframe = super().dataframe
         dataframe['piston'] = [format.quantity(self.piston)]
+        dataframe['piston error'] = [format.quantity(self.piston)]
         return dataframe
 
 
