@@ -34,6 +34,16 @@ class Bunch(
     ChiantiPy.core.bunch,
 ):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.update()
+
+    def update(self) -> typ.NoReturn:
+        self._indices_masked_sorted = None
+        self._ion = None
+        self._intensity = None
+        self._wavelength = None
+
     @property
     def wavelength_min(self) -> u.Quantity:
         return self.WvlRange[0] << u.AA
@@ -73,14 +83,18 @@ class Bunch(
 
     @property
     def indices_masked_sorted(self) -> np.ndarray:
-        return np.argsort(self.intensity_all[self.wavelength_mask])
+        if self._indices_masked_sorted is None:
+            self._indices_masked_sorted = np.argsort(self.intensity_all[self.wavelength_mask])
+        return self._indices_masked_sorted
 
     def _mask_and_sort(self, arr: numpy.typing.ArrayLike) -> numpy.typing.ArrayLike:
         return arr[self.wavelength_mask][self.indices_masked_sorted][::-1]
 
     @property
     def ion(self) -> np.ndarray:
-        return self._mask_and_sort(self.ion_all)
+        if self._ion is None:
+            self._ion = self._mask_and_sort(self.ion_all)
+        return self._ion
 
     @property
     def ion_spectroscopic(self):
@@ -88,11 +102,15 @@ class Bunch(
 
     @property
     def wavelength(self) -> u.Quantity:
-        return self._mask_and_sort(self.wavelength_all)
+        if self._wavelength is None:
+            self._wavelength = self._mask_and_sort(self.wavelength_all)
+        return self._wavelength
 
     @property
     def intensity(self) -> u.Quantity:
-        return self._mask_and_sort(self.intensity_all)
+        if self._intensity is None:
+            self._intensity = self._mask_and_sort(self.intensity_all)
+        return self._intensity
 
     def fullname(self, digits_after_decimal: int = 3, use_latex: bool = True) -> np.ndarray:
         k = dict(digits_after_decimal=digits_after_decimal, scientific_notation=False)
