@@ -284,8 +284,16 @@ class Vector2D(Vector):
         return cls._extract_attr(values, 'y_final')
 
     def __array_ufunc__(self, function, method, *inputs, **kwargs):
-        result_x = self.x.__array_ufunc__(function, method, *self._extract_x(inputs), **kwargs)
-        result_y = self.y.__array_ufunc__(function, method, *self._extract_y(inputs), **kwargs)
+        inputs_x = self._extract_x(inputs)
+        for in_x in inputs_x:
+            result_x = in_x.__array_ufunc__(function, method, *inputs_x, **kwargs)
+            if result_x is not NotImplemented:
+                break
+        inputs_y = self._extract_y(inputs)
+        for in_y in inputs_y:
+            result_y = in_y.__array_ufunc__(function, method, *inputs_y, **kwargs)
+            if result_y is not NotImplemented:
+                break
         if function is np.isfinite:
             return result_x & result_y
         elif function is np.equal:
@@ -592,7 +600,11 @@ class Vector3D(Vector2D):
 
     def __array_ufunc__(self, function, method, *inputs, **kwargs):
         result = super().__array_ufunc__(function, method, *inputs, **kwargs)
-        result_z = self.z.__array_ufunc__(function, method, *self._extract_z(inputs), **kwargs)
+        inputs_z = self._extract_z(inputs)
+        for in_z in inputs_z:
+            result_z = in_z.__array_ufunc__(function, method, *inputs_z, **kwargs)
+            if result_z is not NotImplemented:
+                break
         if function is np.isfinite:
             return result & result_z
         elif function is np.equal:
