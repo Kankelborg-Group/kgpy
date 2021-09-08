@@ -124,9 +124,11 @@ class TranslationComponent(Component[SurfaceT]):
 
 
 @dataclasses.dataclass
-class CylindricalComponent(PistonComponent[SurfaceT]):
+class CylindricalComponent(TranslationComponent[SurfaceT]):
     cylindrical_radius: u.Quantity = 0 * u.mm
+    cylindrical_radius_error: u.Quantity = 0 * u.mm
     cylindrical_azimuth: u.Quantity = 0 * u.deg
+    cylindrical_azimuth_error: u.Quantity = 0 * u.deg
 
     @property
     def transform(self) -> tfrm.rigid.TransformList:
