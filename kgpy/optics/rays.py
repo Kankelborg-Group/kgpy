@@ -177,7 +177,9 @@ class Rays(transform.rigid.Transformable):
 
     @property
     def field_angles(self) -> vector.Vector2D:
-        return -np.arcsin(self.direction.xy).to(u.deg)
+        angle = np.arcsin(self.direction.xy).to(u.deg)
+        angle.y = -angle.y
+        return angle
 
     @classmethod
     def from_field_angles(
