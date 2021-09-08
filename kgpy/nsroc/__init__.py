@@ -12,8 +12,12 @@ import astropy.modeling
 import astropy.coordinates
 import pandas
 from kgpy import mixin, Name, vector, plot
+from . import sparcs
 
-__all__ = ['Event']
+__all__ = [
+    'Event',
+    'sparcs',
+]
 
 
 @dataclasses.dataclass
