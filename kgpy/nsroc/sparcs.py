@@ -33,7 +33,7 @@ class SPARCS(kgpy.mixin.Copyable):
 
 def specification() -> 'SPARCS':
     sparcs = SPARCS()
-    sparcs.pointing_jitter = 0.5 / np.sqrt(8) * u.arcsec
+    sparcs.pointing_jitter = 0.5 * u.arcsec
     sparcs.pointing_drift = 0.014 * u.arcsec / u.s
     sparcs.rlg_jitter = (0.01 * u.deg).to(u.arcsec)
     sparcs.rlg_drift = (0.04 * u.deg / u.hr).to(u.arcsec / u.s)
