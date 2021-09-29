@@ -39,7 +39,7 @@ class ImageAxis(mixin.AutoAxis):
 class Image(mixin.Pickleable):
     axis: typ.ClassVar[ImageAxis] = ImageAxis()                 #: Relationship between physical dimension and axis index.
     intensity: typ.Optional[u.Quantity] = None              #: Intensity of each pixel in the data
-    intensity_uncertainty: typ.Optional[u.Quantity] = None
+    # intensity_uncertainty: typ.Optional[u.Quantity] = None
     wcs: typ.Optional[np.ndarray] = None
     time: typ.Optional[astropy.time.Time] = None
     time_index: typ.Optional[np.ndarray] = None
@@ -52,10 +52,10 @@ class Image(mixin.Pickleable):
 
     @classmethod
     def zeros(cls, shape: typ.Sequence[int]) -> 'Image':
-        sh = shape[:cls.axis.num_left_dim]
+        sh = shape[:-cls.axis.num_right_dim]
         self = cls()
         self.intensity = np.zeros(shape) * u.adu
-        self.intensity_uncertainty = np.zeros(shape) * u.adu
+        # self.intensity_uncertainty = np.zeros(shape) * u.adu
         self.wcs = np.empty(sh, dtype=astropy.wcs.WCS)
         self.time = astropy.time.Time(np.zeros(sh), format='unix')
         self.time_index = np.arange(shape[self.axis.time])

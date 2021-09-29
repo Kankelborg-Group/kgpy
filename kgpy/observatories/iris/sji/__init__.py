@@ -3,32 +3,42 @@ import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
+import astropy.time
 import astropy.wcs
 import astropy.io.fits
 import kgpy.obs
+import kgpy.mixin
 
 __all__ = ['Image']
 
 
 @dataclasses.dataclass
 class Image(kgpy.obs.Image):
+    time_wcs: typ.Optional[u.Quantity] = None
 
     @classmethod
-    def from_path_array(
+    def zeros(cls, shape: typ.Sequence[int]) -> 'Image':
+        self = super().zeros(shape=shape)
+        self.time_wcs = np.zeros(self.time.shape) * u.s
+        return self
+
+    @classmethod
+    def from_path_sequence(
             cls,
-            path_array: typ.Sequence[pathlib.Path],
+            path_sequence: typ.Sequence[pathlib.Path],
     ) -> 'Image':
 
-        for c, path in enumerate(path_array):
+        hdu_list = astropy.io.fits.open(str(path_sequence[0]))
+        hdu = hdu_list[0]
+        base_shape = hdu.data.shape
+        self = cls.zeros(base_shape[:1] + (len(path_sequence),) + base_shape[1:])
+        self.channel = self.channel.value << u.AA
+
+        for c, path in enumerate(path_sequence):
             # print(path)
 
             hdu_list = astropy.io.fits.open(str(path))
             hdu = hdu_list[0]
-
-            if c == 0:
-                base_shape = hdu.data.shape
-                self = cls.zeros(base_shape[:1] + (len(path_array),) + base_shape[1:])
-                self.channel = self.channel.value << u.AA
 
             d = hdu.data * u.adu
 
@@ -37,7 +47,8 @@ class Image(kgpy.obs.Image):
 
             self.intensity[:, c] = d
 
-            self.time[:, c] = astropy.time.Time(hdu.header['DATE_OBS']) + hdu_list[1].data[..., 0] * u.s
+            self.time_wcs[:, c] = hdu_list[1].data[..., 0] * u.s
+            self.time[:, c] = astropy.time.Time(hdu.header['DATE_OBS']) + self.time_wcs[:, c]
             self.exposure_length[:, c] = float(hdu.header['EXPTIME']) * u.s
             self.channel[c] = float(hdu.header['TWAVE1']) * u.AA
 
@@ -55,3 +66,21 @@ class Image(kgpy.obs.Image):
         self.intensity[self.intensity == -200 * u.adu] = np.nan
 
         return self
+
+
+@dataclasses.dataclass
+class ImageList(kgpy.mixin.DataclassList[Image]):
+
+    def to_image(self) -> Image:
+        def concat(param: str):
+            return np.concatenate([getattr(img, param) for img in self])
+        return Image(
+            intensity=concat('intensity'),
+            intensity_uncertainty=concat('intensity_uncertainty'),
+            wcs=concat('wcs'),
+            time=astropy.time.Time(np.concatenate([img.time.value for img in self]), format='unix'),
+            time_index=concat('time_index'),
+            channel=concat('channel'),
+            exposure_length=concat('exposure_length'),
+            time_wcs=concat('time_wcs'),
+        )
