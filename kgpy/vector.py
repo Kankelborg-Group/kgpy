@@ -205,6 +205,10 @@ class Vector2D(Vector):
         return self.broadcast.shape
 
     @property
+    def size(self) -> int:
+        return self.broadcast.size
+
+    @property
     def ndim(self) -> int:
         return self.broadcast.ndim
 
