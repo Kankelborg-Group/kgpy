@@ -321,7 +321,7 @@ class Vector2D(Vector):
             np.min, np.max, np.median, np.mean, np.sum, np.prod,
             np.stack,
             np.moveaxis, np.roll, np.nanmin, np.nanmax,
-            np.nansum, np.nanmean, np.linspace, np.where,
+            np.nansum, np.nanmean, np.linspace, np.where, np.concatenate,
         ]:
             return self._array_function_default(function, types, args, kwargs)
         else:
