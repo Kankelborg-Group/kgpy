@@ -849,10 +849,14 @@ class RaysList(
                 plot_kwargs_z = {}
                 if component_z is not None:
                     plot_kwargs_z['zs'] = intercepts[..., i].get_component(component_z)
+                if 'color' not in plot_kwargs:
+                    kwargs_color = dict(color=color[..., i, :])
+                else:
+                    kwargs_color = dict()
                 lines_i = ax.plot(
                     intercepts[..., i].get_component(components[0]),
                     intercepts[..., i].get_component(components[1]),
-                    color=color[..., i, :],
+                    **kwargs_color,
                     **plot_kwargs_z,
                     **plot_kwargs,
                 )
