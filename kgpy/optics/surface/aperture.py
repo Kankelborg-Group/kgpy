@@ -7,6 +7,7 @@ import typing as typ
 import numpy as np
 import matplotlib.axes
 import matplotlib.lines
+import mpl_toolkits.mplot3d.art3d
 import astropy.units as u
 import astropy.visualization
 import shapely.geometry
@@ -102,20 +103,36 @@ class Aperture(
                 # linestyle = np.broadcast_to(np.array(linestyle), shape).reshape(-1)
 
                 wire = wire.reshape((-1, wire.shape[~0]))
-                plot_kwargs_z = {}
 
                 for i in range(wire.shape[0]):
                     plot_kwargs_i = {}
                     for key in plot_kwargs_broadcasted:
                         plot_kwargs_i[key] = plot_kwargs_broadcasted[key][i]
                     if component_z is not None:
-                        plot_kwargs_z['zs'] = wire[i].get_component(component_z)
-                    lines += ax.plot(
-                        wire[i].get_component(c1),
-                        wire[i].get_component(c2),
-                        **plot_kwargs_i,
-                        **plot_kwargs_z,
-                    )
+
+                        if 'color' in plot_kwargs_i:
+                            plot_kwargs_i['edgecolors'] = plot_kwargs_i.pop('color')
+                        if 'linewidth' in plot_kwargs_i:
+                            plot_kwargs_i['linewidths'] = plot_kwargs_i.pop('linewidth')
+                        if 'linestyle' in plot_kwargs_i:
+                            plot_kwargs_i['linestyles'] = plot_kwargs_i.pop('linestyle')
+
+                        lines += [ax.add_collection(mpl_toolkits.mplot3d.art3d.Poly3DCollection(
+                            verts=[np.stack([
+                                wire[i].get_component(components[0]),
+                                wire[i].get_component(components[1]),
+                                wire[i].get_component(component_z),
+                            ], axis=~0)],
+                            facecolors='white',
+                            **plot_kwargs_i
+                        ))]
+
+                    else:
+                        lines += ax.plot(
+                            wire[i].get_component(c1),
+                            wire[i].get_component(c2),
+                            **plot_kwargs_i,
+                        )
 
         return lines
 
