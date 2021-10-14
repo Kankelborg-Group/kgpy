@@ -47,19 +47,9 @@ class System(
     #: Surface representing the light source
     object_surface: surface.Surface = dataclasses.field(default_factory=surface.Surface)
     surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
-    # grid_field: grid.Grid2D = dataclasses.field(default_factory=lambda: grid.RegularGrid2D(
-    #     min=vector.Vector2D.spatial(),
-    #     max=vector.Vector2D.spatial(),
-    #     num_samples=1,
-    # ))
     field_samples: typ.Union[int, vector.Vector2D] = 3  #: Number of samples across the field for each axis x, y
     field_margin: u.Quantity = 1 * u.nrad  #: Margin between edge of field and nearest ray
     field_is_stratified_random: bool = False
-    # grid_pupil: grid.Grid2D = dataclasses.field(default_factory=lambda: grid.RegularGrid2D(
-    #     min=vector.Vector2D(x=-1 * u.dimensionless_unscaled, y=-1 * u.dimensionless_unscaled),
-    #     max=vector.Vector2D(x=1 * u.dimensionless_unscaled, y=1 * u.dimensionless_unscaled),
-    #     num_samples=vector.Vector2D(1, 1),
-    # ))
     pupil_samples: typ.Union[int, vector.Vector2D] = 3
     pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
     pupil_is_stratified_random: bool = False
@@ -344,7 +334,6 @@ class System(
                 return rays_input
 
         raise self.error_no_stop
-
 
     def _calc_rays_input(
             self,
