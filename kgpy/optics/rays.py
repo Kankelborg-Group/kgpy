@@ -494,6 +494,7 @@ class Rays(transform.rigid.Transformable):
             limit_max: typ.Optional[kgpy.vector.Vector2D] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
+            use_position_apparent: bool = False,
     ) -> typ.Tuple[np.ndarray, u.Quantity, u.Quantity]:
 
         if isinstance(bins, int):
@@ -504,8 +505,13 @@ class Rays(transform.rigid.Transformable):
         else:
             mask = self.error_mask
 
-        position = self.position.copy()
-        position_rel = self.position_pupil_relative
+        if not use_position_apparent:
+            position = self.position.copy()
+            position_rel = self.position_relative_pupil
+        else:
+            position = self.position_apparent
+            position_rel = self._calc_relative_pupil(position)
+
         if relative_to_centroid[vector.ix]:
             position.x = position_rel.x
         if relative_to_centroid[vector.iy]:
