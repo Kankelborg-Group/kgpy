@@ -165,6 +165,8 @@ class Rays(transform.rigid.Transformable):
     vignetted_mask: np.ndarray = np.array([True])
     error_mask: np.ndarray = np.array([True])
     input_grid: typ.Optional[RayGrid] = None
+    distortion_polynomial_degree: int = 2
+    vignetting_polynomial_degree: int = 1
 
     # input_wavelength: typ.Optional[u.Quantity] = None
     # input_field: typ.Optional[vector.Vector2D] = None
@@ -320,7 +322,8 @@ class Rays(transform.rigid.Transformable):
     def position_pupil_relative(self) -> vector.Vector3D:
         return self.position - self.position_pupil_avg
 
-    def distortion(self, polynomial_degree: int = 1) -> Distortion:
+    @property
+    def distortion(self) -> Distortion:
         return Distortion(
             wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
             spatial_mesh_input=vector.Vector2D(
@@ -329,10 +332,11 @@ class Rays(transform.rigid.Transformable):
             ),
             spatial_mesh_output=self.position_pupil_avg[..., 0, 0, :, 0].xy,
             mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
-            polynomial_degree=polynomial_degree
+            polynomial_degree=self.distortion_polynomial_degree,
         )
 
-    def vignetting(self, polynomial_degree: int = 1) -> Vignetting:
+    @property
+    def vignetting(self) -> Vignetting:
         intensity = self.intensity.copy()
         intensity, mask = np.broadcast_arrays(intensity, self.mask, subok=True)
         intensity[~mask] = 0
@@ -345,7 +349,7 @@ class Rays(transform.rigid.Transformable):
             ),
             unvignetted_percent=counts,
             mask=mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
-            polynomial_degree=polynomial_degree,
+            polynomial_degree=self.vignetting_polynomial_degree,
         )
 
     def aberration(
@@ -370,6 +374,8 @@ class Rays(transform.rigid.Transformable):
         other.vignetted_mask = self.vignetted_mask
         other.error_mask = self.error_mask
         other.input_grid = self.input_grid
+        other.distortion_polynomial_degree = self.distortion_polynomial_degree
+        other.vignetting_polynomial_degree = self.vignetting_polynomial_degree
         return other
 
     def copy(self) -> 'Rays':
@@ -384,6 +390,8 @@ class Rays(transform.rigid.Transformable):
         other.vignetted_mask = self.vignetted_mask.copy()
         other.error_mask = self.error_mask.copy()
         other.input_grid = self.input_grid.copy()
+        other.distortion_polynomial_degree = self.distortion_polynomial_degree
+        other.vignetting_polynomial_degree = self.vignetting_polynomial_degree
         return other
 
     @property
