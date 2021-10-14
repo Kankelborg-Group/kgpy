@@ -69,6 +69,8 @@ class System(
     breadboard: typ.Optional[Breadboard] = None
     tolerance_axes: typ.Dict[str, int] = dataclasses.field(default_factory=lambda: {})
     focus_axes: typ.Dict[str, int] = dataclasses.field(default_factory=lambda: {})
+    distortion_polynomial_degree: int = 2
+    vignetting_polynomial_degree: int = 1
 
     def __post_init__(self):
         self.update()
@@ -705,6 +707,8 @@ class System(
         other.baffles_blank = self.baffles_blank
         other.baffles_hull_axes = self.baffles_hull_axes
         other.breadboard = self.breadboard
+        other.distortion_polynomial_degree = self.distortion_polynomial_degree
+        other.vignetting_polynomial_degree = self.vignetting_polynomial_degree
         return other
 
     def copy(self) -> 'System':
@@ -724,6 +728,8 @@ class System(
             other.breadboard = self.breadboard
         else:
             other.breadboard = self.breadboard.copy()
+        other.distortion_polynomial_degree = self.distortion_polynomial_degree
+        other.vignetting_polynomial_degree = self.vignetting_polynomial_degree
         return other
 
 
