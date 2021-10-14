@@ -474,13 +474,15 @@ class System(
     def psf(
             self,
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
+            limit_min: typ.Optional[vector.Vector2D] = None,
+            limit_max: typ.Optional[vector.Vector2D] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
     ) -> typ.Tuple[np.ndarray, np.ndarray, np.ndarray]:
         return self.rays_output.pupil_hist2d(
             bins=bins,
-            limits=limits,
+            limit_min=limit_min,
+            limit_max=limit_max,
             use_vignetted=use_vignetted,
             relative_to_centroid=relative_to_centroid,
         )

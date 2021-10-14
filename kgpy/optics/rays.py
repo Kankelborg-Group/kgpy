@@ -481,7 +481,8 @@ class Rays(transform.rigid.Transformable):
     def pupil_hist2d(
             self,
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
+            limit_min: typ.Optional[kgpy.vector.Vector2D] = None,
+            limit_max: typ.Optional[kgpy.vector.Vector2D] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
     ) -> typ.Tuple[np.ndarray, u.Quantity, u.Quantity]:
@@ -501,13 +502,13 @@ class Rays(transform.rigid.Transformable):
         if relative_to_centroid[vector.iy]:
             position.y = position_rel.y
 
-        if limits is None:
-            px = position.x[mask]
-            py = position.y[mask]
-            limits = (
-                (np.nanmin(px).value, np.nanmax(px).value),
-                (np.nanmin(py).value, np.nanmax(py).value),
-            )
+        position_masked = position[mask]
+        if limit_min is None:
+            limit_min = np.nanmin(position_masked)
+        if limit_max is None:
+            limit_max = np.nanmax(position_masked)
+
+        limits = np.stack([limit_min.quantity, limit_max.quantity], axis=~0)
 
         hist_shape = list(self.grid_shape)
         hist_shape[self.axis.pupil_x] = bins[vector.ix]
@@ -551,11 +552,11 @@ class Rays(transform.rigid.Transformable):
                             cijwx[self.axis.pupil_y] = 0
                             cijwy[self.axis.pupil_x] = 0
                             hist_flat[cijw], edges_x_flat[cijwx], edges_y_flat[cijwy] = np.histogram2d(
-                                x=position_flat[cijw].x.flatten().value,
-                                y=position_flat[cijw].y.flatten().value,
+                                x=position_flat[cijw].x.flatten().to(limits.unit).value,
+                                y=position_flat[cijw].y.flatten().to(limits.unit).value,
                                 bins=bins,
                                 weights=mask_flat[cijw].flatten(),
-                                range=limits,
+                                range=limits.value,
                             )
 
         hist = hist_flat.reshape(hist.shape)
@@ -689,7 +690,8 @@ class Rays(transform.rigid.Transformable):
             wavlen_index: int = 0,
             velocity_los_index: int = 0,
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            limits: typ.Optional[typ.Tuple[typ.Tuple[int, int], typ.Tuple[int, int]]] = None,
+            limit_min: typ.Optional[kgpy.vector.Vector2D] = None,
+            limit_max: typ.Optional[kgpy.vector.Vector2D] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (True, True),
             norm: typ.Optional[matplotlib.colors.Normalize] = None,
@@ -708,7 +710,8 @@ class Rays(transform.rigid.Transformable):
 
         hist, edges_x, edges_y = self.pupil_hist2d(
             bins=bins,
-            limits=limits,
+            limit_min=limit_min,
+            limit_max=limit_max,
             use_vignetted=use_vignetted,
             relative_to_centroid=relative_to_centroid,
         )
