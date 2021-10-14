@@ -347,6 +347,8 @@ class System(
                 input_grid=grid_rays,
                 position=vector.Vector3D.spatial(),
             )
+            rays_input.distortion_polynomial_degree = self.distortion_polynomial_degree
+            rays_input.vignetting_polynomial_degree = self.vignetting_polynomial_degree
             return self._calc_rays_input_position(rays_input=rays_input)
 
         elif grid_rays.field.points.x.unit.is_equivalent(u.mm):
@@ -354,6 +356,8 @@ class System(
                 input_grid=grid_rays,
                 direction=vector.z_hat,
             )
+            rays_input.distortion_polynomial_degree = self.distortion_polynomial_degree
+            rays_input.vignetting_polynomial_degree = self.vignetting_polynomial_degree
             return self._calc_rays_input_direction(rays_input=rays_input)
 
         # rays_input = None
