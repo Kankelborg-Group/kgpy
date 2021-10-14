@@ -325,8 +325,11 @@ class Rays(transform.rigid.Transformable):
         return self._calc_relative_pupil(self.position)
 
     @property
-    def position_pupil_relative(self) -> vector.Vector3D:
-        return self.position - self.position_pupil_avg
+    def position_apparent(self):
+        position = self.position.copy()
+        position.z = np.broadcast_to(self.wavelength, position.shape, subok=True).copy()
+        position = self.distortion.model(inverse=True)(position)
+        return position
 
     @property
     def distortion(self) -> Distortion:
