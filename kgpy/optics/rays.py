@@ -38,6 +38,14 @@ class Axis(mixin.AutoAxis):
         # self.wavelength = self.auto_axis_index()
 
     @property
+    def pupil_xy(self) -> typ.Tuple[int, int]:
+        return self.pupil_x, self.pupil_y
+
+    @property
+    def field_xy(self) -> typ.Tuple[int, int]:
+        return self.field_x, self.field_y
+
+    @property
     def latex_names(self) -> typ.List[str]:
         names = [None] * self.ndim
         names[self.field_x] = 'field $x$'
