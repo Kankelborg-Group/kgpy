@@ -308,15 +308,21 @@ class Rays(transform.rigid.Transformable):
     def energy(self) -> u.Quantity:
         return (astropy.constants.h * astropy.constants.c / self.wavelength).to(u.eV)
 
+    def _calc_avg_pupil(self, a: vector.Vector3D) -> vector.Vector3D:
+        a = a.copy()
+        a[~self.mask] = np.nan
+        return np.nanmean(a=a, axis=(self.axis.pupil_x, self.axis.pupil_y), keepdims=True)
+
+    def _calc_relative_pupil(self, a: vector.Vector3D) -> vector.Vector3D:
+        return a - self._calc_avg_pupil(a)
+
     @property
-    def position_pupil_avg(self) -> vector.Vector3D:
-        axes = (self.axis.pupil_x, self.axis.pupil_y)
-        # mask = np.broadcast_to(self.mask[..., None], self.position.shape)
-        # avg = np.ma.average(a=self.position, weights=self.mask, axis=axes, ) << self.position.unit
-        # return np.expand_dims(avg, axis=axes)
-        p = self.position.copy()
-        p[~self.mask] = np.nan
-        return np.nanmean(p, axis=axes, keepdims=True)
+    def position_avg_pupil(self) -> vector.Vector3D:
+        return self._calc_avg_pupil(self.position)
+
+    @property
+    def position_relative_pupil(self) -> vector.Vector3D:
+        return self._calc_relative_pupil(self.position)
 
     @property
     def position_pupil_relative(self) -> vector.Vector3D:
@@ -330,7 +336,7 @@ class Rays(transform.rigid.Transformable):
                 x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
                 y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
             ),
-            spatial_mesh_output=self.position_pupil_avg[..., 0, 0, :, 0].xy,
+            spatial_mesh_output=self.position_avg_pupil[..., 0, 0, :, 0].xy,
             mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
             polynomial_degree=self.distortion_polynomial_degree,
         )
@@ -393,7 +399,7 @@ class Rays(transform.rigid.Transformable):
 
     @property
     def spot_size_rms(self):
-        position = self.position_pupil_relative
+        position = self.position_relative_pupil
         r = position.xy.length
         r2 = np.square(r)
         pupil_axes = self.axis.pupil_x, self.axis.pupil_y
