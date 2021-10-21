@@ -79,7 +79,7 @@ class RegularGrid1D(Grid1D):
 
     @property
     def step_size(self) -> u.Quantity:
-        return self.range / (self.num_samples - 1)
+        return self.range / (self.num_samples - np.array(1))
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
