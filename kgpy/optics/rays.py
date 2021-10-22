@@ -321,7 +321,7 @@ class Rays(transform.rigid.Transformable):
     def _calc_avg_pupil(self, a: vector.Vector3D) -> vector.Vector3D:
         a = a.copy()
         a[~self.mask] = np.nan
-        return np.nanmean(a=a, axis=(self.axis.pupil_x, self.axis.pupil_y), keepdims=True)
+        return np.nanmean(a=a, axis=self.axis.pupil_xy, keepdims=True)
 
     def _calc_relative_pupil(self, a: vector.Vector3D) -> vector.Vector3D:
         return a - self._calc_avg_pupil(a)
