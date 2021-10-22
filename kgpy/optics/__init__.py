@@ -47,21 +47,9 @@ class System(
     #: Surface representing the light source
     object_surface: surface.Surface = dataclasses.field(default_factory=surface.Surface)
     surfaces: surface.SurfaceList = dataclasses.field(default_factory=surface.SurfaceList)
-    field_samples: typ.Union[int, vector.Vector2D] = 3  #: Number of samples across the field for each axis x, y
+    grid_rays: rays.RayGrid = dataclasses.field(default_factory=rays.RayGrid)
     field_margin: u.Quantity = 1 * u.nrad  #: Margin between edge of field and nearest ray
-    field_is_stratified_random: bool = False
-    pupil_samples: typ.Union[int, vector.Vector2D] = 3
     pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
-    pupil_is_stratified_random: bool = False
-    grid_wavelength: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(
-        min=0 * u.nm,
-        max=0 * u.nm,
-    ))
-    grid_velocity_los: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(
-        min=0 * u.km / u.s,
-        max=0 * u.km / u.s,
-        num_samples=1,
-    ))
     pointing: vector.Vector2D = dataclasses.field(default_factory=vector.Vector2D.angular)
     roll: u.Quantity = 0 * u.deg
     baffles_blank: baffle.BaffleList = dataclasses.field(default_factory=baffle.BaffleList)
@@ -117,56 +105,17 @@ class System(
     def wavelength(self) -> u.Quantity:
         return self.grid_wavelength.points
 
-    @property
-    def grid_field(self) -> grid.RegularGrid2D:
-        surf = self.object_surface
-        if self.field_is_stratified_random:
-            cls = grid.StratifiedRandomGrid2D
-        else:
-            cls = grid.RegularGrid2D
-        return cls(
-            min=surf.aperture.min.xy + self.field_margin,
-            max=surf.aperture.max.xy - self.field_margin,
-            num_samples=self.field_samples,
-        )
-
-    @classmethod
-    def _calc_grid_pupil(
-            cls,
-            surf: surface.Surface,
-            pupil_samples: typ.Union[int, vector.Vector2D],
-            pupil_margin: u.Quantity,
-            pupil_is_stratified_random: bool = False,
-    ) -> grid.RegularGrid2D:
-        if pupil_is_stratified_random:
-            type_grid = grid.StratifiedRandomGrid2D
-        else:
-            type_grid = grid.RegularGrid2D
-        return type_grid(
-            min=surf.aperture.min.xy + pupil_margin,
-            max=surf.aperture.max.xy - pupil_margin,
-            num_samples=pupil_samples,
-        )
-
-    def grid_pupil(self, surf: surface.Surface) -> grid.RegularGrid2D:
-        return self._calc_grid_pupil(
-            surf=surf,
-            pupil_samples=self.pupil_samples,
-            pupil_margin=self.pupil_margin,
-            pupil_is_stratified_random=self.pupil_is_stratified_random,
-        )
-
-    def grid_rays(self, surf: surface.Surface) -> rays.RayGrid:
-        return rays.RayGrid(
-            field=self.grid_field,
-            pupil=self.grid_pupil(surf=surf),
-            wavelength=self.grid_wavelength,
-            velocity_los=self.grid_velocity_los,
-        )
+    def _calc_grid_rays(self, surf: surface.Surface) -> rays.RayGrid:
+        grid_rays = self.grid_rays.copy()
+        grid_rays.field.min = self.object_surface.aperture.min.xy + self.field_margin
+        grid_rays.field.max = self.object_surface.aperture.max.xy - self.field_margin
+        grid_rays.pupil.min = surf.aperture.min.xy + self.pupil_margin
+        grid_rays.pupil.max = surf.aperture.max.xy - self.pupil_margin
+        return grid_rays
 
     @property
     def grid_rays_stop(self) -> rays.RayGrid:
-        return self.grid_rays(self.surface_stop)
+        return self._calc_grid_rays(self.surface_stop)
 
     @property
     def baffle_lofts(self) -> typ.Dict[int, typ.Tuple[surface.Surface, surface.Surface]]:
@@ -235,7 +184,7 @@ class System(
         # for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
         for surf_index, surf in enumerate(surfaces_all_global):
             if surf.is_stop or surf.is_stop_test:
-                grid_surf = self.grid_rays(surf)
+                grid_surf = self._calc_grid_rays(surf)
                 target_position = grid_surf.points_pupil
 
                 def position_error(pos: vector.Vector2D) -> vector.Vector2D:
@@ -308,7 +257,7 @@ class System(
         # for surf_index, surf in enumerate(self.surfaces_all.flat_global_iter):
         for surf_index, surf in enumerate(surfaces_all_global):
             if surf.is_stop or surf.is_stop_test:
-                grid_surf = self.grid_rays(surf)
+                grid_surf = self._calc_grid_rays(surf)
                 target_position = grid_surf.points_pupil
 
                 def position_error(angles: vector.Vector2D) -> vector.Vector2D:
