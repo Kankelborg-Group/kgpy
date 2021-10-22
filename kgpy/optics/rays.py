@@ -529,9 +529,9 @@ class Rays(transform.rigid.Transformable):
 
         position_masked = position[mask]
         if limit_min is None:
-            limit_min = np.nanmin(position_masked)
+            limit_min = np.nanmin(position_masked).xy
         if limit_max is None:
-            limit_max = np.nanmax(position_masked)
+            limit_max = np.nanmax(position_masked).xy
 
         limits = np.stack([limit_min.quantity, limit_max.quantity], axis=~0)
 
