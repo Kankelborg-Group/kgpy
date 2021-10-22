@@ -70,7 +70,7 @@ class Grid2D(Grid1D):
 @dataclasses.dataclass
 class RegularGrid1D(Grid1D):
     min: u.Quantity = 0 * u.dimensionless_unscaled
-    max: u.Quantity = 0 * u.dimensionless_unscaled
+    max: u.Quantity = 1 * u.dimensionless_unscaled
     num_samples: int = 1
 
     @property
