@@ -65,8 +65,10 @@ class RayGrid(
     axis: typ.ClassVar[Axis] = Axis()
     field: grid.RegularGrid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
     pupil: grid.RegularGrid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
-    wavelength: grid.Grid1D = dataclasses.field(default_factory=grid.RegularGrid1D)
-    velocity_los: grid.Grid1D = dataclasses.field(default_factory=grid.RegularGrid1D)
+    wavelength: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(min=0 * u.nm, max=0 * u.nm))
+    velocity_los: grid.Grid1D = dataclasses.field(
+        default_factory=lambda: grid.RegularGrid1D(min=0 * u.km / u.s, max=0 * u.km / u.s)
+    )
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
