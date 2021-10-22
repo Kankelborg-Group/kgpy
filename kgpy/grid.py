@@ -112,7 +112,7 @@ class RegularGrid1D(Grid1D):
 @dataclasses.dataclass
 class RegularGrid2D(RegularGrid1D, Grid2D):
     min: vector.Vector2D = dataclasses.field(default_factory=vector.Vector2D)
-    max: vector.Vector2D = dataclasses.field(default_factory=vector.Vector2D)
+    max: vector.Vector2D = dataclasses.field(default_factory=lambda: 1 * u.dimensionless_unscaled + vector.Vector2D())
     num_samples: typ.Union[int, vector.Vector2D] = 1
 
     @property
