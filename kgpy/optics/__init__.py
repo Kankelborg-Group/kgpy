@@ -65,7 +65,9 @@ class System(
 
     def update(self) -> typ.NoReturn:
         self._rays_input_cache = None
+        self._rays_input_resample_entrance_cache = None
         self._raytrace_cache = None
+        self._raytrace_resample_entrance_cache = None
         self._baffles_cache = None
 
     @property
@@ -173,6 +175,33 @@ class System(
         if self._rays_input_cache is None:
             self._rays_input_cache = self._calc_rays_input(self.grid_rays_stop)
         return self._rays_input_cache
+
+    @property
+    def rays_input_resample_entrance(self) -> rays.Rays:
+        if self._rays_input_resample_entrance_cache is None:
+            rays_input = self.rays_input.copy()
+            rays_output = self.rays_output
+            if rays_input.input_grid.field.points.x.unit.is_equivalent(u.rad):
+                position = np.broadcast_to(rays_input.position, rays_output.position.shape, subok=True).copy()
+                position[~rays_output.mask] = np.nan
+                rays_input.input_grid.pupil.min = np.nanmin(position, axis=tuple(rays_output.axis.all))
+                rays_input.input_grid.pupil.max = np.nanmax(position, axis=tuple(rays_output.axis.all))
+                rays_input.position = rays_input.input_grid.points_pupil.to_3d()
+                rays_input.intensity = rays_input.input_grid.pupil.step_size.x * rays_input.input_grid.pupil.step_size.y
+                self._rays_input_resample_entrance_cache = rays_input
+            else:
+                raise NotImplementedError
+        return self._rays_input_resample_entrance_cache
+
+    @property
+    def raytrace_resample_entrance(self) -> rays.RaysList:
+        if self._raytrace_resample_entrance_cache is None:
+            self._raytrace_resample_entrance_cache = self.surfaces_all.raytrace(self.rays_input_resample_entrance)
+        return self._raytrace_resample_entrance_cache
+
+    @property
+    def rays_output_resample_entrance(self) -> rays.Rays:
+        return self.raytrace_resample_entrance[~0]
 
     error_no_stop = ValueError('no stop defined')
 
