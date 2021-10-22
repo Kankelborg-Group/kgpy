@@ -323,7 +323,7 @@ class Vector2D(Vector):
             np.min, np.max, np.median, np.mean, np.sum, np.prod,
             np.stack,
             np.moveaxis, np.roll, np.nanmin, np.nanmax,
-            np.nansum, np.nanmean, np.linspace, np.where, np.concatenate,
+            np.nansum, np.nanmean, np.linspace, np.where, np.concatenate, np.take
         ]:
             return self._array_function_default(function, types, args, kwargs)
         else:
@@ -447,6 +447,9 @@ class Vector2D(Vector):
             x=self.x_final.reshape(*args),
             y=self.y_final.reshape(*args),
         )
+
+    def take(self, indices: numpy.typing.ArrayLike, axis: int = None, out: np.ndarray = None, mode: str = 'raise'):
+        return np.take(a=self, indices=indices, axis=axis, out=out, mode=mode)
 
     def outer(self, other: 'Vector2D') -> 'matrix.Matrix2D':
         result = matrix.Matrix2D()
