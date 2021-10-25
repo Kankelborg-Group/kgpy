@@ -114,30 +114,22 @@ def rms(a: np.ndarray, axis: typ.Optional[typ.Union[int, typ.Sequence[int]]] = N
     return np.sqrt(np.mean(np.square(a), axis=axis))
 
 
-def take_slice(
-        a: numpy.typing.ArrayLike,
-        sl: slice,
-        axis: int = 0,
-) -> numpy.typing.ArrayLike:
-    return a[(slice(None),) * (axis % a.ndim) + (sl,)]
-
-
 def take(
         a: numpy.typing.ArrayLike,
         key: typ.Union[numpy.typing.ArrayLike, slice],
         axis: int = 0,
 ) -> numpy.typing.ArrayLike:
     if isinstance(key, slice):
-        return take_slice(a=a, sl=key, axis=axis)
+        return a[(slice(None),) * (axis % a.ndim) + (key,)]
     else:
         return np.take(a=a, indices=key, axis=axis)
 
 
-def take_slices(
+def takes(
         a: numpy.typing.ArrayLike,
-        slices: typ.Sequence[slice],
+        keys: typ.Sequence[typ.Union[numpy.typing.ArrayLike, slice]],
         axes: typ.Sequence[int],
 ) -> numpy.typing.ArrayLike:
-    for sl, axis in zip(slices, axes):
-        a = take_slice(a=a, sl=sl, axis=axis)
+    for key, axis in zip(keys, axes):
+        a = take(a=a, key=key, axis=axis)
     return a
