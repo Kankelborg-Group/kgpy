@@ -177,7 +177,7 @@ class DataArray(kgpy.mixin.Copyable):
     def size(self):
         return self.data_broadcasted.size
 
-    def key_to_axis(self, key: str):
+    def axis_name_to_index(self, key: str):
         return list(self.grid.keys()).index(key)
 
     def get_item(
@@ -191,7 +191,7 @@ class DataArray(kgpy.mixin.Copyable):
         )
 
         for axis_name in key:
-            axis_index = self.key_to_axis(axis_name)
+            axis_index = self.axis_name_to_index(axis_name)
             indices = key[axis_name]
 
             result.data = take(a=result.data, key=indices, axis=axis_index)
