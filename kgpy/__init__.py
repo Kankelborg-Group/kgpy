@@ -139,6 +139,9 @@ def takes(
     return a
 
 
+GridType = typ.Dict[str, numpy.typing.ArrayLike]
+
+
 @dataclasses.dataclass
 class DataArray(kgpy.mixin.Copyable):
 
