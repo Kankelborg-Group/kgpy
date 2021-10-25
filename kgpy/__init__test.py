@@ -11,6 +11,18 @@ def test_rebin():
 
 class TestDataArray:
 
+    def test_shape_tuple(self):
+
+        len_x = 6
+        len_y = 7
+        shape = dict(x=len_x, y=len_y)
+
+        x, y = np.ix_(np.arange(len_x), np.linspace(0, 1, len_y))
+
+        d = DataArray(data=1, grid=dict(x=x, y=y))
+
+        assert d.shape == shape
+
     def test_get_item(self):
 
         shape = dict(x=5, y=6)

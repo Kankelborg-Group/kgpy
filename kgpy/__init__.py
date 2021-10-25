@@ -147,7 +147,7 @@ class DataArray(kgpy.mixin.Copyable):
 
     @property
     def shape_tuple(self):
-        return np.broadcast(self.data, *self.grid).shape
+        return np.broadcast(self.data, *self.grid.values()).shape
 
     @property
     def shape(self) -> typ.Dict[str, int]:
