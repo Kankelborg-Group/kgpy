@@ -122,6 +122,17 @@ def take_slice(
     return a[(slice(None),) * (axis % a.ndim) + (sl,)]
 
 
+def take(
+        a: numpy.typing.ArrayLike,
+        key: typ.Union[numpy.typing.ArrayLike, slice],
+        axis: int = 0,
+) -> numpy.typing.ArrayLike:
+    if isinstance(key, slice):
+        return take_slice(a=a, sl=key, axis=axis)
+    else:
+        return np.take(a=a, indices=key, axis=axis)
+
+
 def take_slices(
         a: numpy.typing.ArrayLike,
         slices: typ.Sequence[slice],
