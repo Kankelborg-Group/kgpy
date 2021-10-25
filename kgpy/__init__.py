@@ -113,3 +113,20 @@ def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> nu
 def rms(a: np.ndarray, axis: typ.Optional[typ.Union[int, typ.Sequence[int]]] = None):
     return np.sqrt(np.mean(np.square(a), axis=axis))
 
+
+def take_slice(
+        a: numpy.typing.ArrayLike,
+        sl: slice,
+        axis: int = 0,
+) -> numpy.typing.ArrayLike:
+    return a[(slice(None),) * (axis % a.ndim) + (sl,)]
+
+
+def take_slices(
+        a: numpy.typing.ArrayLike,
+        slices: typ.Sequence[slice],
+        axes: typ.Sequence[int],
+) -> numpy.typing.ArrayLike:
+    for sl, axis in zip(slices, axes):
+        a = take_slice(a=a, sl=sl, axis=axis)
+    return a
