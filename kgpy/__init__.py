@@ -3,6 +3,7 @@ kgpy root package
 """
 import typing as typ
 import dataclasses
+import copy
 import numpy as np
 import numpy.typing
 
@@ -50,6 +51,9 @@ class Name:
 
         else:
             return self.base
+
+
+import kgpy.mixin
 
 
 def rebin(arr: np.ndarray, scale_dims: typ.Tuple[int, ...]) -> np.ndarray:
@@ -133,3 +137,87 @@ def takes(
     for key, axis in zip(keys, axes):
         a = take(a=a, key=key, axis=axis)
     return a
+
+
+@dataclasses.dataclass
+class DataArray(kgpy.mixin.Copyable):
+
+    data: numpy.typing.ArrayLike
+    grid: typ.Dict[str, typ.Optional[numpy.typing.ArrayLike]]
+
+    @property
+    def shape_tuple(self):
+        return np.broadcast(self.data, *self.grid).shape
+
+    @property
+    def shape(self) -> typ.Dict[str, int]:
+        shape_tuple = self.shape_tuple
+        shape = dict()
+        for i, axis_name in enumerate(self.grid):
+            shape[axis_name] = shape_tuple[i]
+        return shape
+
+    @property
+    def data_broadcasted(self) -> numpy.typing.ArrayLike:
+        return np.broadcast_to(self.data, self.shape_tuple, subok=True)
+
+    @property
+    def grid_broadcasted(self) -> typ.Dict[str, typ.Optional[numpy.typing.ArrayLike]]:
+        shape = self.shape_tuple
+        grid = self.grid.copy()
+        for key in grid:
+            grid[key] = np.broadcast_to(grid[key], shape=shape, subok=True)
+        return grid
+
+    @property
+    def ndim(self):
+        return self.data_broadcasted.ndim
+
+    @property
+    def size(self):
+        return self.data_broadcasted.size
+
+    def key_to_axis(self, key: str):
+        return list(self.grid.keys()).index(key)
+
+    def get_item(
+            self,
+            **key: typ.Union[int, slice, numpy.typing.ArrayLike]
+    ) -> 'DataArray':
+
+        result = DataArray(
+            data=self.data_broadcasted,
+            grid=self.grid_broadcasted
+        )
+
+        for axis_name in key:
+            axis_index = self.key_to_axis(axis_name)
+            indices = key[axis_name]
+
+            result.data = take(a=result.data, key=indices, axis=axis_index)
+            if np.isscalar(indices):
+                del result.grid[axis_name]
+            for k in result.grid:
+                result.grid[k] = take(a=result.grid[k], key=indices, axis=axis_index)
+
+        return result
+
+    def set_item(
+            self,
+            value: numpy.typing.ArrayLike,
+            **key: typ.Union[int, slice, numpy.typing.ArrayLike]
+    ) -> typ.NoReturn:
+        pass
+
+
+    def view(self) -> 'DataArray':
+        other = super().view()  # type: DataArray
+        other.data = self.data
+        other.grid = self.grid
+        return other
+
+    def copy(self) -> 'DataArray':
+        other = super().copy()      # type: DataArray
+        other.data = self.data.copy()
+        other.grid = copy.deepcopy(self.grid)
+        return other
