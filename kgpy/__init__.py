@@ -146,6 +146,23 @@ class DataArray(kgpy.mixin.Copyable):
     grid: typ.Dict[str, typ.Optional[numpy.typing.ArrayLike]]
 
     @property
+    def grid_normalized(self) -> GridType:
+        shape = np.broadcast(self.data, *self.grid.values()).shape
+        grid_normalized = dict()
+        for axis_name in self.grid:
+            if self.grid[axis_name] is None:
+                axis_index = self.axis_name_to_index(axis_name)
+                axes_new = list(range(len(shape)))
+                axes_new.remove(axis_index)
+                grid_normalized[axis_name] = np.expand_dims(
+                    a=np.arange(shape[axis_index]),
+                    axis=axes_new,
+                )
+            else:
+                grid_normalized[axis_name] = self.grid[axis_name]
+        return grid_normalized
+
+    @property
     def shape_tuple(self):
         return np.broadcast(self.data, *self.grid.values()).shape
 

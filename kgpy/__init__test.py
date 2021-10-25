@@ -11,6 +11,17 @@ def test_rebin():
 
 class TestDataArray:
 
+    def test_grid_normalized(self):
+        shape = dict(x=5, y=6)
+        d = DataArray(
+            data=np.random.random(tuple(shape.values())),
+            grid=dict(
+                x=None,
+                y=np.linspace(0, 1, shape['y']),
+            ),
+        )
+        assert (d.grid_normalized['x'] == np.arange(shape['x'])[..., np.newaxis]).all()
+
     def test_shape_tuple(self):
 
         len_x = 6
