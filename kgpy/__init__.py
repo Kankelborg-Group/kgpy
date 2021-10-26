@@ -180,7 +180,7 @@ class LabeledArray(
         return shape
 
     @classmethod
-    def _calc_shape_broadcasted(cls, *arrs: 'LabeledArray') -> typ.Dict[str, int]:
+    def broadcast_shapes(cls, *arrs: 'LabeledArray') -> typ.Dict[str, int]:
         shape = dict()
         for a in arrs:
             for k in a.shape:
@@ -191,7 +191,7 @@ class LabeledArray(
         return shape
 
     def _shape_broadcasted(self, *arrs: 'LabeledArray'):
-        return self._calc_shape_broadcasted(self, *arrs)
+        return self.broadcast_shapes(self, *arrs)
 
     def _data_aligned(self, shape: typ.Dict[str, int]) -> numpy.typing.ArrayLike:
         ndim_missing = len(shape) - np.ndim(self.data)
@@ -248,7 +248,7 @@ class LabeledArray(
             *inputs: 'LabeledArray',
             **kwargs: typ.Any,
     ):
-        shape = self._calc_shape_broadcasted(*inputs)
+        shape = self.broadcast_shapes(*inputs)
         inputs = [inp._data_aligned(shape) for inp in inputs]
 
         for inp in inputs:
