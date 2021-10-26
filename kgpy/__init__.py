@@ -165,6 +165,13 @@ class LabeledArray(
             axis_names=tuple(shape.keys()),
         )
 
+    @classmethod
+    def ones(cls, shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> 'LabeledArray':
+        return LabeledArray(
+            data=np.ones(shape=tuple(shape.values()), dtype=dtype),
+            axis_names=tuple(shape.keys()),
+        )
+
     @property
     def shape(self) -> typ.Dict[str, int]:
         shape = dict()
