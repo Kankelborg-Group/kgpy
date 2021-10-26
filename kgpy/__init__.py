@@ -179,6 +179,10 @@ class LabeledArray(
             shape[self.axis_names[i]] = self.data.shape[i]
         return shape
 
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
     @classmethod
     def broadcast_shapes(cls, *arrs: 'LabeledArray') -> typ.Dict[str, int]:
         shape = dict()
