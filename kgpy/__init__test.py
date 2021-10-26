@@ -28,7 +28,7 @@ class TestLabeledArray:
         shape = dict(x=5, y=6)
         d1 = LabeledArray.empty(dict(x=shape['x'], y=1))
         d2 = LabeledArray.empty(dict(y=shape['y'], x=1))
-        assert d1._shape_broadcasted(d2) == shape
+        assert d1.shape_broadcasted(d2) == shape
 
     def test_data_aligned(self):
         shape = dict(x=5, y=6, z=7)

@@ -190,7 +190,7 @@ class LabeledArray(
                     shape[k] = a.shape[k]
         return shape
 
-    def _shape_broadcasted(self, *arrs: 'LabeledArray'):
+    def shape_broadcasted(self, *arrs: 'LabeledArray'):
         return self.broadcast_shapes(self, *arrs)
 
     def _data_aligned(self, shape: typ.Dict[str, int]) -> numpy.typing.ArrayLike:
@@ -222,7 +222,7 @@ class LabeledArray(
             start = LabeledArray(data=start, axis_names=[])
         if not isinstance(stop, LabeledArray):
             stop = LabeledArray(data=stop, axis_names=[])
-        shape = start._shape_broadcasted(stop)
+        shape = start.shape_broadcasted(stop)
 
         if axis in shape:
             raise ValueError('Axis already defined, pick a new axis.')
