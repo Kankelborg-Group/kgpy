@@ -206,6 +206,19 @@ class LabeledArray(
         return data
 
     @classmethod
+    def arange(
+            cls,
+            axis: str,
+            start: typ.Optional[int] = None,
+            *args,
+            **kwargs,
+    ) -> 'LabeledArray':
+        return LabeledArray(
+            data=np.arange(start=start, *args, **kwargs),
+            axis_names=(axis, )
+        )
+
+    @classmethod
     def linspace(
             cls,
             start: typ.Union[float, 'LabeledArray'],
