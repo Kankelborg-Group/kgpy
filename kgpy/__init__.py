@@ -260,6 +260,60 @@ class LabeledArray(
                         axis_names=tuple(shape.keys()),
                     )
 
+    def __array_function__(
+            self,
+            function: typ.Callable,
+            types: typ.Collection,
+            args: typ.Sequence,
+            kwargs: typ.Dict[str, typ.Any],
+    ):
+        if function in [np.broadcast_to, np.broadcast_arrays]:
+            raise ValueError('Broadcasting is not needed for LabeledArrays')
+        elif function is np.result_type:
+            return type(self)
+        elif function in [
+            np.ndim,
+            np.min,
+            np.nanmin,
+            np.max,
+            np.nanmax,
+            np.sum,
+            np.nansum,
+            np.mean,
+            np.nanmean,
+            np.median,
+            np.nanmedian,
+            np.percentile,
+            np.nanpercentile,
+        ]:
+
+            result_axis_names = list(self.axis_names)
+            if 'keepdims' not in kwargs:
+                if 'axis' in kwargs:
+                    if np.isscalar(kwargs['axis']):
+                        result_axis_names.remove(kwargs['axis'])
+                    else:
+                        for axis in kwargs['axis']:
+                            result_axis_names.remove(axis)
+                else:
+                    result_axis_names = []
+
+            if 'axis' in kwargs:
+                if np.isscalar(kwargs['axis']):
+                    kwargs['axis'] = self.axis_names.index(kwargs['axis'])
+                else:
+                    kwargs['axis'] = tuple(self.axis_names.index(ax) for ax in kwargs['axis'])
+
+            args = tuple(getattr(arg, 'data', arg) for arg in args)
+            kwargs = {kw: getattr(kwargs[kw], 'data', kwargs[kw]) for kw in kwargs}
+            types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
+
+            return type(self)(
+                data=self.data.__array_function__(function, types, args, kwargs),
+                axis_names=tuple(result_axis_names),
+            )
+
+
     def view(self) -> 'LabeledArray':
         other = super().view()      # type: LabeledArray
         other.data = self.data

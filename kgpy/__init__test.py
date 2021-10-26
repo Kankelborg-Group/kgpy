@@ -79,6 +79,24 @@ class TestLabeledArray:
         with pytest.raises(ValueError):
             a + b
 
+    def test__array_function__sum(self):
+        shape = dict(x=4, y=7)
+        a = np.sum(LabeledArray.ones(shape))
+        assert a.data == shape['x'] * shape['y']
+        assert a.shape == dict()
+
+    def test__array_function__sum_axis(self):
+        shape = dict(x=4, y=7)
+        a = np.sum(LabeledArray.ones(shape), axis='x')
+        assert (a.data == shape['x']).all()
+        assert a.shape == dict(y=shape['y'])
+
+    def test__array_function__sum_keepdims(self):
+        shape = dict(x=4, y=7)
+        a = np.sum(LabeledArray.ones(shape), keepdims=True)
+        assert a.data[0, 0] == shape['x'] * shape['y']
+        assert a.shape == dict(x=1, y=1)
+
 
 class TestDataArray:
 
