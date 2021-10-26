@@ -45,6 +45,40 @@ class TestLabeledArray:
         )
         assert d.shape == shape
 
+    def test__array_ufunc__(self):
+        shape = dict(x=100, y=101)
+        a = LabeledArray.linspace(
+            start=0,
+            stop=1,
+            num=shape['x'],
+            axis='x',
+        )
+        b = LabeledArray.linspace(
+            start=0,
+            stop=1,
+            num=shape['y'],
+            axis='y',
+        )
+        c = a + b
+        assert c.shape == shape
+        assert (c.data == a.data[..., np.newaxis] + b.data).all()
+
+    def test__array_ufunc__incompatible_dims(self):
+        a = LabeledArray.linspace(
+            start=0,
+            stop=1,
+            num=10,
+            axis='x',
+        )
+        b = LabeledArray.linspace(
+            start=0,
+            stop=1,
+            num=11,
+            axis='x',
+        )
+        with pytest.raises(ValueError):
+            a + b
+
 
 class TestDataArray:
 

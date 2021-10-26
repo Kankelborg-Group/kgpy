@@ -140,7 +140,10 @@ def takes(
 
 
 @dataclasses.dataclass
-class LabeledArray(kgpy.mixin.Copyable):
+class LabeledArray(
+    kgpy.mixin.Copyable,
+    np.lib.mixins.NDArrayOperatorsMixin,
+):
     data: numpy.typing.ArrayLike
     axis_names: typ.Tuple[str]
 
@@ -230,6 +233,25 @@ class LabeledArray(kgpy.mixin.Copyable):
             ),
             axis_names=tuple(shape.keys()),
         )
+
+    def __array_ufunc__(
+            self,
+            function: np.ufunc,
+            method: str,
+            *inputs: 'LabeledArray',
+            **kwargs: typ.Any,
+    ):
+        shape = self._calc_shape_broadcasted(*inputs)
+        inputs = [inp._data_aligned(shape) for inp in inputs]
+
+        for inp in inputs:
+            if hasattr(inp, '__array_ufunc__'):
+                result = inp.__array_ufunc__(function, method, *inputs, **kwargs)
+                if result is not NotImplemented:
+                    return LabeledArray(
+                        data=result,
+                        axis_names=tuple(shape.keys()),
+                    )
 
     def view(self) -> 'LabeledArray':
         other = super().view()      # type: LabeledArray
