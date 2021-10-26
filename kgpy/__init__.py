@@ -169,16 +169,19 @@ class LabeledArray(kgpy.mixin.Copyable):
             shape[self.axis_names[i]] = self.data.shape[i]
         return shape
 
-    def _shape_broadcasted(self, *arrs: 'LabeledArray'):
-        shape = self.shape
+    @classmethod
+    def _calc_shape_broadcasted(cls, *arrs: 'LabeledArray') -> typ.Dict[str, int]:
+        shape = dict()
         for a in arrs:
             for k in a.shape:
                 if k in shape:
                     shape[k] = max(shape[k], a.shape[k])
                 else:
                     shape[k] = a.shape[k]
-
         return shape
+
+    def _shape_broadcasted(self, *arrs: 'LabeledArray'):
+        return self._calc_shape_broadcasted(self, *arrs)
 
     def _data_aligned(self, shape: typ.Dict[str, int]) -> numpy.typing.ArrayLike:
         ndim_missing = len(shape) - np.ndim(self.data)
