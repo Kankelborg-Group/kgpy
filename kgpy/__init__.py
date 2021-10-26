@@ -139,6 +139,109 @@ def takes(
     return a
 
 
+@dataclasses.dataclass
+class LabeledArray(kgpy.mixin.Copyable):
+    data: numpy.typing.ArrayLike
+    axis_names: typ.Tuple[str]
+
+    def __post_init__(self):
+        if np.ndim(self.data) != len(self.axis_names):
+            raise ValueError('The number of axis names must match the number of dimensions.')
+
+    @classmethod
+    def empty(cls, shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> 'LabeledArray':
+        return LabeledArray(
+            data=np.empty(shape=tuple(shape.values()), dtype=dtype),
+            axis_names=tuple(shape.keys()),
+        )
+
+    @classmethod
+    def zeros(cls, shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> 'LabeledArray':
+        return LabeledArray(
+            data=np.zeros(shape=tuple(shape.values()), dtype=dtype),
+            axis_names=tuple(shape.keys()),
+        )
+
+    @property
+    def shape(self) -> typ.Dict[str, int]:
+        shape = dict()
+        for i in range(np.ndim(self.data)):
+            shape[self.axis_names[i]] = self.data.shape[i]
+        return shape
+
+    def _shape_broadcasted(self, *arrs: 'LabeledArray'):
+        shape = self.shape
+        for a in arrs:
+            for k in a.shape:
+                if k in shape:
+                    shape[k] = max(shape[k], a.shape[k])
+                else:
+                    shape[k] = a.shape[k]
+
+        return shape
+
+    def _data_aligned(self, shape: typ.Dict[str, int]) -> numpy.typing.ArrayLike:
+        ndim_missing = len(shape) - np.ndim(self.data)
+        data = np.expand_dims(self.data, tuple(~np.arange(ndim_missing)))
+        # data = self.data[(..., ) + (np.newaxis, ) * ndim_missing]
+        source = []
+        destination = []
+        for axis_index, axis_name in enumerate(self.axis_names):
+            source.append(axis_index)
+            destination.append(list(shape.keys()).index(axis_name))
+        data = np.moveaxis(a=data, source=source, destination=destination)
+        return data
+
+    @classmethod
+    def linspace(
+            cls,
+            start: typ.Union[float, 'LabeledArray'],
+            stop: typ.Union[float, 'LabeledArray'],
+            num: int,
+            axis: str,
+            endpoint: bool = True,
+            dtype: numpy.typing.DTypeLike = None,
+
+    ) -> 'LabeledArray':
+        if not isinstance(start, LabeledArray):
+            if np.isscalar(start):
+                start = np.array(start)
+            start = LabeledArray(data=start, axis_names=[])
+        if not isinstance(stop, LabeledArray):
+            stop = LabeledArray(data=stop, axis_names=[])
+        shape = start._shape_broadcasted(stop)
+
+        if axis in shape:
+            raise ValueError('Axis already defined, pick a new axis.')
+
+        shape[axis] = num
+
+        return LabeledArray(
+            data=np.linspace(
+                start=start._data_aligned(shape)[..., 0],
+                stop=stop._data_aligned(shape)[..., 0],
+                num=num,
+                endpoint=endpoint,
+                dtype=dtype,
+                axis=~0,
+            ),
+            axis_names=tuple(shape.keys()),
+        )
+
+    def view(self) -> 'LabeledArray':
+        other = super().view()      # type: LabeledArray
+        other.data = self.data
+        other.axis_names = self.axis_names
+        return other
+
+    def copy(self) -> 'LabeledArray':
+        other = super().copy()      # type: LabeledArray
+        other.data = self.data.copy()
+        other.axis_names = copy.deepcopy(self.axis_names)
+        return other
+
+
+
 GridType = typ.Dict[str, numpy.typing.ArrayLike]
 
 
