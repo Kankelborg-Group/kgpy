@@ -317,8 +317,24 @@ class LabeledArray(
             args: typ.Tuple,
             kwargs: typ.Dict[str, typ.Any],
     ):
-        if function in [np.broadcast_to, np.broadcast_arrays]:
-            raise ValueError('Broadcasting is not needed for LabeledArrays')
+        if function is np.broadcast_to:
+            args = list(args)
+            if 'subok' in kwargs:
+                subok = kwargs['subok']
+            else:
+                subok = args.pop()
+            if 'shape' in kwargs:
+                shape = kwargs['shape']
+            else:
+                shape = args.pop()
+            if 'array' in kwargs:
+                array = kwargs['array']
+            else:
+                array = args.pop()
+            return LabeledArray(
+                data=np.broadcast_to(array=array._data_aligned(shape), shape=tuple(shape.values()), subok=subok),
+                axis_names=list(shape.keys())
+            )
         elif function is np.result_type:
             return type(self)
         elif function in [
