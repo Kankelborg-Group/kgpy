@@ -377,6 +377,8 @@ class LabeledArray(
             np.percentile,
             np.nanpercentile,
             np.all,
+            np.any,
+            np.array_equal,
         ]:
 
             result_axis_names = list(self.axis_names)
@@ -402,7 +404,11 @@ class LabeledArray(
 
             data = self.data.__array_function__(function, types, args, kwargs)
 
-            if function in [np.all]:
+            if function in [
+                np.all,
+                np.any,
+                np.array_equal,
+            ]:
                 return data
             else:
                 return type(self)(
