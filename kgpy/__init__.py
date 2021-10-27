@@ -213,7 +213,7 @@ class LabeledArray(
     def arange(
             cls,
             axis: str,
-            start: typ.Optional[int] = None,
+            start: int = 0,
             *args,
             **kwargs,
     ) -> 'LabeledArray':
