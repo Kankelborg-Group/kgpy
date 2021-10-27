@@ -278,6 +278,7 @@ class LabeledArray(
                         data=result,
                         axis_names=tuple(shape.keys()),
                     )
+        raise ValueError
 
     def __array_function__(
             self,
