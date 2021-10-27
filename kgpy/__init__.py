@@ -376,6 +376,7 @@ class LabeledArray(
             np.nanmedian,
             np.percentile,
             np.nanpercentile,
+            np.all,
         ]:
 
             result_axis_names = list(self.axis_names)
@@ -399,10 +400,15 @@ class LabeledArray(
             kwargs = {kw: getattr(kwargs[kw], 'data', kwargs[kw]) for kw in kwargs}
             types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
 
-            return type(self)(
-                data=self.data.__array_function__(function, types, args, kwargs),
-                axis_names=result_axis_names,
-            )
+            data = self.data.__array_function__(function, types, args, kwargs)
+
+            if function in [np.all]:
+                return data
+            else:
+                return type(self)(
+                    data=data,
+                    axis_names=result_axis_names,
+                )
         else:
             raise ValueError('Unsupported function')
 
