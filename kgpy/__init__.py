@@ -187,11 +187,13 @@ class LabeledArray(
     def broadcast_shapes(cls, *arrs: 'LabeledArray') -> typ.Dict[str, int]:
         shape = dict()
         for a in arrs:
-            for k in a.shape:
-                if k in shape:
-                    shape[k] = max(shape[k], a.shape[k])
-                else:
-                    shape[k] = a.shape[k]
+            if hasattr(a, 'shape'):
+                a_shape = a.shape
+                for k in a_shape:
+                    if k in shape:
+                        shape[k] = max(shape[k], a_shape[k])
+                    else:
+                        shape[k] = a_shape[k]
         return shape
 
     def shape_broadcasted(self, *arrs: 'LabeledArray'):
