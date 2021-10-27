@@ -323,8 +323,12 @@ class LabeledArray(
             return type(self)
         elif function in [
             np.ndim,
+            np.argmin,
+            np.nanargmin,
             np.min,
             np.nanmin,
+            np.argmax,
+            np.nanargmax,
             np.max,
             np.nanmax,
             np.sum,
