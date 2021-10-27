@@ -337,6 +337,27 @@ class LabeledArray(
             )
         elif function is np.result_type:
             return type(self)
+        elif function is np.unravel_index:
+            args = list(args)
+            if 'shape' in kwargs:
+                shape = kwargs['shape']
+            else:
+                shape = args.pop()
+
+            if 'indices' in kwargs:
+                indices = kwargs['indices'].data
+            else:
+                indices = args.pop().data
+
+            result_data = np.unravel_index(indices=indices, shape=tuple(shape.values()))
+            result = dict()
+            for axis, data in zip(shape, result_data):
+                result[axis] = LabeledArray(
+                    data=data,
+                    axis_names=self.axis_names,
+                )
+            return result
+
         elif function in [
             np.ndim,
             np.argmin,
