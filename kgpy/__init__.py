@@ -202,7 +202,6 @@ class LabeledArray(
     def _data_aligned(self, shape: typ.Dict[str, int]) -> numpy.typing.ArrayLike:
         ndim_missing = len(shape) - np.ndim(self.data)
         data = np.expand_dims(self.data, tuple(~np.arange(ndim_missing)))
-        # data = self.data[(..., ) + (np.newaxis, ) * ndim_missing]
         source = []
         destination = []
         for axis_index, axis_name in enumerate(self.axis_names):
