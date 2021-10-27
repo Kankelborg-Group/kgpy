@@ -139,7 +139,7 @@ def takes(
     return a
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class LabeledArray(
     kgpy.mixin.Copyable,
     np.lib.mixins.NDArrayOperatorsMixin,
