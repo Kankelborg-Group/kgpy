@@ -45,6 +45,11 @@ class TestLabeledArray:
         )
         assert d.shape == shape
 
+    def test_combine_axes(self):
+        shape = dict(x=5, y=6, z=7)
+        a = LabeledArray.zeros(shape).combine_axes(['x', 'y'])
+        assert a.shape == dict(z=shape['z'], xy=shape['x'] * shape['y'])
+
     def test__array_ufunc__(self):
         shape = dict(x=100, y=101)
         a = LabeledArray.linspace(

@@ -259,6 +259,36 @@ class LabeledArray(
             axis_names=tuple(shape.keys()),
         )
 
+    def combine_axes(
+            self,
+            axes: typ.Sequence[str],
+            axis_new: typ.Optional[str] = None,
+    ) -> 'LabeledArray':
+        axes = list(axes)
+        if axis_new is None:
+            axis_new = ''.join(axes)
+
+        axes_preserved = list(np.setdiff1d(self.axis_names, axes))
+        axes_all = axes_preserved + axes
+
+        source = []
+        destination = []
+        for axis in axes_all:
+            source.append(self.axis_names.index(axis))
+            destination.append(axes_all.index(axis))
+
+        axes_new = axes_preserved + [axis_new]
+        shape_new = dict()
+        for axis in axes_preserved:
+            shape_new[axis] = self.shape[axis]
+        shape_new[axis_new] = -1
+
+        return LabeledArray(
+            data=np.moveaxis(self.data, source=source, destination=destination).reshape(tuple(shape_new.values())),
+            axis_names=tuple(axes_new),
+        )
+
+
     def __array_ufunc__(
             self,
             function: np.ufunc,
