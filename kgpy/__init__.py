@@ -332,6 +332,8 @@ class LabeledArray(
                 data=self.data.__array_function__(function, types, args, kwargs),
                 axis_names=tuple(result_axis_names),
             )
+        else:
+            raise ValueError('Unsupported function')
 
     def __getitem__(
             self,
