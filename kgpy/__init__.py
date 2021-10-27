@@ -145,7 +145,7 @@ class LabeledArray(
     np.lib.mixins.NDArrayOperatorsMixin,
 ):
     data: numpy.typing.ArrayLike
-    axis_names: typ.Tuple[str]
+    axis_names: typ.Tuple[str, ...]
 
     def __post_init__(self):
         if np.ndim(self.data) != len(self.axis_names):
