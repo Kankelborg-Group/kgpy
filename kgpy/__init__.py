@@ -314,7 +314,7 @@ class LabeledArray(
             self,
             function: typ.Callable,
             types: typ.Collection,
-            args: typ.Sequence,
+            args: typ.Tuple,
             kwargs: typ.Dict[str, typ.Any],
     ):
         if function in [np.broadcast_to, np.broadcast_arrays]:
