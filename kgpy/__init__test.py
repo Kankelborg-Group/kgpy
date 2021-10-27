@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pytest
 import numpy as np
 from . import rebin, LabeledArray, DataArray
@@ -120,49 +121,139 @@ class TestLabeledArray:
         assert (d[index].data == c.data).all()
         assert d[index].shape == dict(x=1, y=1, z=d.shape['z'])
 
+
 class TestDataArray:
 
     def test_grid_normalized(self):
         shape = dict(x=5, y=6)
         d = DataArray(
-            data=np.random.random(tuple(shape.values())),
+            data=LabeledArray.ones(shape),
             grid=dict(
-                x=None,
-                y=np.linspace(0, 1, shape['y']),
+                y=LabeledArray.linspace(0, 1, shape['y'], axis='y'),
             ),
         )
-        assert (d.grid_normalized['x'] == np.arange(shape['x'])[..., np.newaxis]).all()
+        assert (d.grid_normalized['x'].data == np.arange(shape['x'])).all()
 
-    def test_shape_tuple(self):
-
-        len_x = 6
-        len_y = 7
-        shape = dict(x=len_x, y=len_y)
-
-        x, y = np.ix_(np.arange(len_x), np.linspace(0, 1, len_y))
-
-        d = DataArray(data=1, grid=dict(x=x, y=y))
-
+    def test_shape(self):
+        shape = dict(x=5, y=6)
+        d = DataArray(
+            data=LabeledArray(1, []),
+            grid=dict(
+                x=LabeledArray.linspace(start=0, stop=1, num=shape['x'], axis='x'),
+                y=LabeledArray.linspace(start=0, stop=2, num=shape['y'], axis='y'),
+            )
+        )
         assert d.shape == shape
 
-    def test_get_item(self):
+    def test__eq__(self):
+        shape = dict(x=10, y=11)
+        a = DataArray(
+            data=LabeledArray.ones(shape),
+            grid=dict(
+                x=LabeledArray.linspace(0, 1, shape['x'], axis='x'),
+                y=LabeledArray.linspace(0, 1, shape['x'], axis='y'),
+            ),
+        )
+
+        b = DataArray(
+            data=LabeledArray.ones(shape),
+            grid=dict(
+                x=LabeledArray.linspace(0, 1, shape['x'], axis='x'),
+                y=LabeledArray.linspace(0, 1, shape['x'], axis='y'),
+            ),
+        )
+
+        assert a == b
+
+    def test__eq__data(self):
+        shape = dict(x=10, y=11)
+        a = DataArray(
+            data=LabeledArray.ones(shape),
+            grid=dict(
+                x=LabeledArray.linspace(0, 1, shape['x'], axis='x'),
+                y=LabeledArray.linspace(0, 1, shape['y'], axis='y'),
+            ),
+        )
+
+        b = DataArray(
+            data=LabeledArray.zeros(shape),
+            grid=dict(
+                x=LabeledArray.linspace(0, 1, shape['x'], axis='x'),
+                y=LabeledArray.linspace(0, 1, shape['y'], axis='y'),
+            ),
+        )
+
+        assert a != b
+
+    def test__eq__grid(self):
+        shape = dict(x=10, y=11)
+        a = DataArray(
+            data=LabeledArray.ones(shape),
+            grid=dict(
+                x=LabeledArray.linspace(0, 1, shape['x'], axis='x'),
+                y=LabeledArray.linspace(0, 1, shape['y'], axis='y'),
+            ),
+        )
+
+        b = DataArray(
+            data=LabeledArray.ones(shape),
+            grid=dict(
+                x=LabeledArray.linspace(0, 2, shape['x'], axis='x'),
+                y=LabeledArray.linspace(0, 1, shape['y'], axis='y'),
+            ),
+        )
+
+        assert a != b
+
+    def test__getitem__int(self):
 
         shape = dict(x=5, y=6)
-        shape_linear = list(shape.values())
 
-        x, y = np.ix_(np.arange(shape['x']), np.linspace(0, 1, shape['y']))
+        x = LabeledArray.linspace(start=0, stop=1, num=shape['x'], axis='x')
+        y = LabeledArray.linspace(start=0, stop=1, num=shape['y'], axis='y')
 
-        d = DataArray(
-            np.random.random(shape_linear),
+        a = DataArray(
+            data=x * y,
+            grid=dict(x=x, y=y),
+        )
+
+        assert np.all(a[dict(y=~0)].data == x)
+        assert np.all(a[dict(x=~0)].data == y)
+
+        assert not np.all(a[dict(y=~1)].data == x)
+        assert not np.all(a[dict(x=~1)].data == y)
+
+
+    def test_interp_nearest(self):
+
+        shape = dict(x=10, y=11)
+
+        x = LabeledArray.linspace(start=0, stop=2 * np.pi, num=shape['x'], axis='x')
+        y = LabeledArray.linspace(start=0, stop=2 * np.pi, num=shape['y'], axis='y')
+        a = DataArray(
+            data=np.sin(x) * np.cos(y),
             grid=dict(
                 x=x,
                 y=y,
             )
         )
+        b = a.interp_nearest(x=x, y=y)
 
-        assert d.get_item(x=0).shape == dict(y=shape['y'])
-        assert d.get_item(y=~0).shape == dict(x=shape['x'])
+        assert a == b
 
-        slice_test = slice(0, 3)
-        assert d.get_item(x=slice_test).shape == dict(x=slice_test.stop, y=shape['y'],)
-        assert d.get_item(y=slice_test).shape == dict(x=shape['x'], y=slice_test.stop,)
+        c = a.interp_nearest(
+            x=LabeledArray.linspace(start=0, stop=2 * np.pi, num=100, axis='x'),
+            y=LabeledArray.linspace(start=0, stop=2 * np.pi, num=101, axis='y'),
+        )
+
+        assert a != c
+
+        plt.figure()
+        plt.scatter(*np.meshgrid(a.grid['x'].data, a.grid['y'].data), c=a.data.data.T)
+
+        plt.figure()
+        plt.scatter(*np.meshgrid(c.grid['x'].data, c.grid['y'].data), c=c.data.data.T)
+
+        # plt.show()
+
+

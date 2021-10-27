@@ -459,97 +459,96 @@ class LabeledArray(
         return other
 
 
-
-GridType = typ.Dict[str, numpy.typing.ArrayLike]
-
-
 @dataclasses.dataclass
 class DataArray(kgpy.mixin.Copyable):
 
-    data: numpy.typing.ArrayLike
-    grid: typ.Dict[str, typ.Optional[numpy.typing.ArrayLike]]
+    data: LabeledArray
+    grid: typ.Dict[str, LabeledArray]
 
     @property
-    def grid_normalized(self) -> GridType:
-        shape = np.broadcast(self.data, *self.grid.values()).shape
-        grid_normalized = dict()
-        for axis_name in self.grid:
-            if self.grid[axis_name] is None:
-                axis_index = self.axis_name_to_index(axis_name)
-                axes_new = list(range(len(shape)))
-                axes_new.remove(axis_index)
-                grid_normalized[axis_name] = np.expand_dims(
-                    a=np.arange(shape[axis_index]),
-                    axis=axes_new,
-                )
-            else:
-                grid_normalized[axis_name] = self.grid[axis_name]
+    def grid_normalized(self) -> typ.Dict[str, LabeledArray]:
+        # grid_normalized = self.grid.copy()
+        grid_normalized = copy.deepcopy(self.grid)
+        for axis_name in self.data.axis_names:
+            if axis_name not in grid_normalized:
+                grid_normalized[axis_name] = LabeledArray.arange(stop=self.data.shape[axis_name], axis=axis_name)
         return grid_normalized
 
     @property
-    def shape_tuple(self):
-        return np.broadcast(self.data, *self.grid.values()).shape
-
-    @property
     def shape(self) -> typ.Dict[str, int]:
-        shape_tuple = self.shape_tuple
-        shape = dict()
-        for i, axis_name in enumerate(self.grid):
-            shape[axis_name] = shape_tuple[i]
-        return shape
+        return LabeledArray.broadcast_shapes(*self.grid_normalized.values())
 
     @property
-    def data_broadcasted(self) -> numpy.typing.ArrayLike:
-        return np.broadcast_to(self.data, self.shape_tuple, subok=True)
+    def grid_broadcasted(self) -> typ.Dict[str, LabeledArray]:
+        grid = self.grid_normalized
+        shape = self.shape
+        return {k: np.broadcast_to(grid[k], shape=shape, subok=True) for k in grid}
 
     @property
-    def grid_broadcasted(self) -> typ.Dict[str, typ.Optional[numpy.typing.ArrayLike]]:
-        shape = self.shape_tuple
-        grid = self.grid.copy()
-        for key in grid:
-            grid[key] = np.broadcast_to(grid[key], shape=shape, subok=True)
-        return grid
+    def ndim(self) -> int:
+        return len(self.shape)
 
     @property
-    def ndim(self):
-        return self.data_broadcasted.ndim
+    def size(self) -> int:
+        return np.array(self.shape.values()).prod()
 
-    @property
-    def size(self):
-        return self.data_broadcasted.size
+    def __eq__(self, other: 'DataArray'):
+        if not super().__eq__(other):
+            return False
+        if not np.array_equal(self.data, other.data):
+            return False
+        for g in self.grid:
+            if not np.array_equal(self.grid[g], other.grid[g]):
+                return False
+        return True
 
-    def axis_name_to_index(self, key: str):
-        return list(self.grid.keys()).index(key)
-
-    def get_item(
+    def __getitem__(
             self,
-            **key: typ.Union[int, slice, numpy.typing.ArrayLike]
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, LabeledArray]], LabeledArray],
     ) -> 'DataArray':
-
-        result = DataArray(
-            data=self.data_broadcasted,
-            grid=self.grid_broadcasted
+        grid = self.grid_broadcasted
+        return DataArray(
+            data=self.data[item],
+            grid={k: grid[k][item] for k in grid},
         )
 
-        for axis_name in key:
-            axis_index = self.axis_name_to_index(axis_name)
-            indices = key[axis_name]
+    def calc_index_nearest(self, **grid: LabeledArray, ) -> typ.Dict[str, LabeledArray]:
 
-            result.data = take(a=result.data, key=indices, axis=axis_index)
-            if np.isscalar(indices):
-                del result.grid[axis_name]
-            for k in result.grid:
-                result.grid[k] = take(a=result.grid[k], key=indices, axis=axis_index)
+        grid_data = self.grid_normalized
 
-        return result
+        shape_dummy = dict()
+        for axis_name in grid:
+            if axis_name in grid_data:
+                axis_names = grid_data[axis_name].axis_names
+                axis_name_dummy = f'{axis_name}_dummy'
+                shape_dummy[axis_name_dummy] = self.shape[axis_name]
+                axis_index = axis_names.index(axis_name)
+                axis_names[axis_index] = axis_name_dummy
 
-    def set_item(
+        distance_squared = 0
+        for axis_name in grid:
+            distance_squared = distance_squared + np.square(grid[axis_name] - grid_data[axis_name])
+
+        distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+        index = np.argmin(distance_squared, axis='dummy')
+        index = np.unravel_index(index, shape_dummy)
+
+        index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
+
+        return index
+
+    def interp_nearest(self, **grid: LabeledArray) -> 'DataArray':
+        return DataArray(
+            data=self.data[self.calc_index_nearest(**grid)],
+            grid={**self.grid, **grid},
+        )
+
+    def __call__(
             self,
-            value: numpy.typing.ArrayLike,
-            **key: typ.Union[int, slice, numpy.typing.ArrayLike]
-    ) -> typ.NoReturn:
+            mode: str = 'linear',
+            **grid: typ.Optional[numpy.typing.ArrayLike],
+    ):
         pass
-
 
     def view(self) -> 'DataArray':
         other = super().view()  # type: DataArray
