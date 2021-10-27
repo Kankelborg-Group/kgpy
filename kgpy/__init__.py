@@ -408,7 +408,7 @@ class LabeledArray(
 
     def __getitem__(
             self,
-            item: typ.Union[typ.Dict[str, typ.Union[int, slice, np.ndarray]], 'LabeledArray'],
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, 'LabeledArray']], 'LabeledArray'],
     ) -> 'LabeledArray':
 
         if isinstance(item, LabeledArray):
@@ -422,9 +422,13 @@ class LabeledArray(
             axis_names = list(self.axis_names)
             index = [slice(None)] * self.ndim
             for axis_name in item:
-                index[self.axis_names.index(axis_name)] = item[axis_name]
-                if isinstance(item[axis_name], int):
+                item_axis = item[axis_name]
+                if isinstance(item_axis, LabeledArray):
+                    item_axis = item_axis._data_aligned(self.shape_broadcasted(item_axis))
+                index[self.axis_names.index(axis_name)] = item_axis
+                if isinstance(item_axis, int):
                     axis_names.remove(axis_name)
+
             return LabeledArray(
                 data=self.data[tuple(index)],
                 axis_names=axis_names,
