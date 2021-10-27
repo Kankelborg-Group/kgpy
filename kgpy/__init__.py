@@ -145,7 +145,7 @@ class LabeledArray(
     np.lib.mixins.NDArrayOperatorsMixin,
 ):
     data: numpy.typing.ArrayLike
-    axis_names: typ.Tuple[str, ...]
+    axis_names: typ.List[str]
 
     def __post_init__(self):
         if np.ndim(self.data) != len(self.axis_names):
@@ -155,21 +155,21 @@ class LabeledArray(
     def empty(cls, shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> 'LabeledArray':
         return LabeledArray(
             data=np.empty(shape=tuple(shape.values()), dtype=dtype),
-            axis_names=tuple(shape.keys()),
+            axis_names=list(shape.keys()),
         )
 
     @classmethod
     def zeros(cls, shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> 'LabeledArray':
         return LabeledArray(
             data=np.zeros(shape=tuple(shape.values()), dtype=dtype),
-            axis_names=tuple(shape.keys()),
+            axis_names=list(shape.keys()),
         )
 
     @classmethod
     def ones(cls, shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> 'LabeledArray':
         return LabeledArray(
             data=np.ones(shape=tuple(shape.values()), dtype=dtype),
-            axis_names=tuple(shape.keys()),
+            axis_names=list(shape.keys()),
         )
 
     @property
@@ -220,7 +220,7 @@ class LabeledArray(
     ) -> 'LabeledArray':
         return LabeledArray(
             data=np.arange(start=start, *args, **kwargs),
-            axis_names=(axis, )
+            axis_names=[axis],
         )
 
     @classmethod
@@ -256,7 +256,7 @@ class LabeledArray(
                 dtype=dtype,
                 axis=~0,
             ),
-            axis_names=tuple(shape.keys()),
+            axis_names=list(shape.keys()),
         )
 
     def combine_axes(
@@ -285,7 +285,7 @@ class LabeledArray(
 
         return LabeledArray(
             data=np.moveaxis(self.data, source=source, destination=destination).reshape(tuple(shape_new.values())),
-            axis_names=tuple(axes_new),
+            axis_names=axes_new,
         )
 
 
@@ -297,7 +297,7 @@ class LabeledArray(
             **kwargs: typ.Any,
     ):
         shape = self.broadcast_shapes(*inputs)
-        inputs = [LabeledArray(data=inp, axis_names=()) if np.isscalar(inp) else inp for inp in inputs ]
+        inputs = [LabeledArray(data=inp, axis_names=[]) if np.isscalar(inp) else inp for inp in inputs ]
         inputs = [inp._data_aligned(shape) for inp in inputs]
 
         for inp in inputs:
@@ -306,7 +306,7 @@ class LabeledArray(
                 if result is not NotImplemented:
                     return LabeledArray(
                         data=result,
-                        axis_names=tuple(shape.keys()),
+                        axis_names=list(shape.keys()),
                     )
         raise ValueError
 
@@ -364,7 +364,7 @@ class LabeledArray(
 
             return type(self)(
                 data=self.data.__array_function__(function, types, args, kwargs),
-                axis_names=tuple(result_axis_names),
+                axis_names=result_axis_names,
             )
         else:
             raise ValueError('Unsupported function')
@@ -378,7 +378,7 @@ class LabeledArray(
             shape = self.shape_broadcasted(item)
             return LabeledArray(
                 data=self._data_aligned(shape)[item._data_aligned(shape)],
-                axis_names=('boolean', ),
+                axis_names=['boolean', ],
             )
 
         else:
@@ -390,7 +390,7 @@ class LabeledArray(
                     axis_names.remove(axis_name)
             return LabeledArray(
                 data=self.data[tuple(index)],
-                axis_names=tuple(axis_names),
+                axis_names=axis_names,
             )
 
     def view(self) -> 'LabeledArray':

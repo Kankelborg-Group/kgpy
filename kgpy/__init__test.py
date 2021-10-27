@@ -20,7 +20,7 @@ class TestLabeledArray:
         shape = dict(x=2, y=3)
         a = LabeledArray(
             data=np.random.random(tuple(shape.values())),
-            axis_names=tuple(shape.keys()),
+            axis_names=list(shape.keys()),
         )
         assert a.shape == shape
 
