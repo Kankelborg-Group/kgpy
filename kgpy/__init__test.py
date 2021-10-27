@@ -97,6 +97,23 @@ class TestLabeledArray:
         assert a.data[0, 0] == shape['x'] * shape['y']
         assert a.shape == dict(x=1, y=1)
 
+    def test__getitem__int(self):
+        a = LabeledArray.arange(stop=10, axis='x')
+        b = LabeledArray.arange(stop=11, axis='y')
+        c = LabeledArray.arange(stop=5, axis='z')
+        d = a * b * c
+        index = dict(x=1, y=1)
+        assert (d[index].data == c.data).all()
+        assert d[index].shape == c.shape
+
+    def test__getitem__slice(self):
+        a = LabeledArray.arange(stop=10, axis='x')
+        b = LabeledArray.arange(stop=11, axis='y')
+        c = LabeledArray.arange(stop=5, axis='z')
+        d = a * b * c
+        index = dict(x=slice(1, 2), y=slice(1, 2))
+        assert (d[index].data == c.data).all()
+        assert d[index].shape == dict(x=1, y=1, z=d.shape['z'])
 
 class TestDataArray:
 

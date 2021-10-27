@@ -330,6 +330,29 @@ class LabeledArray(
                 axis_names=tuple(result_axis_names),
             )
 
+    def __getitem__(
+            self,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, np.ndarray]], 'LabeledArray'],
+    ) -> 'LabeledArray':
+
+        if isinstance(item, LabeledArray):
+            shape = self.shape_broadcasted(item)
+            return LabeledArray(
+                data=self._data_aligned(shape)[item._data_aligned(shape)],
+                axis_names=('boolean', ),
+            )
+
+        else:
+            axis_names = list(self.axis_names)
+            index = [slice(None)] * self.ndim
+            for axis_name in item:
+                index[self.axis_names.index(axis_name)] = item[axis_name]
+                if isinstance(item[axis_name], int):
+                    axis_names.remove(axis_name)
+            return LabeledArray(
+                data=self.data[tuple(index)],
+                axis_names=tuple(axis_names),
+            )
 
     def view(self) -> 'LabeledArray':
         other = super().view()      # type: LabeledArray
