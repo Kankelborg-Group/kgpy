@@ -470,6 +470,26 @@ class LabeledArray(
                 axis_names=list(shape_advanced.keys()) + axis_names_new,
             )
 
+    def __setitem__(
+            self,
+            key: typ.Union[typ.Dict[str, typ.Union[int, slice, 'LabeledArray']], 'LabeledArray'],
+            value: typ.Union[float, 'LabeledArray'],
+    ) -> typ.NoReturn:
+
+        if isinstance(key, LabeledArray):
+            shape = self.shape_broadcasted(key)
+            self._data_aligned(shape)[key._data_aligned(shape)] = value
+
+        else:
+            index = [slice(None)] * self.ndim
+            for axis_name in key:
+                item_axis = key[axis_name]
+                if isinstance(item_axis, LabeledArray):
+                    item_axis = item_axis._data_aligned(self.shape_broadcasted(item_axis))
+                index[self.axis_names.index(axis_name)] = item_axis
+
+            self.data[tuple(index)] = value
+
     def view(self) -> 'LabeledArray':
         other = super().view()      # type: LabeledArray
         other.data = self.data
