@@ -150,6 +150,8 @@ class LabeledArray(
     def __post_init__(self):
         if np.ndim(self.data) != len(self.axis_names):
             raise ValueError('The number of axis names must match the number of dimensions.')
+        if len(self.axis_names) != len(set(self.axis_names)):
+            raise ValueError('Each axis name must be unique.')
 
     @classmethod
     def empty(cls, shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> 'LabeledArray':
