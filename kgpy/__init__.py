@@ -433,19 +433,41 @@ class LabeledArray(
             )
 
         else:
+            axis_names_advanced = []
+            axis_indices_advanced = []
+            item_advanced = dict()
+            for axis in item:
+                if isinstance(item[axis], LabeledArray):
+                    axis_names_advanced.append(axis)
+                    axis_indices_advanced.append(self.axis_names.index(axis))
+                    item_advanced[axis] = item[axis]
+
+            shape_advanced = self.broadcast_shapes(*item_advanced.values())
+
+            data = np.moveaxis(
+                a=self.data,
+                source=axis_indices_advanced,
+                destination=list(range(len(axis_indices_advanced))),
+            )
+
             axis_names = list(self.axis_names)
+            for a, axis in enumerate(axis_names_advanced):
+                axis_names.remove(axis)
+                axis_names.insert(a, axis)
+
+            axis_names_new = axis_names.copy()
             index = [slice(None)] * self.ndim
             for axis_name in item:
                 item_axis = item[axis_name]
                 if isinstance(item_axis, LabeledArray):
-                    item_axis = item_axis._data_aligned(self.shape_broadcasted(item_axis))
-                index[self.axis_names.index(axis_name)] = item_axis
-                if isinstance(item_axis, int):
-                    axis_names.remove(axis_name)
+                    item_axis = item_axis._data_aligned(shape_advanced)
+                index[axis_names.index(axis_name)] = item_axis
+                if not isinstance(item_axis, slice):
+                    axis_names_new.remove(axis_name)
 
             return LabeledArray(
-                data=self.data[tuple(index)],
-                axis_names=axis_names,
+                data=data[tuple(index)],
+                axis_names=list(shape_advanced.keys()) + axis_names_new,
             )
 
     def view(self) -> 'LabeledArray':
