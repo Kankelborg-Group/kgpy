@@ -523,6 +523,10 @@ class DataArray(kgpy.mixin.Copyable):
         return LabeledArray.broadcast_shapes(*self.grid_normalized.values())
 
     @property
+    def data_broadcasted(self):
+        return np.broadcast_to(self.data, shape=self.shape, subok=True)
+
+    @property
     def grid_broadcasted(self) -> typ.Dict[str, LabeledArray]:
         grid = self.grid_normalized
         shape = self.shape
