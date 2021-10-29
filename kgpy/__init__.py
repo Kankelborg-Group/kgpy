@@ -598,6 +598,80 @@ class DataArray(kgpy.mixin.Copyable):
             grid={**self.grid, **grid},
         )
 
+    def calc_index_lower(self, **grid: LabeledArray, ) -> typ.Dict[str, LabeledArray]:
+
+        grid_data = self.grid_normalized
+
+        shape_dummy = dict()
+        for axis_name_data in grid_data:
+            axis_names = grid_data[axis_name_data].axis_names
+            for axis_name in grid:
+                if axis_name in axis_names:
+                    axis_name_dummy = f'{axis_name}_dummy'
+                    shape_dummy[axis_name_dummy] = self.shape[axis_name]
+                    axis_index = axis_names.index(axis_name)
+                    axis_names[axis_index] = axis_name_dummy
+
+        distance_squared = 0
+        for axis_name in grid:
+            d = grid_data[axis_name] - grid[axis_name]
+            d[d > 0] = -np.inf
+            distance_squared = distance_squared + d
+
+        distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+        index = np.argmax(distance_squared, axis='dummy')
+        index = np.unravel_index(index, shape_dummy)
+
+        for axis in index:
+            index_max = shape_dummy[axis] - 2
+            index[axis][index[axis] > index_max] = index_max
+
+        index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
+
+        return index
+
+    def _interp_linear_1d_recursive(
+            self,
+            grid: typ.Dict[str, LabeledArray],
+            index_lower: typ.Dict[str, LabeledArray],
+            axis_stack: typ.List[str],
+    ) -> LabeledArray:
+
+        axis = axis_stack.pop(0)
+
+        index_upper = copy.deepcopy(index_lower)
+        index_upper[axis] = index_upper[axis] + 1
+
+        x = grid[axis]
+
+        grid_data = self.grid_broadcasted
+        x0 = grid_data[axis][index_lower]
+        x1 = grid_data[axis][index_upper]
+
+        if axis_stack:
+            y0 = self._interp_linear_1d_recursive(grid=grid, index_lower=index_lower, axis_stack=axis_stack.copy())
+            y1 = self._interp_linear_1d_recursive(grid=grid, index_lower=index_upper, axis_stack=axis_stack.copy())
+
+        else:
+            data = self.data_broadcasted
+            y0 = data[index_lower]
+            y1 = data[index_upper]
+
+        result = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
+
+        return result
+
+    def interp_linear(self, **grid: LabeledArray, ) -> 'DataArray':
+
+        return DataArray(
+            data=self._interp_linear_1d_recursive(
+                grid=grid,
+                index_lower=self.calc_index_lower(**grid),
+                axis_stack=list(grid.keys()),
+            ),
+            grid={**self.grid, **grid}
+        )
+
     def __call__(
             self,
             mode: str = 'linear',
