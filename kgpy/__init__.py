@@ -381,28 +381,35 @@ class LabeledArray(
             np.all,
             np.any,
             np.array_equal,
+            np.isclose,
         ]:
 
-            result_axis_names = list(self.axis_names)
-            if 'keepdims' not in kwargs:
-                if 'axis' in kwargs:
-                    if np.isscalar(kwargs['axis']):
-                        result_axis_names.remove(kwargs['axis'])
+            labeled_arrays = [arg for arg in args if isinstance(arg, LabeledArray)]
+            labeled_arrays += [kwargs[k] for k in kwargs if isinstance(kwargs[k], LabeledArray)]
+            shape = LabeledArray.broadcast_shapes(*labeled_arrays)
+            axis_names = list(shape.keys())
+
+            args = tuple(arg._data_aligned(shape) if isinstance(arg, LabeledArray) else arg for arg in args)
+            kwargs = {k: kwargs[k]._data_aligned(shape) if isinstance(kwargs[k], LabeledArray) else kwargs[k] for k in kwargs}
+            types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
+
+            result_axis_names = axis_names.copy()
+            if function is not np.isclose:
+                if 'keepdims' not in kwargs:
+                    if 'axis' in kwargs:
+                        if np.isscalar(kwargs['axis']):
+                            result_axis_names.remove(kwargs['axis'])
+                        else:
+                            for axis in kwargs['axis']:
+                                result_axis_names.remove(axis)
                     else:
-                        for axis in kwargs['axis']:
-                            result_axis_names.remove(axis)
-                else:
-                    result_axis_names = []
+                        result_axis_names = []
 
             if 'axis' in kwargs:
                 if np.isscalar(kwargs['axis']):
-                    kwargs['axis'] = self.axis_names.index(kwargs['axis'])
+                    kwargs['axis'] = axis_names.index(kwargs['axis'])
                 else:
-                    kwargs['axis'] = tuple(self.axis_names.index(ax) for ax in kwargs['axis'])
-
-            args = tuple(getattr(arg, 'data', arg) for arg in args)
-            kwargs = {kw: getattr(kwargs[kw], 'data', kwargs[kw]) for kw in kwargs}
-            types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
+                    kwargs['axis'] = tuple(axis_names.index(ax) for ax in kwargs['axis'])
 
             data = self.data.__array_function__(function, types, args, kwargs)
 
