@@ -346,3 +346,84 @@ class TestDataArray:
         # plt.colorbar()
         #
         # plt.show()
+
+    def test_interp_idw_2d(self):
+
+        shape = dict(
+            x=10,
+            y=11,
+            z=12,
+        )
+        angle = 0.3
+        x = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape['x'], axis='x')
+        y = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape['y'], axis='y')
+        z = LabeledArray.linspace(start=0, stop=1, num=shape['z'], axis='z')
+        x_rotated = x * np.cos(angle) - y * np.sin(angle)
+        y_rotated = x * np.sin(angle) + y * np.cos(angle)
+        a = DataArray(
+            data=np.cos(x * x) * np.cos(y * y),
+            grid=dict(
+                # x=x_rotated,
+                x=x,
+                # y=y_rotated,
+                y=y,
+                z=z,
+            )
+        )
+
+        b = a.interp_idw(grid=dict(x=x, y=y))
+        # assert np.isclose(a.data, b.data).data.all()
+
+        shape_large = dict(
+            x=100,
+            y=101,
+            z=shape['z'],
+        )
+        x_large = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape_large['x'], axis='x')
+        y_large = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape_large['y'], axis='y')
+        c = a.interp_idw(
+            grid=dict(
+                x=x_large * np.cos(angle) - y_large * np.sin(angle),
+                y=x_large * np.sin(angle) + y_large * np.cos(angle),
+            ),
+        )
+
+        # assert c.shape == shape_large
+
+        plt.figure()
+        plt.scatter(
+            x=a.grid_broadcasted['x'].data,
+            y=a.grid_broadcasted['y'].data,
+            c=a.data_broadcasted.data,
+            vmin=-1,
+            vmax=1,
+        )
+        plt.xlim([-np.pi, np.pi])
+        plt.ylim([-np.pi, np.pi])
+        plt.colorbar()
+
+        plt.figure()
+        plt.scatter(
+            x=b.grid_broadcasted['x'].data,
+            y=b.grid_broadcasted['y'].data,
+            c=b.data_broadcasted.data,
+            vmin=-1,
+            vmax=1,
+        )
+        plt.xlim([-np.pi, np.pi])
+        plt.ylim([-np.pi, np.pi])
+        plt.colorbar()
+
+        plt.figure()
+        plt.scatter(
+            x=c.grid_broadcasted['x'].data,
+            y=c.grid_broadcasted['y'].data,
+            c=c.data_broadcasted.data,
+            vmin=-1,
+            vmax=1,
+        )
+        plt.xlim([-np.pi, np.pi])
+        plt.ylim([-np.pi, np.pi])
+        plt.colorbar()
+
+        plt.show()

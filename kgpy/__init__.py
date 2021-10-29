@@ -672,6 +672,35 @@ class DataArray(kgpy.mixin.Copyable):
             grid={**self.grid, **grid}
         )
 
+    def interp_idw(
+            self,
+            grid: typ.Dict[str, LabeledArray],
+            power: float = 2,
+    ) -> 'DataArray':
+
+        grid_data = self.grid_broadcasted
+
+        index = self.calc_index_lower(**grid)
+
+        axes_kernel = []
+        for axis in grid:
+            axis_kernel = f'kernel_{axis}'
+            axes_kernel.append(axis_kernel)
+            index[axis] = index[axis] + LabeledArray.arange(stop=2, axis=axis_kernel)
+
+        distance_to_power = 0
+        for axis in grid:
+            distance_to_power = distance_to_power + np.abs(grid_data[axis][index] - grid[axis]) ** power
+        distance = distance_to_power ** (1 / power)
+
+        weights = 1 / distance
+
+        return DataArray(
+            data=np.sum(weights * self.data[index], axis=axes_kernel) / np.sum(weights, axis=axes_kernel),
+            grid={**self.grid, **grid},
+        )
+
+
     def __call__(
             self,
             mode: str = 'linear',
