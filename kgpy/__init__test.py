@@ -347,7 +347,35 @@ class TestDataArray:
         #
         # plt.show()
 
-    def test_interp_idw_2d(self):
+    def test_interp_rbf_gaussian_1d(self):
+
+        shape = dict(x=10,)
+
+        x = LabeledArray.linspace(start=0, stop=2 * np.pi, num=shape['x'], axis='x')
+        a = DataArray(
+            data=np.sin(x * x),
+            grid=dict(x=x,)
+        )
+
+        b = a.interp_rbf_gaussian(grid=dict(x=x))
+        # assert np.isclose(a.data.data, b.data.data).all()
+
+        shape_large = dict(x=100)
+        c = a.interp_rbf_gaussian(
+            grid=dict(
+                x=LabeledArray.linspace(start=0, stop=2 * np.pi, num=shape_large['x'], axis='x'),
+            ),
+            width=0.1
+        )
+        # assert c.shape == shape_large
+
+        plt.figure()
+        plt.scatter(x=a.grid_broadcasted['x'].data, y=a.data_broadcasted.data)
+        plt.scatter(x=b.grid_broadcasted['x'].data,  y=b.data_broadcasted.data)
+        plt.scatter(x=c.grid_broadcasted['x'].data, y=c.data_broadcasted.data)
+        plt.show()
+
+    def test_interp_rbf_gaussian_2d(self):
 
         shape = dict(
             x=10,
@@ -371,7 +399,7 @@ class TestDataArray:
             )
         )
 
-        b = a.interp_idw(grid=dict(x=x, y=y))
+        b = a.interp_rbf_gaussian(grid=dict(x=x, y=y), width=0.1)
         # assert np.isclose(a.data, b.data).data.all()
 
         shape_large = dict(
@@ -381,11 +409,12 @@ class TestDataArray:
         )
         x_large = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape_large['x'], axis='x')
         y_large = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape_large['y'], axis='y')
-        c = a.interp_idw(
+        c = a.interp_rbf_gaussian(
             grid=dict(
                 x=x_large * np.cos(angle) - y_large * np.sin(angle),
                 y=x_large * np.sin(angle) + y_large * np.cos(angle),
             ),
+            width=.5,
         )
 
         # assert c.shape == shape_large

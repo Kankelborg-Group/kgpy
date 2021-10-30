@@ -700,6 +700,40 @@ class DataArray(kgpy.mixin.Copyable):
             grid={**self.grid, **grid},
         )
 
+    def interp_rbf_gaussian(
+            self,
+            grid: typ.Dict[str, LabeledArray],
+            width: typ.Union[float, typ.Dict[str, float]] = 1,
+    ) -> 'DataArray':
+
+        grid_data = self.grid_broadcasted
+
+        index = self.calc_index_lower(**grid)
+
+        axes_kernel = []
+        for axis in grid:
+            axis_kernel = f'kernel_{axis}'
+            axes_kernel.append(axis_kernel)
+            index[axis] = index[axis] + LabeledArray.arange(stop=2, axis=axis_kernel)
+
+        print('index', index)
+
+        power = 2
+        distance_to_power = 0
+        for axis in grid:
+            distance_to_power = distance_to_power + np.abs(grid_data[axis][index] - grid[axis]) ** power
+        distance = distance_to_power ** (1 / power)
+
+        print('distance', distance.shape)
+
+        weights = np.exp(-np.square(distance / width) / 2) / (np.sqrt(2 * np.pi) * width)
+
+        return DataArray(
+            data=np.sum(weights * self.data[index], axis=axes_kernel) / np.sum(weights, axis=axes_kernel),
+            # data=np.sum(weights * self.data[index], axis=axes_kernel),
+            grid={**self.grid, **grid},
+        )
+
 
     def __call__(
             self,
