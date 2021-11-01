@@ -290,6 +290,22 @@ class LabeledArray(
             axis_names=axes_new,
         )
 
+    def matrix_inverse(self, axis_rows: str, axis_columns: str) -> 'LabeledArray':
+        data = np.moveaxis(
+            a=self.data,
+            source=[self.axis_names.index(axis_rows), self.axis_names.index(axis_columns)],
+            destination=[~1, ~0],
+        )
+
+        axis_names_new = self.axis_names.copy()
+        axis_names_new.remove(axis_rows)
+        axis_names_new.remove(axis_columns)
+        axis_names_new += [axis_rows, axis_columns]
+
+        return LabeledArray(
+            data=np.linalg.inv(data),
+            axis_names=axis_names_new,
+        )
 
     def __array_ufunc__(
             self,
@@ -359,6 +375,9 @@ class LabeledArray(
                     axis_names=self.axis_names,
                 )
             return result
+
+        elif function is np.linalg.inv:
+            raise ValueError(f'{function} is unsupported, use kgpy.LabelArray.matrix_inverse() instead.')
 
         elif function in [
             np.ndim,
