@@ -261,6 +261,14 @@ class LabeledArray(
             axis_names=list(shape.keys()),
         )
 
+    def add_axes(self, axes: typ.List) -> 'LabeledArray':
+        shape_new = {axis: 1 for axis in axes}
+        shape = {**self.shape, **shape_new}
+        return LabeledArray(
+            data=self._data_aligned(shape),
+            axis_names=list(shape.keys()),
+        )
+
     def combine_axes(
             self,
             axes: typ.Sequence[str],
