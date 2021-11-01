@@ -387,6 +387,25 @@ class LabeledArray(
         elif function is np.linalg.inv:
             raise ValueError(f'{function} is unsupported, use kgpy.LabelArray.matrix_inverse() instead.')
 
+        elif function is np.stack:
+            if 'arrays' in kwargs:
+                arrays = kwargs.pop('arrays')
+            else:
+                arrays = args[0]    # type: typ.List[LabeledArray]
+
+            if 'axis' in kwargs:
+                axis = kwargs.pop('axis')
+            else:
+                raise ValueError('axis must be specified')
+
+            shape = self.broadcast_shapes(*arrays)
+            arrays = [arr._data_aligned(shape) for arr in arrays]
+
+            return LabeledArray(
+                data=np.stack(arrays=arrays, axis=0, **kwargs),
+                axis_names=[axis] + self.axis_names,
+            )
+
         elif function in [
             np.ndim,
             np.argmin,
