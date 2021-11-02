@@ -298,6 +298,20 @@ class LabeledArray(
             axis_names=axes_new,
         )
 
+    def matrix_multiply(self, other: 'LabeledArray', axis_rows: str, axis_columns: str) -> 'LabeledArray':
+        shape = LabeledArray.shape_broadcasted(other)
+        shape_rows = shape.pop(axis_rows)
+        shape_columns = shape.pop(axis_columns)
+        shape = {**shape, axis_rows: shape_rows, axis_columns: shape_columns}
+
+        data_self = self._data_aligned(shape)
+        data_other = other._data_aligned(shape)
+
+        return LabeledArray(
+            data=np.matmul(data_self, data_other),
+            axis_names=list(shape.keys()),
+        )
+
     def matrix_inverse(self, axis_rows: str, axis_columns: str) -> 'LabeledArray':
         data = np.moveaxis(
             a=self.data,
