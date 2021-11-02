@@ -555,7 +555,7 @@ class LabeledArray(
                     item_axis = item_axis._data_aligned(self.shape_broadcasted(item_axis))
                 index[self.axis_names.index(axis_name)] = item_axis
 
-            self.data[tuple(index)] = value
+            self.data[tuple(index)] = value.data
 
     def view(self) -> 'LabeledArray':
         other = super().view()      # type: LabeledArray
