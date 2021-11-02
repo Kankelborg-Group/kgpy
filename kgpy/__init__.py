@@ -632,13 +632,14 @@ class DataArray(kgpy.mixin.Copyable):
         grid_data = self.grid_normalized
 
         shape_dummy = dict()
-        for axis_name in grid:
-            if axis_name in grid_data:
-                axis_names = grid_data[axis_name].axis_names
-                axis_name_dummy = f'{axis_name}_dummy'
-                shape_dummy[axis_name_dummy] = self.shape[axis_name]
-                axis_index = axis_names.index(axis_name)
-                axis_names[axis_index] = axis_name_dummy
+        for axis_name_data in grid_data:
+            axis_names = grid_data[axis_name_data].axis_names
+            for axis_name in grid:
+                if axis_name in axis_names:
+                    axis_name_dummy = f'{axis_name}_dummy'
+                    shape_dummy[axis_name_dummy] = self.shape[axis_name]
+                    axis_index = axis_names.index(axis_name)
+                    axis_names[axis_index] = axis_name_dummy
 
         distance_squared = 0
         for axis_name in grid:
