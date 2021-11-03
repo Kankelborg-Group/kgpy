@@ -150,6 +150,19 @@ class TestDataArray:
         )
         assert d.shape == shape
 
+    def test_axes_separable(self):
+        shape = dict(x=10, y=11, z=12)
+        x = LabeledArray.linspace(0, 1, shape['x'], axis='x')
+        y = LabeledArray.linspace(-1, 1, shape['y'], axis='y')
+        a = DataArray(
+            data=LabeledArray.empty(shape),
+            grid=dict(
+                x=x * y,
+                y=y,
+            ),
+        )
+        assert a.axes_separable == ['y', 'z']
+
     def test__eq__(self):
         shape = dict(x=10, y=11)
         a = DataArray(

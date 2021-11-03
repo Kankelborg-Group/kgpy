@@ -610,6 +610,15 @@ class DataArray(kgpy.mixin.Copyable):
         return {k: np.broadcast_to(grid[k], shape=shape, subok=True) for k in grid}
 
     @property
+    def axes_separable(self) -> typ.List[str]:
+        axes = []
+        grid = self.grid_normalized
+        for axis in grid:
+            if grid[axis].axis_names == [axis]:
+                axes.append(axis)
+        return axes
+
+    @property
     def ndim(self) -> int:
         return len(self.shape)
 
