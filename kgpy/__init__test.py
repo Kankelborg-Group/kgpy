@@ -382,8 +382,9 @@ class TestDataArray:
             z=12,
         )
         angle = 0.3
-        x = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape['x'], axis='x')
-        y = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape['y'], axis='y')
+        limit = np.pi
+        x = LabeledArray.linspace(start=-limit, stop=limit, num=shape['x'], axis='x')
+        y = LabeledArray.linspace(start=-limit, stop=limit, num=shape['y'], axis='y')
         z = LabeledArray.linspace(start=0, stop=1, num=shape['z'], axis='z')
         x_rotated = x * np.cos(angle) - y * np.sin(angle)
         y_rotated = x * np.sin(angle) + y * np.cos(angle)
@@ -402,12 +403,12 @@ class TestDataArray:
         # assert np.isclose(a.data, b.data).data.all()
 
         shape_large = dict(
-            x=100,
-            y=101,
+            x=200,
+            y=200,
             z=shape['z'],
         )
-        x_large = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape_large['x'], axis='x')
-        y_large = LabeledArray.linspace(start=-np.pi, stop=np.pi, num=shape_large['y'], axis='y')
+        x_large = LabeledArray.linspace(start=-limit, stop=limit, num=shape_large['x'], axis='x')
+        y_large = LabeledArray.linspace(start=-limit, stop=limit, num=shape_large['y'], axis='y')
         c = a.interp_barycentric_linear(
             grid=dict(
                 # x=x_large * np.cos(angle) - y_large * np.sin(angle),
@@ -427,8 +428,8 @@ class TestDataArray:
             vmin=-1,
             vmax=1,
         )
-        plt.xlim([-np.pi, np.pi])
-        plt.ylim([-np.pi, np.pi])
+        plt.xlim([-limit, limit])
+        plt.ylim([-limit, limit])
         plt.colorbar()
 
         plt.figure()
@@ -439,8 +440,8 @@ class TestDataArray:
             vmin=-1,
             vmax=1,
         )
-        plt.xlim([-np.pi, np.pi])
-        plt.ylim([-np.pi, np.pi])
+        plt.xlim([-limit, limit])
+        plt.ylim([-limit, limit])
         plt.colorbar()
 
         plt.figure()
@@ -451,8 +452,8 @@ class TestDataArray:
             vmin=-1,
             vmax=1,
         )
-        plt.xlim([-np.pi, np.pi])
-        plt.ylim([-np.pi, np.pi])
+        plt.xlim([-limit, limit])
+        plt.ylim([-limit, limit])
         plt.colorbar()
 
         plt.show()

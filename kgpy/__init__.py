@@ -807,38 +807,38 @@ class DataArray(kgpy.mixin.Copyable):
             grid: typ.Dict[str, LabeledArray],
     ) -> 'DataArray':
 
+        shape_data = self.shape
         grid_data = self.grid_broadcasted
 
         index_nearest = self._calc_index_nearest_even(**grid)
-        print('index_nearest', *[index_nearest[a].shape for a in index_nearest])
+        print('index_nearest', index_nearest)
 
-        shape_index_nearest = LabeledArray.broadcast_shapes(*index_nearest.values())
-        shape_index = shape_index_nearest.copy()
-        shape_index['simplex'] = len(grid) + 1
-        index = dict()
-        # axes_kernel = []
+        num_vertices = len(grid) + 1
+        index = index_nearest.copy()
+        axes_simplex = []
         for a, axis in enumerate(grid):
-            # index[axis] = LabeledArray.empty(index_shape)
-            index[axis] = np.broadcast_to(index_nearest[axis], shape=shape_index, subok=True)
-            index[axis].data = index[axis].data.copy()
-            grid_difference = grid[axis] - grid_data[axis][index_nearest]
+            print('axis', axis)
+            axis_simplex = f'simplex_{axis}'
+            axes_simplex.append(axis_simplex)
+            simplex_axis = LabeledArray.zeros(shape={axis_simplex: 2, 'vertices': num_vertices}, dtype=int)
+            simplex_axis[dict(vertices=a+1)] = LabeledArray(np.array([-1, 1], dtype=int), axis_names=[axis_simplex])
+            index[axis] = (index_nearest[axis] + simplex_axis)
 
-            print('index[axis].shape', index[axis].shape)
-            print('index_nearest[axis].shape', index_nearest[axis].shape)
-            print('grid_difference.shape', grid_difference.shape)
-
-            index[axis][dict(simplex=a + 1)] = (index_nearest[axis] + 2 * (grid_difference >= 0) - 1) % self.shape[axis]
-
+        print('index', {k: index[k].shape for k in index})
         print('index', index)
 
-        barycentric_transform_shape = shape_index_nearest.copy()
-        barycentric_transform_shape['simplex'] = len(grid)
+        shape_index = LabeledArray.broadcast_shapes(*index.values())
+        barycentric_transform_shape = shape_index.copy()
+        barycentric_transform_shape['vertices'] = len(grid)
         barycentric_transform_shape['axis'] = len(grid)
         barycentric_transform = LabeledArray.empty(barycentric_transform_shape)
         print('barycentric_transform', barycentric_transform_shape)
 
-        index_0 = {k: index[k][dict(simplex=0)] for k in index}
-        index_1 = {k: index[k][dict(simplex=slice(1, None))] for k in index}
+        index_0 = {k: index[k][dict(vertices=0)] for k in index}
+        index_1 = {k: index[k][dict(vertices=slice(1, None))] % shape_data[k] for k in index}
+
+        print('index_0', index_0)
+        print('index_1', index_1)
 
         for a, axis in enumerate(grid):
             x0 = grid_data[axis][index_0]
@@ -851,9 +851,7 @@ class DataArray(kgpy.mixin.Copyable):
 
         barycentric_transform = barycentric_transform.matrix_inverse(
             axis_rows='axis',
-            # axis_rows='simplex',
-            axis_columns='simplex',
-            # axis_columns='axis',
+            axis_columns='vertices',
         )
 
         print('barycentric_transform', barycentric_transform)
@@ -861,75 +859,46 @@ class DataArray(kgpy.mixin.Copyable):
         barycentric_coordinates = np.stack(
             arrays=[grid[axis] - grid_data[axis][index_nearest] for axis in grid],
             axis='axis',
-        ).add_axes(['simplex'])
+        ).add_axes(axes_simplex + ['vertices'])
 
         print('barycentric_coordinates', barycentric_coordinates)
 
         barycentric_coordinates = barycentric_transform.matrix_multiply(
             barycentric_coordinates,
             axis_rows='axis',
-            # axis_rows='simplex',
-            axis_columns='simplex',
-            # axis_columns='axis',
-        ).combine_axes(['simplex', 'axis'], axis_new='simplex')
+            axis_columns='vertices',
+        ).combine_axes(['vertices', 'axis'], axis_new='vertices')
 
         print('barycentric_coordinates', barycentric_coordinates)
 
+        mask_inside = (0 < barycentric_coordinates) & (barycentric_coordinates <= 1)
+        print('mask_inside', mask_inside.shape)
+        for axis in index:
+            print('index[axis]', index[axis].shape)
+            mask_inside = mask_inside & (index[axis][dict(vertices=slice(1, None))] >= 0) & (index[axis][dict(vertices=slice(1, None))] < shape_data[axis])
+        mask_inside = np.all(mask_inside, axis='vertices')
+        mask_inside = np.broadcast_to(mask_inside, shape=barycentric_coordinates.shape, subok=True)
 
-            # # axis_kernel = f'kernel_{axis}'
-            # # axes_kernel.append(axis_kernel)
-            # kernel = LabeledArray.arange(stop=2, axis=axis_kernel)
-            # grid_difference = grid[axis] - grid_data[axis][index_nearest]
-            # grid_sign = 2 * (grid_difference > 0) - 1
-            # # mask = grid[axis] < grid_data[axis][index_nearest]
-            # # print('mask', mask.shape)
-            #
-            # index[axis] = index_nearest[axis] + kernel
-            # index[axis][index[axis] > self.shape[axis]] = np.nan
-            # # index[axis] = index_nearest[axis] + kernel
-            # # index[axis] = grid_sign
-            #
-            # # print(index[axis].shape)
-            # # mask_broadcasted = np.broadcast_to(mask, shape=index[axis].shape, subok=True)
-            # # index[axis][mask_broadcasted] = (index_nearest[axis] - kernel)[mask_broadcasted]
+        print('mask_inside', mask_inside)
+        print('mask_inside.sum()', np.sum(mask_inside, axis=axes_simplex))
 
-        # print('index', index)
+        barycentric_coordinates[~mask_inside] = np.nan
 
-        # power = 2
-        # distance_to_power = 0
-        # for axis in grid:
-        #     distance_to_power = distance_to_power + np.abs(grid_data[axis][index] - grid[axis]) ** power
-        # distance = distance_to_power ** (1 / power)
-        #
-        # print('distance', distance.shape)
-        #
-        # # weights = np.exp(-np.square(distance / width) / 2) / (np.sqrt(2 * np.pi) * width)
-        # weights = LabeledArray.ones(distance.shape)
-
-        weights = LabeledArray.empty(shape_index)
-        weights[dict(simplex=0)] = 1 - np.sum(barycentric_coordinates, axis='simplex')
-        weights[dict(simplex=slice(1, None))] = barycentric_coordinates
-        # weights = weights / np.sum(weights, axis='simplex')
+        shape_weights = shape_index
+        weights = LabeledArray.empty(shape_weights)
+        weights[dict(vertices=0)] = 1 - np.sum(barycentric_coordinates, axis='vertices')
+        weights[dict(vertices=slice(1, None))] = barycentric_coordinates
 
         print('weights', weights.shape)
         print('weights', weights)
 
-        print('data', self.data[index])
-        data = weights * self.data[index]
+        data = weights * self.data[{k: index[k] % shape_data[k] for k in index}]
         print('data', data)
 
-        # data[dict(simplex=slice(1, None))] = barycentric_coordinates * data[dict(simplex=slice(1, None))]
-
         return DataArray(
-            # data=np.mean(self.data[index], axis='simplex'),
-            # data=np.sum(data, axis='simplex') / np.sum(weights, axis='simplex'),
-            data=np.sum(data, axis='simplex'),
-
-            # data=np.sum(weights * self.data[index], axis=axes_kernel) / np.sum(weights, axis=axes_kernel),
-            # data=np.sum(weights * self.data[index], axis=axes_kernel),
+            data=np.sum(data, axis='vertices'),
             grid={**self.grid, **grid},
         )
-
 
     def __call__(
             self,
