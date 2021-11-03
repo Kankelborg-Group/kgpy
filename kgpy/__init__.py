@@ -550,13 +550,16 @@ class LabeledArray(
 
         else:
             index = [slice(None)] * self.ndim
+            axis_names = self.axis_names.copy()
             for axis_name in key:
                 item_axis = key[axis_name]
+                if isinstance(item_axis, int):
+                    axis_names.remove(axis_name)
                 if isinstance(item_axis, LabeledArray):
                     item_axis = item_axis._data_aligned(self.shape_broadcasted(item_axis))
                 index[self.axis_names.index(axis_name)] = item_axis
 
-            self.data[tuple(index)] = value.data
+            self.data[tuple(index)] = value._data_aligned({k: None for k in axis_names})
 
     def view(self) -> 'LabeledArray':
         other = super().view()      # type: LabeledArray
