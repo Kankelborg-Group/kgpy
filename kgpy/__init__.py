@@ -485,6 +485,9 @@ class LabeledArray(
         else:
             raise ValueError('Unsupported function')
 
+    def __bool__(self):
+        return self.data.__bool__()
+
     def __getitem__(
             self,
             item: typ.Union[typ.Dict[str, typ.Union[int, slice, 'LabeledArray']], 'LabeledArray'],
