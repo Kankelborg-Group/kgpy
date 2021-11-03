@@ -121,6 +121,11 @@ class TestLabeledArray:
         assert (d[index].data == c.data).all()
         assert d[index].shape == dict(x=1, y=1, z=d.shape['z'])
 
+    def test_ndindex(self):
+        shape = dict(x=2, y=2)
+        result_expected = [{'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 1, 'y': 0}, {'x': 1, 'y': 1}]
+        assert list(LabeledArray.ndindex(shape)) == result_expected
+
 
 class TestDataArray:
 

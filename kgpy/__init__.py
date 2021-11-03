@@ -561,6 +561,12 @@ class LabeledArray(
 
             self.data[tuple(index)] = value._data_aligned({k: None for k in axis_names})
 
+    @classmethod
+    def ndindex(cls, shape: typ.Dict[str, int]) -> typ.Iterator[typ.Dict[str, int]]:
+        shape_tuple = tuple(shape.values())
+        for index in np.ndindex(shape_tuple):
+            yield dict(zip(shape.keys(), index))
+
     def view(self) -> 'LabeledArray':
         other = super().view()      # type: LabeledArray
         other.data = self.data
