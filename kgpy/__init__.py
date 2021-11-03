@@ -336,8 +336,8 @@ class LabeledArray(
             *inputs: 'LabeledArray',
             **kwargs: typ.Any,
     ):
-        shape = self.broadcast_shapes(*inputs)
         inputs = [LabeledArray(data=inp, axis_names=[]) if np.isscalar(inp) else inp for inp in inputs ]
+        shape = self.broadcast_shapes(*inputs)
         inputs = [inp._data_aligned(shape) for inp in inputs]
 
         for inp in inputs:
