@@ -474,8 +474,6 @@ class LabeledArray(
             data = self.data.__array_function__(function, types, args, kwargs)
 
             if function in [
-                np.all,
-                np.any,
                 np.array_equal,
             ]:
                 return data
