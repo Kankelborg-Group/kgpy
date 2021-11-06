@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
+import time
 import pytest
+import cProfile
 import numpy as np
+import mayavi.mlab
 from . import rebin, LabeledArray, DataArray
 
 
@@ -395,8 +398,8 @@ class TestDataArray:
     def test_interp_barycentric_linear_2d(self):
 
         shape = dict(
-            x=10,
-            y=11,
+            x=20,
+            y=20,
             z=12,
         )
         angle = 0.3
@@ -417,24 +420,43 @@ class TestDataArray:
             )
         )
 
-        b = a.interp_barycentric_linear(grid=dict(x=x, y=y))
+        b = a.interp_barycentric_linear(grid=dict(
+            x=x,
+            y=y,
+            # z=z,
+        ))
         # assert np.isclose(a.data, b.data).data.all()
 
         shape_large = dict(
-            x=200,
-            y=200,
+            x=20,
+            y=20,
             z=shape['z'],
         )
         x_large = LabeledArray.linspace(start=-limit, stop=limit, num=shape_large['x'], axis='x')
         y_large = LabeledArray.linspace(start=-limit, stop=limit, num=shape_large['y'], axis='y')
-        c = a.interp_barycentric_linear(
+        profiler = cProfile.Profile()
+        c = profiler.runcall(
+            # a.interp_barycentric_linear,
+            a.interp_barycentric_linear,
             grid=dict(
                 # x=x_large * np.cos(angle) - y_large * np.sin(angle),
                 x=x_large,
                 # y=x_large * np.sin(angle) + y_large * np.cos(angle),
                 y=y_large,
+                # z=z,
             ),
         )
+        profiler.print_stats(sort='cumtime')
+        # time_start = time.time()
+        # c = a.interp_barycentric_linear(
+        #     grid=dict(
+        #         # x=x_large * np.cos(angle) - y_large * np.sin(angle),
+        #         x=x_large,
+        #         # y=x_large * np.sin(angle) + y_large * np.cos(angle),
+        #         y=y_large,
+        #     ),
+        # )
+        # print('elapsed time', time.time() - time_start)
 
         # assert c.shape == shape_large
 
@@ -475,3 +497,166 @@ class TestDataArray:
         plt.colorbar()
 
         plt.show()
+
+    def test_interp_barycentric_linear_3d(self, capsys):
+
+        capsys.disabled()
+
+        samples = 100
+        shape = dict(
+            x=samples,
+            y=samples,
+            z=samples,
+        )
+        angle = 0.1
+        limit = 10
+        x = LabeledArray.linspace(start=-limit, stop=limit, num=shape['x'], axis='x')
+        y = LabeledArray.linspace(start=-limit, stop=limit, num=shape['y'], axis='y')
+        z = LabeledArray.linspace(start=-limit, stop=limit, num=shape['z'], axis='z')
+        x_rotated = x * np.cos(angle) * np.sin(angle) + y * np.sin(angle) * np.sin(angle) + z * np.cos(angle)
+        y_rotated = x * np.cos(angle) * np.cos(angle) + y * np.cos(angle) * np.cos(angle) - z * np.sin(angle)
+        z_rotated = -x * np.sin(angle) + y * np.cos(angle)
+        a = DataArray(
+            data=np.sin(x * y * z) / (x * y * z),
+            grid=dict(
+                x=x_rotated,
+                # x=x,
+                y=y_rotated,
+                # y=y,
+                z=z_rotated,
+            )
+        )
+
+        # b = a.interp_barycentric_linear(grid=dict(
+        #     x=x,
+        #     y=y,
+        #     z=z,
+        # ))
+        # assert np.isclose(a.data, b.data).data.all()
+
+        samples_large = 50
+        shape_large = dict(
+            x=samples_large,
+            y=samples_large,
+            z=samples_large,
+        )
+        x_large = LabeledArray.linspace(start=-2 * limit, stop=2 * limit, num=shape_large['x'], axis='x')
+        y_large = LabeledArray.linspace(start=-2 * limit, stop=2 * limit, num=shape_large['y'], axis='y')
+        z_large = LabeledArray.linspace(start=-2 * limit, stop=2 * limit, num=shape_large['z'], axis='z')
+
+        profiler = cProfile.Profile()
+        b = profiler.runcall(
+            a.interp_barycentric_linear,
+            # a.interp_barycentric_linear_scipy,
+            grid=dict(
+                x=x_large,
+                y=y_large,
+                z=z_large,
+            ),
+        )
+        profiler.print_stats(sort='cumtime')
+
+        # profiler = cProfile.Profile()
+        # c = profiler.runcall(
+        #     # a.interp_barycentric_linear,
+        #     a.interp_barycentric_linear_scipy,
+        #     grid=dict(
+        #         x=x_large,
+        #         y=y_large,
+        #         z=z_large,
+        #     ),
+        # )
+        # profiler.print_stats(sort='cumtime')
+
+        # time_start = time.time()
+        # c = a.interp_barycentric_linear(
+        #     grid=dict(
+        #         # x=x_large * np.cos(angle) - y_large * np.sin(angle),
+        #         x=x_large,
+        #         # y=x_large * np.sin(angle) + y_large * np.cos(angle),
+        #         y=y_large,
+        #     ),
+        # )
+        # print('elapsed time', time.time() - time_start)
+
+        # assert c.shape == shape_large
+
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.scatter(
+            a.grid_broadcasted['x'].data,
+            a.grid_broadcasted['y'].data,
+            a.grid_broadcasted['z'].data,
+            s=1,
+            c=a.data_broadcasted.data,
+            vmin=-1,
+            vmax=1,
+        )
+        ax.set_xlim(-2 * limit, 2 * limit)
+        ax.set_ylim(-2 * limit, 2 * limit)
+        ax.set_zlim(-2 * limit, 2 * limit)
+        # plt.xlim([-limit, limit])
+        # plt.ylim([-limit, limit])
+        # plt.colorbar()
+
+        # fig = plt.figure()
+        # plt.scatter(
+        #     x=b.grid_broadcasted['x'].data,
+        #     y=b.grid_broadcasted['y'].data,
+        #     c=b.data_broadcasted.data,
+        #     vmin=-1,
+        #     vmax=1,
+        # )
+        # plt.xlim([-limit, limit])
+        # plt.ylim([-limit, limit])
+        # plt.colorbar()
+
+        # fig = plt.figure()
+        # ax = fig.add_subplot(projection='3d')
+        # ax.scatter(
+        #     c.grid_broadcasted['x'].data,
+        #     c.grid_broadcasted['y'].data,
+        #     c.grid_broadcasted['z'].data,
+        #     s=1,
+        #     c=c.data_broadcasted.data,
+        #     vmin=-1,
+        #     vmax=1,
+        # )
+        # ax.set_xlim(-2 * limit, 2 * limit)
+        # ax.set_ylim(-2 * limit, 2 * limit)
+        # ax.set_zlim(-2 * limit, 2 * limit)
+        # # plt.xlim([-limit, limit])
+        # # plt.ylim([-limit, limit])
+        # # plt.colorbar()
+
+        # plt.show()
+
+        # cdata = c.data_broadcasted.data.copy()
+        # cdata[~np.isfinite(cdata)] = 0
+
+        mayavi.mlab.figure()
+        mayavi.mlab.contour3d(
+            a.grid_broadcasted['x'].data,
+            a.grid_broadcasted['y'].data,
+            a.grid_broadcasted['z'].data,
+            a.data_broadcasted.data,
+        )
+
+        mayavi.mlab.figure()
+        mayavi.mlab.contour3d(
+            b.grid_broadcasted['x'].data,
+            b.grid_broadcasted['y'].data,
+            b.grid_broadcasted['z'].data,
+            b.data_broadcasted.data,
+            opacity=.5,
+        )
+
+        # mayavi.mlab.figure()
+        # mayavi.mlab.contour3d(
+        #     c.grid_broadcasted['x'].data,
+        #     c.grid_broadcasted['y'].data,
+        #     c.grid_broadcasted['z'].data,
+        #     c.data_broadcasted.data,
+        #     opacity=.5,
+        # )
+        mayavi.mlab.show()
