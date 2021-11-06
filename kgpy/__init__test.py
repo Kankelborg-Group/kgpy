@@ -502,7 +502,7 @@ class TestDataArray:
 
         capsys.disabled()
 
-        samples = 100
+        samples = 30
         shape = dict(
             x=samples,
             y=samples,
@@ -513,9 +513,9 @@ class TestDataArray:
         x = LabeledArray.linspace(start=-limit, stop=limit, num=shape['x'], axis='x')
         y = LabeledArray.linspace(start=-limit, stop=limit, num=shape['y'], axis='y')
         z = LabeledArray.linspace(start=-limit, stop=limit, num=shape['z'], axis='z')
-        x_rotated = x * np.cos(angle) * np.sin(angle) + y * np.sin(angle) * np.sin(angle) + z * np.cos(angle)
-        y_rotated = x * np.cos(angle) * np.cos(angle) + y * np.cos(angle) * np.cos(angle) - z * np.sin(angle)
-        z_rotated = -x * np.sin(angle) + y * np.cos(angle)
+        x_rotated = x * np.cos(angle) * np.cos(angle) + y * np.cos(angle) * np.cos(angle) - z * np.sin(angle)
+        y_rotated = -x * np.sin(angle) + y * np.cos(angle)
+        z_rotated = x * np.cos(angle) * np.sin(angle) + y * np.sin(angle) * np.sin(angle) + z * np.cos(angle)
         a = DataArray(
             data=np.sin(x * y * z) / (x * y * z),
             grid=dict(
@@ -534,7 +534,7 @@ class TestDataArray:
         # ))
         # assert np.isclose(a.data, b.data).data.all()
 
-        samples_large = 50
+        samples_large = 30
         shape_large = dict(
             x=samples_large,
             y=samples_large,
@@ -556,17 +556,17 @@ class TestDataArray:
         )
         profiler.print_stats(sort='cumtime')
 
-        # profiler = cProfile.Profile()
-        # c = profiler.runcall(
-        #     # a.interp_barycentric_linear,
-        #     a.interp_barycentric_linear_scipy,
-        #     grid=dict(
-        #         x=x_large,
-        #         y=y_large,
-        #         z=z_large,
-        #     ),
-        # )
-        # profiler.print_stats(sort='cumtime')
+        profiler = cProfile.Profile()
+        c = profiler.runcall(
+            # a.interp_barycentric_linear,
+            a.interp_barycentric_linear_scipy,
+            grid=dict(
+                x=x_large,
+                y=y_large,
+                z=z_large,
+            ),
+        )
+        profiler.print_stats(sort='cumtime')
 
         # time_start = time.time()
         # c = a.interp_barycentric_linear(
@@ -640,6 +640,7 @@ class TestDataArray:
             a.grid_broadcasted['y'].data,
             a.grid_broadcasted['z'].data,
             a.data_broadcasted.data,
+            opacity=0.5,
         )
 
         mayavi.mlab.figure()
@@ -651,12 +652,21 @@ class TestDataArray:
             opacity=.5,
         )
 
-        # mayavi.mlab.figure()
-        # mayavi.mlab.contour3d(
-        #     c.grid_broadcasted['x'].data,
-        #     c.grid_broadcasted['y'].data,
-        #     c.grid_broadcasted['z'].data,
-        #     c.data_broadcasted.data,
-        #     opacity=.5,
-        # )
+        mayavi.mlab.figure()
+        mayavi.mlab.contour3d(
+            c.grid_broadcasted['x'].data,
+            c.grid_broadcasted['y'].data,
+            c.grid_broadcasted['z'].data,
+            c.data_broadcasted.data,
+            opacity=.5,
+        )
+        mayavi.mlab.figure()
+        mayavi.mlab.contour3d(
+            c.grid_broadcasted['x'].data,
+            c.grid_broadcasted['y'].data,
+            c.grid_broadcasted['z'].data,
+            c.data_broadcasted.data - b.data_broadcasted.data,
+            opacity=.5,
+        )
+
         mayavi.mlab.show()
