@@ -6,6 +6,7 @@ import dataclasses
 import copy
 import numpy as np
 import numpy.typing
+import numba
 
 __all__ = [
     'linspace', 'midspace',
@@ -858,42 +859,134 @@ class DataArray(kgpy.mixin.Copyable):
             grid={**self.grid, **grid},
         )
 
+    @staticmethod
+    @numba.njit(
+        parallel=True,
+        # fastmath=True,
+    )
+    def _calc_index_nearest_even_numba(grid_data: np.ndarray, grid: np.ndarray):
+
+        shape_grid_data = grid_data.shape
+        shape_grid = grid.shape
+        # shape_grid_data = list(grid_data.values())[0].shape
+        # shape_grid = list(grid.values())[0].shape
+
+        # index_nearest_even = {axis: np.zeros(shape_grid, dtype=numba.int64) for axis in grid}
+        index_nearest_even = np.empty(shape_grid, dtype=numba.int32)
+
+        for i_grid in numba.prange(shape_grid[0]):
+            for j_grid in numba.prange(shape_grid[1]):
+                for k_grid in numba.prange(shape_grid[2]):
+
+                    distance_squared_min = np.inf
+
+                    for i_grid_data in numba.prange(shape_grid_data[0]):
+                        for j_grid_data in numba.prange(shape_grid_data[1]):
+                            for k_grid_data in numba.prange(shape_grid_data[2]):
+
+                                if (i_grid_data + j_grid_data + k_grid_data) % 2 != 0:
+                                    continue
+
+                                index_grid_data = i_grid_data, j_grid_data, k_grid_data
+
+                                distance_squared = 0
+                                for axis in range(shape_grid[3]):
+                                # for axis in grid:
+                                    dist = grid[i_grid, j_grid, k_grid, axis] - grid_data[i_grid_data, j_grid_data, k_grid_data, axis]
+                                    distance_squared += dist * dist
+
+                                if distance_squared < distance_squared_min:
+                                    for axis in range(shape_grid[3]):
+                                        index_nearest_even[i_grid, j_grid, k_grid, axis] = index_grid_data[axis]
+                                    distance_squared_min = distance_squared
+
+                                    # for a, axis in enumerate(grid):
+                                    #     index_nearest_even[axis][i_grid, j_grid, k_grid] = index_grid_data[a]
+                                    # distance_squared_min = distance_squared
+
+
+
+
+        # for index_grid in np.ndindex(list(grid.values())[0].shape):
+        #
+        #     distance_squared_min = np.inf
+        #     for index_grid_data in np.ndindex(list(grid_data.values())[0].shape):
+        #
+        #         if np.sum(np.array(index_grid_data)) % 2 != 0:
+        #             continue
+        #
+        #         distance_squared = 0
+        #         for axis in grid:
+        #             distance_squared = distance_squared + np.square(grid[axis][index_grid] - grid_data[axis][index_grid_data])
+        #
+        #         if distance_squared < distance_squared_min:
+        #             distance_squared_min = distance_squared
+        #             for a, axis in enumerate(index_nearest_even):
+        #                 index_nearest_even[axis][index_grid] = index_grid_data[a]
+
+        return index_nearest_even
+
+
+
+
     def _calc_index_nearest_even(self, **grid: LabeledArray, ) -> typ.Dict[str, LabeledArray]:
 
-        grid_data = self.grid_normalized
+        grid_data = self.grid_broadcasted
+        # grid_data_typed = numba.typed.Dict.empty(
+        #     key_type=numba.types.unicode_type,
+        #     value_type=numba.types.float64[:, :, :],
+        # )
+        # for axis in grid_data:
+        #     grid_data_typed[axis] = grid_data[axis].data
 
-        shape_dummy = dict()
-        for axis_name_data in grid_data:
-            axis_names = grid_data[axis_name_data].axis_names
-            for axis_name in grid:
-                if axis_name in axis_names:
-                    axis_name_dummy = f'{axis_name}_dummy'
-                    shape_dummy[axis_name_dummy] = self.shape[axis_name]
-                    axis_index = axis_names.index(axis_name)
-                    axis_names[axis_index] = axis_name_dummy
+        shape_grid = LabeledArray.shape_broadcasted(*grid.values())
+        grid = {axis: np.broadcast_to(grid[axis], shape=shape_grid, subok=True) for axis in grid}
+        # grid_typed = numba.typed.Dict.empty(
+        #     key_type=numba.types.unicode_type,
+        #     value_type=numba.types.float64[:, :, :],
+        # )
+        # for axis in grid:
+        #     grid_typed[axis] = grid[axis].data
 
-
-
-        distance_squared = 0
-        for axis_name in grid:
-            # grid_data[axis_name][~mask] = np.inf
-            distance_squared_axis = np.square(grid[axis_name] - grid_data[axis_name])
-            distance_squared = distance_squared + distance_squared_axis
-
-        mask = LabeledArray(
-            data=np.indices(shape_dummy.values()).sum(0) % 2 == 0,
-            axis_names=list(shape_dummy.keys()),
+        index = DataArray._calc_index_nearest_even_numba(
+            grid_data=np.stack([d.data for d in grid_data.values()], axis=~0),
+            grid=np.stack([d.data for d in grid.values()], axis=~0),
         )
-        mask = np.broadcast_to(mask, shape=distance_squared.shape, subok=True)
-        distance_squared[~mask] = np.inf
 
-        distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
-        index = np.argmin(distance_squared, axis='dummy')
-        index = np.unravel_index(index, shape_dummy)
+        return {k: LabeledArray(index[..., a], grid[k].axis_names) for a, k in enumerate(grid)}
 
-        index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
-
-        return index
+        # shape_dummy = dict()
+        # for axis_name_data in grid_data:
+        #     axis_names = grid_data[axis_name_data].axis_names
+        #     for axis_name in grid:
+        #         if axis_name in axis_names:
+        #             axis_name_dummy = f'{axis_name}_dummy'
+        #             shape_dummy[axis_name_dummy] = self.shape[axis_name]
+        #             axis_index = axis_names.index(axis_name)
+        #             axis_names[axis_index] = axis_name_dummy
+        #
+        #
+        #
+        # distance_squared = 0
+        # for axis_name in grid:
+        #     # grid_data[axis_name][~mask] = np.inf
+        #     distance_squared_axis = np.square(grid[axis_name] - grid_data[axis_name])
+        #     distance_squared = distance_squared + distance_squared_axis
+        #
+        # mask = LabeledArray(
+        #     data=np.indices(shape_dummy.values()).sum(0) % 2 == 0,
+        #     axis_names=list(shape_dummy.keys()),
+        # )
+        # mask = np.broadcast_to(mask, shape=distance_squared.shape, subok=True)
+        # distance_squared[~mask] = np.inf
+        #
+        # distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+        # index = np.argmin(distance_squared, axis='dummy')
+        # index = np.unravel_index(index, shape_dummy)
+        #
+        # index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
+        #
+        # return index
 
     def interp_barycentric_linear(
             self,
