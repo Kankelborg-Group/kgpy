@@ -989,7 +989,7 @@ class DataArray(kgpy.mixin.Copyable):
         print('data', data)
 
         return DataArray(
-            data=np.sum(data, axis='vertices'),
+            data=np.nansum(data, axis=axes_simplex + ['vertices']),
             grid={**self.grid, **grid},
         )
 
