@@ -985,8 +985,7 @@ class DataArray(kgpy.mixin.Copyable):
         print('weights', weights.shape)
         print('weights', weights)
 
-        data = weights * self.data[{k: index[k] % shape_data[k] for k in index}]
-        print('data', data)
+        data = weights * self.data_broadcasted[{k: index[k] % shape_data[k] for k in index}]
 
         return DataArray(
             data=np.nansum(data, axis=axes_simplex + ['vertices']),
