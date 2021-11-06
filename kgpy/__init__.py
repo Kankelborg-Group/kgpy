@@ -14,6 +14,8 @@ __all__ = [
     'rebin',
 ]
 
+import scipy.interpolate
+
 
 @dataclasses.dataclass
 class Name:
@@ -990,6 +992,31 @@ class DataArray(kgpy.mixin.Copyable):
             data=np.sum(data, axis='vertices'),
             grid={**self.grid, **grid},
         )
+
+    def interp_barycentric_linear_scipy(self, grid: typ.Dict[str, LabeledArray]):
+
+        axes_uninterpolated = self.grid_normalized.keys() - grid.keys()
+        print('axes_uninterpolated', axes_uninterpolated)
+
+        shape_grid = LabeledArray.broadcast_shapes(*grid.values())
+        grid = {k: np.broadcast_to(grid[k], shape=shape_grid, subok=True) for k in grid}
+
+        data_interp = scipy.interpolate.griddata(
+            points=tuple(val.data.reshape(-1) for val in self.grid_broadcasted.values()),
+            values=self.data_broadcasted.data.reshape(-1),
+            xi=tuple(val.data.reshape(-1) for val in grid.values()),
+        )
+
+        data_interp = LabeledArray(
+            data=data_interp.reshape(tuple(shape_grid.values())),
+            axis_names=list(grid.keys()),
+        )
+
+        return DataArray(
+            data=data_interp,
+            grid=grid,
+        )
+
 
     def __call__(
             self,
