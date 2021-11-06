@@ -352,23 +352,58 @@ class LabeledArray(
                 axis_names=axis_names_new,
             )
 
-
     def matrix_inverse(self, axis_rows: str, axis_columns: str) -> 'LabeledArray':
-        data = np.moveaxis(
-            a=self.data,
-            source=[self.axis_names.index(axis_rows), self.axis_names.index(axis_columns)],
-            destination=[~1, ~0],
-        )
+        shape = self.shape
+        if shape[axis_rows] != shape[axis_columns]:
+            raise ValueError('Matrix must be square')
 
-        axis_names_new = self.axis_names.copy()
-        axis_names_new.remove(axis_rows)
-        axis_names_new.remove(axis_columns)
-        axis_names_new += [axis_rows, axis_columns]
+        if shape[axis_rows] == 2:
+            result = LabeledArray(data=self.data.copy(), axis_names=self.axis_names.copy())
+            result[{axis_rows: 0, axis_columns: 0}] = self[{axis_rows: 1, axis_columns: 1}]
+            result[{axis_rows: 1, axis_columns: 1}] = self[{axis_rows: 0, axis_columns: 0}]
+            result[{axis_rows: 0, axis_columns: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
+            result[{axis_rows: 1, axis_columns: 0}] = -self[{axis_rows: 1, axis_columns: 0}]
+            return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
 
-        return LabeledArray(
-            data=np.linalg.inv(data),
-            axis_names=axis_names_new,
-        )
+        elif shape[axis_rows] == 3:
+            a = self[{axis_rows: 0, axis_columns: 0}]
+            b = self[{axis_rows: 0, axis_columns: 1}]
+            c = self[{axis_rows: 0, axis_columns: 2}]
+            d = self[{axis_rows: 1, axis_columns: 0}]
+            e = self[{axis_rows: 1, axis_columns: 1}]
+            f = self[{axis_rows: 1, axis_columns: 2}]
+            g = self[{axis_rows: 2, axis_columns: 0}]
+            h = self[{axis_rows: 2, axis_columns: 1}]
+            i = self[{axis_rows: 2, axis_columns: 2}]
+
+            result = LabeledArray(data=self.data.copy(), axis_names=self.axis_names.copy())
+            result[{axis_rows: 0, axis_columns: 0}] = (e * i - f * h)
+            result[{axis_rows: 0, axis_columns: 1}] = -(b * i - c * h)
+            result[{axis_rows: 0, axis_columns: 2}] = (b * f - c * e)
+            result[{axis_rows: 1, axis_columns: 0}] = -(d * i - f * g)
+            result[{axis_rows: 1, axis_columns: 1}] = (a * i - c * g)
+            result[{axis_rows: 1, axis_columns: 2}] = -(a * f - c * d)
+            result[{axis_rows: 2, axis_columns: 0}] = (d * h - e * g)
+            result[{axis_rows: 2, axis_columns: 1}] = -(a * h - b * g)
+            result[{axis_rows: 2, axis_columns: 2}] = (a * e - b * d)
+            return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
+
+        else:
+            data = np.moveaxis(
+                a=self.data,
+                source=[self.axis_names.index(axis_rows), self.axis_names.index(axis_columns)],
+                destination=[~1, ~0],
+            )
+
+            axis_names_new = self.axis_names.copy()
+            axis_names_new.remove(axis_rows)
+            axis_names_new.remove(axis_columns)
+            axis_names_new += [axis_rows, axis_columns]
+
+            return LabeledArray(
+                data=np.linalg.inv(data),
+                axis_names=axis_names_new,
+            )
 
     def __array_ufunc__(
             self,
