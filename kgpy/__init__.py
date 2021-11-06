@@ -904,34 +904,34 @@ class DataArray(kgpy.mixin.Copyable):
         grid_data = self.grid_broadcasted
 
         index_nearest = self._calc_index_nearest_even(**grid)
-        print('index_nearest', index_nearest)
+        # print('index_nearest', index_nearest)
 
         num_vertices = len(grid) + 1
         index = index_nearest.copy()
         axes_simplex = []
         for a, axis in enumerate(grid):
-            print('axis', axis)
+            # print('axis', axis)
             axis_simplex = f'simplex_{axis}'
             axes_simplex.append(axis_simplex)
             simplex_axis = LabeledArray.zeros(shape={axis_simplex: 2, 'vertices': num_vertices}, dtype=int)
             simplex_axis[dict(vertices=a+1)] = LabeledArray(np.array([-1, 1], dtype=int), axis_names=[axis_simplex])
             index[axis] = (index_nearest[axis] + simplex_axis)
 
-        print('index', {k: index[k].shape for k in index})
-        print('index', index)
+        # print('index', {k: index[k].shape for k in index})
+        # print('index', index)
 
         shape_index = LabeledArray.broadcast_shapes(*index.values())
         barycentric_transform_shape = shape_index.copy()
         barycentric_transform_shape['vertices'] = len(grid)
         barycentric_transform_shape['axis'] = len(grid)
         barycentric_transform = LabeledArray.empty(barycentric_transform_shape)
-        print('barycentric_transform', barycentric_transform_shape)
+        # print('barycentric_transform', barycentric_transform_shape)
 
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
         index_1 = {k: index[k][dict(vertices=slice(1, None))] % shape_data[k] for k in index}
 
-        print('index_0', index_0)
-        print('index_1', index_1)
+        # print('index_0', index_0)
+        # print('index_1', index_1)
 
         for a, axis in enumerate(grid):
             x0 = grid_data[axis][index_0]
@@ -940,21 +940,21 @@ class DataArray(kgpy.mixin.Copyable):
             print('x1', x1.shape)
             barycentric_transform[dict(axis=a)] = x1 - x0
 
-        print('barycentric_transform', barycentric_transform)
+        # print('barycentric_transform', barycentric_transform)
 
         barycentric_transform = barycentric_transform.matrix_inverse(
             axis_rows='axis',
             axis_columns='vertices',
         )
 
-        print('barycentric_transform', barycentric_transform)
+        # print('barycentric_transform', barycentric_transform)
 
         barycentric_coordinates = np.stack(
             arrays=[grid[axis] - grid_data[axis][index_nearest] for axis in grid],
             axis='axis',
         ).add_axes(axes_simplex + ['vertices'])
 
-        print('barycentric_coordinates', barycentric_coordinates)
+        # print('barycentric_coordinates', barycentric_coordinates)
 
         barycentric_coordinates = barycentric_transform.matrix_multiply(
             barycentric_coordinates,
@@ -962,7 +962,7 @@ class DataArray(kgpy.mixin.Copyable):
             axis_columns='vertices',
         ).combine_axes(['vertices', 'axis'], axis_new='vertices')
 
-        print('barycentric_coordinates', barycentric_coordinates)
+        # print('barycentric_coordinates', barycentric_coordinates)
 
         mask_inside = (0 < barycentric_coordinates) & (barycentric_coordinates <= 1)
         print('mask_inside', mask_inside.shape)
@@ -972,8 +972,8 @@ class DataArray(kgpy.mixin.Copyable):
         mask_inside = np.all(mask_inside, axis='vertices')
         mask_inside = np.broadcast_to(mask_inside, shape=barycentric_coordinates.shape, subok=True)
 
-        print('mask_inside', mask_inside)
-        print('mask_inside.sum()', np.sum(mask_inside, axis=axes_simplex))
+        # print('mask_inside', mask_inside)
+        # print('mask_inside.sum()', np.sum(mask_inside, axis=axes_simplex))
 
         barycentric_coordinates[~mask_inside] = np.nan
 
@@ -982,8 +982,8 @@ class DataArray(kgpy.mixin.Copyable):
         weights[dict(vertices=0)] = 1 - np.sum(barycentric_coordinates, axis='vertices')
         weights[dict(vertices=slice(1, None))] = barycentric_coordinates
 
-        print('weights', weights.shape)
-        print('weights', weights)
+        # print('weights', weights.shape)
+        # print('weights', weights)
 
         data = weights * self.data_broadcasted[{k: index[k] % shape_data[k] for k in index}]
 
