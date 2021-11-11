@@ -573,10 +573,15 @@ class LabeledArray(
     ) -> 'LabeledArray':
 
         if isinstance(item, LabeledArray):
-            shape = self.shape_broadcasted(item)
+            data = np.moveaxis(
+                a=self.data,
+                source=[self.axis_names.index(axis) for axis in item.axis_names],
+                destination=np.arange(len(item.axis_names)),
+            )
+
             return LabeledArray(
-                data=self._data_aligned(shape)[item._data_aligned(shape)],
-                axis_names=['boolean', ],
+                data=np.moveaxis(data[item.data], 0, ~0),
+                axis_names=[axis for axis in self.axis_names if axis not in item.axis_names] + ['boolean']
             )
 
         else:

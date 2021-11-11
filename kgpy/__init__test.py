@@ -124,6 +124,15 @@ class TestLabeledArray:
         assert (d[index].data == c.data).all()
         assert d[index].shape == dict(x=1, y=1, z=d.shape['z'])
 
+    def test__getitem__advanced_bool(self):
+        a = LabeledArray.arange(stop=10, axis='x')
+        b = LabeledArray.arange(stop=11, axis='y')
+        c = LabeledArray.arange(stop=5, axis='z')
+        d = a * b * c
+        assert d[a > 5].shape == {**b.shape, **c.shape, **d[a > 5].shape}
+
+
+
     def test_ndindex(self):
         shape = dict(x=2, y=2)
         result_expected = [{'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 1, 'y': 0}, {'x': 1, 'y': 1}]
