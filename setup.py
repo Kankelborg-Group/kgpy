@@ -25,6 +25,7 @@ setup(
         'ChiantiPy',
         'xrt',
         'thermo',
+        'numba',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',
