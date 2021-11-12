@@ -1052,13 +1052,11 @@ class DataArray(kgpy.mixin.Copyable):
             grid=grid,
         )
 
-
     def __call__(
             self,
-            mode: str = 'linear',
-            **grid: typ.Optional[numpy.typing.ArrayLike],
-    ):
-        pass
+            **grid: LabeledArray,
+    ) -> 'DataArray':
+        return self.interp_barycentric_linear(grid=grid)
 
     def view(self) -> 'DataArray':
         other = super().view()  # type: DataArray
