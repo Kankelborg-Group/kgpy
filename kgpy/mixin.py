@@ -102,14 +102,17 @@ class Dataframable:
         return pandas.DataFrame()
 
 
+CopyableT = typ.TypeVar('CopyableT', bound='Copyable')
+
+
 class Copyable(abc.ABC):
 
     @abc.abstractmethod
-    def view(self) -> 'Copyable':
+    def view(self: CopyableT) -> CopyableT:
         return type(self)()
 
     @abc.abstractmethod
-    def copy(self) -> 'Copyable':
+    def copy(self: CopyableT) -> CopyableT:
         return type(self)()
 
 
