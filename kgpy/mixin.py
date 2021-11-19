@@ -275,3 +275,45 @@ class DataclassList(
         other.data = [d.copy() for d in self.data]
         return other
 
+
+KeyT = typ.TypeVar('KeyT')
+DataclassDictT = typ.TypeVar('DataclassDictT', bound='DataclassDict')
+
+
+@dataclasses.dataclass
+class DataclassDict(
+    Copyable,
+    typ.Generic[KeyT, ItemT],
+):
+    data: typ.Dict[KeyT, ItemT] = dataclasses.field(default_factory=dict)
+
+    def __contains__(self: DataclassDictT, item: ItemT) -> bool:
+        return self.data.__contains__(item)
+
+    def __iter__(self: DataclassDictT) -> typ.Iterator[ItemT]:
+        return self.data.__iter__()
+
+    def __reversed__(self: DataclassDictT) -> typ.Iterator[ItemT]:
+        return self.data.__reversed__()
+
+    def __getitem__(self: DataclassDictT, key: KeyT) -> ItemT:
+        return self.data.__getitem__(key)
+
+    def __setitem__(self: DataclassDictT, key: KeyT, value: ItemT):
+        self.data.__setitem__(key, value)
+
+    def __delitem__(self: DataclassDictT, key: KeyT):
+        self.data.__delitem__(key)
+
+    def __len__(self: DataclassDictT) -> int:
+        return self.data.__len__()
+
+    def view(self: DataclassDictT) -> DataclassDictT:
+        other = super().view()
+        other.data = self.data
+        return other
+
+    def copy(self: DataclassDictT) -> DataclassDictT:
+        other = super().copy()
+        other.data = {k: self.data[k].copy() for k in self.data}
+        return other
