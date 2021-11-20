@@ -4,7 +4,7 @@ import pytest
 import cProfile
 import numpy as np
 import mayavi.mlab
-from . import rebin, LabeledArray, DataArray
+from . import rebin, DataArray
 
 
 def test_rebin():
@@ -13,130 +13,6 @@ def test_rebin():
     new_x = rebin(x, scales)
     assert new_x.shape == tuple(x.shape * np.array(scales))
 
-
-class TestLabeledArray:
-
-    def test__post_init__(self):
-        with pytest.raises(ValueError):
-            LabeledArray(data=np.empty((2, 3)), axis_names=['x'])
-
-    def test_shape(self):
-        shape = dict(x=2, y=3)
-        a = LabeledArray(
-            data=np.random.random(tuple(shape.values())),
-            axis_names=list(shape.keys()),
-        )
-        assert a.shape == shape
-
-    def test_shape_broadcasted(self):
-        shape = dict(x=5, y=6)
-        d1 = LabeledArray.empty(dict(x=shape['x'], y=1))
-        d2 = LabeledArray.empty(dict(y=shape['y'], x=1))
-        assert d1.shape_broadcasted(d2) == shape
-
-    def test_data_aligned(self):
-        shape = dict(x=5, y=6, z=7)
-        d = LabeledArray.empty(dict(z=shape['z']))
-        assert d._data_aligned(shape).shape == (1, 1, shape['z'])
-
-    def test_linspace_scalar(self):
-        shape = dict(x=100)
-        d = LabeledArray.linspace(
-            start=0,
-            stop=1,
-            num=shape['x'],
-            axis='x',
-        )
-        assert d.shape == shape
-
-    def test_combine_axes(self):
-        shape = dict(x=5, y=6, z=7)
-        a = LabeledArray.zeros(shape).combine_axes(['x', 'y'])
-        assert a.shape == dict(z=shape['z'], xy=shape['x'] * shape['y'])
-
-    def test__array_ufunc__(self):
-        shape = dict(x=100, y=101)
-        a = LabeledArray.linspace(
-            start=0,
-            stop=1,
-            num=shape['x'],
-            axis='x',
-        )
-        b = LabeledArray.linspace(
-            start=0,
-            stop=1,
-            num=shape['y'],
-            axis='y',
-        )
-        c = a + b
-        assert c.shape == shape
-        assert (c.data == a.data[..., np.newaxis] + b.data).all()
-
-    def test__array_ufunc__incompatible_dims(self):
-        a = LabeledArray.linspace(
-            start=0,
-            stop=1,
-            num=10,
-            axis='x',
-        )
-        b = LabeledArray.linspace(
-            start=0,
-            stop=1,
-            num=11,
-            axis='x',
-        )
-        with pytest.raises(ValueError):
-            a + b
-
-    def test__array_function__sum(self):
-        shape = dict(x=4, y=7)
-        a = np.sum(LabeledArray.ones(shape))
-        assert a.data == shape['x'] * shape['y']
-        assert a.shape == dict()
-
-    def test__array_function__sum_axis(self):
-        shape = dict(x=4, y=7)
-        a = np.sum(LabeledArray.ones(shape), axis='x')
-        assert (a.data == shape['x']).all()
-        assert a.shape == dict(y=shape['y'])
-
-    def test__array_function__sum_keepdims(self):
-        shape = dict(x=4, y=7)
-        a = np.sum(LabeledArray.ones(shape), keepdims=True)
-        assert a.data[0, 0] == shape['x'] * shape['y']
-        assert a.shape == dict(x=1, y=1)
-
-    def test__getitem__int(self):
-        a = LabeledArray.arange(stop=10, axis='x')
-        b = LabeledArray.arange(stop=11, axis='y')
-        c = LabeledArray.arange(stop=5, axis='z')
-        d = a * b * c
-        index = dict(x=1, y=1)
-        assert (d[index].data == c.data).all()
-        assert d[index].shape == c.shape
-
-    def test__getitem__slice(self):
-        a = LabeledArray.arange(stop=10, axis='x')
-        b = LabeledArray.arange(stop=11, axis='y')
-        c = LabeledArray.arange(stop=5, axis='z')
-        d = a * b * c
-        index = dict(x=slice(1, 2), y=slice(1, 2))
-        assert (d[index].data == c.data).all()
-        assert d[index].shape == dict(x=1, y=1, z=d.shape['z'])
-
-    def test__getitem__advanced_bool(self):
-        a = LabeledArray.arange(stop=10, axis='x')
-        b = LabeledArray.arange(stop=11, axis='y')
-        c = LabeledArray.arange(stop=5, axis='z')
-        d = a * b * c
-        assert d[a > 5].shape == {**b.shape, **c.shape, **d[a > 5].shape}
-
-
-
-    def test_ndindex(self):
-        shape = dict(x=2, y=2)
-        result_expected = [{'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 1, 'y': 0}, {'x': 1, 'y': 1}]
-        assert list(LabeledArray.ndindex(shape)) == result_expected
 
 
 class TestDataArray:
