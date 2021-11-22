@@ -461,6 +461,9 @@ class AbstractArray(
             yield dict(zip(shape.keys(), index))
 
 
+ArrayLike = typ.Union[float, u.Quantity, AbstractArray]
+
+
 @dataclasses.dataclass(eq=False)
 class Array(
     AbstractArray,
