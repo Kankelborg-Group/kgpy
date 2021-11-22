@@ -607,7 +607,7 @@ class LinearSpace(
 
     @property
     def shape(self: LinearSpaceT) -> typ.Dict[str, int]:
-        shape = self.broadcast_shapes(self.start, self.stop)
+        shape = self.broadcast_shapes(self._start_normalized, self._stop_normalized)
         # shape = self.start.shape_broadcasted(self.stop)
         # if self.axis in shape:
         #     raise ValueError('Axis already defined, pick a new axis.')
