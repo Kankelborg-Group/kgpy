@@ -602,6 +602,14 @@ class LinearSpace(
             return self.stop
 
     @property
+    def start_broadcasted(self: LinearSpaceT) -> StartArrayT:
+        return np.broadcast_to(self._start_normalized, shape=self.shape, subok=True)
+
+    @property
+    def stop_broadcasted(self):
+        return np.broadcast_to(self._stop_normalized, shape=self.shape, subok=True)
+
+    @property
     def range(self: LinearSpaceT) -> Array:
         return self.stop - self.start
 
