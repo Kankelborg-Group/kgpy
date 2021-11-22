@@ -60,6 +60,25 @@ class TestArray:
         with pytest.raises(ValueError):
             a + b
 
+    def test__mul__unit(self):
+        a = kgpy.labeled.UniformRandomSpace(0, 1, 10, 'x') * u.mm
+        assert isinstance(a, kgpy.labeled.AbstractArray)
+        assert isinstance(a.value, u.Quantity)
+
+    def test__mul__float(self):
+        a = kgpy.labeled.UniformRandomSpace(0, 1, 10, 'x')
+        b = 2.
+        c = a * b
+        assert isinstance(c, kgpy.labeled.Array)
+        assert c.value.mean() > 0.5
+
+    def test__mul__ndarray(self):
+        shape = dict(x=10)
+        a = kgpy.labeled.UniformRandomSpace(0, 1, shape['x'], 'x')
+        b = np.ones(shape['x'])
+        with pytest.raises(ValueError):
+            a * b
+
     def test__array_function__sum(self):
         shape = dict(x=4, y=7)
         a = np.sum(kgpy.labeled.Array.ones(shape))
