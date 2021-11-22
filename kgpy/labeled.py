@@ -666,8 +666,8 @@ class UniformRandomSpace(LinearSpace):
     def value(self: UniformRandomSpaceT):
         shape = self.shape
         return self._rng.uniform(
-            low=np.broadcast_to(self.start, shape=shape, subok=True),
-            hgih=np.broadcast_to(self.stop, shape=shape, subok=True),
+            low=self.start_broadcasted._data_aligned(shape),
+            high=self.stop_broadcasted._data_aligned(shape),
         )
 
     def view(self: UniformRandomSpaceT) -> UniformRandomSpaceT:
