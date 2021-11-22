@@ -240,6 +240,15 @@ class AbstractArray(
                 axes=axes_new,
             )
 
+    def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.Unit]):
+        if isinstance(other, u.Unit):
+            return Array(
+                value=self.value * other,
+                axes=self.axes.copy(),
+            )
+        else:
+            return super().__mul__(other)
+
     def __array_ufunc__(
             self: AbstractArrayT,
             function: np.ufunc,
