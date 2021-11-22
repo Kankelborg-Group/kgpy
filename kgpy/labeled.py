@@ -248,6 +248,11 @@ class AbstractArray(
             **kwargs: typ.Any,
     ) -> 'Array':
         inputs = [Array(value=inp, axes=[]) if np.isscalar(inp) else inp for inp in inputs]
+        for inp in inputs:
+            if not isinstance(inp, AbstractArray):
+                name = f'{AbstractArray.__module__}.{AbstractArray.__qualname__}'
+                raise ValueError(f'Inputs must be scalars or instances of {name}')
+
         shape = self.broadcast_shapes(*inputs)
         inputs = [inp._data_aligned(shape) for inp in inputs]
 
