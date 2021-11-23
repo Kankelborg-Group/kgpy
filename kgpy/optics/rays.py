@@ -609,6 +609,113 @@ class Rays(transform.rigid.Transformable):
         unit = self.position.x.unit
         return hist, edges_x << unit, edges_y << unit
 
+    @classmethod
+    def calc_mtf(
+            cls,
+            psf: u.Quantity,
+            limit_min: kgpy.vector.Vector2D,
+            limit_max: kgpy.vector.Vector2D,
+            # frequency_min: typ.Optional[typ.Union[u.Quantity, kgpy.vector.Vector2D]] = None,
+    ) -> typ.Tuple[u.Quantity, kgpy.vector.Vector2D]:
+
+        psf_sum_pupil = np.nansum(a=psf, axis=cls.axis.pupil_xy, keepdims=True)
+        psf = np.nan_to_num(psf / psf_sum_pupil)
+
+        print(psf.shape)
+
+        bins = kgpy.vector.Vector2D.from_tuple(np.array(psf.shape)[np.array(cls.axis.pupil_xy)])
+
+        print('bins', bins)
+
+        period = limit_max - limit_min
+        print('period', period)
+        # period = (1 * u.dimensionless_unscaled) / frequency_min
+        spacing = period / (bins - np.array(1))
+        spacing = np.broadcast_to(spacing, psf_sum_pupil.shape, subok=True)
+        # print(spacing)
+
+        print(psf.shape)
+        mtf = np.abs(np.fft.fft2(a=psf, axes=cls.axis.pupil_xy)) * u.dimensionless_unscaled
+
+        frequency = kgpy.vector.Vector2D(
+            x=np.moveaxis(np.fft.fftfreq(n=bins.x, d=np.moveaxis(spacing.x, cls.axis.pupil_x, ~0)), ~0, cls.axis.pupil_x),
+            y=np.moveaxis(np.fft.fftfreq(n=bins.y, d=np.moveaxis(spacing.y, cls.axis.pupil_y, ~0)), ~0, cls.axis.pupil_y),
+        )
+
+        print('frequency.shape', frequency.shape)
+
+        # mask_x = frequency.x >= 0
+        # mask_y = frequency.y >= 0
+        range_x = range(bins.x - bins.x // 2)
+        range_y = range(bins.y - bins.y // 2)
+
+        print(range_x)
+
+        mtf = mtf.take(indices=range_x, axis=cls.axis.pupil_x)
+        mtf = mtf.take(indices=range_y, axis=cls.axis.pupil_y)
+
+        frequency.x = frequency.x.take(indices=range_x, axis=cls.axis.pupil_x)
+        frequency.y = frequency.y.take(indices=range_y, axis=cls.axis.pupil_y)
+
+        print('mtf mean', mtf.mean())
+
+        return mtf, frequency
+
+    def mtf(
+            self,
+            bins: typ.Union[int, kgpy.vector.Vector2D] = 10,
+            frequency_min: typ.Optional[typ.Union[u.Quantity, kgpy.vector.Vector2D]] = None,
+            use_vignetted: bool = False,
+    ) -> typ.Tuple[u.Quantity, kgpy.vector.Vector2D]:
+
+        if not isinstance(bins, kgpy.vector.Vector2D):
+            bins = kgpy.vector.Vector2D(x=bins, y=bins)
+
+        if not isinstance(frequency_min, kgpy.vector.Vector2D):
+            frequency_min = kgpy.vector.Vector2D(x=frequency_min, y=frequency_min)
+
+        period = (1 * u.dimensionless_unscaled) / frequency_min
+        limit_max = period / 2
+        limit_min = -limit_max
+
+
+        psf, edges_x, edges_y = self.pupil_hist2d(
+            bins=bins.to_tuple(),
+            limit_min=limit_min,
+            limit_max=limit_max,
+            use_vignetted=use_vignetted,
+            relative_to_centroid=(True, True),
+            use_position_apparent=True,
+        )
+
+        return self.calc_mtf(psf=psf, limit_min=limit_min, limit_max=limit_max)
+
+
+
+        # psf = np.nan_to_num(psf / np.nansum(a=psf, axis=self.axis.pupil_xy, keepdims=True))
+        #
+        # print(psf.shape)
+        # mtf = np.abs(np.fft.fft2(a=psf, axes=(self.axis.pupil_x, self.axis.pupil_y))) * u.dimensionless_unscaled
+        #
+        # frequency = kgpy.vector.Vector2D(
+        #     x=np.fft.fftfreq(n=bins.x, d=spacing.x),
+        #     y=np.fft.fftfreq(n=bins.y, d=spacing.y),
+        # )
+        #
+        # sl = [slice(None)] * mtf.ndim
+        # mask_x = frequency.x >= 0
+        # mask_y = frequency.y >= 0
+        # mesh = np.ix_(mask_x, mask_y)
+        # sl[self.axis.pupil_x] = mesh[0]
+        # sl[self.axis.pupil_y] = mesh[1]
+        # mtf = mtf[sl]
+        #
+        # frequency.x = frequency.x[mask_x]
+        # frequency.y = frequency.y[mask_y]
+        #
+        # return mtf, frequency
+
+
     def colorgrid(self, axis: int) -> np.ndarray:
         grid = self.input_grids[axis]
         return np.broadcast_to(grid, self.shape + grid.shape[~0:], subok=True)
