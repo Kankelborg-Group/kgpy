@@ -5,6 +5,7 @@ import numpy as np
 import numpy.typing
 import astropy.units as u
 from kgpy import linspace, vector, mixin
+import kgpy.labeled
 
 __all__ = [
     'Grid1D',
@@ -15,6 +16,157 @@ __all__ = [
     'StratifiedRandomGrid2D',
     'IrregularGrid1D',
 ]
+
+GridT = typ.TypeVar('GridT', bound='Grid')
+OtherGridT = typ.TypeVar('OtherGridT', bound='Grid')
+CoordinateT = typ.TypeVar('CoordinateT', bound=kgpy.labeled.AbstractArray)
+
+
+@dataclasses.dataclass
+class Grid(
+    mixin.Copyable,
+):
+
+    @property
+    def value(self: GridT) -> typ.Dict[str, kgpy.labeled.AbstractArray]:
+        return vars(self)
+
+    @value.setter
+    def value(self: GridT, value: typ.Dict[str, kgpy.labeled.AbstractArray]):
+        coordinates = self.value
+        for axis in value:
+            coordinates[axis] = value[axis]
+
+    @property
+    def components(self: GridT) -> typ.List[str]:
+        return list(self.value.keys())
+
+    @property
+    def coordinates(self: GridT) -> typ.List[kgpy.labeled.AbstractArray]:
+        return list(self.value.values())
+
+    def __len__(self: GridT) -> int:
+        return self.value.__len__()
+
+    def __iter__(self: GridT) -> str:
+        for axis in self.value:
+            yield axis
+
+    def __getitem__(self: GridT, axis: str) -> kgpy.labeled.AbstractArray:
+        return self.value[axis]
+
+    def __setitem__(self: GridT, axis: str, value: kgpy.labeled.AbstractArray):
+        self.value[axis] = value
+
+    @classmethod
+    def from_dict(cls: typ.Type[GridT], value: typ.Dict[str, kgpy.labeled.AbstractArray]) -> GridT:
+        self = cls()
+        self.value = value
+        return self
+
+    def subspace(self: GridT, subgrid: OtherGridT) -> OtherGridT:
+        other = type(subgrid)()
+        for component in subgrid:
+            other[component] = self[component]
+        return other
+
+    @property
+    def shape(self: GridT) -> typ.Dict[str, int]:
+        return kgpy.labeled.Array.broadcast_shapes(*self.coordinates)
+
+    @property
+    def ndim(self: GridT) -> int:
+        return len(self.shape)
+
+    @property
+    def size(self) -> int:
+        return np.array(self.shape.values()).prod()
+
+    @property
+    def broadcasted(self: GridT) -> GridT:
+        shape = self.shape
+        grid_broadcasted = type(self)()
+        for component in self.value:
+            setattr(grid_broadcasted, component, np.broadcast_to(getattr(self, component), shape=shape, subok=True))
+        return grid_broadcasted
+
+    def flatten(self: GridT, axis_new: str) -> GridT:
+        other = self.broadcasted
+        axes = other.shape.keys()
+        for component in other:
+            other[component] = other[component].combine_axes(axes=axes, axis_new=axis_new)
+        return other
+
+    def __eq__(self: GridT, other: OtherGridT) -> bool:
+        for axis in self.value:
+            if axis not in other.value:
+                return False
+            if not self.value[axis] == other.value[axis]:
+                return False
+        return True
+
+    def view(self: GridT) -> 'GridT':
+        other = super().view()
+        for component in other:
+            other[component] = self[component]
+        return other
+
+    def copy(self: GridT):
+        other = super().copy()
+        for component in other:
+            other[component] = self[component].copy()
+        return other
+
+CoordinateX = typ.TypeVar('CoordinateX', bound=kgpy.labeled.AbstractArray)
+CoordinateY = typ.TypeVar('CoordinateY', bound=kgpy.labeled.AbstractArray)
+CoordinateZ = typ.TypeVar('CoordinateZ', bound=kgpy.labeled.AbstractArray)
+
+
+@dataclasses.dataclass(eq=False)
+class X(
+    Grid,
+    typ.Generic[CoordinateX],
+):
+    x: typ.Optional[CoordinateX] = None
+
+
+@dataclasses.dataclass(eq=False)
+class Y(
+    Grid,
+    typ.Generic[CoordinateY],
+):
+    y: typ.Optional[CoordinateY] = None
+
+
+@dataclasses.dataclass(eq=False)
+class Z(
+    typ.Generic[CoordinateZ],
+):
+    z: typ.Optional[CoordinateZ] = None
+
+
+@dataclasses.dataclass(eq=False)
+class XY(Y, X):
+    pass
+
+
+@dataclasses.dataclass(eq=False)
+class YZ(Z, Y):
+    pass
+
+
+@dataclasses.dataclass(eq=False)
+class XZ(Z, X):
+    pass
+
+
+@dataclasses.dataclass(eq=False)
+class XYZ(Z, Y, X):
+    pass
+
+
+
+
 
 
 @dataclasses.dataclass
