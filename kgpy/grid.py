@@ -177,6 +177,11 @@ class Grid1D(
 
     @property
     @abc.abstractmethod
+    def num_samples(self):
+        pass
+
+    @property
+    @abc.abstractmethod
     def range(self) -> u.Quantity:
         pass
 
@@ -203,6 +208,11 @@ class Grid2D(Grid1D):
 
     @property
     @abc.abstractmethod
+    def num_samples_normalized(self) -> vector.Vector2D:
+        pass
+
+    @property
+    @abc.abstractmethod
     def range(self) -> vector.Vector2D:
         return super().range
 
@@ -224,6 +234,7 @@ class RegularGrid1D(Grid1D):
     min: u.Quantity = 0 * u.dimensionless_unscaled
     max: u.Quantity = 1 * u.dimensionless_unscaled
     num_samples: int = 1
+    axis: int = ~0
 
     @property
     def range(self) -> u.Quantity:
@@ -359,8 +370,13 @@ class IrregularGrid1D(Grid1D):
     name: typ.Optional[np.ndarray] = None
 
     @property
+    def num_samples(self) -> int:
+        return self.points.shape[~0]
+
+    @property
     def range(self) -> u.Quantity:
-        return self.points[..., ~0] - self.points[..., 0]
+        return self.points.max(~0) - self.points.min(~0)
+        # return self.points[..., ~0] - self.points[..., 0]
 
     @property
     def shape(self) -> typ.Tuple[int, ...]:
@@ -378,3 +394,22 @@ class IrregularGrid1D(Grid1D):
         if self.name is not None:
             other.name = self.name.copy()
         return other
+
+
+@dataclasses.dataclass
+class RectilinearGrid2D(
+    IrregularGrid1D,
+    Grid2D,
+):
+    points: vector.Vector2D = None
+
+    @property
+    def num_samples(self) -> vector.Vector2D:
+        return vector.Vector2D(
+            x=self.points.shape[~1],
+            y=self.points.shape[~0],
+        )
+
+    @property
+    def num_samples_normalized(self):
+        return self.num_samples
