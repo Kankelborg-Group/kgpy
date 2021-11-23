@@ -7,7 +7,12 @@ import astropy.units as u
 import kgpy.plot
 from kgpy import mixin, vector, format as fmt, polynomial
 
-__all__ = ['Distortion', 'Vignetting', 'Aberration']
+__all__ = [
+    'Distortion',
+    'Vignetting',
+    'psf',
+    'Aberration',
+]
 
 
 @dataclasses.dataclass
@@ -445,6 +450,9 @@ class Vignetting:
         fig.colorbar(img, ax=axs, label=data_name + ' (' + '{0:latex}'.format(data.unit) + ')')
 
         return axs
+
+
+from . import psf
 
 
 @dataclasses.dataclass
