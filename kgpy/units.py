@@ -1,9 +1,12 @@
 import typing as typ
 import dataclasses
 import numpy as np
+import numpy.typing
 import astropy.units as u
 
 __all__ = ['TolQuantity']
+
+QuantityLike = typ.Union[numpy.typing.ArrayLike, u.Quantity]
 
 mAA = u.def_unit(
     s=['milliAngstrom', 'mAA', 'milliangstrom'],
