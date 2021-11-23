@@ -338,6 +338,21 @@ class System(
             rays_input.vignetting_polynomial_degree = self.vignetting_polynomial_degree
             return self._calc_rays_input_direction(rays_input=rays_input)
 
+    @property
+    def psf_diffraction(self) -> aberration.psf.DiscretePSF:
+        rays_output = self.rays_output_resample_entrance
+        intensity = rays_output.intensity.copy()
+        intensity[~rays_output.mask] = 0
+        intensity = intensity.mean(rays_output.axis.velocity_los)
+        return aberration.psf.DiscretePSF.from_pupil_function(
+            pupil_function=intensity,
+            grid=aberration.psf.Grid(
+                field=rays_output.input_grid.field,
+                position=rays_output.input_grid.pupil,
+                wavelength=rays_output.input_grid.wavelength,
+            ),
+        )
+
 
     def psf(
             self,
