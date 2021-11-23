@@ -259,6 +259,15 @@ class AbstractArray(
         else:
             return super().__mul__(other)
 
+    def __lshift__(self, other: u.Unit) -> 'Array':
+        axes = self.axes
+        if axes is not None:
+            axes = axes.copy()
+        return Array(
+            value=self.value << other,
+            axes=axes
+        )
+
     def __array_ufunc__(
             self,
             function,
