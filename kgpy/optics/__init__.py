@@ -19,7 +19,7 @@ import matplotlib.lines
 import matplotlib.colorbar
 import matplotlib.axes
 from kgpy import mixin, linspace, vector, optimization, transform, obs, grid
-from . import aberration, rays, surface, component, baffle, breadboard
+from . import aberration, rays, surface, component, baffle, breadboard, mtf
 
 __all__ = [
     'aberration',
@@ -354,6 +354,139 @@ class System(
             use_vignetted=use_vignetted,
             relative_to_centroid=relative_to_centroid,
         )
+
+    def __call__(
+            self,
+            cube: u.Quantity,
+            grid_field: grid.RegularGrid2D,
+            wavelength: u.Quantity,
+            grid_velocity_los: grid.RegularGrid2D,
+            pupil_samples: typ.Union[int, vector.Vector2D] = 10,
+    ) -> u.Quantity:
+
+        pass
+
+
+
+    # def __call__(
+    #         self,
+    #         data: u.Quantity,
+    #         wavelength: u.Quantity,
+    #         # spatial_domain_input: u.Quantity,
+    #         # spatial_domain_output: u.Quantity,
+    #         # spatial_samples_output: typ.Union[int, typ.Tuple[int, int]],
+    #         spatial_input_min: vector.Vector2D,
+    #         spatial_input_max: vector.Vector2D,
+    #         spatial_output_min: vector.Vector2D,
+    #         spatial_output_max: vector.Vector2D,
+    #         spatial_samples_output: typ.Union[int, vector.Vector2D],
+    #         inverse: bool = False,
+    # ) -> u.Quantity:
+    #     return self.rays_output.aberration(
+    #         distortion_polynomial_degree=self.distortion_polynomial_degree,
+    #         vignetting_polynomial_degree=self.vignetting_polynomial_degree,
+    #     ).__call__(
+    #         data=data,
+    #         wavelength=wavelength,
+    #         spatial_input_min=spatial_input_min,
+    #         spatial_input_max=spatial_input_max,
+    #         spatial_output_min=spatial_output_min,
+    #         spatial_output_max=spatial_output_max,
+    #         spatial_samples_output=spatial_samples_output,
+    #         inverse=inverse
+    #     )
+
+    def generic_fit(
+            self,
+            observed_images: u.Quantity,
+            target_images: u.Quantity,
+            target_images_min: vector.Vector2D,
+            target_images_max: vector.Vector2D,
+            factory: typ.Callable[[typ.List[u.Quantity], 'System', int], 'System'],
+            # channel_index: typ.Union[int, typ.Tuple[int, ...]] = (),
+            params_guess: typ.Optional[typ.List[u.Quantity]] = None,
+            params_min: typ.Optional[typ.List[u.Quantity]] = None,
+            params_max: typ.Optional[typ.List[u.Quantity]] = None,
+            use_correlate: bool = False,
+            x_axis: int = ~2,
+            y_axis: int = ~1,
+            w_axis: int = ~0,
+    ) -> 'System':
+
+        axes_all = x_axis, y_axis, w_axis
+
+        observed_images = np.expand_dims(observed_images, w_axis)
+        observed_images_shape = list(observed_images.shape)
+        observed_images_shape[w_axis] = target_images.shape[w_axis]
+        observed_images = observed_images.reshape(observed_images_shape)
+
+        observed_images = observed_images / np.median(observed_images, axis=axes_all, keepdims=True)
+        target_images = target_images / np.median(target_images, axis=axes_all, keepdims=True)
+
+        if params_guess is not None:
+            params_unit = [q.unit for q in params_guess]
+        else:
+            params_unit = [q.unit for q in params_min]
+
+        def factory_value(params: np.ndarray, other: 'System', chan_index: int) -> 'System':
+            params = [param * unit for param, unit in zip(params, params_unit)]
+            return factory(params, other, chan_index)
+
+        def objective(params: np.ndarray, chan_index: int) -> float:
+            other = factory_value(params=params, chan_index=chan_index)
+            test_images = other(
+                data=observed_images,
+                wavelength=other.wavelength,
+                spatial_input_min=vector.Vector2D(x=0 * u.pix, y=0 * u.pix),
+                spatial_input_max=vector.Vector2D(
+                    x=observed_images.shape[x_axis],
+                    y=observed_images.shape[y_axis],
+                ),
+                spatial_output_min=target_images_min,
+                spatial_output_max=target_images_max,
+                spatial_samples_output=vector.Vector2D(
+                    x=target_images.shape[x_axis],
+                    y=target_images.shape[y_axis],
+                ),
+                inverse=True,
+            )
+            if use_correlate:
+                corr = scipy.signal.correlate(
+                    in1=np.nan_to_num(test_images[chan_index]),
+                    in2=target_images,
+                    mode='same',
+                )
+                corr = np.prod(corr, axis=w_axis)
+                lag = np.array(np.unravel_index(np.argmax(corr), corr.shape)) - np.array(corr.shape) // 2
+                test_images[chan_index] = np.roll(test_images[chan_index], -lag, axis=(x_axis, y_axis))
+
+            diff = test_images[chan_index] - target_images
+            norm = np.sqrt(np.mean(np.square(diff)))
+            return norm
+
+        other = self.view()
+        shape = observed_images.shape[:~2]
+        for i in range(np.prod(shape)):
+            index = np.unravel_index(i, shape)
+
+            params_converted_min = [param[index].to(unit).value for param, unit in zip(params_min, params_unit)]
+            params_converted_max = [param[index].to(unit).value for param, unit in zip(params_max, params_unit)]
+
+            params_converted_min = np.array(params_converted_min)
+            params_converted_max = np.array(params_converted_max)
+
+            x0 = scipy.optimize.brute(
+                func=objective,
+                ranges=np.stack([params_converted_min, params_converted_max], axis=~0),
+                args=(other, index, ),
+                disp=True,
+            )
+
+            other = factory_value(params=x0, other=other, chan_index=index)
+
+        return other
+
+
 
     def print_surfaces(self) -> typ.NoReturn:
         for surf in self.surfaces_all:
