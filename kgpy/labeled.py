@@ -401,7 +401,9 @@ class AbstractArray(
             if function is not np.isclose:
                 if 'keepdims' not in kwargs:
                     if 'axis' in kwargs:
-                        if np.isscalar(kwargs['axis']):
+                        if kwargs['axis'] is None:
+                            axes_new = []
+                        elif np.isscalar(kwargs['axis']):
                             axes_new.remove(kwargs['axis'])
                         else:
                             for axis in kwargs['axis']:
@@ -410,7 +412,9 @@ class AbstractArray(
                         axes_new = []
 
             if 'axis' in kwargs:
-                if np.isscalar(kwargs['axis']):
+                if kwargs['axis'] is None:
+                    pass
+                elif np.isscalar(kwargs['axis']):
                     kwargs['axis'] = axes.index(kwargs['axis'])
                 else:
                     kwargs['axis'] = tuple(axes.index(ax) for ax in kwargs['axis'])
