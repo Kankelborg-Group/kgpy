@@ -513,6 +513,8 @@ class AbstractArray(
         for index in np.ndindex(*shape_tuple):
             yield dict(zip(shape.keys(), index))
 
+    def mean(self, axis: typ.Optional[str] = None):
+        return np.mean(self, axis=axis)
 
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
 
