@@ -24,6 +24,7 @@ RangeT = typ.TypeVar('RangeT', bound='Range')
 LinearSpaceT = typ.TypeVar('LinearSpaceT', bound='LinearSpace')
 _RandomSpaceT = typ.TypeVar('_RandomSpaceT', bound='_RandomSpace')
 UniformRandomSpaceT = typ.TypeVar('UniformRandomSpaceT', bound='UniformRandomSpace')
+NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace')
 
 
 @dataclasses.dataclass(eq=False)
@@ -754,12 +755,21 @@ class UniformRandomSpace(
             high=self.stop_broadcasted._data_aligned(shape),
         )
 
-    def view(self: UniformRandomSpaceT) -> UniformRandomSpaceT:
+
+@dataclasses.dataclass
+class NormalRandomSpace(_RandomSpace):
+
+    width: ArrayLike = 0
+
+    def view(self: NormalRandomSpaceT) -> NormalRandomSpaceT:
         other = super().view()
-        other.seed = self.seed
+        other.width = self.width
         return other
 
-    def copy(self: UniformRandomSpaceT) -> UniformRandomSpaceT:
+    def copy(self: NormalRandomSpaceT) -> NormalRandomSpaceT:
         other = super().copy()
-        other.seed = self.seed
+        if hasattr(self.width, 'copy'):
+            other.width = self.width.copy()
+        else:
+            other.width = self.width
         return other
