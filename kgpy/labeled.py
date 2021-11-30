@@ -22,6 +22,7 @@ OtherAbstractArrayT = typ.TypeVar('OtherAbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
 RangeT = typ.TypeVar('RangeT', bound='Range')
 LinearSpaceT = typ.TypeVar('LinearSpaceT', bound='LinearSpace')
+_RandomSpaceT = typ.TypeVar('_RandomSpaceT', bound='_RandomSpace')
 UniformRandomSpaceT = typ.TypeVar('UniformRandomSpaceT', bound='UniformRandomSpace')
 
 
@@ -720,13 +721,30 @@ class LinearSpace(
 
 
 @dataclasses.dataclass
-class UniformRandomSpace(LinearSpace):
+class _RandomSpace:
 
     seed: int = 42
 
     @property
     def _rng(self) -> np.random.Generator:
         return np.random.default_rng(seed=self.seed)
+
+    def view(self: _RandomSpaceT) -> _RandomSpaceT:
+        other = super().view()
+        other.seed = self.seed
+        return other
+
+    def copy(self: _RandomSpaceT) -> _RandomSpaceT:
+        other = super().copy()
+        other.seed = self.seed
+        return other
+
+
+@dataclasses.dataclass
+class UniformRandomSpace(
+    LinearSpace,
+    _RandomSpace,
+):
 
     @property
     def value(self: UniformRandomSpaceT):
