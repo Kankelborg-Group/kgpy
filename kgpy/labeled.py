@@ -516,6 +516,13 @@ class AbstractArray(
     def mean(self, axis: typ.Optional[str] = None):
         return np.mean(self, axis=axis)
 
+    def min(self: AbstractArrayT, axis: typ.Optional[str] = None):
+        return np.min(self, axis=axis)
+
+    def max(self: AbstractArrayT, axis: typ.Optional[str] = None):
+        return np.min(self, axis=axis)
+
+
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
 
 
