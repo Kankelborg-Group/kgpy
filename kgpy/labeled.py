@@ -53,11 +53,9 @@ class AbstractArray(
             return []
 
     @property
+    @abc.abstractmethod
     def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
-        shape = dict()
-        for i in range(np.ndim(self.value)):
-            shape[self._axes_normalized[i]] = self.value.shape[i]
-        return shape
+        return dict()
 
     @property
     def ndim(self: AbstractArrayT) -> int:
@@ -564,6 +562,13 @@ class Array(
             axes=list(shape.keys()),
         )
 
+    @property
+    def shape(self: ArrayT) -> typ.Dict[str, int]:
+        shape = super().shape
+        for i in range(np.ndim(self.value)):
+            shape[self._axes_normalized[i]] = self.value.shape[i]
+        return shape
+
     def __setitem__(
             self: ArrayT,
             key: typ.Union[typ.Dict[str, typ.Union[int, slice, AbstractArray]], AbstractArray],
@@ -611,6 +616,13 @@ class Range(AbstractArray[np.ndarray]):
     stop: int = None
     step: int = 1
     axis: str = None
+
+    @property
+    def shape(self: RangeT) -> typ.Dict[str, int]:
+        shape = super().shape
+        for i in range(np.ndim(self.value)):
+            shape[self._axes_normalized[i]] = self.value.shape[i]
+        return shape
 
     @property
     def value(self: RangeT) -> np.ndarray:
