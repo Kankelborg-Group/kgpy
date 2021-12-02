@@ -21,9 +21,12 @@ AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 OtherAbstractArrayT = typ.TypeVar('OtherAbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
 RangeT = typ.TypeVar('RangeT', bound='Range')
+_SpaceMixinT = typ.TypeVar('_SpaceMixinT', bound='_SpaceMixin')
+_LinearMixinT = typ.TypeVar('_LinearMixinT', bound='_LinearMixin')
 LinearSpaceT = typ.TypeVar('LinearSpaceT', bound='LinearSpace')
-_RandomSpaceT = typ.TypeVar('_RandomSpaceT', bound='_RandomSpace')
+_RandomSpaceMixinT = typ.TypeVar('_RandomSpaceMixinT', bound='_RandomSpaceMixin')
 UniformRandomSpaceT = typ.TypeVar('UniformRandomSpaceT', bound='UniformRandomSpace')
+_NormalMixinT = typ.TypeVar('_NormalMixinT', bound='WidthMixin')
 NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace')
 
 
@@ -609,7 +612,7 @@ class Array(
         return other
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Range(AbstractArray[np.ndarray]):
 
     start: int = 0
@@ -653,55 +656,96 @@ class Range(AbstractArray[np.ndarray]):
         return other
 
 
+@dataclasses.dataclass(eq=False)
+class _SpaceMixin(
+    AbstractArray[kgpy.units.QuantityLike],
+):
+    num: int = None
+    axis: str = None
+
+    @property
+    def shape(self: _SpaceMixinT) -> typ.Dict[str, int]:
+        shape = super().shape
+        shape[self.axis] = self.num
+        return shape
+
+    @property
+    def axes(self: _SpaceMixinT) -> typ.List[str]:
+        return list(self.shape.keys())
+
+    def view(self: _SpaceMixinT) -> _SpaceMixinT:
+        other = super().view()
+        other.num = self.num
+        other.axis = self.axis
+        return other
+
+    def copy(self: _SpaceMixinT) -> _SpaceMixinT:
+        other = super().copy()
+        other.num = self.num
+        other.axis = self.axis
+        return other
+
+
 StartArrayT = typ.TypeVar('StartArrayT', bound=ArrayLike)
 StopArrayT = typ.TypeVar('StopArrayT', bound=ArrayLike)
 
 
 @dataclasses.dataclass(eq=False)
-class LinearSpace(
+class _LinearMixin(
     AbstractArray[kgpy.units.QuantityLike],
     typ.Generic[StartArrayT, StopArrayT],
 ):
     start: StartArrayT = None
     stop: StopArrayT = None
-    num: int = None
-    axis: str = None
 
     @property
-    def _start_normalized(self: LinearSpaceT) -> AbstractArrayT:
+    def _start_normalized(self: _LinearMixinT) -> AbstractArray:
         if not isinstance(self.start, AbstractArray):
             return Array(self.start)
         else:
             return self.start
 
     @property
-    def _stop_normalized(self: LinearSpaceT) -> AbstractArrayT:
+    def _stop_normalized(self: _LinearMixinT) -> AbstractArray:
         if not isinstance(self.stop, AbstractArray):
             return Array(self.stop)
         else:
             return self.stop
 
     @property
-    def start_broadcasted(self: LinearSpaceT) -> AbstractArrayT:
+    def start_broadcasted(self: _LinearMixinT) -> AbstractArray:
         return np.broadcast_to(self._start_normalized, shape=self.shape, subok=True)
 
     @property
-    def stop_broadcasted(self) -> AbstractArrayT:
+    def stop_broadcasted(self: _LinearMixinT) -> AbstractArray:
         return np.broadcast_to(self._stop_normalized, shape=self.shape, subok=True)
 
     @property
-    def range(self: LinearSpaceT) -> Array:
+    def range(self: _LinearMixinT) -> Array:
         return self.stop - self.start
 
     @property
-    def shape(self: LinearSpaceT) -> typ.Dict[str, int]:
-        shape = self.broadcast_shapes(self._start_normalized, self._stop_normalized)
-        # shape = self.start.shape_broadcasted(self.stop)
-        # if self.axis in shape:
-        #     raise ValueError('Axis already defined, pick a new axis.')
-        shape[self.axis] = self.num
-        return shape
+    def shape(self: _LinearMixinT) -> typ.Dict[str, int]:
+        return dict(**super().shape, **self.broadcast_shapes(self._start_normalized, self._stop_normalized))
 
+    def view(self: _LinearMixinT) -> _LinearMixinT:
+        other = super().view()
+        other.start = self.start
+        other.stop = self.stop
+        return other
+
+    def copy(self: _LinearMixinT) -> _LinearMixinT:
+        other = super().copy()
+        other.start = self.start.copy()
+        other.stop = self.stop.copy()
+        return other
+
+
+@dataclasses.dataclass(eq=False)
+class LinearSpace(
+    _SpaceMixin,
+    _LinearMixin,
+):
     @property
     def value(self: LinearSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
@@ -712,55 +756,35 @@ class LinearSpace(
             axis=~0,
         )
 
-    @property
-    def axes(self: LinearSpaceT) -> typ.List[str]:
-        return list(self.shape.keys())
 
-    def view(self: LinearSpaceT) -> LinearSpaceT:
-        other = super().view()
-        other.start = self.start
-        other.stop = self.stop
-        other.num = self.num
-        other.axis = self.axis
-        return other
+@dataclasses.dataclass(eq=False)
+class _RandomSpaceMixin(_SpaceMixin):
 
-    def copy(self: LinearSpaceT) -> LinearSpaceT:
-        other = super().copy()
-        other.start = self.start.copy()
-        other.stop = self.stop.copy()
-        other.num = self.num
-        other.axis = self.axis
-        return other
-
-
-@dataclasses.dataclass
-class _RandomSpace:
-
-    seed: int = 42
+    seed: typ.Optional[int] = 42
 
     @property
-    def _rng(self) -> np.random.Generator:
+    def _rng(self: _RandomSpaceMixinT) -> np.random.Generator:
         return np.random.default_rng(seed=self.seed)
 
-    def view(self: _RandomSpaceT) -> _RandomSpaceT:
+    def view(self: _RandomSpaceMixinT) -> _RandomSpaceMixinT:
         other = super().view()
         other.seed = self.seed
         return other
 
-    def copy(self: _RandomSpaceT) -> _RandomSpaceT:
+    def copy(self: _RandomSpaceMixinT) -> _RandomSpaceMixinT:
         other = super().copy()
         other.seed = self.seed
         return other
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class UniformRandomSpace(
-    LinearSpace,
-    _RandomSpace,
+    _RandomSpaceMixin,
+    _LinearMixin[StartArrayT, StopArrayT],
 ):
 
     @property
-    def value(self: UniformRandomSpaceT):
+    def value(self: UniformRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
         return self._rng.uniform(
             low=self.start_broadcasted._data_aligned(shape),
@@ -768,20 +792,69 @@ class UniformRandomSpace(
         )
 
 
-@dataclasses.dataclass
-class NormalRandomSpace(_RandomSpace):
+CenterT = typ.TypeVar('CenterT', bound=ArrayLike)
+WidthT = typ.TypeVar('WidthT', bound=ArrayLike)
 
-    width: ArrayLike = 0
 
-    def view(self: NormalRandomSpaceT) -> NormalRandomSpaceT:
+@dataclasses.dataclass(eq=False)
+class _NormalMixin(
+    AbstractArray[kgpy.units.QuantityLike],
+    typ.Generic[CenterT, WidthT]
+):
+
+    center: CenterT = 0
+    width: WidthT = 0
+
+    @property
+    def _center_normalized(self: _NormalMixinT) -> AbstractArray:
+        if not isinstance(self.center, AbstractArray):
+            return Array(self.center)
+        else:
+            return self.center
+
+    @property
+    def _width_normalized(self: _NormalMixinT) -> AbstractArray:
+        if not isinstance(self.stop, AbstractArray):
+            return Array(self.width)
+        else:
+            return self.width
+
+    @property
+    def center_broadcasted(self: _NormalMixinT) -> Array:
+        return np.broadcast_to(self._center_normalized, shape=self.shape, subok=True)
+
+    @property
+    def width_broadcasted(self: _NormalMixinT) -> Array:
+        return np.broadcast_to(self._width_normalized, shape=self.shape, subok=True)
+
+    @property
+    def shape(self: _NormalMixinT) -> typ.Dict[str, int]:
+        return dict(**super().shape, **self.broadcast_shapes(self._width_normalized, self._center_normalized))
+
+    def view(self: _NormalMixinT) -> _NormalMixinT:
         other = super().view()
         other.width = self.width
         return other
 
-    def copy(self: NormalRandomSpaceT) -> NormalRandomSpaceT:
+    def copy(self: _NormalMixinT) -> _NormalMixinT:
         other = super().copy()
         if hasattr(self.width, 'copy'):
             other.width = self.width.copy()
         else:
             other.width = self.width
         return other
+
+
+@dataclasses.dataclass(eq=False)
+class NormalRandomSpace(
+    _RandomSpaceMixin,
+    _NormalMixin[CenterT, WidthT],
+):
+
+    @property
+    def value(self: NormalRandomSpaceT) -> kgpy.units.QuantityLike:
+        shape = self.shape
+        return self._rng.uniform(
+            loc=self.center_broadcasted._data_aligned(shape),
+            scale=self.width_broadcasted._data_aligned(shape),
+        )
