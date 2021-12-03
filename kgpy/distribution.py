@@ -219,8 +219,8 @@ class Uniform(
     @property
     def distribution(self: UniformT) -> kgpy.labeled.UniformRandomSpace:
         return kgpy.labeled.UniformRandomSpace(
-            start=self.value - self.width,
-            stop=self.value + self.width,
+            start=self._value_normalized - self._width_normalized,
+            stop=self._value_normalized + self._width_normalized,
             num=self.num_samples,
             axis=self.axis,
             seed=self.seed,
@@ -233,8 +233,8 @@ class Normal(Uniform):
     @property
     def distribution(self: UniformT) -> kgpy.labeled.NormalRandomSpace:
         return kgpy.labeled.NormalRandomSpace(
-            center=self.value,
-            width=self.width,
+            center=self._value_normalized,
+            width=self._width_normalized,
             num=self.num_samples,
             axis=self.axis,
             seed=self.seed,

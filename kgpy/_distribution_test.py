@@ -46,9 +46,9 @@ class TestUniform(_TestAbstractArray):
         a = kgpy.distribution.Uniform(value=value, width=width, num_samples=11)
         assert isinstance(a, kgpy.distribution.Uniform)
         assert isinstance(a.distribution, kgpy.labeled.UniformRandomSpace)
-        print(a.distribution.value)
+        if not isinstance(value, kgpy.labeled.AbstractArray):
+            value = kgpy.labeled.Array(value)
         assert np.all(a.distribution.min(axis='_distribution') >= value - width)
-
 
 
 class TestNormal(_TestAbstractArray):
