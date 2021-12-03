@@ -195,6 +195,10 @@ class _UniformBase(
 ):
     width: WidthT = 0 * u.dimensionless_unscaled
 
+    @property
+    def _width_normalized(self: UniformT) -> kgpy.labeled.AbstractArray:
+        return self._normalize_parameter(self.width)
+
     def view(self: UniformT) -> UniformT:
         other = super().view()
         other.width = self.width
