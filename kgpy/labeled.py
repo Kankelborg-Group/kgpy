@@ -287,11 +287,17 @@ class AbstractArray(
             *inputs,
             **kwargs,
     ) -> 'Array':
-        inputs = tuple(Array(value=inp, axes=[]) if np.isscalar(inp) else inp for inp in inputs)
+        inputs_normalized = []
         for inp in inputs:
             if not isinstance(inp, AbstractArray):
-                name = f'{AbstractArray.__module__}.{AbstractArray.__qualname__}'
-                raise ValueError(f'Inputs must be scalars or instances of {name}')
+                if np.ndim(inp) == 0:
+                    inputs_normalized.append(Array(inp))
+                else:
+                    name = f'{AbstractArray.__module__}.{AbstractArray.__qualname__}'
+                    raise ValueError(f'Inputs must be scalars or instances of {name}')
+            else:
+                inputs_normalized.append(inp)
+        inputs = inputs_normalized
 
         shape = self.broadcast_shapes(*inputs)
         inputs = tuple(inp._data_aligned(shape) for inp in inputs)
