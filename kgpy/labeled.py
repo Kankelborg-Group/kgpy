@@ -804,10 +804,25 @@ class UniformRandomSpace(
     @property
     def value(self: UniformRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
-        return self._rng.uniform(
-            low=self.start_broadcasted._data_aligned(shape),
-            high=self.stop_broadcasted._data_aligned(shape),
+
+        start = self.start_broadcasted._data_aligned(shape)
+        stop = self.stop_broadcasted._data_aligned(shape)
+
+        unit = None
+        if isinstance(start, u.Quantity):
+            unit = start.unit
+            start = start.value
+            stop = stop.to(unit).value
+
+        value = self._rng.uniform(
+            low=start,
+            high=stop,
         )
+
+        if unit is not None:
+            value = value << unit
+
+        return value
 
 
 CenterT = typ.TypeVar('CenterT', bound=ArrayLike)
@@ -872,7 +887,23 @@ class NormalRandomSpace(
     @property
     def value(self: NormalRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
-        return self._rng.uniform(
-            loc=self.center_broadcasted._data_aligned(shape),
-            scale=self.width_broadcasted._data_aligned(shape),
+
+        center = self.center_broadcasted._data_aligned(shape)
+        width = self.width_broadcasted._data_aligned(shape)
+
+        unit = None
+        if isinstance(center, u.Quantity):
+            unit = center.unit
+            center = center.value
+            width = width.to(unit).value
+
+        value = self._rng.normal(
+            loc=center,
+            scale=width,
         )
+
+        if unit is not None:
+            value = value << unit
+
+        return value
+
