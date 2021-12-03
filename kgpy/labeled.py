@@ -447,7 +447,7 @@ class AbstractArray(
             ]:
                 return value
             else:
-                return type(self)(
+                return Array(
                     value=value,
                     axes=axes_new,
                 )
