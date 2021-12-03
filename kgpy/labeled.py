@@ -406,13 +406,13 @@ class AbstractArray(
             np.isclose,
         ]:
 
-            labeled_arrays = [arg for arg in args if isinstance(arg, Array)]
-            labeled_arrays += [kwargs[k] for k in kwargs if isinstance(kwargs[k], Array)]
+            labeled_arrays = [arg for arg in args if isinstance(arg, AbstractArray)]
+            labeled_arrays += [kwargs[k] for k in kwargs if isinstance(kwargs[k], AbstractArray)]
             shape = Array.broadcast_shapes(*labeled_arrays)
             axes = list(shape.keys())
 
-            args = tuple(arg._data_aligned(shape) if isinstance(arg, Array) else arg for arg in args)
-            kwargs = {k: kwargs[k]._data_aligned(shape) if isinstance(kwargs[k], Array) else kwargs[k] for k in kwargs}
+            args = tuple(arg._data_aligned(shape) if isinstance(arg, AbstractArray) else arg for arg in args)
+            kwargs = {k: kwargs[k]._data_aligned(shape) if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
             types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
 
             axes_new = axes.copy()
