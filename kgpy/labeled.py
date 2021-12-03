@@ -437,7 +437,10 @@ class AbstractArray(
                 else:
                     kwargs['axis'] = tuple(axes.index(ax) for ax in kwargs['axis'])
 
-            value = self.value.__array_function__(function, types, args, kwargs)
+            value = self.value
+            if not hasattr(value, '__array_function__'):
+                value = np.array(value)
+            value = value.__array_function__(function, types, args, kwargs)
 
             if function in [
                 np.array_equal,
