@@ -227,16 +227,14 @@ class Uniform(
 class Normal(Uniform):
 
     @property
-    def distribution(self: NormalT) -> kgpy.labeled.Array:
-        shape = kgpy.labeled.Array.broadcast_shapes(self.value, self.width)
-        shape[self.axis] = self.num_samples
-        return kgpy.labeled.Array(
-            value=self._rng.normal(
-                loc=self.value,
-                scale=self.width,
-                size=tuple(shape.values()),
-            ),
-            axes=list(shape.keys()),
+    def distribution(self: UniformT) -> kgpy.labeled.NormalRandomSpace:
+        return kgpy.labeled.NormalRandomSpace(
+            center=self.value,
+            width=self.width,
+            num=self.num_samples,
+            axis=self.axis,
+            seed=self.seed,
+
         )
 
 
