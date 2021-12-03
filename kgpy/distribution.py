@@ -32,7 +32,7 @@ class AbstractArray(
 ):
     axis: typ.ClassVar[str] = '_distribution'
 
-    value: ValueT = None
+    value: ValueT = 0 * u.dimensionless_unscaled
 
     @classmethod
     def _normalize_parameter(
@@ -165,7 +165,7 @@ class AbstractArray(
 class _DistributionMixin(
     kgpy.mixin.Copyable,
 ):
-    num_samples: int = None
+    num_samples: int = 0
     seed: int = 42
 
     @property
@@ -193,7 +193,7 @@ class _UniformBase(
     AbstractArray[kgpy.labeled.Array, kgpy.labeled.Array],
     typ.Generic[WidthT],
 ):
-    width: WidthT = None
+    width: WidthT = 0 * u.dimensionless_unscaled
 
     def view(self: UniformT) -> UniformT:
         other = super().view()
