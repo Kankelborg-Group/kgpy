@@ -253,6 +253,12 @@ class AbstractArray(
                 axes=axes_new,
             )
 
+    def __radd__(self: AbstractArrayT, other: OtherAbstractArrayT) -> 'AbstractArray':
+        return self.__add__(other)
+
+    def __rsub__(self: AbstractArrayT, other: OtherAbstractArrayT) -> 'AbstractArray':
+        return self.__sub__(other)
+
     def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.Unit]):
         if isinstance(other, u.Unit):
             return Array(
@@ -261,6 +267,9 @@ class AbstractArray(
             )
         else:
             return super().__mul__(other)
+
+    def __rmul__(self: AbstractArrayT, other: OtherAbstractArrayT) -> 'AbstractArray':
+        return self.__mul__(other)
 
     def __lshift__(self, other: u.Unit) -> 'Array':
         axes = self.axes
