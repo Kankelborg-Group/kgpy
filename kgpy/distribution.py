@@ -213,18 +213,13 @@ class Uniform(
 ):
 
     @property
-    def distribution(self: UniformT) -> kgpy.labeled.Array:
-        shape = kgpy.labeled.Array.broadcast_shapes(self.value, self.width)
-        shape[self.axis] = self.num_samples
-        low = self.value - self.width
-        high = self.value + self.width
-        return kgpy.labeled.Array(
-            value=self._rng.uniform(
-                low=low,
-                high=high,
-                size=tuple(shape.values()),
-            ),
-            axes=list(shape.keys()),
+    def distribution(self: UniformT) -> kgpy.labeled.UniformRandomSpace:
+        return kgpy.labeled.UniformRandomSpace(
+            start=self.value - self.width,
+            stop=self.value + self.width,
+            num=self.num_samples,
+            axis=self.axis,
+            seed=self.seed,
         )
 
 
