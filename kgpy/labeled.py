@@ -45,6 +45,11 @@ class AbstractArray(
 
     @property
     @abc.abstractmethod
+    def unit(self) -> typ.Optional[u.Unit]:
+        return None
+
+    @property
+    @abc.abstractmethod
     def axes(self: AbstractArrayT) -> typ.Optional[typ.List[str]]:
         pass
 
@@ -253,12 +258,6 @@ class AbstractArray(
                 axes=axes_new,
             )
 
-    def __radd__(self: AbstractArrayT, other: OtherAbstractArrayT) -> 'AbstractArray':
-        return self.__add__(other)
-
-    def __rsub__(self: AbstractArrayT, other: OtherAbstractArrayT) -> 'AbstractArray':
-        return self.__sub__(other)
-
     def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.Unit]):
         if isinstance(other, u.Unit):
             return Array(
@@ -267,9 +266,6 @@ class AbstractArray(
             )
         else:
             return super().__mul__(other)
-
-    def __rmul__(self: AbstractArrayT, other: OtherAbstractArrayT) -> 'AbstractArray':
-        return self.__mul__(other)
 
     def __lshift__(self, other: u.Unit) -> 'Array':
         axes = self.axes
@@ -584,6 +580,13 @@ class Array(
         )
 
     @property
+    def unit(self) -> typ.Optional[u.Unit]:
+        unit = super().unit
+        if isinstance(self.value, u.Quantity):
+            unit = self.value.unit
+        return unit
+
+    @property
     def shape(self: ArrayT) -> typ.Dict[str, int]:
         shape = super().shape
         for i in range(np.ndim(self.value)):
@@ -637,6 +640,13 @@ class Range(AbstractArray[np.ndarray]):
     stop: int = None
     step: int = 1
     axis: str = None
+
+    @property
+    def unit(self) -> typ.Optional[u.Unit]:
+        unit = super().unit
+        if isinstance(self.start, u.Quantity):
+            unit = self.start.unit
+        return unit
 
     @property
     def shape(self: RangeT) -> typ.Dict[str, int]:
@@ -737,6 +747,13 @@ class _LinearMixin(
     @property
     def stop_broadcasted(self: _LinearMixinT) -> AbstractArray:
         return np.broadcast_to(self._stop_normalized, shape=self.shape, subok=True)
+
+    @property
+    def unit(self) -> typ.Optional[u.Unit]:
+        unit = super().unit
+        if isinstance(self.start, u.Quantity):
+            unit = self.start.unit
+        return unit
 
     @property
     def range(self: _LinearMixinT) -> Array:
@@ -859,6 +876,13 @@ class _NormalMixin(
     @property
     def width_broadcasted(self: _NormalMixinT) -> Array:
         return np.broadcast_to(self._width_normalized, shape=self.shape, subok=True)
+
+    @property
+    def unit(self) -> typ.Optional[u.Unit]:
+        unit = super().unit
+        if isinstance(self.center, u.Quantity):
+            unit = self.center.unit
+        return unit
 
     @property
     def shape(self: _NormalMixinT) -> typ.Dict[str, int]:

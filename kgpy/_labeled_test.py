@@ -60,6 +60,25 @@ class TestArray:
         with pytest.raises(ValueError):
             a + b
 
+    @pytest.mark.parametrize(
+        argnames='a,b',
+        argvalues=[
+            (kgpy.labeled.Array(5), 6),
+            (kgpy.labeled.Array(5 * u.mm), 6 * u.mm),
+            (kgpy.labeled.LinearSpace(0, 1, num=11, axis='x'), 6),
+            (kgpy.labeled.LinearSpace(0, 1, num=11, axis='x') * u.mm, 6 * u.mm),
+            (kgpy.labeled.LinearSpace(0, 1, num=11, axis='x') * u.mm, kgpy.labeled.LinearSpace(0, 1, num=11, axis='x') * u.mm),
+        ],
+    )
+    def test__add__(self, a: kgpy.labeled.ArrayLike, b: kgpy.labeled.ArrayLike):
+        c = a + b
+        d = b + a
+        assert isinstance(c, kgpy.labeled.Array)
+        assert isinstance(d, kgpy.labeled.Array)
+        assert c.mean() != 0
+        assert d.mean() != 0
+        assert np.all(c == d)
+
     def test__mul__unit(self):
         a = kgpy.labeled.UniformRandomSpace(0, 1, 10, 'x') * u.mm
         assert isinstance(a, kgpy.labeled.AbstractArray)
