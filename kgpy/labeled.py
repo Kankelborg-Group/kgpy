@@ -298,14 +298,20 @@ class AbstractArray(
         inputs = tuple(inp._data_aligned(shape) for inp in inputs)
 
         for inp in inputs:
-            if hasattr(inp, '__array_ufunc__'):
-                result = inp.__array_ufunc__(function, method, *inputs, **kwargs)
-                if result is not NotImplemented:
-                    return Array(
-                        value=result,
-                        axes=list(shape.keys()),
-                    )
-        raise ValueError
+            if not hasattr(inp, '__array_ufunc__'):
+                if np.isscalar(inp):
+                    inp = np.array(inp)
+                else:
+                    continue
+
+            result = inp.__array_ufunc__(function, method, *inputs, **kwargs)
+            if result is not NotImplemented:
+                return Array(
+                    value=result,
+                    axes=list(shape.keys()),
+                )
+
+        return NotImplemented
 
     def __array_function__(
             self: AbstractArrayT,
