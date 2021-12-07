@@ -73,10 +73,13 @@ class TestArray:
     def test__add__(self, a: kgpy.labeled.ArrayLike, b: kgpy.labeled.ArrayLike):
         c = a + b
         d = b + a
-        assert isinstance(c, kgpy.labeled.Array)
-        assert isinstance(d, kgpy.labeled.Array)
-        assert c.mean() != 0
-        assert d.mean() != 0
+        b_normalized = b
+        if not isinstance(b, kgpy.labeled.AbstractArray):
+            b_normalized = kgpy.labeled.Array(b)
+        assert isinstance(c, kgpy.labeled.AbstractArray)
+        assert isinstance(d, kgpy.labeled.AbstractArray)
+        assert np.all(c.value == a.value + b_normalized.value)
+        assert np.all(d.value == b_normalized.value + a.value)
         assert np.all(c == d)
 
     def test__mul__unit(self):
