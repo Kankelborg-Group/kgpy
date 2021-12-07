@@ -587,7 +587,7 @@ class Array(
     @property
     def unit(self) -> typ.Optional[u.Unit]:
         unit = super().unit
-        if isinstance(self.value, u.Quantity):
+        if hasattr(self.value, 'unit'):
             unit = self.value.unit
         return unit
 
@@ -649,7 +649,7 @@ class Range(AbstractArray[np.ndarray]):
     @property
     def unit(self) -> typ.Optional[u.Unit]:
         unit = super().unit
-        if isinstance(self.start, u.Quantity):
+        if hasattr(self.start, 'unit'):
             unit = self.start.unit
         return unit
 
@@ -756,7 +756,7 @@ class _LinearMixin(
     @property
     def unit(self) -> typ.Optional[u.Unit]:
         unit = super().unit
-        if isinstance(self.start, u.Quantity):
+        if hasattr(self.start, 'unit'):
             unit = self.start.unit
         return unit
 
@@ -885,7 +885,7 @@ class _NormalMixin(
     @property
     def unit(self) -> typ.Optional[u.Unit]:
         unit = super().unit
-        if isinstance(self.center, u.Quantity):
+        if hasattr(self.center, 'unit'):
             unit = self.center.unit
         return unit
 
