@@ -146,6 +146,9 @@ class AbstractArray(
                 )
             )
 
+    def __bool__(self: AbstractArrayT) -> bool:
+        return self.value.__bool__() and self.distribution.__bool__()
+
     @property
     def num_samples(self) -> int:
         return self.shape[self.axis_distribution]
