@@ -138,8 +138,16 @@ class AbstractArray(
             kwargs_value = {k: kwargs[k].value if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
             kwargs_distribution = {k: kwargs[k].distribution if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
 
+            value = self.value
+            if np.isscalar(value):
+                value = np.array(value)
+
+            distribution = self.distribution
+            if np.isscalar(distribution):
+                distribution = np.array(distribution)
+
             return Array(
-                value=self.value.__array_function__(
+                value=value.__array_function__(
                     func=function,
                     types=(),
                     args=args_value,
