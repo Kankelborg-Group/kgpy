@@ -60,6 +60,13 @@ class AbstractArray(
         return self._normalize_parameter(self.distribution)
 
     @property
+    def unit(self: AbstractArrayT) -> typ.Optional[u.Unit]:
+        if hasattr(self.value, 'unit'):
+            return self.value.unit
+        else:
+            return None
+
+    @property
     def shape(self) -> typ.Dict[str, int]:
         return kgpy.labeled.Array.broadcast_shapes(self.value, self.distribution)
 
