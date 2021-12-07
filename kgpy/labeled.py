@@ -289,8 +289,7 @@ class AbstractArray(
                 if np.ndim(inp) == 0:
                     inputs_normalized.append(Array(inp))
                 else:
-                    name = f'{AbstractArray.__module__}.{AbstractArray.__qualname__}'
-                    raise ValueError(f'Inputs must be scalars or instances of {name}')
+                    return NotImplemented
             else:
                 inputs_normalized.append(inp)
         inputs = inputs_normalized
