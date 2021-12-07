@@ -30,7 +30,7 @@ class AbstractArray(
     abc.ABC,
     typ.Generic[ValueT, DistributionT],
 ):
-    axis: typ.ClassVar[str] = '_distribution'
+    axis_distribution: typ.ClassVar[str] = '_distribution'
 
     value: ValueT = 0 * u.dimensionless_unscaled
 
@@ -148,7 +148,7 @@ class AbstractArray(
 
     @property
     def num_samples(self) -> int:
-        return self.shape[self.axis]
+        return self.shape[self.axis_distribution]
 
     def view(self: AbstractArrayT) -> AbstractArrayT:
         other = super().view()
@@ -222,7 +222,7 @@ class Uniform(
             start=self._value_normalized - self._width_normalized,
             stop=self._value_normalized + self._width_normalized,
             num=self.num_samples,
-            axis=self.axis,
+            axis=self.axis_distribution,
             seed=self.seed,
         )
 
@@ -236,7 +236,7 @@ class Normal(Uniform):
             center=self._value_normalized,
             width=self._width_normalized,
             num=self.num_samples,
-            axis=self.axis,
+            axis=self.axis_distribution,
             seed=self.seed,
 
         )
