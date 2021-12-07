@@ -133,13 +133,13 @@ class AbstractArray(
 
             return Array(
                 value=self.value.__array_function__(
-                    function=function,
+                    func=function,
                     types=tuple(type(arg) for arg in args_value),
                     args=args_value,
                     kwargs=kwargs_value,
                 ),
-                distribution=self.distribution.__array_function__(
-                    function=function,
+                distribution=distribution.__array_function__(
+                    func=function,
                     types=tuple(type(arg) for arg in args_distribution),
                     args=args_distribution,
                     kwargs=kwargs_distribution,

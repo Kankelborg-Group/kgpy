@@ -310,12 +310,12 @@ class AbstractArray(
 
     def __array_function__(
             self: AbstractArrayT,
-            function: typ.Callable,
+            func: typ.Callable,
             types: typ.Collection,
             args: typ.Tuple,
             kwargs: typ.Dict[str, typ.Any],
     ):
-        if function is np.broadcast_to:
+        if func is np.broadcast_to:
             args_list = list(args)
             if 'subok' in kwargs:
                 subok = kwargs['subok']
@@ -333,9 +333,9 @@ class AbstractArray(
                 value=np.broadcast_to(array=array._data_aligned(shape), shape=tuple(shape.values()), subok=subok),
                 axes=list(shape.keys()),
             )
-        elif function is np.result_type:
+        elif func is np.result_type:
             return type(self)
-        elif function is np.unravel_index:
+        elif func is np.unravel_index:
             args_list = list(args)
             if 'shape' in kwargs:
                 shape = kwargs['shape']
@@ -356,10 +356,10 @@ class AbstractArray(
                 )
             return result
 
-        elif function is np.linalg.inv:
-            raise ValueError(f'{function} is unsupported, use kgpy.LabeledArray.matrix_inverse() instead.')
+        elif func is np.linalg.inv:
+            raise ValueError(f'{func} is unsupported, use kgpy.LabeledArray.matrix_inverse() instead.')
 
-        elif function is np.stack:
+        elif func is np.stack:
             if 'arrays' in kwargs:
                 arrays = kwargs.pop('arrays')
             else:
@@ -378,7 +378,7 @@ class AbstractArray(
                 axes=[axis] + self._axes_normalized,
             )
 
-        elif function in [
+        elif func in [
             np.ndim,
             np.argmin,
             np.nanargmin,
@@ -412,7 +412,7 @@ class AbstractArray(
             types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
 
             axes_new = axes.copy()
-            if function is not np.isclose:
+            if func is not np.isclose:
                 if 'keepdims' not in kwargs:
                     if 'axis' in kwargs:
                         if kwargs['axis'] is None:
@@ -436,9 +436,9 @@ class AbstractArray(
             value = self.value
             if not hasattr(value, '__array_function__'):
                 value = np.array(value)
-            value = value.__array_function__(function, types, args, kwargs)
+            value = value.__array_function__(func, types, args, kwargs)
 
-            if function in [
+            if func in [
                 np.array_equal,
             ]:
                 return value
