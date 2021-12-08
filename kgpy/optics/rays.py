@@ -1,6 +1,7 @@
 import typing as typ
 import abc
 import dataclasses
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
@@ -1013,3 +1014,24 @@ class RaysList(
                 colorbar = None
 
         return lines, colorbar
+
+    def to_dxf(self, filename: pathlib.Path, dxf_unit: u.Unit = u.imperial.inch):
+
+        import ezdxf.addons
+        with ezdxf.addons.r12writer(filename) as dxf:
+
+            mask = np.broadcast_to(self[~1].mask, self[~0].mask.shape)
+
+            intercepts = self.intercepts[:, mask]
+
+            intercepts = kgpy.vector.Vector3D(x=-intercepts.z, y=-intercepts.x, z=intercepts.y)
+
+            # intercepts = intercepts.reshape(intercepts.shape[0], -1)
+            axis = 1
+            for i in range(intercepts.shape[axis]):
+                dxf.add_polyline(intercepts.take(indices=i, axis=axis).quantity.to(dxf_unit).value)
+
+
+
+
+
