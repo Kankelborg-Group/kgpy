@@ -84,10 +84,10 @@ class AbstractVector(
         coordinates = {component: value.take(c, axis=axis_components) for c, component in enumerate(components)}
         return cls.from_coordinates(coordinates=coordinates)
 
-    # @classmethod
-    # @abc.abstractmethod
-    # def from_tuple(cls, value: typ.Tuple):
-    #     return cls()
+    @classmethod
+    @abc.abstractmethod
+    def from_tuple(cls, value: typ.Tuple):
+        return cls()
 
     def quantity(self, axis_components: typ.Any) -> u.Quantity:
         return np.stack(self.coordinates.values(), axis=axis_components)
