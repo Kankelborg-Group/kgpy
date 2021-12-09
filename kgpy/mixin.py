@@ -4,10 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines
 import matplotlib.axes
+import astropy.units as u
 import pandas
 import pathlib
 import pickle
 import typing as typ
+from ezdxf.addons.r12writer import R12FastStreamWriter
 
 from kgpy import Name
 
@@ -191,6 +193,22 @@ class Plottable(
         for key in self.plot_kwargs:
             other.plot_kwargs[key] = self.plot_kwargs[key]
         return other
+
+
+SaveableAsDxfT = typ.TypeVar('SaveableAsDxfT', bound='SaveableAsDxf')
+
+
+@dataclasses.dataclass
+class SaveableAsDxf(abc.ABC):
+
+    @abc.abstractmethod
+    def write_to_dxf(
+            self: SaveableAsDxfT,
+            file_writer: R12FastStreamWriter,
+            unit: u.Unit,
+            transform_extra
+    ) -> None:
+        pass
 
 
 ItemT = typ.TypeVar('ItemT')
