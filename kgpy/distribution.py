@@ -74,32 +74,31 @@ class AbstractArray(
         return kgpy.labeled.Array.broadcast_shapes(self.value, self.distribution)
 
     def __array_ufunc__(
-            self: AbstractArrayT,
-            function: np.ufunc,
-            method: str,
-            *inputs: typ.Union[kgpy.labeled.ArrayLike, AbstractArrayT],
-            **kwargs: typ.Any,
+            self,
+            function,
+            method,
+            *inputs,
+            **kwargs,
     ) -> AbstractArrayT:
-        inputs = [Array(inp, inp) if not isinstance(inp, AbstractArray) else inp for inp in inputs]
 
-        inputs_value = [inp.value for inp in inputs]
-        inputs_distribution = [inp.distribution for inp in inputs]
+        inputs = [Array(inp) if not isinstance(inp, AbstractArray) else inp for inp in inputs]
 
-        for inp in inputs:
-            if hasattr(inp.value, '__array_ufunc__'):
-                if hasattr(inp.distribution, '__array_ufunc__'):
-                    result_value = inp.value.__array_ufunc__(function, method, *inputs_value, **kwargs)
-                    if result_value is NotImplemented:
-                        continue
-                    result_distribution = inp.distribution.__array_ufunc__(function, method, *inputs_distribution, **kwargs)
-                    if result_distribution is NotImplemented:
-                        continue
-                    return Array(
-                        value=result_value,
-                        distribution=result_distribution,
-                    )
+        inputs_value = [inp._value_normalized for inp in inputs]
+        inputs_distribution = [inp._distribution_normalized for inp in inputs]
 
-        raise ValueError
+        for inp_value, inp_distribution in zip(inputs_value, inputs_distribution):
+            result_value = inp_value.__array_ufunc__(function, method, *inputs_value, **kwargs)
+            if result_value is NotImplemented:
+                continue
+            result_distribution = inp_distribution.__array_ufunc__(function, method, *inputs_distribution, **kwargs)
+            if result_distribution is NotImplemented:
+                continue
+            return Array(
+                value=result_value,
+                distribution=result_distribution,
+            )
+
+        return NotImplemented
 
     def __array_function__(
             self: AbstractArrayT,
