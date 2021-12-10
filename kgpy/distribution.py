@@ -52,12 +52,15 @@ class AbstractArray(
 
     @property
     @abc.abstractmethod
-    def distribution(self: AbstractArrayT) -> DistributionT:
+    def distribution(self: AbstractArrayT) -> typ.Optional[DistributionT]:
         pass
 
     @property
     def _distribution_normalized(self: AbstractArrayT) -> kgpy.labeled.AbstractArray:
-        return self._normalize_parameter(self.distribution)
+        if self.distribution is not None:
+            return self._normalize_parameter(self.distribution)
+        else:
+            return self._value_normalized
 
     @property
     def unit(self: AbstractArrayT) -> typ.Optional[u.Unit]:
@@ -263,7 +266,7 @@ class Normal(Uniform):
 @dataclasses.dataclass(eq=False)
 class Array(AbstractArray[ValueT, DistributionT]):
 
-    distribution: DistributionT = None
+    distribution: typ.Optional[DistributionT] = None
 
     def view(self: ArrayT) -> ArrayT:
         other = super().view()
