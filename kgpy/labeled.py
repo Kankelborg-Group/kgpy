@@ -283,27 +283,12 @@ class AbstractArray(
             *inputs,
             **kwargs,
     ) -> 'Array':
-        inputs_normalized = []
-        for inp in inputs:
-            if not isinstance(inp, AbstractArray):
-                if np.ndim(inp) == 0:
-                    inputs_normalized.append(Array(inp))
-                else:
-                    return NotImplemented
-            else:
-                inputs_normalized.append(inp)
-        inputs = inputs_normalized
+        inputs = [Array(inp) if not isinstance(inp, AbstractArray) else inp for inp in inputs]
 
         shape = self.broadcast_shapes(*inputs)
         inputs = tuple(inp._data_aligned(shape) for inp in inputs)
 
         for inp in inputs:
-            if not hasattr(inp, '__array_ufunc__'):
-                if np.isscalar(inp):
-                    inp = np.array(inp)
-                else:
-                    continue
-
             result = inp.__array_ufunc__(function, method, *inputs, **kwargs)
             if result is not NotImplemented:
                 return Array(
