@@ -16,6 +16,7 @@ __all__ = [
     'UniformRandomSpace',
 ]
 
+NDArrayMethodsMixinT = typ.TypeVar('NDArrayMethodsMixinT', bound='NDArrayMethodsMixin')
 ValueT = typ.TypeVar('ValueT', bound=kgpy.units.QuantityLike)
 AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 OtherAbstractArrayT = typ.TypeVar('OtherAbstractArrayT', bound='AbstractArray')
@@ -31,8 +32,34 @@ NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace'
 
 
 @dataclasses.dataclass(eq=False)
+class NDArrayMethodsMixin:
+
+    def min(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.min(self, axis=axis, where=where)
+
+    def max(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.max(self, axis=axis, where=where)
+
+    def mean(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.mean(self, axis=axis, where=where)
+
+
+@dataclasses.dataclass(eq=False)
 class AbstractArray(
     kgpy.mixin.Copyable,
+    NDArrayMethodsMixin,
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
     typ.Generic[ValueT],
@@ -519,15 +546,6 @@ class AbstractArray(
         shape_tuple = tuple(shape.values())
         for index in np.ndindex(*shape_tuple):
             yield dict(zip(shape.keys(), index))
-
-    def mean(self, axis: typ.Optional[str] = None):
-        return np.mean(self, axis=axis)
-
-    def min(self: AbstractArrayT, axis: typ.Optional[str] = None):
-        return np.min(self, axis=axis)
-
-    def max(self: AbstractArrayT, axis: typ.Optional[str] = None):
-        return np.min(self, axis=axis)
 
 
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
