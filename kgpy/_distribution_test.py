@@ -9,26 +9,10 @@ import kgpy.distribution
 class _TestAbstractArray(
     abc.ABC
 ):
-
-    @property
-    @abc.abstractmethod
-    def array(self) -> kgpy.distribution.AbstractArray:
-        pass
-
-    def test_distribution(self):
-        assert isinstance(self.array.distribution, kgpy.labeled.Array)
-        assert self.array.distribution.mean() != 0
+    pass
 
 
 class TestUniform(_TestAbstractArray):
-
-    @property
-    def array(self) -> kgpy.distribution.Uniform:
-        return kgpy.distribution.Uniform(
-            value=10 * u.mm,
-            width=1 * u.mm,
-            num_samples=11,
-        )
 
     @pytest.mark.parametrize(
         argnames='value,width',
@@ -53,10 +37,32 @@ class TestUniform(_TestAbstractArray):
 
 class TestNormal(_TestAbstractArray):
 
-    @property
-    def array(self) -> kgpy.distribution.Normal:
-        return kgpy.distribution.Normal(
-            value=10 * u.mm,
-            width=1 * u.mm,
-            num_samples=11,
-        )
+    pass
+
+
+class TestArray:
+
+    @pytest.mark.parametrize(
+        argnames='a,b',
+        argvalues=[
+            (kgpy.distribution.Uniform(10, width=1), 5),
+            (kgpy.distribution.Uniform(10, width=1), kgpy.labeled.LinearSpace(5, 6, 9, axis='b')),
+            (kgpy.distribution.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a'), width=1), 5),
+            (kgpy.distribution.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a'), width=1), kgpy.labeled.LinearSpace(5, 6, 9, axis='b')),
+            (kgpy.distribution.Uniform(10 * u.mm, width=1*u.mm), 5 * u.mm),
+            (kgpy.distribution.Uniform(10 * u.mm, width=1 * u.mm), kgpy.labeled.LinearSpace(5, 6, 9, axis='b') * u.mm),
+            (kgpy.distribution.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a') * u.mm, width=1 * u.mm), 5 * u.mm),
+            (kgpy.distribution.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a') * u.mm, width=1 * u.mm), kgpy.labeled.LinearSpace(5, 6, 9, axis='b') * u.mm)
+        ],
+    )
+    def test__add__(self, a, b):
+        c = a + b
+        d = b + a
+        b_normalized = b
+        if not isinstance(b, kgpy.distribution.AbstractArray):
+            b_normalized = kgpy.distribution.Array(b)
+        assert isinstance(c, kgpy.distribution.AbstractArray)
+        assert isinstance(d, kgpy.distribution.AbstractArray)
+        assert np.all(c.value == a.value + b_normalized.value)
+        assert np.all(d.value == b_normalized.value + a.value)
+        assert np.all(c == d)
