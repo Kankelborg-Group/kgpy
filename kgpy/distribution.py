@@ -102,13 +102,13 @@ class AbstractArray(
 
     def __array_function__(
             self: AbstractArrayT,
-            function: typ.Callable,
+            func: typ.Callable,
             types: typ.Collection,
             args: typ.Tuple,
             kwargs: typ.Dict[str, typ.Any],
     ) -> AbstractArrayT:
 
-        if function in [
+        if func in [
             np.broadcast_to,
             np.unravel_index,
             np.stack,
@@ -134,34 +134,30 @@ class AbstractArray(
             np.array_equal,
             np.isclose,
         ]:
-            args_value = [arg.value if isinstance(arg, AbstractArray) else arg for arg in args]
-            args_distribution = [arg.distribution if isinstance(arg, AbstractArray) else arg for arg in args]
+            args_value = [arg._value_normalized if isinstance(arg, AbstractArray) else arg for arg in args]
+            types_value = list(type(arg) for arg in args_value if getattr(arg, '__array_function__', None) is not None)
+            args_distribution = [arg._distribution_normalized if isinstance(arg, AbstractArray) else arg for arg in args]
+            types_distribution = list(type(arg) for arg in args_distribution if getattr(arg, '__array_function__', None) is not None)
 
-            kwargs_value = {k: kwargs[k].value if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
-            kwargs_distribution = {k: kwargs[k].distribution if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
-
-            value = self.value
-            if np.isscalar(value):
-                value = np.array(value)
-
-            distribution = self.distribution
-            if np.isscalar(distribution):
-                distribution = np.array(distribution)
+            kwargs_value = {k: kwargs[k]._value_normalized if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
+            kwargs_distribution = {k: kwargs[k]._distribution_normalized if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
 
             return Array(
-                value=value.__array_function__(
-                    func=function,
-                    types=(),
-                    args=args_value,
-                    kwargs=kwargs_value,
+                value=self._value_normalized.__array_function__(
+                    func,
+                    types_value,
+                    args_value,
+                    kwargs_value,
                 ),
-                distribution=distribution.__array_function__(
-                    func=function,
-                    types=(),
-                    args=args_distribution,
-                    kwargs=kwargs_distribution,
+                distribution=self._distribution_normalized.__array_function__(
+                    func,
+                    types_distribution,
+                    args_distribution,
+                    kwargs_distribution,
                 )
             )
+        else:
+            raise NotImplementedError
 
     def __bool__(self: AbstractArrayT) -> bool:
         return self.value.__bool__() and self.distribution.__bool__()
