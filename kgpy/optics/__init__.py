@@ -18,7 +18,9 @@ import matplotlib.colors
 import matplotlib.lines
 import matplotlib.colorbar
 import matplotlib.axes
+from ezdxf.addons.r12writer import R12FastStreamWriter
 from kgpy import mixin, linspace, vector, optimization, transform, obs, grid
+import kgpy.dxf
 from . import aberration, rays, surface, component, baffle, breadboard, mtf
 
 __all__ = [
@@ -32,9 +34,12 @@ __all__ = [
     'SystemList',
 ]
 
+SystemT = typ.TypeVar('SystemT', bound='System')
+
 
 @dataclasses.dataclass
 class System(
+    kgpy.dxf.WritableMixin,
     transform.rigid.Transformable,
     mixin.Plottable,
     mixin.Broadcastable,
@@ -705,6 +710,25 @@ class System(
                 )
 
         return lines, colorbar
+
+    def write_to_dxf(
+            self: SystemT,
+            file_writer: R12FastStreamWriter,
+            unit: u.Unit,
+            transform_extra: typ.Optional[kgpy.transform.rigid.Transform] = None,
+    ) -> None:
+
+        self.surfaces_all.flat_global.write_to_dxf(
+            file_writer=file_writer,
+            unit=unit,
+            transform_extra=transform_extra,
+        )
+
+        self.raytrace.write_to_dxf(
+            file_writer=file_writer,
+            unit=unit,
+            transform_extra=transform_extra,
+        )
 
     @property
     def tol_iter(self) -> typ.Iterator['System']:

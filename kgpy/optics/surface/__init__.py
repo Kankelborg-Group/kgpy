@@ -8,6 +8,7 @@ import astropy.units as u
 import astropy.visualization
 from ezdxf.addons.r12writer import R12FastStreamWriter
 from kgpy import mixin, vector, transform as tfrm, optimization
+import kgpy.dxf
 from ..rays import Rays, RaysList
 from .sag import Sag
 from .material import Material
@@ -25,6 +26,7 @@ __all__ = [
 ]
 
 SurfaceT = typ.TypeVar('SurfaceT', bound='Surface')
+SurfaceListT = typ.TypeVar('SurfaceListT', bound='SurfaceList')
 SagT = typ.TypeVar('SagT', bound=Sag)       #: Generic :class:`kgpy.optics.surface.sag.Sag` type
 MaterialT = typ.TypeVar('MaterialT', bound=Material)
 ApertureT = typ.TypeVar('ApertureT', bound=Aperture)
@@ -34,7 +36,7 @@ RulingsT = typ.TypeVar('RulingsT', bound=Rulings)
 
 @dataclasses.dataclass
 class Surface(
-    mixin.SaveableAsDxf,
+    kgpy.dxf.WritableMixin,
     mixin.Broadcastable,
     tfrm.rigid.Transformable,
     mixin.Plottable,
@@ -274,48 +276,36 @@ class Surface(
 
         return lines
 
-    def _aperture_to_dxf(
-            self: SurfaceT,
-            aper: Aperture,
-            file_writer: R12FastStreamWriter,
-            unit: u.Unit,
-            transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
-    ):
-        wire = aper.wire
-
-        if wire.x.unit.is_equivalent(unit):
-            if self.sag is not None:
-                wire.z = wire.z + self.sag(wire.x, wire.y)
-
-            if transform_extra is not None:
-                wire = transform_extra(wire, num_extra_dims=1)
-
-            wire = wire.reshape((-1, wire.shape[~0]))
-
-            for i in range(wire.shape[0]):
-                file_writer.add_polyline(vertices=wire[i])
-
     def write_to_dxf(
             self: SurfaceT,
             file_writer: R12FastStreamWriter,
             unit: u.Unit,
             transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
     ) -> None:
+        if transform_extra is None:
+            transform_extra = tfrm.rigid.TransformList()
 
-        super().write_to_dxf(file_writer=file_writer, unit=unit, transform_extra=transform_extra)
+        transform_extra = transform_extra + self.transform
 
-        self._aperture_to_dxf(
-            aper=self.aperture,
+        super().write_to_dxf(
             file_writer=file_writer,
             unit=unit,
-            transform_extra=transform_extra
+            transform_extra=transform_extra,
         )
-        self._aperture_to_dxf(
-            aper=self.aperture_mechanical,
-            file_writer=file_writer,
-            unit=unit,
-            transform_extra=transform_extra
-        )
+        if self.aperture is not None:
+            self.aperture.write_to_dxf(
+                file_writer=file_writer,
+                unit=unit,
+                transform_extra=transform_extra,
+                sag=self.sag,
+            )
+        if self.aperture_mechanical is not None:
+            self.aperture_mechanical.write_to_dxf(
+                file_writer=file_writer,
+                unit=unit,
+                transform_extra=transform_extra,
+                sag=self.sag,
+            )
 
     def view(self) -> 'Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]':
         other = super().view()      # type: Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]
@@ -373,6 +363,7 @@ class Surface(
 
 @dataclasses.dataclass
 class SurfaceList(
+    kgpy.dxf.WritableMixin,
     # mixin.Colorable,
     mixin.Plottable,
     tfrm.rigid.Transformable,
@@ -473,6 +464,20 @@ class SurfaceList(
             )
 
         return lines
+
+    def write_to_dxf(
+            self: SurfaceListT,
+            file_writer: R12FastStreamWriter,
+            unit: u.Unit,
+            transform_extra: typ.Optional[tfrm.rigid.Transform] = None,
+    ) -> None:
+
+        for surf in self:
+            surf.write_to_dxf(
+                file_writer=file_writer,
+                unit=unit,
+                transform_extra=transform_extra,
+            )
 
 
 from . import aperture

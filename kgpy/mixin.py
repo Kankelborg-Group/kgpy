@@ -195,22 +195,6 @@ class Plottable(
         return other
 
 
-SaveableAsDxfT = typ.TypeVar('SaveableAsDxfT', bound='SaveableAsDxf')
-
-
-@dataclasses.dataclass
-class SaveableAsDxf(abc.ABC):
-
-    @abc.abstractmethod
-    def write_to_dxf(
-            self: SaveableAsDxfT,
-            file_writer: R12FastStreamWriter,
-            unit: u.Unit,
-            transform_extra
-    ) -> None:
-        pass
-
-
 ItemT = typ.TypeVar('ItemT')
 
 
