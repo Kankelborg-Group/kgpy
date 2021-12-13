@@ -17,6 +17,6 @@ class WritableMixin(abc.ABC):
             self: WritableMixinT,
             file_writer: R12FastStreamWriter,
             unit: u.Unit,
-            transform_extra: typ.Optional[kgpy.transform.rigid.Transform],
+            transform_extra: typ.Optional[kgpy.transform.rigid.Transform] = None,
     ) -> None:
         pass
