@@ -12,8 +12,10 @@ import astropy.units as u
 import astropy.constants
 import astropy.visualization
 import astropy.modeling
+from ezdxf.addons.r12writer import R12FastStreamWriter
 import kgpy.plot
 from kgpy import mixin, vector, transform, format as fmt, grid
+import kgpy.dxf
 from .aberration import Distortion, Vignetting, Aberration
 
 __all__ = [
@@ -22,6 +24,8 @@ __all__ = [
     'Rays',
     'RaysList',
 ]
+
+RaysListT = typ.TypeVar('RaysListT', bound='RaysList')
 
 
 class Axis(mixin.AutoAxis):
@@ -927,6 +931,7 @@ class Rays(transform.rigid.Transformable):
 
 @dataclasses.dataclass
 class RaysList(
+    kgpy.dxf.WritableMixin,
     mixin.Plottable,
     mixin.DataclassList[Rays],
 ):
@@ -1031,7 +1036,17 @@ class RaysList(
             for i in range(intercepts.shape[axis]):
                 dxf.add_polyline(intercepts.take(indices=i, axis=axis).quantity.to(dxf_unit).value)
 
+    def write_to_dxf(
+            self: RaysListT,
+            file_writer: R12FastStreamWriter,
+            unit: u.Unit,
+            transform_extra: typ.Optional[kgpy.transform.rigid.Transform] = None,
+    ) -> None:
 
+        mask = np.broadcast_to(self[~1].mask, self[~0].mask.shape)
 
+        intercepts = self.intercepts[:, mask]
 
-
+        axis = 1
+        for i in range(intercepts.shape[axis]):
+            file_writer.add_polyline(intercepts.take(indices=i, axis=axis).quantity.to(unit).value)

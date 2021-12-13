@@ -11,7 +11,9 @@ import mpl_toolkits.mplot3d.art3d
 import astropy.units as u
 import astropy.visualization
 import shapely.geometry
+from ezdxf.addons.r12writer import R12FastStreamWriter
 from kgpy import mixin, vector, transform
+import kgpy.dxf
 from .sag import Sag
 
 __all__ = [
@@ -27,9 +29,12 @@ __all__ = [
     'IsoscelesTrapezoid',
 ]
 
+ApertureT = typ.TypeVar('ApertureT', bound='Aperture')
+
 
 @dataclasses.dataclass
 class Aperture(
+    kgpy.dxf.WritableMixin,
     mixin.Broadcastable,
     mixin.Plottable,
     abc.ABC
@@ -135,6 +140,31 @@ class Aperture(
                         )
 
         return lines
+
+    def write_to_dxf(
+            self: ApertureT,
+            file_writer: R12FastStreamWriter,
+            unit: u.Unit,
+            transform_extra: typ.Optional[kgpy.transform.rigid.Transform] = None,
+            sag: typ.Optional[Sag] = None
+    ) -> None:
+
+        super().write_to_dxf(
+            file_writer=file_writer,
+            unit=unit,
+            transform_extra=transform_extra,
+        )
+
+        wire = self.wire
+        if wire.x.unit.is_equivalent(unit):
+            if sag is not None:
+                wire.z = wire.z + sag(wire.x, wire.y)
+            if transform_extra is not None:
+                wire = transform_extra(wire, num_extra_dims=1)
+
+            wire = wire.reshape((-1, wire.shape[~0]))
+            for i in range(wire.shape[0]):
+                file_writer.add_polyline(vertices=wire[i].quantity.to(unit).value)
 
     def view(self) -> 'Aperture':
         other = super().view()  # type: Aperture
