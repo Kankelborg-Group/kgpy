@@ -1047,6 +1047,9 @@ class RaysList(
 
         intercepts = self.intercepts[:, mask]
 
+        if transform_extra is not None:
+            intercepts = transform_extra(intercepts)
+
         axis = 1
         for i in range(intercepts.shape[axis]):
             file_writer.add_polyline(intercepts.take(indices=i, axis=axis).quantity.to(unit).value)
