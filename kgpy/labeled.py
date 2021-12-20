@@ -67,7 +67,7 @@ class AbstractArray(
 
     @property
     @abc.abstractmethod
-    def value(self: AbstractArrayT) -> ValueT:
+    def array(self: AbstractArrayT) -> ValueT:
         pass
 
     @property
@@ -113,8 +113,8 @@ class AbstractArray(
         return self.broadcast_shapes(self, *arrs)
 
     def _data_aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ValueT:
-        ndim_missing = len(shape) - np.ndim(self.value)
-        value = np.expand_dims(self.value, tuple(~np.arange(ndim_missing)))
+        ndim_missing = len(shape) - np.ndim(self.array)
+        value = np.expand_dims(self.array, tuple(~np.arange(ndim_missing)))
         source = []
         destination = []
         for axis_index, axis_name in enumerate(self._axes_normalized):
@@ -127,7 +127,7 @@ class AbstractArray(
         shape_new = {axis: 1 for axis in axes}
         shape = {**self.shape, **shape_new}
         return Array(
-            value=self._data_aligned(shape),
+            array=self._data_aligned(shape),
             axes=list(shape.keys()),
         )
 
@@ -159,7 +159,7 @@ class AbstractArray(
         shape_new[axis_new] = -1
 
         return Array(
-            value=np.moveaxis(self.value, source=source, destination=destination).reshape(tuple(shape_new.values())),
+            array=np.moveaxis(self.array, source=source, destination=destination).reshape(tuple(shape_new.values())),
             axes=axes_new,
         )
 
@@ -179,7 +179,7 @@ class AbstractArray(
         data_other = other._data_aligned(shape)
 
         return Array(
-            value=np.matmul(data_self, data_other),
+            array=np.matmul(data_self, data_other),
             axes=list(shape.keys()),
         )
 
@@ -213,7 +213,7 @@ class AbstractArray(
 
         else:
             value = np.moveaxis(
-                a=self.value,
+                a=self.array,
                 source=[self.axis_names.index(axis_rows), self.axis_names.index(axis_columns)],
                 destination=[~1, ~0],
             )
@@ -237,7 +237,7 @@ class AbstractArray(
             raise ValueError('Matrix must be square')
 
         if shape[axis_rows] == 2:
-            result = Array(value=self.value.copy(), axes=self._axes_normalized.copy())
+            result = Array(array=self.array.copy(), axes=self._axes_normalized.copy())
             result[{axis_rows: 0, axis_columns: 0}] = self[{axis_rows: 1, axis_columns: 1}]
             result[{axis_rows: 1, axis_columns: 1}] = self[{axis_rows: 0, axis_columns: 0}]
             result[{axis_rows: 0, axis_columns: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
@@ -255,7 +255,7 @@ class AbstractArray(
             h = self[{axis_rows: 2, axis_columns: 1}]
             i = self[{axis_rows: 2, axis_columns: 2}]
 
-            result = Array(value=self.value.copy(), axes=self._axes_normalized.copy())
+            result = Array(array=self.array.copy(), axes=self._axes_normalized.copy())
             result[{axis_rows: 0, axis_columns: 0}] = (e * i - f * h)
             result[{axis_rows: 0, axis_columns: 1}] = -(b * i - c * h)
             result[{axis_rows: 0, axis_columns: 2}] = (b * f - c * e)
@@ -271,7 +271,7 @@ class AbstractArray(
             index_axis_rows = self._axes_normalized.index(axis_rows)
             index_axis_columns = self._axes_normalized.index(axis_columns)
             value = np.moveaxis(
-                a=self.value,
+                a=self.array,
                 source=[index_axis_rows, index_axis_columns],
                 destination=[~1, ~0],
             )
@@ -281,14 +281,14 @@ class AbstractArray(
             axes_new.append(axes_new.pop(index_axis_columns))
 
             return Array(
-                value=np.linalg.inv(value),
+                array=np.linalg.inv(value),
                 axes=axes_new,
             )
 
     def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.Unit]):
         if isinstance(other, u.Unit):
             return Array(
-                value=self.value * other,
+                array=self.array * other,
                 axes=self._axes_normalized.copy(),
             )
         else:
@@ -299,7 +299,7 @@ class AbstractArray(
         if axes is not None:
             axes = axes.copy()
         return Array(
-            value=self.value << other,
+            array=self.array << other,
             axes=axes
         )
 
@@ -319,7 +319,7 @@ class AbstractArray(
             result = inp.__array_ufunc__(function, method, *inputs, **kwargs)
             if result is not NotImplemented:
                 return Array(
-                    value=result,
+                    array=result,
                     axes=list(shape.keys()),
                 )
 
@@ -347,7 +347,7 @@ class AbstractArray(
             else:
                 array = args_list.pop()
             return Array(
-                value=np.broadcast_to(array=array._data_aligned(shape), shape=tuple(shape.values()), subok=subok),
+                array=np.broadcast_to(array=array._data_aligned(shape), shape=tuple(shape.values()), subok=subok),
                 axes=list(shape.keys()),
             )
         elif func is np.result_type:
@@ -366,9 +366,9 @@ class AbstractArray(
 
             result_value = np.unravel_index(indices=indices, shape=tuple(shape.values()))
             result = dict()     # type: typ.Dict[str, Array]
-            for axis, value in zip(shape, result_value):
+            for axis, array in zip(shape, result_value):
                 result[axis] = Array(
-                    value=value,
+                    array=array,
                     axes=self._axes_normalized.copy(),
                 )
             return result
@@ -391,7 +391,7 @@ class AbstractArray(
             arrays = [arr._data_aligned(shape) for arr in arrays]
 
             return Array(
-                value=np.stack(arrays=arrays, axis=0, **kwargs),
+                array=np.stack(arrays=arrays, axis=0, **kwargs),
                 axes=[axis] + self._axes_normalized,
             )
 
@@ -450,25 +450,25 @@ class AbstractArray(
                 else:
                     kwargs['axis'] = tuple(axes.index(ax) for ax in kwargs['axis'])
 
-            value = self.value
-            if not hasattr(value, '__array_function__'):
-                value = np.array(value)
-            value = value.__array_function__(func, types, args, kwargs)
+            array = self.array
+            if not hasattr(array, '__array_function__'):
+                array = np.array(array)
+            array = array.__array_function__(func, types, args, kwargs)
 
             if func in [
                 np.array_equal,
             ]:
-                return value
+                return array
             else:
                 return Array(
-                    value=value,
+                    array=array,
                     axes=axes_new,
                 )
         else:
             raise ValueError('Unsupported function')
 
     def __bool__(self: AbstractArrayT) -> bool:
-        return self.value.__bool__()
+        return self.array.__bool__()
 
     # @typ.overload
     # def __getitem__(self: AbstractArrayT, item: typ.Dict[str, int]) -> 'Array': ...
@@ -489,13 +489,13 @@ class AbstractArray(
 
         if isinstance(item, AbstractArray):
             value = np.moveaxis(
-                a=self.value,
+                a=self.array,
                 source=[self._axes_normalized.index(axis) for axis in item._axes_normalized],
                 destination=np.arange(len(item._axes_normalized)),
             )
 
             return Array(
-                value=np.moveaxis(value[item.value], 0, ~0),
+                array=np.moveaxis(value[item.array], 0, ~0),
                 axes=[axis for axis in self._axes_normalized if axis not in item._axes_normalized] + ['boolean']
             )
 
@@ -514,7 +514,7 @@ class AbstractArray(
             shape_advanced = self.broadcast_shapes(*item_advanced.values())
 
             value = np.moveaxis(
-                a=self.value,
+                a=self.array,
                 source=axes_indices_advanced,
                 destination=list(range(len(axes_indices_advanced))),
             )
@@ -535,7 +535,7 @@ class AbstractArray(
                     axes_new.remove(axis_name)
 
             return Array(
-                value=value[tuple(index)],
+                array=value[tuple(index)],
                 axes=list(shape_advanced.keys()) + axes_new,
             )
         # else:
@@ -555,13 +555,13 @@ ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
 class Array(
     AbstractArray[ValueT],
 ):
-    value: ValueT = 0 * u.dimensionless_unscaled
+    array: ValueT = 0 * u.dimensionless_unscaled
     axes: typ.Optional[typ.List[str]] = None
 
     def __post_init__(self: ArrayT):
         if self.axes is None:
             self.axes = []
-        if np.ndim(self.value) != len(self.axes):
+        if np.ndim(self.array) != len(self.axes):
             raise ValueError('The number of axis names must match the number of dimensions.')
         if len(self.axes) != len(set(self.axes)):
             raise ValueError('Each axis name must be unique.')
@@ -569,36 +569,36 @@ class Array(
     @classmethod
     def empty(cls: typ.Type[ArrayT], shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> ArrayT:
         return cls(
-            value=np.empty(shape=tuple(shape.values()), dtype=dtype),
+            array=np.empty(shape=tuple(shape.values()), dtype=dtype),
             axes=list(shape.keys()),
         )
 
     @classmethod
     def zeros(cls: typ.Type[ArrayT], shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> ArrayT:
         return cls(
-            value=np.zeros(shape=tuple(shape.values()), dtype=dtype),
+            array=np.zeros(shape=tuple(shape.values()), dtype=dtype),
             axes=list(shape.keys()),
         )
 
     @classmethod
     def ones(cls: typ.Type[ArrayT], shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> ArrayT:
         return cls(
-            value=np.ones(shape=tuple(shape.values()), dtype=dtype),
+            array=np.ones(shape=tuple(shape.values()), dtype=dtype),
             axes=list(shape.keys()),
         )
 
     @property
     def unit(self) -> typ.Optional[u.Unit]:
         unit = super().unit
-        if hasattr(self.value, 'unit'):
-            unit = self.value.unit
+        if hasattr(self.array, 'unit'):
+            unit = self.array.unit
         return unit
 
     @property
     def shape(self: ArrayT) -> typ.Dict[str, int]:
         shape = super().shape
-        for i in range(np.ndim(self.value)):
-            shape[self._axes_normalized[i]] = self.value.shape[i]
+        for i in range(np.ndim(self.array)):
+            shape[self._axes_normalized[i]] = self.array.shape[i]
         return shape
 
     def __setitem__(
@@ -630,14 +630,14 @@ class Array(
 
     def view(self) -> 'Array':
         other = super().view()      # type: Array
-        other.data = self.data
-        other.axis_names = self.axis_names
+        other.array = self.array
+        other.axes = self.axes
         return other
 
     def copy(self) -> 'Array':
         other = super().copy()      # type: Array
-        other.data = self.data.copy()
-        other.axis_names = copy.deepcopy(self.axis_names)
+        other.array = self.array.copy()
+        other.axes = copy.deepcopy(self.axes)
         return other
 
 
@@ -659,12 +659,12 @@ class Range(AbstractArray[np.ndarray]):
     @property
     def shape(self: RangeT) -> typ.Dict[str, int]:
         shape = super().shape
-        for i in range(np.ndim(self.value)):
-            shape[self._axes_normalized[i]] = self.value.shape[i]
+        for i in range(np.ndim(self.array)):
+            shape[self._axes_normalized[i]] = self.array.shape[i]
         return shape
 
     @property
-    def value(self: RangeT) -> np.ndarray:
+    def array(self: RangeT) -> np.ndarray:
         return np.arange(
             start=self.start,
             stop=self.stop,
@@ -790,7 +790,7 @@ class LinearSpace(
     _LinearMixin,
 ):
     @property
-    def value(self: LinearSpaceT) -> kgpy.units.QuantityLike:
+    def array(self: LinearSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
         return np.linspace(
             start=self._start_normalized._data_aligned(shape)[..., 0],
@@ -827,7 +827,7 @@ class UniformRandomSpace(
 ):
 
     @property
-    def value(self: UniformRandomSpaceT) -> kgpy.units.QuantityLike:
+    def array(self: UniformRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
 
         start = self.start_broadcasted._data_aligned(shape)
@@ -917,7 +917,7 @@ class NormalRandomSpace(
 ):
 
     @property
-    def value(self: NormalRandomSpaceT) -> kgpy.units.QuantityLike:
+    def array(self: NormalRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
 
         center = self.center_broadcasted._data_aligned(shape)
