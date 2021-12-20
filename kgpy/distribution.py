@@ -182,7 +182,7 @@ class AbstractArray(
 class _DistributionMixin(
     kgpy.mixin.Copyable,
 ):
-    num_samples: int = 0
+    num_samples: int = 11
     seed: int = 42
 
     @property
