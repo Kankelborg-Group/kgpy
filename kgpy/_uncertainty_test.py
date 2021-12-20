@@ -3,7 +3,7 @@ import abc
 import numpy as np
 import astropy.units as u
 import kgpy.labeled
-import kgpy.distribution
+import kgpy.uncertainty
 
 
 class _TestAbstractArray(
@@ -27,11 +27,11 @@ class TestUniform(_TestAbstractArray):
         ],
     )
     def test_distribution(self, nominal: kgpy.labeled.ArrayLike, width: kgpy.labeled.ArrayLike):
-        a = kgpy.distribution.Uniform(nominal=nominal, width=width, num_samples=11)
-        assert isinstance(a, kgpy.distribution.Uniform)
+        a = kgpy.uncertainty.Uniform(nominal=nominal, width=width, num_samples=11)
+        assert isinstance(a, kgpy.uncertainty.Uniform)
         assert isinstance(a.distribution, kgpy.labeled.UniformRandomSpace)
         if not isinstance(nominal, kgpy.labeled.AbstractArray):
-            value = kgpy.labeled.Array(nominal)
+            nominal = kgpy.labeled.Array(nominal)
         assert np.all(a.distribution.min(axis='_distribution') >= nominal - width)
 
 
@@ -45,24 +45,24 @@ class TestArray:
     @pytest.mark.parametrize(
         argnames='a,b',
         argvalues=[
-            (kgpy.distribution.Uniform(10, width=1), 5),
-            (kgpy.distribution.Uniform(10, width=1), kgpy.labeled.LinearSpace(5, 6, 9, axis='b')),
-            (kgpy.distribution.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a'), width=1), 5),
-            (kgpy.distribution.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a'), width=1), kgpy.labeled.LinearSpace(5, 6, 9, axis='b')),
-            (kgpy.distribution.Uniform(10 * u.mm, width=1*u.mm), 5 * u.mm),
-            (kgpy.distribution.Uniform(10 * u.mm, width=1 * u.mm), kgpy.labeled.LinearSpace(5, 6, 9, axis='b') * u.mm),
-            (kgpy.distribution.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a') * u.mm, width=1 * u.mm), 5 * u.mm),
-            (kgpy.distribution.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a') * u.mm, width=1 * u.mm), kgpy.labeled.LinearSpace(5, 6, 9, axis='b') * u.mm)
+            (kgpy.uncertainty.Uniform(10, width=1), 5),
+            (kgpy.uncertainty.Uniform(10, width=1), kgpy.labeled.LinearSpace(5, 6, 9, axis='b')),
+            (kgpy.uncertainty.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a'), width=1), 5),
+            (kgpy.uncertainty.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a'), width=1), kgpy.labeled.LinearSpace(5, 6, 9, axis='b')),
+            (kgpy.uncertainty.Uniform(10 * u.mm, width=1*u.mm), 5 * u.mm),
+            (kgpy.uncertainty.Uniform(10 * u.mm, width=1 * u.mm), kgpy.labeled.LinearSpace(5, 6, 9, axis='b') * u.mm),
+            (kgpy.uncertainty.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a') * u.mm, width=1 * u.mm), 5 * u.mm),
+            (kgpy.uncertainty.Uniform(kgpy.labeled.LinearSpace(10, 11, 7, axis='a') * u.mm, width=1 * u.mm), kgpy.labeled.LinearSpace(5, 6, 9, axis='b') * u.mm)
         ],
     )
     def test__add__(self, a, b):
         c = a + b
         d = b + a
         b_normalized = b
-        if not isinstance(b, kgpy.distribution.AbstractArray):
-            b_normalized = kgpy.distribution.Array(b)
-        assert isinstance(c, kgpy.distribution.AbstractArray)
-        assert isinstance(d, kgpy.distribution.AbstractArray)
+        if not isinstance(b, kgpy.uncertainty.AbstractArray):
+            b_normalized = kgpy.uncertainty.Array(b)
+        assert isinstance(c, kgpy.uncertainty.AbstractArray)
+        assert isinstance(d, kgpy.uncertainty.AbstractArray)
         assert np.all(c.nominal == a.nominal + b_normalized.nominal)
         assert np.all(d.nominal == b_normalized.nominal + a.nominal)
         assert np.all(c == d)
