@@ -22,6 +22,7 @@ import sunpy.coordinates.frames
 import kgpy.obs
 import kgpy.moment
 import kgpy.mixin
+import kgpy.img
 
 __all__ = ['Cube']
 
@@ -91,6 +92,14 @@ class Cube(kgpy.obs.spectral.Cube):
         self.intensity[self.intensity == -200 * u.adu] = np.nan
 
         return self
+
+    @property
+    def intensity_despiked(self):
+        return kgpy.img.spikes.identify_and_fix(
+            data=self.intensity.value,
+            axis=(0, ~2, ~1, ~0),
+            kernel_size=5,
+        )[0] << self.intensity.unit
 
     def window_doppler(self, shift_doppler: u.Quantity = 300 * u.km / u.s) -> 'Cube':
 
