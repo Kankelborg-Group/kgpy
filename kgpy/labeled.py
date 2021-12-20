@@ -317,7 +317,20 @@ class AbstractArray(
             *inputs,
             **kwargs,
     ) -> 'Array':
-        inputs = [Array(inp) if not isinstance(inp, AbstractArray) else inp for inp in inputs]
+
+        inputs_normalized = []
+
+        for inp in inputs:
+            if not hasattr(inp, '__array_ufunc__'):
+                inp = Array(inp)
+            elif isinstance(inp, np.ndarray):
+                inp = Array(inp)
+            elif isinstance(inp, AbstractArray):
+                pass
+            else:
+                return NotImplemented
+            inputs_normalized.append(inp)
+        inputs = inputs_normalized
 
         shape = self.broadcast_shapes(*inputs)
         inputs = tuple(inp._data_aligned(shape) for inp in inputs)
