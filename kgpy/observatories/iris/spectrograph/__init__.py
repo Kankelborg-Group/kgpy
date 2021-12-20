@@ -47,7 +47,7 @@ class Cube(kgpy.obs.spectral.Cube):
         extract_dir = archive.parent / pathlib.Path(archive.stem).stem
         if not extract_dir.exists():
             shutil.unpack_archive(filename=archive, extract_dir=extract_dir)
-        path_sequence = sorted(extract_dir.glob('*.fits'))
+        path_sequence = sorted(extract_dir.rglob('*.fits'))
         return cls.from_path_sequence(path_sequence=path_sequence, spectral_window=spectral_window)
 
     @classmethod
