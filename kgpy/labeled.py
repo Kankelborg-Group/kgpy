@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 NDArrayMethodsMixinT = typ.TypeVar('NDArrayMethodsMixinT', bound='NDArrayMethodsMixin')
-ValueT = typ.TypeVar('ValueT', bound=kgpy.units.QuantityLike)
+ArrT = typ.TypeVar('ArrT', bound=kgpy.units.QuantityLike)
 AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 OtherAbstractArrayT = typ.TypeVar('OtherAbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
@@ -62,12 +62,12 @@ class AbstractArray(
     NDArrayMethodsMixin,
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
-    typ.Generic[ValueT],
+    typ.Generic[ArrT],
 ):
 
     @property
     @abc.abstractmethod
-    def array(self: AbstractArrayT) -> ValueT:
+    def array(self: AbstractArrayT) -> ArrT:
         pass
 
     @property
@@ -119,7 +119,7 @@ class AbstractArray(
     def shape_broadcasted(self: AbstractArrayT, *arrs: AbstractArrayT) -> typ.Dict[str, int]:
         return self.broadcast_shapes(self, *arrs)
 
-    def _data_aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ValueT:
+    def _data_aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ArrT:
         ndim_missing = len(shape) - np.ndim(self.array)
         value = np.expand_dims(self.array, tuple(~np.arange(ndim_missing)))
         source = []
@@ -573,9 +573,9 @@ ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
 
 @dataclasses.dataclass(eq=False)
 class Array(
-    AbstractArray[ValueT],
+    AbstractArray[ArrT],
 ):
-    array: ValueT = 0 * u.dimensionless_unscaled
+    array: ArrT = 0 * u.dimensionless_unscaled
     axes: typ.Optional[typ.List[str]] = None
 
     def __post_init__(self: ArrayT):
