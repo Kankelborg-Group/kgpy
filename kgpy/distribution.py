@@ -26,6 +26,7 @@ NormalT = typ.TypeVar('NormalT', bound='Normal')
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
     kgpy.mixin.Copyable,
+    kgpy.labeled.NDArrayMethodsMixin,
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
     typ.Generic[ValueT, DistributionT],
