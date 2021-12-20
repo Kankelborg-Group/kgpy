@@ -71,6 +71,13 @@ class AbstractArray(
         pass
 
     @property
+    def _array_normalized(self: AbstractArrayT) -> np.ndarray:
+        value = self.array
+        if not isinstance(value, np.ndarray):
+            value = np.array(value)
+        return value
+
+    @property
     @abc.abstractmethod
     def unit(self) -> typ.Optional[u.Unit]:
         return None
