@@ -1,6 +1,7 @@
 import typing as typ
 import os
 import dateutil.rrule
+import fractions
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates
@@ -109,6 +110,7 @@ def annotate_component(
         plot_bar_1: bool = True,
         plot_bar_2: bool = True,
         digits_after_decimal: int = 3,
+        as_fraction: bool = False
 ):
 
     if transform is None:
@@ -165,7 +167,24 @@ def annotate_component(
 
     text_pos = vector.Vector2D(position_orthogonal, position_orthogonal)
     text_pos.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
-    text_str = fmt.quantity(np.abs(c2 - c1), digits_after_decimal=digits_after_decimal)
+
+    length = np.abs(c2 - c1)
+    if as_fraction:
+        length_int = int(length)
+        length_frac = length - length_int
+        if length_int == 0:
+            length_int = ''
+        else:
+            length_int = f'{length_int}\\enspace'
+
+        if length_frac == 0:
+            length_frac = ''
+        else:
+            length_frac = fractions.Fraction(length_frac.value).limit_denominator()
+
+        text_str = f'{length_int}{length_frac}{length.unit}'
+    else:
+        text_str = fmt.quantity(length, digits_after_decimal=digits_after_decimal)
 
     bbox_margin = plt.rcParams['font.size'] / 2
     if horizontal_alignment == 'left':
