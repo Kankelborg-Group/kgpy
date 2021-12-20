@@ -134,7 +134,7 @@ class Cube(kgpy.obs.spectral.Cube):
     @property
     def colors(self):
 
-        intensity = self.intensity
+        intensity = np.nan_to_num(self.intensity)
 
         wcs = self.wcs[0, 0]
         wavl_center = self.channel[0]
@@ -145,13 +145,15 @@ class Cube(kgpy.obs.spectral.Cube):
         pix_mask_left = int(wcs.world_to_pixel_values(wavl_left.to(u.m), 0 * u.arcsec, 0 * u.arcsec, )[0])
         pix_mask_right = int(wcs.world_to_pixel_values(wavl_right.to(u.m), 0 * u.arcsec, 0 * u.arcsec, )[0]) + 1
 
-        intensity_background = np.nanmedian(intensity, axis=2, keepdims=True)
+        intensity_background = np.median(intensity, axis=2, keepdims=True)
         intensity_background[..., pix_mask_left:pix_mask_right] = np.median(intensity_background, axis=~0, keepdims=True)
         intensity = intensity - intensity_background
+        del intensity_background
 
-        intensity_max = np.nanpercentile(intensity, 95, self.axis.perp_axes(self.axis.w))
+        intensity_max = np.percentile(intensity, 99, self.axis.perp_axes(self.axis.w))
         intensity_min = 0
         intensity = (intensity - intensity_min) / (intensity_max - intensity_min)
+        del intensity_max
 
         colormap = matplotlib.cm.get_cmap('gist_rainbow')
         segment_data = colormap._segmentdata.copy()
@@ -175,7 +177,7 @@ class Cube(kgpy.obs.spectral.Cube):
             cmap=colormap.reversed(),
         )
 
-        shift_doppler = 100 * u.km / u.s
+        shift_doppler = 50 * u.km / u.s
 
         wavl_delta = shift_doppler / astropy.constants.c * wavl_center
         wavl_left = wavl_center - wavl_delta
@@ -183,16 +185,16 @@ class Cube(kgpy.obs.spectral.Cube):
         pix_left = int(wcs.world_to_pixel_values(wavl_left.to(u.m), 0 * u.arcsec, 0 * u.arcsec, )[0])
         pix_right = int(wcs.world_to_pixel_values(wavl_right.to(u.m), 0 * u.arcsec, 0 * u.arcsec, )[0]) + 1
         index = np.expand_dims(np.arange(pix_left, pix_right), axis=self.axis.perp_axes(self.axis.w))
-        color = np.nansum(mappable.to_rgba(index) * intensity[..., pix_left:pix_right, np.newaxis], axis=~1)
+        color = np.sum(mappable.to_rgba(index) * intensity[..., pix_left:pix_right, np.newaxis], axis=~1)
         color = color / np.sum(mappable.to_rgba(index), axis=~1)
 
+        color_max = np.max(color[..., :~0], axis=~0)
         # color[..., ~0] = color[..., :~0].sum(~0) / 3
-        color[..., ~0] = color[..., :~0].max(~0)
+        color[..., ~0] = np.nan_to_num(np.sqrt(color_max))
 
         # color[..., ~0] = np.sqrt(color[..., ~0]).real
         # color[... :~0] = color[..., :~0] / np.nanmax(color[..., :~0], axis=~0, keepdims=True)
 
-        color_max = np.nanmax(color[..., :~0], axis=~0)
         mask = color_max > 0
         color[mask, :~0] = color[mask, :~0] / color_max[mask, np.newaxis]
 
