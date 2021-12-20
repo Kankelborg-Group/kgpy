@@ -15,7 +15,7 @@ class _TestAbstractArray(
 class TestUniform(_TestAbstractArray):
 
     @pytest.mark.parametrize(
-        argnames='value,width',
+        argnames='nominal,width',
         argvalues=[
             (10, 1),
             (10 * u.mm, 1 * u.mm),
@@ -26,13 +26,13 @@ class TestUniform(_TestAbstractArray):
             (kgpy.labeled.Array(np.array([10, 11, 12]) * u.mm, axes=['x']), kgpy.labeled.Array(np.array([1, 2, 3]) * u.mm, axes=['y'])),
         ],
     )
-    def test_distribution(self, value: kgpy.labeled.ArrayLike, width: kgpy.labeled.ArrayLike):
-        a = kgpy.distribution.Uniform(value=value, width=width, num_samples=11)
+    def test_distribution(self, nominal: kgpy.labeled.ArrayLike, width: kgpy.labeled.ArrayLike):
+        a = kgpy.distribution.Uniform(nominal=nominal, width=width, num_samples=11)
         assert isinstance(a, kgpy.distribution.Uniform)
         assert isinstance(a.distribution, kgpy.labeled.UniformRandomSpace)
-        if not isinstance(value, kgpy.labeled.AbstractArray):
-            value = kgpy.labeled.Array(value)
-        assert np.all(a.distribution.min(axis='_distribution') >= value - width)
+        if not isinstance(nominal, kgpy.labeled.AbstractArray):
+            value = kgpy.labeled.Array(nominal)
+        assert np.all(a.distribution.min(axis='_distribution') >= nominal - width)
 
 
 class TestNormal(_TestAbstractArray):
@@ -63,6 +63,6 @@ class TestArray:
             b_normalized = kgpy.distribution.Array(b)
         assert isinstance(c, kgpy.distribution.AbstractArray)
         assert isinstance(d, kgpy.distribution.AbstractArray)
-        assert np.all(c.value == a.value + b_normalized.value)
-        assert np.all(d.value == b_normalized.value + a.value)
+        assert np.all(c.nominal == a.nominal + b_normalized.nominal)
+        assert np.all(d.nominal == b_normalized.nominal + a.nominal)
         assert np.all(c == d)
