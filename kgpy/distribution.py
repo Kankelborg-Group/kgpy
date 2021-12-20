@@ -8,6 +8,7 @@ import kgpy.labeled
 
 __all__ = [
     'AbstractArray',
+    'ArrayLike',
     'Array',
     'Uniform',
     'Normal',
@@ -176,6 +177,9 @@ class AbstractArray(
         other = super().copy()
         other.nominal = self.nominal.copy()
         return other
+
+
+ArrayLike = typ.Union[kgpy.labeled.ArrayLike, AbstractArray]
 
 
 @dataclasses.dataclass(eq=False)
