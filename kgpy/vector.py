@@ -9,6 +9,7 @@ import numpy.typing
 import astropy.units as u
 import kgpy.units
 import kgpy.labeled
+import kgpy.uncertainty
 from . import matrix
 
 __all__ = [
@@ -24,11 +25,23 @@ ix = 0
 iy = 1
 iz = 2
 
+XT = typ.TypeVar('XT', bound=kgpy.uncertainty.ArrayLike)
+YT = typ.TypeVar('YT', bound=kgpy.uncertainty.ArrayLike)
+ZT = typ.TypeVar('ZT', bound=kgpy.uncertainty.ArrayLike)
+RadiusT = typ.TypeVar('RadiusT', bound=kgpy.uncertainty.ArrayLike)
+AzimuthT = typ.TypeVar('AzimuthT', bound=kgpy.uncertainty.ArrayLike)
+InclinationT = typ.TypeVar('InclinationT', bound=kgpy.uncertainty.ArrayLike)
 AbstractVectorT = typ.TypeVar('AbstractVectorT', bound='AbstractVector')
+Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
+Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
+PolarT = typ.TypeVar('PolarT', bound='Polar')
+CylindricalT = typ.TypeVar('CylindricalT', bound='Cylindrical')
+SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
 
 
 @dataclasses.dataclass(eq=False)
 class AbstractVector(
+    kgpy.mixin.Copyable,
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
 ):
@@ -111,6 +124,146 @@ class AbstractVector(
     @abc.abstractmethod
     def to_tuple(self):
         pass
+
+    @property
+    @abc.abstractmethod
+    def length(self) -> kgpy.uncertainty.ArrayLike:
+        pass
+
+
+@dataclasses.dataclass(eq=False)
+class Cartesian2D(
+    AbstractVector,
+    typ.Generic[XT, YT],
+):
+    x: XT = 0
+    y: YT = 0
+
+    @property
+    def length(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
+        return np.sqrt(np.square(self.x) + np.square(self.y))
+
+    @property
+    def polar(self: Cartesian2DT) -> PolarT:
+        return Polar(
+            radius=np.sqrt(np.square(self.x) + np.square(self.y)),
+            azimuth=np.arctan2(self.y, self.x)
+        )
+
+    def to_3d(self: Cartesian2DT, z: kgpy.uncertainty.ArrayLike) -> Cartesian3DT:
+        return Cartesian3D(
+            x=self.x,
+            y=self.y,
+            z=z,
+        )
+
+
+@dataclasses.dataclass(eq=False)
+class Cartesian3D(
+    Cartesian2D[XT, YT],
+    typ.Generic[XT, YT, ZT],
+):
+    z: ZT = 0
+
+    @property
+    def length(self: Cartesian3DT) -> kgpy.uncertainty.ArrayLike:
+        return np.sqrt(np.square(self.x) + np.square(self.y) + np.square(self.z))
+
+    @property
+    def xy(self: Cartesian3DT) -> Cartesian2DT:
+        return Cartesian2D(
+            x=self.x,
+            y=self.y,
+        )
+
+    @property
+    def cylindrical(self: Cartesian3DT) -> CylindricalT:
+        return Cylindrical(
+            radius=np.sqrt(np.square(self.x) + np.square(self.y)),
+            azimuth=np.arctan2(self.y, self.x),
+            z=self.z,
+        )
+
+    @property
+    def spherical(self: Cartesian3DT) -> SphericalT:
+        radius = np.sqrt(np.square(self.x) + np.square(self.y) + np.square(self.z))
+        return Spherical(
+            radius=radius,
+            azimuth=np.arctan2(self.y, self.x),
+            inclination=np.arccos(self.z / radius)
+        )
+
+
+@dataclasses.dataclass(eq=False)
+class Polar(
+    AbstractVector,
+    typ.Generic[RadiusT, AzimuthT],
+):
+    radius: RadiusT = 0
+    azimuth: AzimuthT = 0 * u.deg
+
+    @property
+    def length(self: PolarT) -> kgpy.uncertainty.ArrayLike:
+        return self.radius
+
+    @property
+    def cartesian(self: PolarT) -> Cartesian2DT:
+        return Cartesian2D(
+            x=self.radius * np.cos(self.azimuth),
+            y=self.radius * np.sin(self.azimuth),
+        )
+
+
+@dataclasses.dataclass(eq=False)
+class Cylindrical(
+    Polar[RadiusT, AzimuthT],
+    typ.Generic[RadiusT, AzimuthT, ZT],
+):
+    z: ZT = 0
+
+    @property
+    def length(self: CylindricalT) -> kgpy.uncertainty.ArrayLike:
+        return np.sqrt(np.square(self.radius) + np.square(self.z))
+
+    @property
+    def cartesian(self: CylindricalT) -> Cartesian3DT:
+        return Cartesian3D(
+            x=self.radius * np.cos(self.azimuth),
+            y=self.radius * np.sin(self.azimuth),
+            z=self.z,
+        )
+    
+    @property
+    def spherical(self: CylindricalT) -> SphericalT:
+        return Spherical(
+            radius=np.sqrt(np.square(self.radius) + np.square(self.z)),
+            azimuth=self.azimuth,
+            inclination=np.arctan(self.radius / self.z),
+        )
+
+
+@dataclasses.dataclass(eq=False)
+class Spherical(
+    Polar[RadiusT, AzimuthT],
+    typ.Generic[RadiusT, AzimuthT, InclinationT],
+):
+    inclination: InclinationT = 0 * u.deg
+
+    @property
+    def cartesian(self: SphericalT) -> Cartesian3DT:
+        return Cartesian3D(
+            x=self.radius * np.cos(self.azimuth) * np.sin(self.inclination),
+            y=self.radius * np.sin(self.azimuth) * np.sin(self.inclination),
+            z=self.radius * np.cos(self.inclination),
+        )
+
+    @property
+    def cylindrical(self: SphericalT) -> CylindricalT:
+        return Cylindrical(
+            radius=self.radius * np.sin(self.inclination),
+            azimuth=self.azimuth,
+            z=self.radius * np.cos(self.inclination),
+        )
 
 
 class Vector(AbstractVector):
