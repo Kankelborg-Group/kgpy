@@ -10,7 +10,6 @@ import astropy.units as u
 import kgpy.units
 import kgpy.labeled
 import kgpy.uncertainty
-from . import matrix
 
 __all__ = [
     'ix', 'iy', 'iz',
