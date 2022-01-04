@@ -1,11 +1,20 @@
 """
 Complement to the :mod:`kgpy.vector` package for matrices.
 """
+import abc
 import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
 from . import vector
+import kgpy.uncertainty
+
+__all__ = []
+
+
+AbstractMatrixT = typ.TypeVar('AbstractMatrixT', bound='AbstractMatrix')
+Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
+Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
 
 # __all__ = [
 #     'xx', 'xy', 'xz',
@@ -60,6 +69,39 @@ from . import vector
 # zz = [[0, 0, 0],
 #       [0, 0, 0],
 #       [0, 0, 1]] * u.dimensionless_unscaled
+
+
+@dataclasses.dataclass(eq=False)
+class AbstractMatrix(
+    abc.ABC,
+):
+
+    @property
+    @abc.abstractmethod
+    def determinant(self: AbstractMatrixT) -> kgpy.uncertainty.ArrayLike:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
+        pass
+
+
+@dataclasses.dataclass(eq=False)
+class Cartesian2D(
+    vector.Cartesian2D[vector.Cartesian2D, vector.Cartesian2D],
+):
+
+    @property
+    def determinant(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
+        return self.x.x * self.y.y - self.x.y * self.y.x
+
+    @property
+    def transpose(self: Cartesian2DT) -> Cartesian2DT:
+        return Cartesian2D(
+            x=kgpy.vector.Cartesian2D(x=self.x.x, y=self.y.x),
+            y=kgpy.vector.Cartesian2D(x=self.x.y, y=self.y.y),
+        )
 
 
 @dataclasses.dataclass
