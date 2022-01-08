@@ -45,11 +45,8 @@ class AbstractArray(
             cls: typ.Type[AbstractArrayT],
             parameter: kgpy.labeled.ArrayLike,
     ) -> kgpy.labeled.AbstractArray:
-
-        if not isinstance(parameter, kgpy.labeled.AbstractArray):
+        if isinstance(parameter, cls.type_array_auxiliary):
             parameter = kgpy.labeled.Array(parameter)
-        # if not isinstance(parameter.value, u.Quantity):
-        #     parameter.value = parameter.value << u.dimensionless_unscaled
         return parameter
 
     @property
