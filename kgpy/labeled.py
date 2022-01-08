@@ -65,6 +65,10 @@ class AbstractArray(
     typ.Generic[ArrT],
 ):
 
+    type_array_primary: typ.ClassVar[typ.Type] = np.ndarray
+    type_array_auxiliary: typ.ClassVar[typ.Tuple[typ.Type, ...]] = (bool, int, float, complex, np.generic)
+    type_array: typ.ClassVar[typ.Tuple[typ.Type, ...]] = type_array_auxiliary + (type_array_primary, )
+
     @property
     @abc.abstractmethod
     def array(self: AbstractArrayT) -> ArrT:
@@ -73,7 +77,7 @@ class AbstractArray(
     @property
     def _array_normalized(self: AbstractArrayT) -> np.ndarray:
         value = self.array
-        if not isinstance(value, np.ndarray):
+        if isinstance(value, self.type_array_auxiliary):
             value = np.array(value)
         return value
 
@@ -321,9 +325,7 @@ class AbstractArray(
         inputs_normalized = []
 
         for inp in inputs:
-            if not hasattr(inp, '__array_ufunc__'):
-                inp = Array(inp)
-            elif isinstance(inp, np.ndarray):
+            if isinstance(inp, self.type_array):
                 inp = Array(inp)
             elif isinstance(inp, AbstractArray):
                 pass
