@@ -32,6 +32,10 @@ class AbstractArray(
     abc.ABC,
     typ.Generic[NominalT, DistributionT],
 ):
+    type_array_primary: typ.ClassVar[typ.Type] = kgpy.labeled.AbstractArray
+    type_array_auxiliary: typ.ClassVar[typ.Tuple[typ.Type, ...]] = kgpy.labeled.AbstractArray.type_array
+    type_array: typ.ClassVar[typ.Tuple[typ.Type, ...]] = type_array_auxiliary + (type_array_primary, )
+
     axis_distribution: typ.ClassVar[str] = '_distribution'
 
     nominal: NominalT = 0 * u.dimensionless_unscaled
