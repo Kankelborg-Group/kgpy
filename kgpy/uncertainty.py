@@ -37,7 +37,7 @@ class AbstractArray(
     nominal: NominalT = 0 * u.dimensionless_unscaled
 
     @classmethod
-    def _normalize_parameter(
+    def _normalize_array(
             cls: typ.Type[AbstractArrayT],
             parameter: kgpy.labeled.ArrayLike,
     ) -> kgpy.labeled.AbstractArray:
@@ -49,8 +49,8 @@ class AbstractArray(
         return parameter
 
     @property
-    def _nominal_normalized(self: AbstractArrayT) -> kgpy.labeled.AbstractArray[u.Quantity]:
-        return self._normalize_parameter(self.nominal)
+    def nominal_normalized(self: AbstractArrayT) -> kgpy.labeled.AbstractArray[u.Quantity]:
+        return self._normalize_array(self.nominal)
 
     @property
     @abc.abstractmethod
@@ -58,9 +58,9 @@ class AbstractArray(
         pass
 
     @property
-    def _distribution_normalized(self: AbstractArrayT) -> kgpy.labeled.AbstractArray:
+    def distribution_normalized(self: AbstractArrayT) -> kgpy.labeled.AbstractArray:
         if self.distribution is not None:
-            return self._normalize_parameter(self.distribution)
+            return self._normalize_array(self.distribution)
         else:
             return self._nominal_normalized
 
@@ -85,8 +85,8 @@ class AbstractArray(
 
         inputs = [Array(inp) if not isinstance(inp, AbstractArray) else inp for inp in inputs]
 
-        inputs_nominal = [inp._nominal_normalized for inp in inputs]
-        inputs_distribution = [inp._distribution_normalized for inp in inputs]
+        inputs_nominal = [inp.nominal_normalized if isinstance(inp, AbstractArray) else inp for inp in inputs]
+        inputs_distribution = [inp.distribution_normalized if isinstance(inp, AbstractArray) else inp for inp in inputs]
 
         for inp_nominal, inp_distribution in zip(inputs_nominal, inputs_distribution):
             result_nominal = inp_nominal.__array_ufunc__(function, method, *inputs_nominal, **kwargs)
@@ -136,22 +136,22 @@ class AbstractArray(
             np.array_equal,
             np.isclose,
         ]:
-            args_nominal = [arg._nominal_normalized if isinstance(arg, AbstractArray) else arg for arg in args]
+            args_nominal = [arg.nominal_normalized if isinstance(arg, AbstractArray) else arg for arg in args]
             types_nominal = list(type(arg) for arg in args_nominal if getattr(arg, '__array_function__', None) is not None)
-            args_distribution = [arg._distribution_normalized if isinstance(arg, AbstractArray) else arg for arg in args]
+            args_distribution = [arg.distribution_normalized if isinstance(arg, AbstractArray) else arg for arg in args]
             types_distribution = list(type(arg) for arg in args_distribution if getattr(arg, '__array_function__', None) is not None)
 
-            kwargs_nominal = {k: kwargs[k]._nominal_normalized if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
-            kwargs_distribution = {k: kwargs[k]._distribution_normalized if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
+            kwargs_nominal = {k: kwargs[k].nominal_normalized if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
+            kwargs_distribution = {k: kwargs[k].distribution_normalized if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
 
             return Array(
-                nominal=self._nominal_normalized.__array_function__(
+                nominal=self.nominal_normalized.__array_function__(
                     func,
                     types_nominal,
                     args_nominal,
                     kwargs_nominal,
                 ),
-                distribution=self._distribution_normalized.__array_function__(
+                distribution=self.distribution_normalized.__array_function__(
                     func,
                     types_distribution,
                     args_distribution,
@@ -217,8 +217,8 @@ class _UniformBase(
     width: WidthT = 0 * u.dimensionless_unscaled
 
     @property
-    def _width_normalized(self: UniformT) -> kgpy.labeled.AbstractArray:
-        return self._normalize_parameter(self.width)
+    def width_normalized(self: UniformT) -> kgpy.labeled.AbstractArray:
+        return self._normalize_array(self.width)
 
     def view(self: UniformT) -> UniformT:
         other = super().view()
@@ -240,8 +240,8 @@ class Uniform(
     @property
     def distribution(self: UniformT) -> kgpy.labeled.UniformRandomSpace:
         return kgpy.labeled.UniformRandomSpace(
-            start=self._nominal_normalized - self._width_normalized,
-            stop=self._nominal_normalized + self._width_normalized,
+            start=self.nominal_normalized - self.width_normalized,
+            stop=self.nominal_normalized + self.width_normalized,
             num=self.num_samples,
             axis=self.axis_distribution,
             seed=self.seed,
@@ -254,8 +254,8 @@ class Normal(Uniform):
     @property
     def distribution(self: UniformT) -> kgpy.labeled.NormalRandomSpace:
         return kgpy.labeled.NormalRandomSpace(
-            center=self._nominal_normalized,
-            width=self._width_normalized,
+            center=self.nominal_normalized,
+            width=self.width_normalized,
             num=self.num_samples,
             axis=self.axis_distribution,
             seed=self.seed,
