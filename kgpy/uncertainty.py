@@ -83,7 +83,18 @@ class AbstractArray(
             **kwargs,
     ) -> AbstractArrayT:
 
-        inputs = [Array(inp) if not isinstance(inp, AbstractArray) else inp for inp in inputs]
+        inputs_normalized = []
+        for inp in inputs:
+            if isinstance(inp, self.type_array_auxiliary):
+                inp = kgpy.labeled.Array(inp)
+            elif isinstance(inp, self.type_array_primary):
+                pass
+            elif isinstance(inp, AbstractArray):
+                pass
+            else:
+                return NotImplemented
+            inputs_normalized.append(inp)
+        inputs = inputs_normalized
 
         inputs_nominal = [inp.nominal_normalized if isinstance(inp, AbstractArray) else inp for inp in inputs]
         inputs_distribution = [inp.distribution_normalized if isinstance(inp, AbstractArray) else inp for inp in inputs]
