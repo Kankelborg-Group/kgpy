@@ -203,6 +203,28 @@ class AbstractArray(
     def __bool__(self: AbstractArrayT) -> bool:
         return self.nominal.__bool__() and self.distribution.__bool__()
 
+    def __getitem__(
+            self: AbstractArrayT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray, 'AbstractArray']], kgpy.labeled.AbstractArray, 'AbstractArray'],
+    ) -> ArrayT:
+        if isinstance(item, AbstractArray):
+            return Array(
+                nominal=self.nominal.__getitem__(item.nominal),
+                distribution=self.distribution.__getitem__(item.distribution),
+            )
+        elif isinstance(item, dict):
+            item_nominal = {key: item[key].nominal if isinstance(item[key], AbstractArray) else item[key] for key in item}
+            item_distribution = {key: item[key].distribution if isinstance(item[key], AbstractArray) else item[key] for key in item}
+            return Array(
+                nominal=self.nominal.__getitem__(item_nominal),
+                distribution=self.distribution.__getitem__(item_distribution),
+            )
+        else:
+            return Array(
+                nominal=self.nominal.__getitem__(item),
+                distribution=self.distribution.__getitem__(item),
+            )
+
     @property
     def num_samples(self) -> int:
         return self.shape[self.axis_distribution]
