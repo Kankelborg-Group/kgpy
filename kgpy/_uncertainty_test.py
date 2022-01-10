@@ -66,3 +66,29 @@ class TestArray:
         assert np.all(c.nominal == a.nominal + b_normalized.nominal)
         assert np.all(d.nominal == b_normalized.nominal + a.nominal)
         assert np.all(c == d)
+
+    @pytest.mark.parametrize(
+        argnames='a,b',
+        argvalues=[
+            (kgpy.uncertainty.Uniform(10, width=1), u.mm),
+            (kgpy.uncertainty.Uniform(10, width=1), 5),
+            (kgpy.uncertainty.Uniform(10, width=1), kgpy.labeled.LinearSpace(5, 6, 9, axis='b')),
+            (kgpy.uncertainty.Uniform(10, width=1), kgpy.uncertainty.Uniform(10, width=2)),
+        ]
+    )
+    def test__mul__(self, a, b):
+        c = a * b
+        d = b * a
+        assert isinstance(c, kgpy.uncertainty.AbstractArray)
+        assert isinstance(d, kgpy.uncertainty.AbstractArray)
+        assert np.all(c == d)
+        if isinstance(b, kgpy.uncertainty.AbstractArray):
+            assert np.all(c.nominal == a.nominal * b.nominal)
+            assert np.all(c.distribution == a.distribution * b.distribution)
+            assert np.all(d.nominal == b.nominal * a.nominal)
+            assert np.all(d.distribution == b.distribution * a.distribution)
+        else:
+            assert np.all(c.nominal == a.nominal * b)
+            assert np.all(c.distribution == a.distribution * b)
+            assert np.all(d.nominal == b * a.nominal)
+            assert np.all(d.distribution == b * a.distribution)
