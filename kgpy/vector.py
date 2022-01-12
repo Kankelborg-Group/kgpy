@@ -46,6 +46,7 @@ class AbstractVector(
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
 ):
+    type_coordinates = kgpy.uncertainty.AbstractArray.type_array + (kgpy.uncertainty.AbstractArray, )
 
     @property
     def coordinates(self: AbstractVectorT) -> typ.Dict[str, kgpy.labeled.ArrayLike]:
