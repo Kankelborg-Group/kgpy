@@ -176,7 +176,6 @@ class TiltGeneral(Tilt):
         return type(self)(rotation=self.rotation_matrix.transpose)
 
 
-
 @dataclasses.dataclass
 class TiltAboutAxis(Tilt, abc.ABC):
     angle: typ.Union[u.Quantity, units.TolQuantity] = 0 * u.deg
