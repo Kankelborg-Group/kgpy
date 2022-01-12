@@ -149,13 +149,22 @@ class Colorable(Copyable):
     color: typ.Optional[str] = None
 
 
-
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Plottable(
     Copyable,
     abc.ABC
 ):
     plot_kwargs: typ.Dict[str, typ.Any] = dataclasses.field(default_factory=dict)
+
+    def __eq__(self, other: 'Plottable'):
+        if not super().__eq__(other):
+            return False
+
+        for kw in self.plot_kwargs:
+            if not np.array(self.plot_kwargs[kw] == other.plot_kwargs[kw]).all():
+                return False
+
+        return True
 
     @abc.abstractmethod
     def plot(
