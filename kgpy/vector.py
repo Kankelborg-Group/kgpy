@@ -56,10 +56,6 @@ class AbstractVector(
     def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
         return tuple(field.name for field in dataclasses.fields(self))
 
-    def quantity(self, axis_components: typ.Any) -> u.Quantity:
-        return np.stack(self.coordinates.values(), axis=axis_components)
-
-    @abc.abstractmethod
     def __array_ufunc__(self, function, method, *inputs, **kwargs):
         pass
 
@@ -73,10 +69,6 @@ class AbstractVector(
 
     @abc.abstractmethod
     def __setitem__(self, key, value):
-        pass
-
-    @abc.abstractmethod
-    def to_tuple(self):
         pass
 
     @property
