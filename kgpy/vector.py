@@ -57,9 +57,54 @@ class AbstractVector(
         return tuple(field.name for field in dataclasses.fields(self))
 
     def __array_ufunc__(self, function, method, *inputs, **kwargs):
-        pass
 
-    @abc.abstractmethod
+        components_result = dict()
+
+        for component in self.components:
+            inputs_component = []
+            for inp in inputs:
+                if type(inp) == type(self):
+                    inp = getattr(inp, component)
+                elif isinstance(inp, self.type_coordinates):
+                    pass
+                else:
+                    return NotImplemented
+                inputs_component.append(inp)
+
+            for inp in inputs_component:
+                if not hasattr(inp, '__array_ufunc__'):
+                    inp = np.array(inp)
+                result = inp.__array_ufunc__(function, method, *inputs_component, **kwargs)
+                if result is not NotImplemented:
+                    components_result[component] = result
+                    break
+
+            if component not in components_result:
+                return NotImplemented
+
+        return type(self)(**components_result)
+
+    def __mul__(self: AbstractVectorT, other: typ.Union[VectorLike, u.Unit]) -> AbstractVectorT:
+        if isinstance(other, u.Unit):
+            coordinates = self.coordinates
+            return type(self)(**{component: coordinates[component] * other for component in coordinates})
+        else:
+            return super().__mul__(other)
+
+    def __lshift__(self: AbstractVectorT, other: typ.Union[VectorLike, u.Unit]) -> AbstractVectorT:
+        if isinstance(other, u.Unit):
+            coordinates = self.coordinates
+            return type(self)(**{component: coordinates[component] << other for component in coordinates})
+        else:
+            return super().__lshift__(other)
+
+    def __truediv__(self: AbstractVectorT, other: typ.Union[VectorLike, u.Unit]) -> AbstractVectorT:
+        if isinstance(other, u.Unit):
+            coordinates = self.coordinates
+            return type(self)(**{component: coordinates[component] / other for component in coordinates})
+        else:
+            return super().__truediv__(other)
+
     def __array_function__(self, function, types, args, kwargs):
         pass
 
