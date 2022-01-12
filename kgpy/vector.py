@@ -63,16 +63,13 @@ class AbstractVector(
     def __array_function__(self, function, types, args, kwargs):
         pass
 
-    @abc.abstractmethod
     def __getitem__(self, item):
         pass
 
-    @abc.abstractmethod
     def __setitem__(self, key, value):
         pass
 
     @property
-    @abc.abstractmethod
     def length(self) -> kgpy.uncertainty.ArrayLike:
         pass
 
