@@ -58,51 +58,8 @@ class AbstractVector(
             setattr(self, component, value[component])
 
     @property
-    def components(self: AbstractVectorT) -> typ.List[str]:
-        return list(self.coordinates.keys())
-
-    # @property
-    # def coordinate_list(self: AbstractVectorT) -> typ.List[kgpy.units.QuantityLike]:
-    #     return list(self.value.values())
-
-    @classmethod
-    def from_coordinates(
-            cls: typ.Type[AbstractVectorT],
-            coordinates: typ.Dict[str, kgpy.units.QuantityLike],
-    ) -> AbstractVectorT:
-        self = cls()
-        self.coordinates = coordinates
-        return self
-
-    @classmethod
-    @abc.abstractmethod
-    def dimensionless(cls: typ.Type[AbstractVectorT]) -> AbstractVectorT:
-        return cls()
-    
-    @classmethod
-    @abc.abstractmethod
-    def spatial(cls) -> 'Vector':
-        return cls()
-    
-    @classmethod
-    @abc.abstractmethod
-    def angular(cls) -> 'Vector':
-        return cls()
-
-    @classmethod
-    def from_quantity(
-            cls: typ.Type[AbstractVectorT],
-            value: kgpy.units.QuantityLike,
-            components: typ.Sequence[str],
-            axis_components: typ.Any,
-    ) -> AbstractVectorT:
-        coordinates = {component: value.take(c, axis=axis_components) for c, component in enumerate(components)}
-        return cls.from_coordinates(coordinates=coordinates)
-
-    @classmethod
-    @abc.abstractmethod
-    def from_tuple(cls, value: typ.Tuple):
-        return cls()
+    def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
+        return tuple(field.name for field in dataclasses.fields(self))
 
     def quantity(self, axis_components: typ.Any) -> u.Quantity:
         return np.stack(self.coordinates.values(), axis=axis_components)
