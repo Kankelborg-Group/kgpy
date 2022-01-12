@@ -71,7 +71,12 @@ class AbstractVector(
 
     @property
     def length(self) -> kgpy.uncertainty.ArrayLike:
-        pass
+        result = 0
+        coordinates = self.coordinates
+        for component in coordinates:
+            result = result + np.square(coordinates[component])
+        result = np.sqrt(result)
+        return result
 
 
 @dataclasses.dataclass(eq=False)
