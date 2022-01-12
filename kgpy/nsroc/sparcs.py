@@ -14,22 +14,6 @@ class SPARCS(kgpy.mixin.Copyable):
     rlg_jitter: u.Quantity = 0 * u.arcsec
     rlg_drift: u.Quantity = 0 * u.arcsec / u.s
 
-    def view(self) -> 'SPARCS':
-        other = super().view()      # type: SPARCS
-        other.pointing_jitter = self.pointing_jitter
-        other.pointing_drift = self.pointing_drift
-        other.rlg_jitter = self.rlg_jitter
-        other.rlg_drift = self.rlg_drift
-        return other
-
-    def copy(self) -> 'SPARCS':
-        other = super().copy()      # type: SPARCS
-        other.pointing_jitter = self.pointing_jitter.copy()
-        other.pointing_drift = self.pointing_drift.copy()
-        other.rlg_jitter = self.rlg_jitter.copy()
-        other.rlg_drift = self.rlg_drift.copy()
-        return other
-
 
 def specification() -> 'SPARCS':
     sparcs = SPARCS()

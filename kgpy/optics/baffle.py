@@ -324,29 +324,6 @@ class Baffle(
                         else:
                             raise NotImplementedError
 
-    def view(self) -> 'Baffle[ObscurationT]':
-        other = super().view()      # type: Baffle[ObscurationT]
-        other.apertures_base = self.apertures_base
-        other.apertures_extra = self.apertures_extra
-        other.obscuration_base = self.obscuration_base
-        other.margin = self.margin
-        other.min_distance = self.min_distance
-        other.combined_axes = self.combined_axes
-        other.shapely_unit = self.shapely_unit
-        return other
-
-    def copy(self) -> 'Baffle[ObscurationT]':
-        other = super().copy()      # type: Baffle[ObscurationT]
-        if self.apertures_base is not None:
-            other.apertures_base = self.apertures_base.copy()
-        other.apertures_extra = [aper.copy() for aper in self.apertures_extra]
-        other.obscuration_base = self.obscuration_base.copy()
-        other.margin = self.margin.copy()
-        other.min_distance = self.min_distance.copy()
-        other.combined_axes = self.combined_axes
-        other.shapely_unit = self.shapely_unit
-        return other
-
 
 class BaffleList(
     collections.UserList,

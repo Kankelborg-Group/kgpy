@@ -143,22 +143,6 @@ class RayGrid(
         else:
             raise ValueError('Unsupported axis')
 
-    def view(self) -> 'RayGrid':
-        other = super().view()  # type: RayGrid
-        other.field = self.field
-        other.pupil = self.pupil
-        other.wavelength = self.wavelength
-        other.velocity_los = self.velocity_los
-        return other
-
-    def copy(self) -> 'RayGrid':
-        other = super().copy()  # type: RayGrid
-        other.field = self.field.copy()
-        other.pupil = self.pupil.copy()
-        other.wavelength = self.wavelength.copy()
-        other.velocity_los = self.velocity_los.copy()
-        return other
-
 
 @dataclasses.dataclass
 class Rays(transform.rigid.Transformable):
@@ -253,7 +237,7 @@ class Rays(transform.rigid.Transformable):
 
     def apply_transform_list(self, transform_list: transform.rigid.TransformList) -> 'Rays':
         # other = self.copy()
-        other = self.view()
+        other = self.copy_shallow()
         transform_list = transform_list.simplified
         other.position = transform_list(other.position, num_extra_dims=self.axis.ndim)
         other.direction = transform_list(other.direction, translate=False, num_extra_dims=self.axis.ndim)
@@ -382,38 +366,6 @@ class Rays(transform.rigid.Transformable):
             distortion=self.distortion,
             vignetting=self.vignetting,
         )
-
-    def view(self) -> 'Rays':
-        other = super().view()  # type: Rays
-        other.intensity = self.intensity
-        other.wavelength = self.wavelength
-        other.position = self.position
-        other.direction = self.direction
-        other.velocity_los = self.velocity_los
-        other.surface_normal = self.surface_normal
-        other.index_of_refraction = self.index_of_refraction
-        other.vignetted_mask = self.vignetted_mask
-        other.error_mask = self.error_mask
-        other.input_grid = self.input_grid
-        other.distortion_polynomial_degree = self.distortion_polynomial_degree
-        other.vignetting_polynomial_degree = self.vignetting_polynomial_degree
-        return other
-
-    def copy(self) -> 'Rays':
-        other = super().copy()  # type: Rays
-        other.intensity = self.intensity.copy()
-        other.wavelength = self.wavelength.copy()
-        other.position = self.position.copy()
-        other.direction = self.direction.copy()
-        other.velocity_los = self.velocity_los.copy()
-        other.surface_normal = self.surface_normal.copy()
-        other.index_of_refraction = self.index_of_refraction.copy()
-        other.vignetted_mask = self.vignetted_mask.copy()
-        other.error_mask = self.error_mask.copy()
-        other.input_grid = self.input_grid.copy()
-        other.distortion_polynomial_degree = self.distortion_polynomial_degree
-        other.vignetting_polynomial_degree = self.vignetting_polynomial_degree
-        return other
 
     @property
     def spot_size_rms(self):

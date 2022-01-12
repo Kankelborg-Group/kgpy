@@ -210,28 +210,6 @@ class Trajectory(mixin.Copyable):
 
         return ax_altitude, ax_velocity
 
-    def copy(self) -> 'Trajectory':
-        return Trajectory(
-            time_start=self.time_start.copy(),
-            time_mission=self.time_mission.copy(),
-            altitude=self.altitude.copy(),
-            latitude=self.latitude.copy(),
-            longitude=self.longitude.copy(),
-            velocity=self.velocity.copy(),
-
-        )
-
-    def view(self) -> 'Trajectory':
-        return Trajectory(
-            time_start=self.time_start,
-            time_mission=self.time_mission,
-            altitude=self.altitude,
-            latitude=self.latitude,
-            longitude=self.longitude,
-            velocity=self.velocity,
-
-        )
-
 
 @dataclasses.dataclass
 class Event(

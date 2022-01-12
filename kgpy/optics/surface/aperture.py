@@ -166,16 +166,6 @@ class Aperture(
             for i in range(wire.shape[0]):
                 file_writer.add_polyline(vertices=wire[i].quantity.to(unit).value)
 
-    def view(self) -> 'Aperture':
-        other = super().view()  # type: Aperture
-        other.num_samples = self.num_samples
-        return other
-
-    def copy(self) -> 'Aperture':
-        other = super().copy()  # type: Aperture
-        other.num_samples = self.num_samples
-        return other
-
 
 @dataclasses.dataclass
 class Decenterable(
@@ -190,32 +180,12 @@ class Decenterable(
         out = np.broadcast(out, self.decenter.broadcasted)
         return out
 
-    def view(self) -> 'Decenterable':
-        other = super().view()  # type: Decenterable
-        other.decenter = self.decenter
-        return other
-
-    def copy(self) -> 'Decenterable':
-        other = super().copy()
-        other.decenter = self.decenter.copy()
-        return other
-
 
 @dataclasses.dataclass
 class Obscurable(
     mixin.Copyable,
 ):
     is_obscuration: bool = False
-
-    def view(self) -> 'Obscurable':
-        other = super().view()  # type: Obscurable
-        other.is_obscuration = self.is_obscuration
-        return other
-
-    def copy(self) -> 'Obscurable':
-        other = super().copy()  # type: Obscurable
-        other.is_obscuration = self.is_obscuration
-        return other
 
 
 @dataclasses.dataclass
@@ -259,16 +229,6 @@ class Circular(
             z=0 * self.radius,
         )
         return wire + self.decenter.value[..., np.newaxis, np.newaxis]
-
-    def view(self) -> 'Circular':
-        other = super().view()  # type: Circular
-        other.radius = self.radius
-        return other
-
-    def copy(self) -> 'Circular':
-        other = super().copy()  # type: Circular
-        other.radius = self.radius.copy()
-        return other
 
 
 @dataclasses.dataclass
@@ -372,37 +332,10 @@ class RegularPolygon(Polygon):
         """
         return self.radius * np.cos(self.half_edge_subtent)
 
-    def view(self) -> 'RegularPolygon':
-        other = super().view()  # type: RegularPolygon
-        other.radius = self.radius
-        other.num_sides = self.num_sides
-        other.offset_angle = self.offset_angle
-        return other
-
-    def copy(self) -> 'RegularPolygon':
-        other = super().copy()  # type: RegularPolygon
-        other.radius = self.radius.copy()
-        other.num_sides = self.num_sides
-        other.offset_angle = self.offset_angle.copy()
-        return other
-
 
 @dataclasses.dataclass
 class IrregularPolygon(Polygon):
     vertices: vector.Vector3D = None
-
-    def view(self) -> 'IrregularPolygon':
-        other = super().view()  # type: IrregularPolygon
-        other.vertices = self.vertices
-        return other
-
-    def copy(self) -> 'IrregularPolygon':
-        other = super().copy()  # type: IrregularPolygon
-        if self.vertices is not None:
-            other.vertices = self.vertices.copy()
-        else:
-            other.vertices = self.vertices
-        return other
 
 
 @dataclasses.dataclass
@@ -453,18 +386,6 @@ class Rectangular(Polygon):
             z=0 * minx,
         )
 
-    def view(self) -> 'Rectangular':
-        other = super().view()  # type: Rectangular
-        other.half_width_x = self.half_width_x
-        other.half_width_y = self.half_width_y
-        return other
-
-    def copy(self) -> 'Rectangular':
-        other = super().copy()  # type: Rectangular
-        other.half_width_x = self.half_width_x.copy()
-        other.half_width_y = self.half_width_y.copy()
-        return other
-
 
 @dataclasses.dataclass
 class AsymmetricRectangular(Polygon):
@@ -490,22 +411,6 @@ class AsymmetricRectangular(Polygon):
             z=0 * self.width_x_pos,
         )
         return vertices + self.decenter.value
-
-    def view(self) -> 'AsymmetricRectangular':
-        other = super().view()  # type: AsymmetricRectangular
-        other.width_x_neg = self.width_x_neg
-        other.width_x_pos = self.width_x_pos
-        other.width_y_neg = self.width_y_neg
-        other.width_y_pos = self.width_y_pos
-        return other
-
-    def copy(self) -> 'AsymmetricRectangular':
-        other = super().copy()  # type: AsymmetricRectangular
-        other.width_x_neg = self.width_x_neg.copy()
-        other.width_x_pos = self.width_x_pos.copy()
-        other.width_y_neg = self.width_y_neg.copy()
-        other.width_y_pos = self.width_y_pos.copy()
-        return other
 
 
 @dataclasses.dataclass
@@ -535,19 +440,3 @@ class IsoscelesTrapezoid(Polygon):
         out = np.broadcast(out, self.half_width_right)
         out = np.broadcast(out, self.wedge_half_angle)
         return out
-
-    def view(self) -> 'IsoscelesTrapezoid':
-        other = super().view()  # type: IsoscelesTrapezoid
-        other.apex_offset = self.apex_offset
-        other.half_width_left = self.half_width_left
-        other.half_width_right = self.half_width_right
-        other.wedge_half_angle = self.wedge_half_angle
-        return other
-
-    def copy(self) -> 'IsoscelesTrapezoid':
-        other = super().copy()  # type: IsoscelesTrapezoid
-        other.apex_offset = self.apex_offset.copy()
-        other.half_width_left = self.half_width_left.copy()
-        other.half_width_right = self.half_width_right.copy()
-        other.wedge_half_angle = self.wedge_half_angle.copy()
-        return other

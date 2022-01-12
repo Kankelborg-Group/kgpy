@@ -222,7 +222,7 @@ class System(
                 target_position = grid_surf.points_pupil
 
                 def position_error(pos: vector.Vector2D) -> vector.Vector2D:
-                    rays_in = rays_input.view()
+                    rays_in = rays_input.copy_shallow()
                     rays_in.position = pos.to_3d()
                     rays_in.input_grid.pupil = grid_surf.pupil
                     raytrace = self.surfaces_all.raytrace(rays_in, surface_last=surf)
@@ -295,7 +295,7 @@ class System(
                 target_position = grid_surf.points_pupil
 
                 def position_error(angles: vector.Vector2D) -> vector.Vector2D:
-                    rays_in = rays_input.view()
+                    rays_in = rays_input.copy_shallow()
                     direction = transform.rigid.TiltX(angles.y)(vector.z_hat)
                     direction = transform.rigid.TiltY(angles.x)(direction)
                     rays_in.direction = direction
@@ -484,7 +484,7 @@ class System(
             norm = np.sqrt(np.mean(np.square(diff)))
             return norm
 
-        other = self.view()
+        other = self.copy_shallow()
         shape = observed_images.shape[:~2]
         for i in range(np.prod(shape)):
             index = np.unravel_index(i, shape)
@@ -559,7 +559,7 @@ class System(
             surf = surfaces[~0]
 
         surf_index = surfaces.index(surf)
-        surf_rays = self.raytrace[surf_index].view()
+        surf_rays = self.raytrace[surf_index].copy_shallow()
         surf_rays.vignetted_mask = self.rays_output.vignetted_mask
 
         surf_rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
@@ -735,48 +735,9 @@ class System(
         others = super().tol_iter   # type: typ.Iterator
         for other in others:
             for surfaces in other.surfaces.tol_iter:
-                new_other = other.view()
+                new_other = other.copy_shallow()
                 new_other.surfaces = surfaces
                 yield new_other
-
-    def view(self) -> 'System':
-        other = super().view()  # type: System
-        other.object_surface = self.object_surface
-        other.surfaces = self.surfaces
-        other.wavelength = self.wavelength
-        other.pupil_samples = self.pupil_samples
-        other.pupil_margin = self.pupil_margin
-        other.field_samples = self.field_samples
-        other.field_margin = self.field_margin
-        other.pointing = self.pointing
-        other.roll = self.roll
-        other.baffles_blank = self.baffles_blank
-        other.baffles_hull_axes = self.baffles_hull_axes
-        other.breadboard = self.breadboard
-        other.distortion_polynomial_degree = self.distortion_polynomial_degree
-        other.vignetting_polynomial_degree = self.vignetting_polynomial_degree
-        return other
-
-    def copy(self) -> 'System':
-        other = super().copy()  # type: System
-        other.object_surface = self.object_surface.copy()
-        other.surfaces = self.surfaces.copy()
-        other.wavelength = self.wavelength.copy()
-        other.pupil_samples = self.pupil_samples
-        other.pupil_margin = self.pupil_margin.copy()
-        other.field_samples = self.field_samples
-        other.field_margin = self.field_margin.copy()
-        other.pointing = self.pointing.copy()
-        other.roll = self.roll.copy()
-        other.baffles_blank = self.baffles_blank.copy()
-        other.baffles_hull_axes = self.baffles_hull_axes
-        if self.breadboard is None:
-            other.breadboard = self.breadboard
-        else:
-            other.breadboard = self.breadboard.copy()
-        other.distortion_polynomial_degree = self.distortion_polynomial_degree
-        other.vignetting_polynomial_degree = self.vignetting_polynomial_degree
-        return other
 
 
 @dataclasses.dataclass

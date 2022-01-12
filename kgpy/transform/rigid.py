@@ -122,16 +122,6 @@ class TransformList(
         other.reverse()
         return other
 
-    def view(self) -> 'TransformList':
-        other = super().view()      # type: TransformList
-        other.intrinsic = self.intrinsic
-        return other
-
-    def copy(self) -> 'TransformList':
-        other = super().copy()     # type: TransformList
-        other.intrinsic = self.intrinsic
-        return other
-
 
 @dataclasses.dataclass
 class Transformable(
@@ -145,19 +135,9 @@ class Transformable(
         others = super().tol_iter   # type: typ.Iterator[Transformable]
         for other in others:
             for transform in self.transform.tol_iter:
-                new_other = other.view()
+                new_other = other.copy_shallow()
                 new_other.transform = transform
                 yield new_other
-
-    def view(self) -> 'Transformable':
-        other = super().view()  # type: Transformable
-        other.transform = self.transform
-        return other
-
-    def copy(self) -> 'Transformable':
-        other = super().copy()  # type: Transformable
-        other.transform = self.transform.copy()
-        return other
 
 
 @dataclasses.dataclass
@@ -195,15 +175,6 @@ class TiltGeneral(Tilt):
     def __invert__(self) -> 'TiltGeneral':
         return type(self)(rotation=self.rotation_matrix.transpose)
 
-    def view(self) -> 'TiltGeneral':
-        other = super().view()     # type: TiltGeneral
-        other.rotation = self.rotation
-        return other
-
-    def copy(self) -> 'TiltGeneral':
-        other = super().copy()  # type: TiltGeneral
-        other.rotation = self.rotation.copy()
-        return other
 
 
 @dataclasses.dataclass
@@ -225,23 +196,13 @@ class TiltAboutAxis(Tilt, abc.ABC):
         others = super().tol_iter   # type: typ.Iterator[TiltAboutAxis]
         for other in others:
             if isinstance(self.angle, units.TolQuantity):
-                other_1, other_2 = other.view(), other.view()
+                other_1, other_2 = other.copy_shallow(), other.copy_shallow()
                 other_1.angle = self.angle.vmin
                 other_2.angle = self.angle.vmax
                 yield other_1
                 yield other_2
             else:
                 yield other
-
-    def view(self) -> 'TiltAboutAxis':
-        other = super().view()     # type: TiltAboutAxis
-        other.angle = self.angle
-        return other
-
-    def copy(self) -> 'TiltAboutAxis':
-        other = super().copy()  # type: TiltAboutAxis
-        other.angle = self.angle.copy()
-        return other
 
 
 class TiltX(TiltAboutAxis):
@@ -374,22 +335,8 @@ class Translate(Transform):
             for ax_i in ax:
                 for ay_j in ay:
                     for az_k in az:
-                        new_other = other.view()
+                        new_other = other.copy_shallow()
                         new_other.x = ax_i
                         new_other.y = ay_j
                         new_other.z = az_k
                         yield new_other
-
-    def view(self) -> 'Translate':
-        other = super().view()  # type: Translate
-        other.x = self.x
-        other.y = self.y
-        other.z = self.z
-        return other
-
-    def copy(self) -> 'Translate':
-        other = super().copy()  # type: Translate
-        other.x = self.x.copy()
-        other.y = self.y.copy()
-        other.z = self.z.copy()
-        return other

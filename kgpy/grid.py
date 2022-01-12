@@ -105,17 +105,6 @@ class Grid(
                 return False
         return True
 
-    def view(self: GridT) -> 'GridT':
-        other = super().view()
-        for component in other:
-            other[component] = self[component]
-        return other
-
-    def copy(self: GridT):
-        other = super().copy()
-        for component in other:
-            other[component] = self[component].copy()
-        return other
 
 CoordinateX = typ.TypeVar('CoordinateX', bound=kgpy.labeled.AbstractArray)
 CoordinateY = typ.TypeVar('CoordinateY', bound=kgpy.labeled.AbstractArray)
@@ -163,10 +152,6 @@ class XZ(Z, X):
 @dataclasses.dataclass(eq=False)
 class XYZ(Z, Y, X):
     pass
-
-
-
-
 
 
 @dataclasses.dataclass
@@ -257,20 +242,6 @@ class RegularGrid1D(Grid1D):
             axis=~0
         )
 
-    def view(self) -> 'RegularGrid1D':
-        other = super().view()  # type: RegularGrid1D
-        other.min = self.min
-        other.max = self.max
-        other.num_samples = self.num_samples
-        return other
-
-    def copy(self) -> 'RegularGrid1D':
-        other = super().copy()  # type: RegularGrid1D
-        other.min = self.min.copy()
-        other.max = self.max.copy()
-        other.num_samples = self.num_samples
-        return other
-
 
 @dataclasses.dataclass
 class RegularGrid2D(RegularGrid1D, Grid2D):
@@ -313,15 +284,6 @@ class RegularGrid2D(RegularGrid1D, Grid2D):
                 axis=~0
             ),
         )
-
-    def view(self) -> 'RegularGrid2D':
-        return super().view()
-
-    def copy(self) -> 'RegularGrid2D':
-        other = super().copy()  # type: RegularGrid2D
-        if not isinstance(self.num_samples, int):
-            other.num_samples = self.num_samples.copy()
-        return other
 
 
 @dataclasses.dataclass
@@ -381,19 +343,6 @@ class IrregularGrid1D(Grid1D):
     @property
     def shape(self) -> typ.Tuple[int, ...]:
         return self.points.shape
-
-    def view(self) -> 'IrregularGrid1D':
-        other = super().view()  # type: IrregularGrid1D
-        other.points = self.points
-        other.name = self.name
-        return other
-
-    def copy(self) -> 'IrregularGrid1D':
-        other = super().view()  # type: IrregularGrid1D
-        other.points = self.points.copy()
-        if self.name is not None:
-            other.name = self.name.copy()
-        return other
 
 
 @dataclasses.dataclass

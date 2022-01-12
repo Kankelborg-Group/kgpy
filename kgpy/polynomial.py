@@ -12,7 +12,10 @@ __all__ = [
 
 
 @dataclasses.dataclass
-class Polynomial3D(mixin.Dataframable):
+class Polynomial3D(
+    mixin.Dataframable,
+    mixin.Copyable,
+):
     degree: int
     coefficients: typ.List[u.Quantity]
     input_names: typ.Optional[typ.List[str]] = None
@@ -242,21 +245,11 @@ class Polynomial3D(mixin.Dataframable):
 
         return dataframe
 
-    def copy(self) -> 'Polynomial3D':
-        input_names = self.input_names
-        if input_names is not None:
-            input_names = input_names.copy()
-        return Polynomial3D(
-            degree=self.degree,
-            coefficients=[c.copy() for c in self.coefficients],
-            input_names=input_names,
-            output_name=self.output_name,
-        )
-
 
 @dataclasses.dataclass
 class Vector2DValuedPolynomial3D(
     mixin.Dataframable,
+    mixin.Copyable,
 ):
     x: Polynomial3D
     y: Polynomial3D

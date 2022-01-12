@@ -650,18 +650,6 @@ class Array(
 
             self.value[tuple(index)] = value._data_aligned({axis: 1 for axis in axes})
 
-    def view(self) -> 'Array':
-        other = super().view()      # type: Array
-        other.array = self.array
-        other.axes = self.axes
-        return other
-
-    def copy(self) -> 'Array':
-        other = super().copy()      # type: Array
-        other.array = self.array.copy()
-        other.axes = copy.deepcopy(self.axes)
-        return other
-
 
 @dataclasses.dataclass(eq=False)
 class Range(AbstractArray[np.ndarray]):
@@ -697,22 +685,6 @@ class Range(AbstractArray[np.ndarray]):
     def axes(self: RangeT) -> typ.List[str]:
         return [self.axis]
 
-    def view(self: RangeT) -> RangeT:
-        other = super().view()
-        other.start = self.start
-        other.stop = self.stop
-        other.step = self.step
-        other.axis = self.axis
-        return other
-
-    def copy(self: RangeT) -> RangeT:
-        other = super().copy()
-        other.start = self.start
-        other.stop = self.stop
-        other.step = self.step
-        other.axis = self.axis
-        return other
-
 
 @dataclasses.dataclass(eq=False)
 class _SpaceMixin(
@@ -730,18 +702,6 @@ class _SpaceMixin(
     @property
     def axes(self: _SpaceMixinT) -> typ.List[str]:
         return list(self.shape.keys())
-
-    def view(self: _SpaceMixinT) -> _SpaceMixinT:
-        other = super().view()
-        other.num = self.num
-        other.axis = self.axis
-        return other
-
-    def copy(self: _SpaceMixinT) -> _SpaceMixinT:
-        other = super().copy()
-        other.num = self.num
-        other.axis = self.axis
-        return other
 
 
 StartArrayT = typ.TypeVar('StartArrayT', bound=ArrayLike)
@@ -793,18 +753,6 @@ class _LinearMixin(
     def shape(self: _LinearMixinT) -> typ.Dict[str, int]:
         return dict(**super().shape, **self.broadcast_shapes(self._start_normalized, self._stop_normalized))
 
-    def view(self: _LinearMixinT) -> _LinearMixinT:
-        other = super().view()
-        other.start = self.start
-        other.stop = self.stop
-        return other
-
-    def copy(self: _LinearMixinT) -> _LinearMixinT:
-        other = super().copy()
-        other.start = self.start.copy()
-        other.stop = self.stop.copy()
-        return other
-
 
 @dataclasses.dataclass(eq=False)
 class LinearSpace(
@@ -830,16 +778,6 @@ class _RandomSpaceMixin(_SpaceMixin):
     @property
     def _rng(self: _RandomSpaceMixinT) -> np.random.Generator:
         return np.random.default_rng(seed=self.seed)
-
-    def view(self: _RandomSpaceMixinT) -> _RandomSpaceMixinT:
-        other = super().view()
-        other.seed = self.seed
-        return other
-
-    def copy(self: _RandomSpaceMixinT) -> _RandomSpaceMixinT:
-        other = super().copy()
-        other.seed = self.seed
-        return other
 
 
 @dataclasses.dataclass(eq=False)
@@ -917,19 +855,6 @@ class _NormalMixin(
     @property
     def shape(self: _NormalMixinT) -> typ.Dict[str, int]:
         return dict(**super().shape, **self.broadcast_shapes(self._width_normalized, self._center_normalized))
-
-    def view(self: _NormalMixinT) -> _NormalMixinT:
-        other = super().view()
-        other.width = self.width
-        return other
-
-    def copy(self: _NormalMixinT) -> _NormalMixinT:
-        other = super().copy()
-        if hasattr(self.width, 'copy'):
-            other.width = self.width.copy()
-        else:
-            other.width = self.width
-        return other
 
 
 @dataclasses.dataclass(eq=False)

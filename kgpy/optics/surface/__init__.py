@@ -307,59 +307,6 @@ class Surface(
                 sag=self.sag,
             )
 
-    def view(self) -> 'Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]':
-        other = super().view()      # type: Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]
-        other.is_stop = self.is_stop
-        other.is_stop_test = self.is_stop_test
-        other.is_active = self.is_active
-        other.is_visible = self.is_visible
-        other.sag = self.sag
-        other.material = self.material
-        other.aperture = self.aperture
-        other.aperture_mechanical = self.aperture_mechanical
-        other.rulings = self.rulings
-        other.baffle_loft_ids = self.baffle_loft_ids
-        return other
-
-    def copy(self) -> 'Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]':
-        other = super().copy()      # type: Surface[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT]
-        other.is_stop = self.is_stop
-        other.is_stop_test = self.is_stop_test
-        other.is_active = self.is_active
-        other.is_visible = self.is_visible
-
-        if self.sag is None:
-            other.sag = self.sag
-        else:
-            other.sag = self.sag.copy()
-
-        if self.material is None:
-            other.material = self.material
-        else:
-            other.material = self.material.copy()
-
-        if self.aperture is None:
-            other.aperture = self.aperture
-        else:
-            other.aperture = self.aperture.copy()
-
-        if self.aperture_mechanical is None:
-            other.aperture_mechanical = self.aperture_mechanical
-        else:
-            other.aperture_mechanical = self.aperture_mechanical.copy()
-
-        if self.rulings is None:
-            other.rulings = self.rulings
-        else:
-            other.rulings = self.rulings.copy()
-
-        if self.baffle_loft_ids is None:
-            other.baffle_loft_ids = self.baffle_loft_ids
-        else:
-            other.baffle_loft_ids = self.baffle_loft_ids.copy()
-
-        return other
-
 
 @dataclasses.dataclass
 class SurfaceList(
@@ -384,11 +331,11 @@ class SurfaceList(
         for surf in self.data:
             if isinstance(surf, type(self)):
                 for s in surf.flat_global_iter:
-                    s = s.view()
+                    s = s.copy_shallow()
                     s.transform = self.transform + s.transform
                     yield s
             else:
-                surf = surf.view()
+                surf = surf.copy_shallow()
                 surf.transform = self.transform + surf.transform
                 yield surf
 

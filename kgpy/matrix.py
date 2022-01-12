@@ -269,14 +269,6 @@ class Matrix2D(np.lib.mixins.NDArrayOperatorsMixin):
         other.yy = self.yy
         return other
 
-    def copy(self) -> 'Matrix2D':
-        return type(self)(
-            xx=self.xx.copy(),
-            xy=self.xy.copy(),
-            yx=self.yx.copy(),
-            yy=self.yy.copy(),
-        )
-
 
 @dataclasses.dataclass
 class Matrix3D(Matrix2D):
@@ -432,12 +424,3 @@ class Matrix3D(Matrix2D):
         self.zx.__setitem__(key, value.zx)
         self.zy.__setitem__(key, value.zy)
         self.zz.__setitem__(key, value.zz)
-
-    def copy(self) -> 'Matrix3D':
-        other = super().copy()      # type: Matrix3D
-        other.xz = self.xz.copy()
-        other.yz = self.yz.copy()
-        other.zx = self.zx.copy()
-        other.zy = self.zy.copy()
-        other.zz = self.zz.copy()
-        return other

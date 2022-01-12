@@ -1,4 +1,5 @@
 import abc
+import copy
 import dataclasses
 import numpy as np
 import matplotlib.pyplot as plt
@@ -109,13 +110,19 @@ CopyableT = typ.TypeVar('CopyableT', bound='Copyable')
 
 class Copyable(abc.ABC):
 
-    @abc.abstractmethod
-    def view(self: CopyableT) -> CopyableT:
-        return type(self)()
+    def copy_shallow(self: CopyableT) -> CopyableT:
+        return copy.copy(self)
 
-    @abc.abstractmethod
     def copy(self: CopyableT) -> CopyableT:
-        return type(self)()
+        return copy.deepcopy(self)
+
+    def __copy__(self: CopyableT) -> CopyableT:
+        fields = {field.name: getattr(self, field.name) for field in dataclasses.fields(self)}
+        return type(self)(**fields)
+
+    def __deepcopy__(self: CopyableT, memodict={}) -> CopyableT:
+        fields = {field.name: copy.deepcopy(getattr(self, field.name)) for field in dataclasses.fields(self)}
+        return type(self)(**fields)
 
 
 @dataclasses.dataclass
@@ -151,15 +158,6 @@ class Toleranceable(abc.ABC):
 class Colorable(Copyable):
     color: typ.Optional[str] = None
 
-    def view(self) -> 'Colorable':
-        other = super().view()  # type: Colorable
-        other.color = self.color
-        return other
-
-    def copy(self) -> 'Colorable':
-        other = super().copy()     # type: Colorable
-        other.color = self.color
-        return other
 
 
 @dataclasses.dataclass
@@ -217,7 +215,7 @@ class DataclassList(
 
     def __getitem__(self, item: typ.Union[int, slice]) -> ItemT:
         if isinstance(item, slice):
-            other = self.view()
+            other = self.copy_shallow()
             other.data = self.data.__getitem__(item)
             return other
         else:
@@ -233,7 +231,7 @@ class DataclassList(
         return self.data.__len__()
 
     def __add__(self, other: 'DataclassList'):
-        new_self = self.view()
+        new_self = self.copy_shallow()
         new_self.data = self.data.__add__(other.data)
         return new_self
 
@@ -263,19 +261,9 @@ class DataclassList(
         others = super().tol_iter   # type: typ.Iterator[DataclassList]
         for other in others:
             for data in self._tol_iter_data(self.data):
-                new_other = other.view()
+                new_other = other.copy_shallow()
                 new_other.data = data
                 yield new_other
-
-    def view(self) -> 'DataclassList':
-        other = super().view()     # type: DataclassList
-        other.data = self.data
-        return other
-
-    def copy(self) -> 'DataclassList':
-        other = super().copy()      # type: DataclassList
-        other.data = [d.copy() for d in self.data]
-        return other
 
 
 KeyT = typ.TypeVar('KeyT')
@@ -309,13 +297,3 @@ class DataclassDict(
 
     def __len__(self: DataclassDictT) -> int:
         return self.data.__len__()
-
-    def view(self: DataclassDictT) -> DataclassDictT:
-        other = super().view()
-        other.data = self.data
-        return other
-
-    def copy(self: DataclassDictT) -> DataclassDictT:
-        other = super().copy()
-        other.data = {k: self.data[k].copy() for k in self.data}
-        return other

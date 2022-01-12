@@ -229,16 +229,6 @@ class AbstractArray(
     def num_samples(self) -> int:
         return self.shape[self.axis_distribution]
 
-    def view(self: AbstractArrayT) -> AbstractArrayT:
-        other = super().view()
-        other.nominal = self.nominal
-        return other
-
-    def copy(self: AbstractArrayT) -> AbstractArrayT:
-        other = super().copy()
-        other.nominal = self.nominal.copy()
-        return other
-
 
 ArrayLike = typ.Union[kgpy.labeled.ArrayLike, AbstractArray]
 
@@ -254,18 +244,6 @@ class _DistributionMixin(
     def _rng(self) -> np.random.Generator:
         return np.random.default_rng(seed=self.seed)
 
-    def view(self: _DistributionT) -> _DistributionT:
-        other = super().view()
-        other.num_samples = self.num_samples
-        other.seed = self.seed
-        return other
-
-    def copy(self: _DistributionT) -> _DistributionT:
-        other = super().copy()
-        other.num_samples = self.num_samples
-        other.seed = self.seed
-        return other
-
 
 WidthT = typ.TypeVar('WidthT', bound=kgpy.labeled.ArrayLike)
 
@@ -280,16 +258,6 @@ class _UniformBase(
     @property
     def width_normalized(self: UniformT) -> kgpy.labeled.AbstractArray:
         return self._normalize_array(self.width)
-
-    def view(self: UniformT) -> UniformT:
-        other = super().view()
-        other.width = self.width
-        return other
-
-    def copy(self: UniformT) -> UniformT:
-        other = super().copy()
-        other.width = self.width.copy()
-        return other
 
 
 @dataclasses.dataclass(eq=False)
@@ -328,13 +296,3 @@ class Normal(Uniform):
 class Array(AbstractArray[NominalT, DistributionT]):
 
     distribution: typ.Optional[DistributionT] = None
-
-    def view(self: ArrayT) -> ArrayT:
-        other = super().view()
-        other.distribution = self.distribution
-        return other
-
-    def copy(self: ArrayT) -> ArrayT:
-        other = super().copy()
-        other.distribution = self.distribution.copy()
-        return other

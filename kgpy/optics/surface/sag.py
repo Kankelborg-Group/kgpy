@@ -23,20 +23,6 @@ class SlopeErrorRMS(
     length_integration: u.Quantity = 0 * u.mm
     length_sample: u.Quantity = 0 * u.mm
 
-    def view(self) -> 'SlopeErrorRMS':
-        other = super().view()  # type: SlopeErrorRMS
-        other.value = self.value
-        other.length_integration = self.length_integration
-        other.length_sample = self.length_sample
-        return other
-
-    def copy(self) -> 'SlopeErrorRMS':
-        other = super().copy()  # type: SlopeErrorRMS
-        other.value = self.value.copy()
-        other.length_integration = self.length_integration.copy()
-        other.length_sample = self.length_sample.copy()
-        return other
-
 
 @dataclasses.dataclass
 class RoughnessRMS(
@@ -45,20 +31,6 @@ class RoughnessRMS(
     value: u.Quantity = 0 * u.mm
     periods_min: u.Quantity = 0 * u.mm
     periods_max: u.Quantity = 0 * u.mm
-
-    def view(self) -> 'RoughnessRMS':
-        other = super().view()  # type: RoughnessRMS
-        other.value = self.value
-        other.periods_min = self.periods_min
-        other.periods_max = self.periods_max
-        return other
-
-    def copy(self) -> 'RoughnessRMS':
-        other = super().copy()  # type: RoughnessRMS
-        other.value = self.value.copy()
-        other.periods_min = self.periods_min.copy()
-        other.periods_max = self.periods_max.copy()
-        return other
 
 
 class RippleRMS(RoughnessRMS):
@@ -126,18 +98,6 @@ class Standard(Sag):
             z=-1 * u.dimensionless_unscaled
         ).normalize()
 
-    def view(self) -> 'Standard':
-        other = super().view()  # type: Standard
-        other.radius = self.radius
-        other.conic = self.conic
-        return other
-
-    def copy(self) -> 'Standard':
-        other = super().copy()  # type: Standard
-        other.radius = self.radius.copy()
-        other.conic = self.conic.copy()
-        return other
-
     @property
     def broadcasted(self):
         out = super().broadcasted
@@ -198,13 +158,3 @@ class Toroidal(Standard):
         out = super().broadcasted
         out = np.broadcast(out, self.radius_of_rotation)
         return out
-
-    def view(self) -> 'Toroidal':
-        other = super().view()  # type: Toroidal
-        other.radius_of_rotation = self.radius_of_rotation
-        return other
-
-    def copy(self) -> 'Toroidal':
-        other = super().copy()  # type: Toroidal
-        other.radius_of_rotation = self.radius_of_rotation.copy()
-        return other

@@ -39,11 +39,6 @@ class Material(
     def transmissivity(self, rays: Rays) -> u.Quantity:
         return 1 * u.dimensionless_unscaled
 
-    def copy(self) -> 'Material':
-        other = super().copy()
-        other.name = self.name
-        return other
-
     def plot(
             self,
             ax: matplotlib.axes.Axes,
@@ -67,19 +62,6 @@ class Mirror(Material):
 
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         return -np.sign(rays.index_of_refraction) * u.dimensionless_unscaled
-
-    def view(self) -> 'Mirror':
-        other = super().view()      # type: Mirror
-        other.thickness = self.thickness
-        return other
-
-    def copy(self) -> 'Mirror':
-        other = super().copy()      # type: Mirror
-        if self.thickness is not None:
-            other.thickness = self.thickness.copy()
-        else:
-            other.thickness = self.thickness
-        return other
 
     def plot(
             self,
@@ -259,20 +241,6 @@ class Layer(mixin.Copyable):
             return False
         return True
 
-    def view(self) -> 'Layer':
-        other = super().view()  # type: Layer
-        other.material = self.material
-        other.thickness = self.thickness
-        other.num_periods = self.num_periods
-        return other
-
-    def copy(self) -> 'Layer':
-        other = super().copy()  # type: Layer
-        other.material = self.material.copy()
-        other.thickness = self.thickness.copy()
-        other.num_periods = self.num_periods
-        return other
-
     def plot(
             self,
             ax: matplotlib.axes.Axes,
@@ -363,20 +331,6 @@ class MultilayerMirror(Mirror):
     # def transmissivity(self, rays: Rays) -> u.Quantity:
     #     raise NotImplementedError
 
-    def view(self) -> 'MultilayerMirror':
-        other = super().view()  # type: MultilayerMirror
-        other.cap = self.cap
-        other.main = self.main
-        other.base = self.base
-        return other
-
-    def copy(self) -> 'MultilayerMirror':
-        other = super().copy()  # type: MultilayerMirror
-        other.cap = self.cap.copy()
-        other.main = self.main.copy()
-        other.base = self.base.copy()
-        return other
-
     def plot_layers(
             self,
             ax: matplotlib.axes.Axes,
@@ -426,18 +380,6 @@ class MeasuredMultilayerMirror(MultilayerMirror):
             return False
         return True
 
-    def view(self) -> 'MeasuredMultilayerMirror':
-        other = super().view()  # type: MeasuredMultilayerMirror
-        other.efficiency_data = self.efficiency_data
-        other.wavelength_data = self.wavelength_data
-        return other
-
-    def copy(self) -> 'MeasuredMultilayerMirror':
-        other = super().copy()  # type: MeasuredMultilayerMirror
-        other.efficiency_data = self.efficiency_data.copy()
-        other.wavelength_data = self.wavelength_data.copy()
-        return other
-
 
 @dataclasses.dataclass
 class AluminumThinFilm(Material):
@@ -486,14 +428,6 @@ class AluminumThinFilm(Material):
 
     def index_of_refraction(self, rays: Rays) -> u.Quantity:
         return 1 * u.dimensionless_unscaled
-
-    def copy(self) -> 'AluminumThinFilm':
-        other = super().copy()  # type: AluminumThinFilm
-        other.thickness = self.thickness.copy()
-        other.thickness_oxide = self.thickness_oxide.copy()
-        other.density_ratio = self.density_ratio
-        other.mesh_ratio = self.mesh_ratio.copy()
-        return other
 
 
 @dataclasses.dataclass

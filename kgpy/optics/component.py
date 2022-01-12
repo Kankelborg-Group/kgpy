@@ -74,18 +74,6 @@ class PistonComponent(Component[SurfaceT]):
             tfrm.rigid.Translate(z=-(self.piston + self.piston_error))
         ])
 
-    def view(self) -> 'PistonComponent':
-        other = super().view()  # type: PistonComponent
-        other.piston = self.piston
-        other.piston_error = self.piston_error
-        return other
-
-    def copy(self) -> 'PistonComponent':
-        other = super().copy()      # type: PistonComponent
-        other.piston = self.piston.copy()
-        other.piston_error = self.piston_error.copy()
-        return other
-
     @property
     def dataframe(self) -> pandas.DataFrame:
         dataframe = super().dataframe
@@ -102,18 +90,6 @@ class TranslationComponent(Component[SurfaceT]):
     @property
     def transform(self) -> tfrm.rigid.TransformList:
         return super().transform + tfrm.rigid.TransformList([self.translation + self.translation_error])
-
-    def view(self) -> 'TranslationComponent':
-        other = super().view()      # type: TranslationComponent
-        other.translation = self.translation
-        other.translation_error = self.translation_error
-        return other
-
-    def copy(self) -> 'TranslationComponent':
-        other = super().copy()      # type: TranslationComponent
-        other.translation = self.translation.copy()
-        other.translation_error = self.translation_error.copy()
-        return other
 
     @property
     def dataframe(self) -> pandas.DataFrame:
@@ -136,18 +112,6 @@ class CylindricalComponent(TranslationComponent[SurfaceT]):
             tfrm.rigid.TiltZ(self.cylindrical_azimuth),
             tfrm.rigid.Translate(x=self.cylindrical_radius),
         ])
-
-    def view(self) -> 'CylindricalComponent':
-        other = super().view()  # type: CylindricalComponent
-        other.cylindrical_radius = self.cylindrical_radius
-        other.cylindrical_azimuth = self.cylindrical_azimuth
-        return other
-
-    def copy(self) -> 'CylindricalComponent':
-        other = super().copy()  # type: CylindricalComponent
-        other.cylindrical_radius = self.cylindrical_radius.copy()
-        other.cylindrical_azimuth = self.cylindrical_azimuth.copy()
-        return other
 
     @property
     def dataframe(self) -> pandas.DataFrame:

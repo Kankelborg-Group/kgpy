@@ -606,20 +606,6 @@ class Vector2D(Vector):
     def to_tuple(self) -> typ.Tuple:
         return self.x, self.y
 
-    def copy(self) -> 'Vector2D':
-        other = type(self)()
-        if isinstance(self.x, np.ndarray):
-            other.x = self.x.copy()
-        else:
-            other.x = self.x
-
-        if isinstance(self.y, np.ndarray):
-            other.y = self.y.copy()
-        else:
-            other.y = self.y
-
-        return other
-
 
 @dataclasses.dataclass(eq=False)
 class Vector3D(Vector2D):
@@ -873,14 +859,6 @@ class Vector3D(Vector2D):
 
     def to_tuple(self) -> typ.Tuple:
         return super().to_tuple() + self.z
-
-    def copy(self) -> 'Vector3D':
-        other = super().copy()
-        if isinstance(self.z, np.ndarray):
-            other.z = self.z.copy()
-        else:
-            other.z = self.z
-        return other
 
 
 def xhat_factory():

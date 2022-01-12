@@ -409,15 +409,3 @@ class Array(
             grid: GridT,
     ) -> ArrayT:
         return self.interp_barycentric_linear(grid=grid)
-
-    def view(self: ArrayT) -> ArrayT:
-        other = super().view()
-        other.value = self.value
-        other.grid = self.grid
-        return other
-
-    def copy(self: ArrayT) -> ArrayT:
-        other = super().copy()
-        other.value = self.value.copy()
-        other.grid = self.grid.copy()
-        return other

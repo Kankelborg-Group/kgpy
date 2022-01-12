@@ -55,20 +55,6 @@ class Interpolator(
     def __call__(self, grid: typ.Sequence[u.Quantity]):
         pass
 
-    def view(self) -> 'Interpolator':
-        other = super().view()  # type: Interpolator
-        other.data = self.data
-        other.grid = self.grid
-        # other.axis = self.axis
-        return other
-
-    def copy(self) -> 'Interpolator':
-        other = self.copy()     # type: Interpolator
-        other.data = self.data.copy()
-        other.grid = copy.deepcopy(self.grid)
-        # other.axis = copy.deepcopy(self.axis)
-        return other
-
 
 @dataclasses.dataclass
 class NearestNeighbor(Interpolator):
