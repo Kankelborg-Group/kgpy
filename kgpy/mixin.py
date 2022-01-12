@@ -129,16 +129,6 @@ class Copyable(abc.ABC):
 class Named(Copyable, Dataframable):
     name: Name = dataclasses.field(default_factory=lambda: Name())
 
-    def view(self) -> 'Named':
-        other = super().view()      # type: Named
-        other.name = self.name
-        return other
-
-    def copy(self) -> 'Named':
-        other = super().copy()     # type: Named
-        other.name = self.name.copy()
-        return other
-
     @property
     def dataframe(self) -> pandas.DataFrame:
         dataframe = super().dataframe
@@ -179,18 +169,6 @@ class Plottable(
             **kwargs,
     ) -> typ.List[matplotlib.lines.Line2D]:
         pass
-
-    def view(self) -> 'Plottable':
-        other = super().view()  # type: Plottable
-        other.plot_kwargs = self.plot_kwargs
-        return other
-
-    def copy(self) -> 'Plottable':
-        other = super().copy()     # type: Plottable
-        other.plot_kwargs = {}
-        for key in self.plot_kwargs:
-            other.plot_kwargs[key] = self.plot_kwargs[key]
-        return other
 
 
 ItemT = typ.TypeVar('ItemT')
