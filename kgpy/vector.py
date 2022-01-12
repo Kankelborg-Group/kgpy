@@ -265,8 +265,61 @@ class Spherical(
         )
 
 
-class Vector(AbstractVector):
-    pass
+@dataclasses.dataclass(eq=False)
+class Vector(
+    kgpy.mixin.Copyable,
+    np.lib.mixins.NDArrayOperatorsMixin,
+    abc.ABC,
+):
+
+    @classmethod
+    @abc.abstractmethod
+    def dimensionless(cls) -> 'Vector':
+        return cls()
+
+    @classmethod
+    @abc.abstractmethod
+    def spatial(cls) -> 'Vector':
+        return cls()
+
+    @classmethod
+    @abc.abstractmethod
+    def angular(cls) -> 'Vector':
+        return cls()
+
+    @classmethod
+    @abc.abstractmethod
+    def from_quantity(cls, value: u.Quantity):
+        return cls()
+
+    @classmethod
+    def from_tuple(cls, value: typ.Tuple):
+        return cls()
+
+    @property
+    @abc.abstractmethod
+    def quantity(self) -> u.Quantity:
+        pass
+
+    @abc.abstractmethod
+    def __array_ufunc__(self, function, method, *inputs, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def __array_function__(self, function, types, args, kwargs):
+        pass
+
+    @abc.abstractmethod
+    def __getitem__(self, item):
+        pass
+
+    @abc.abstractmethod
+    def __setitem__(self, key, value):
+        pass
+
+    @abc.abstractmethod
+    def to_tuple(self):
+        pass
 
 
 @dataclasses.dataclass(eq=False)
