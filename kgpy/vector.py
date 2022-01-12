@@ -37,6 +37,8 @@ PolarT = typ.TypeVar('PolarT', bound='Polar')
 CylindricalT = typ.TypeVar('CylindricalT', bound='Cylindrical')
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
 
+VectorLike = typ.Union[kgpy.uncertainty.ArrayLike, 'AbstractVector']
+
 
 @dataclasses.dataclass(eq=False)
 class AbstractVector(
