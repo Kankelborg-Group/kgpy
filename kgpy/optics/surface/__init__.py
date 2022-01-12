@@ -34,7 +34,7 @@ ApertureMechT = typ.TypeVar('ApertureMechT', bound=Aperture)
 RulingsT = typ.TypeVar('RulingsT', bound=Rulings)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Surface(
     kgpy.dxf.WritableMixin,
     mixin.Broadcastable,
@@ -58,6 +58,33 @@ class Surface(
     aperture_mechanical: typ.Optional[ApertureMechT] = None     #: Mechanical aperture of this surface
     rulings: typ.Optional[RulingsT] = None      #: Ruling profile of this surface
     baffle_loft_ids: typ.List[int] = dataclasses.field(default_factory=lambda: [])
+
+    def __eq__(self: SurfaceT, other: SurfaceT):
+        if not isinstance(other, type(self)):
+            return False
+        if not super().__eq__(other):
+            return False
+        if not self.is_stop == other.is_stop:
+            return False
+        if not self.is_stop_test == other.is_stop_test:
+            return False
+        if not self.is_active == other.is_active:
+            return False
+        if not self.is_visible == other.is_visible:
+            return False
+        if not self.sag == other.sag:
+            return False
+        if not self.material == other.material:
+            return False
+        if not self.aperture == other.aperture:
+            return False
+        if not self.aperture_mechanical == other.aperture_mechanical:
+            return False
+        if not self.rulings == other.rulings:
+            return False
+        if not self.baffle_loft_ids == other.baffle_loft_ids:
+            return False
+        return True
 
     def ray_intercept(
             self,
