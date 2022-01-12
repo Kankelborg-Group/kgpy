@@ -49,13 +49,8 @@ class AbstractVector(
     type_coordinates = kgpy.uncertainty.AbstractArray.type_array + (kgpy.uncertainty.AbstractArray, )
 
     @property
-    def coordinates(self: AbstractVectorT) -> typ.Dict[str, kgpy.labeled.ArrayLike]:
-        return vars(self)
-
-    @coordinates.setter
-    def coordinates(self: AbstractVectorT, value: typ.Dict[str, kgpy.labeled.ArrayLike]):
-        for component in value:
-            setattr(self, component, value[component])
+    def coordinates(self: AbstractVectorT) -> typ.Dict[str, VectorLike]:
+        return {component: getattr(self, component) for component in self.components}
 
     @property
     def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
