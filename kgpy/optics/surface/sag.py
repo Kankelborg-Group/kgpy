@@ -73,6 +73,8 @@ class Standard(Sag):
         return sz
 
     def __eq__(self, other: 'Standard'):
+        if not isinstance(other, type(self)):
+            return False
         if not super().__eq__(other):
             return False
         if (self.radius != other.radius).any():
