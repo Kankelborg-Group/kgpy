@@ -176,8 +176,8 @@ class AbstractArray(
     def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.Unit]):
         if isinstance(other, u.Unit):
             return Array(
-                nominal=self.nominal.__mul__(other),
-                distribution=self.distribution.__mul__(other),
+                nominal=self.nominal * other,
+                distribution=self.distribution * other,
             )
         else:
             return super().__mul__(other)
@@ -185,8 +185,8 @@ class AbstractArray(
     def __lshift__(self: AbstractArrayT, other: u.Unit) -> ArrayT:
         if isinstance(other, u.Unit):
             return Array(
-                nominal=self.nominal.__lshift__(other),
-                distribution=self.distribution.__lshift__(other),
+                nominal=self.nominal << other,
+                distribution=self.distribution << other,
             )
         else:
             return super().__lshift__(other)
@@ -194,8 +194,8 @@ class AbstractArray(
     def __truediv__(self: AbstractArrayT, other: u.Unit) -> ArrayT:
         if isinstance(other, u.Unit):
             return Array(
-                nominal=self.nominal.__truediv__(other),
-                distribution=self.distribution.__truediv__(other),
+                nominal=self.nominal / other,
+                distribution=self.distribution / other,
             )
         else:
             return super().__truediv__(other)
