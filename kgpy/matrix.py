@@ -104,6 +104,30 @@ class Cartesian2D(
         )
 
 
+@dataclasses.dataclass(eq=False)
+class Cartesian3D(
+    vector.Cartesian3D[
+        vector.Cartesian3D,
+        vector.Cartesian3D,
+        vector.Cartesian3D,
+    ],
+):
+    @property
+    def determinant(self: Cartesian3DT) -> kgpy.uncertainty.ArrayLike:
+        dx = self.x.x * (self.y.y * self.z.z - self.y.z * self.z.y)
+        dy = self.x.y * (self.y.z * self.z.x - self.y.x * self.z.z)
+        dz = self.x.z * (self.y.x * self.z.y - self.y.y * self.z.x)
+        return dx + dy + dz
+
+    @property
+    def transpose(self: Cartesian3DT) -> Cartesian3DT:
+        return Cartesian3D(
+            x=vector.Cartesian3D(self.x.x, self.y.x, self.z.x),
+            y=vector.Cartesian3D(self.x.y, self.y.y, self.z.y),
+            z=vector.Cartesian3D(self.x.z, self.y.z, self.z.z),
+        )
+
+
 @dataclasses.dataclass
 class Matrix2D(np.lib.mixins.NDArrayOperatorsMixin):
     xx: u.Quantity = 0 * u.dimensionless_unscaled
