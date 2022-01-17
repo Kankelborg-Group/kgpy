@@ -56,6 +56,10 @@ class AbstractVector(
     def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
         return tuple(field.name for field in dataclasses.fields(self))
 
+    @property
+    def shape(self: AbstractVectorT) -> typ.Dict[str, int]:
+        return kgpy.labeled.Array.broadcast_shapes(*self.coordinates.values())
+
     def __array_ufunc__(self, function, method, *inputs, **kwargs):
 
         components_result = dict()
