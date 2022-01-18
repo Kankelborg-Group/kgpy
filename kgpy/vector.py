@@ -234,6 +234,10 @@ class Cartesian3D(
 ):
     z: ZT = 0
 
+    @classmethod
+    def z_hat(cls: typ.Type[Cartesian3DT]) -> Cartesian3DT:
+        return cls(z=1)
+
     @property
     def length(self: Cartesian3DT) -> kgpy.uncertainty.ArrayLike:
         return np.sqrt(np.square(self.x) + np.square(self.y) + np.square(self.z))
