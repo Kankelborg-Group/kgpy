@@ -38,6 +38,7 @@ CylindricalT = typ.TypeVar('CylindricalT', bound='Cylindrical')
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
 
 VectorLike = typ.Union[kgpy.uncertainty.ArrayLike, 'AbstractVector']
+ItemArrayT = typ.Union[kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray, AbstractVectorT]
 
 
 @dataclasses.dataclass(eq=False)
@@ -161,8 +162,22 @@ class AbstractVector(
         else:
             return NotImplemented
 
-    def __getitem__(self, item):
-        pass
+    def __getitem__(
+            self: AbstractVectorT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, ItemArrayT]], ItemArrayT],
+    ):
+        if isinstance(item, AbstractVector):
+            coordinates = {c: getattr(self, c).__getitem__(getattr(item, c)) for c in self.components}
+        elif isinstance(item, (kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray)):
+            coordinates = {c: getattr(self, c).__getitem__(item) for c in self.components}
+        elif isinstance(item, dict):
+            coordinates = dict()
+            for component in self.components:
+                item_component = {k: getattr(item[k], component, item[k]) for k in item}
+                coordinates[component] = getattr(self, component).__getitem__(item_component)
+        else:
+            raise TypeError
+        return type(self)(**coordinates)
 
     def __setitem__(self, key, value):
         pass
