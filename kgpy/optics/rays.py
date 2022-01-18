@@ -14,7 +14,11 @@ import astropy.visualization
 import astropy.modeling
 from ezdxf.addons.r12writer import R12FastStreamWriter
 import kgpy.plot
-from kgpy import mixin, vector, transform, format as fmt, grid
+import kgpy.mixin
+import kgpy.vector
+import kgpy.transform
+import kgpy.format
+import kgpy.grid
 import kgpy.dxf
 from .aberration import Distortion, Vignetting, Aberration
 
@@ -28,7 +32,7 @@ __all__ = [
 RaysListT = typ.TypeVar('RaysListT', bound='RaysList')
 
 
-class Axis(mixin.AutoAxis):
+class Axis(kgpy.mixin.AutoAxis):
     ndim_pupil: typ.ClassVar[int] = 2
     ndim_field: typ.ClassVar[int] = 2
 
@@ -64,15 +68,15 @@ class Axis(mixin.AutoAxis):
 
 @dataclasses.dataclass
 class RayGrid(
-    mixin.Copyable,
+    kgpy.mixin.Copyable,
     abc.ABC,
 ):
     axis: typ.ClassVar[Axis] = Axis()
-    field: grid.RegularGrid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
-    pupil: grid.RegularGrid2D = dataclasses.field(default_factory=grid.RegularGrid2D)
-    wavelength: grid.Grid1D = dataclasses.field(default_factory=lambda: grid.RegularGrid1D(min=0 * u.nm, max=0 * u.nm))
-    velocity_los: grid.Grid1D = dataclasses.field(
-        default_factory=lambda: grid.RegularGrid1D(min=0 * u.km / u.s, max=0 * u.km / u.s)
+    field: kgpy.grid.RegularGrid2D = dataclasses.field(default_factory=kgpy.grid.RegularGrid2D)
+    pupil: kgpy.grid.RegularGrid2D = dataclasses.field(default_factory=kgpy.grid.RegularGrid2D)
+    wavelength: kgpy.grid.Grid1D = dataclasses.field(default_factory=lambda: kgpy.grid.RegularGrid1D(min=0 * u.nm, max=0 * u.nm))
+    velocity_los: kgpy.grid.Grid1D = dataclasses.field(
+        default_factory=lambda: kgpy.grid.RegularGrid1D(min=0 * u.km / u.s, max=0 * u.km / u.s)
     )
 
     @property
@@ -87,11 +91,11 @@ class RayGrid(
         ).shape
 
     @property
-    def points_field(self) -> vector.Vector2D:
+    def points_field(self) -> kgpy.vector.Vector2D:
         return self.field.mesh(shape=self.shape, new_axes=self.axis.perp_axes([self.axis.field_x, self.axis.field_y]))
 
     @property
-    def points_pupil(self) -> vector.Vector2D:
+    def points_pupil(self) -> kgpy.vector.Vector2D:
         return self.pupil.mesh(shape=self.shape, new_axes=self.axis.perp_axes([self.axis.pupil_x, self.axis.pupil_y]))
 
     @property
@@ -145,7 +149,7 @@ class RayGrid(
 
 
 @dataclasses.dataclass
-class Rays(transform.rigid.Transformable):
+class Rays(kgpy.transform.rigid.Transformable):
     axis = Axis()
 
     # wavelength: u.Quantity = dataclasses.field(default_factory=lambda: [[0]] * u.nm)
@@ -156,10 +160,10 @@ class Rays(transform.rigid.Transformable):
     # index_of_refraction: u.Quantity = dataclasses.field(default_factory=lambda: [[1]] * u.dimensionless_unscaled)
     intensity: u.Quantity = 1 * u.dimensionless_unscaled
     wavelength: u.Quantity = 0 * u.nm
-    position: vector.Vector3D = dataclasses.field(default_factory=vector.Vector3D)
-    direction: vector.Vector3D = dataclasses.field(default_factory=vector.zhat_factory)
+    position: kgpy.vector.Vector3D = dataclasses.field(default_factory=kgpy.vector.Vector3D)
+    direction: kgpy.vector.Vector3D = dataclasses.field(default_factory=kgpy.vector.zhat_factory)
     velocity_los: u.Quantity = 0 * u.km / u.s
-    surface_normal: vector.Vector3D = dataclasses.field(default_factory=lambda: -vector.zhat_factory())
+    surface_normal: kgpy.vector.Vector3D = dataclasses.field(default_factory=lambda: -kgpy.vector.zhat_factory())
     index_of_refraction: u.Quantity = 1 * u.dimensionless_unscaled
     vignetted_mask: np.ndarray = np.array([True])
     error_mask: np.ndarray = np.array([True])
@@ -177,7 +181,7 @@ class Rays(transform.rigid.Transformable):
     # )
 
     @property
-    def field_angles(self) -> vector.Vector2D:
+    def field_angles(self) -> kgpy.vector.Vector2D:
         angle = np.arcsin(self.direction.xy).to(u.deg)
         angle.y = -angle.y
         return angle
@@ -187,7 +191,7 @@ class Rays(transform.rigid.Transformable):
             cls,
             # wavelength_grid: u.Quantity,
             input_grid: RayGrid,
-            position: vector.Vector3D,
+            position: kgpy.vector.Vector3D,
             # field_grid: vector.Vector2D,
             # pupil_grid: vector.Vector2D,
             # velocity_z_grid: u.Quantity
@@ -196,8 +200,8 @@ class Rays(transform.rigid.Transformable):
         # field_x = np.expand_dims(input_grid.field.points.x, cls.axis.perp_axes(cls.axis.field_x))
         # field_y = np.expand_dims(input_grid.field.points.y, cls.axis.perp_axes(cls.axis.field_y))
 
-        direction = transform.rigid.TiltX(input_grid.points_field.y)(vector.z_hat)
-        direction = transform.rigid.TiltY(input_grid.points_field.x)(direction)
+        direction = kgpy.transform.rigid.TiltX(input_grid.points_field.y)(kgpy.vector.z_hat)
+        direction = kgpy.transform.rigid.TiltY(input_grid.points_field.x)(direction)
 
         return cls(
             wavelength=input_grid.points_wavelength,
@@ -217,7 +221,7 @@ class Rays(transform.rigid.Transformable):
             # intensity: u.Quantity,
             # wavelength_grid: u.Quantity,
             input_grid: RayGrid,
-            direction: vector.Vector3D,
+            direction: kgpy.vector.Vector3D,
             # field_grid: vector.Vector2D,
             # pupil_grid: vector.Vector2D,
             # velocity_z_grid: u.Quantity,
@@ -235,7 +239,7 @@ class Rays(transform.rigid.Transformable):
             # input_velocity_z=velocity_z_grid,
         )
 
-    def apply_transform_list(self, transform_list: transform.rigid.TransformList) -> 'Rays':
+    def apply_transform_list(self, transform_list: kgpy.transform.rigid.TransformList) -> 'Rays':
         # other = self.copy()
         other = self.copy_shallow()
         transform_list = transform_list.simplified
@@ -248,7 +252,7 @@ class Rays(transform.rigid.Transformable):
     @property
     def transformed(self) -> 'Rays':
         other = self.apply_transform_list(self.transform)
-        other.transform = transform.rigid.TransformList()
+        other.transform = kgpy.transform.rigid.TransformList()
         return other
 
     @property
@@ -307,20 +311,20 @@ class Rays(transform.rigid.Transformable):
     def energy(self) -> u.Quantity:
         return (astropy.constants.h * astropy.constants.c / self.wavelength).to(u.eV)
 
-    def _calc_avg_pupil(self, a: vector.Vector3D) -> vector.Vector3D:
+    def _calc_avg_pupil(self, a: kgpy.vector.Vector3D) -> kgpy.vector.Vector3D:
         a = a.copy()
         a[~self.mask] = np.nan
         return np.nanmean(a=a, axis=self.axis.pupil_xy, keepdims=True)
 
-    def _calc_relative_pupil(self, a: vector.Vector3D) -> vector.Vector3D:
+    def _calc_relative_pupil(self, a: kgpy.vector.Vector3D) -> kgpy.vector.Vector3D:
         return a - self._calc_avg_pupil(a)
 
     @property
-    def position_avg_pupil(self) -> vector.Vector3D:
+    def position_avg_pupil(self) -> kgpy.vector.Vector3D:
         return self._calc_avg_pupil(self.position)
 
     @property
-    def position_relative_pupil(self) -> vector.Vector3D:
+    def position_relative_pupil(self) -> kgpy.vector.Vector3D:
         return self._calc_relative_pupil(self.position)
 
     @property
@@ -334,7 +338,7 @@ class Rays(transform.rigid.Transformable):
     def distortion(self) -> Distortion:
         return Distortion(
             wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
-            spatial_mesh_input=vector.Vector2D(
+            spatial_mesh_input=kgpy.vector.Vector2D(
                 x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
                 y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
             ),
@@ -351,7 +355,7 @@ class Rays(transform.rigid.Transformable):
         counts = intensity.sum((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los))
         return Vignetting(
             wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
-            spatial_mesh=vector.Vector2D(
+            spatial_mesh=kgpy.vector.Vector2D(
                 x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
                 y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
             ),
@@ -422,16 +426,16 @@ class Rays(transform.rigid.Transformable):
 
         # for ax, wavl, sz in zip(axs, wavelength, sizes):
         for i in range(len(axs)):
-            wavelength_formatted = fmt.quantity(wavelength[i], digits_after_decimal=digits_after_decimal)
+            wavelength_formatted = kgpy.format.quantity(wavelength[i], digits_after_decimal=digits_after_decimal)
             axs[i].set_title(f'{wavelength_name[i]} {wavelength_formatted}')
             sl = [slice(None)] * sizes.ndim
             sl[self.axis.wavelength] = i
             sl[self.axis.velocity_los] = velocity_los_index
 
             extent = kgpy.plot.calc_extent(
-                data_min=vector.Vector2D(field_x.min(), field_y.min()),
-                data_max=vector.Vector2D(field_x.max(), field_y.max()),
-                num_steps=vector.Vector2D.from_quantity(sizes[sl].shape * u.dimensionless_unscaled),
+                data_min=kgpy.vector.Vector2D(field_x.min(), field_y.min()),
+                data_max=kgpy.vector.Vector2D(field_x.max(), field_y.max()),
+                num_steps=kgpy.vector.Vector2D.from_quantity(sizes[sl].shape * u.dimensionless_unscaled),
             )
 
             img = axs[i].imshow(
@@ -479,9 +483,9 @@ class Rays(transform.rigid.Transformable):
             position = self.position_apparent
             position_rel = self._calc_relative_pupil(position)
 
-        if relative_to_centroid[vector.ix]:
+        if relative_to_centroid[kgpy.vector.ix]:
             position.x = position_rel.x
-        if relative_to_centroid[vector.iy]:
+        if relative_to_centroid[kgpy.vector.iy]:
             position.y = position_rel.y
 
         position_masked = position[mask]
@@ -493,18 +497,18 @@ class Rays(transform.rigid.Transformable):
         limits = np.stack([limit_min.quantity, limit_max.quantity], axis=~0)
 
         hist_shape = list(self.grid_shape)
-        hist_shape[self.axis.pupil_x] = bins[vector.ix]
-        hist_shape[self.axis.pupil_y] = bins[vector.iy]
+        hist_shape[self.axis.pupil_x] = bins[kgpy.vector.ix]
+        hist_shape[self.axis.pupil_y] = bins[kgpy.vector.iy]
         hist = np.empty(hist_shape)
 
         edges_x_shape = list(self.grid_shape)
-        edges_x_shape[self.axis.pupil_x] = bins[vector.ix] + 1
+        edges_x_shape[self.axis.pupil_x] = bins[kgpy.vector.ix] + 1
         edges_x_shape[self.axis.pupil_y] = 1
         edges_x = np.empty(edges_x_shape)
 
         edges_y_shape = list(self.grid_shape)
         edges_y_shape[self.axis.pupil_x] = 1
-        edges_y_shape[self.axis.pupil_y] = bins[vector.iy] + 1
+        edges_y_shape[self.axis.pupil_y] = bins[kgpy.vector.iy] + 1
         edges_y = np.empty(edges_y_shape)
 
         # base_shape = self.shape + self.grid_shape[self.axis.wavelength:self.axis.field_y + 1]
@@ -851,7 +855,7 @@ class Rays(transform.rigid.Transformable):
                     axs_ij.spines['left'].set_visible(False)
 
                 if i == len(axs) - 1:
-                    axs_ij.set_xlabel(fmt.quantity(field_x[j], digits_after_decimal=1))
+                    axs_ij.set_xlabel(kgpy.format.quantity(field_x[j], digits_after_decimal=1))
                     axs_ij.xaxis.set_label_position('top')
                 elif i == 0:
                     axs_ij.set_xlabel(edges_x.unit)
@@ -861,7 +865,7 @@ class Rays(transform.rigid.Transformable):
                 elif j == len(axs_i) - 1:
                     axs_ij.yaxis.set_label_position('right')
                     axs_ij.set_ylabel(
-                        fmt.quantity(field_y[i], digits_after_decimal=1),
+                        kgpy.format.quantity(field_y[i], digits_after_decimal=1),
                         rotation='horizontal',
                         ha='left',
                         va='center',
@@ -884,11 +888,11 @@ class Rays(transform.rigid.Transformable):
 @dataclasses.dataclass
 class RaysList(
     kgpy.dxf.WritableMixin,
-    mixin.Plottable,
-    mixin.DataclassList[Rays],
+    kgpy.mixin.Plottable,
+    kgpy.mixin.DataclassList[Rays],
 ):
     @property
-    def intercepts(self) -> vector.Vector3D:
+    def intercepts(self) -> kgpy.vector.Vector3D:
         intercepts = []
         for rays in self:
             intercept = rays.transform(rays.position, num_extra_dims=rays.axis.ndim)
@@ -902,7 +906,7 @@ class RaysList(
             components: typ.Tuple[str, str] = ('x', 'y'),
             component_z: typ.Optional[str] = None,
             plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
-            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+            transform_extra: typ.Optional[kgpy.transform.rigid.TransformList] = None,
             color_axis: int = Rays.axis.wavelength,
             plot_vignetted: bool = False,
             plot_colorbar: bool = True,
@@ -914,7 +918,7 @@ class RaysList(
             plot_kwargs = self.plot_kwargs
 
         if transform_extra is None:
-            transform_extra = transform.rigid.TransformList()
+            transform_extra = kgpy.transform.rigid.TransformList()
 
         img_rays = self[~0]
 
