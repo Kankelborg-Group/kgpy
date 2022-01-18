@@ -58,6 +58,10 @@ class AbstractVector(
         return tuple(field.name for field in dataclasses.fields(self))
 
     @property
+    def tuple(self: AbstractVectorT) -> typ.Tuple[VectorLike, ...]:
+        return tuple(self.coordinates.values())
+
+    @property
     def shape(self: AbstractVectorT) -> typ.Dict[str, int]:
         return kgpy.labeled.Array.broadcast_shapes(*self.coordinates.values())
 
