@@ -116,8 +116,50 @@ class AbstractVector(
         else:
             return super().__truediv__(other)
 
-    def __array_function__(self, function, types, args, kwargs):
-        pass
+    def __array_function__(
+            self: AbstractVectorT,
+            func: typ.Callable,
+            types: typ.Collection,
+            args: typ.Tuple,
+            kwargs: typ.Dict[str, typ.Any],
+    ) -> AbstractVectorT:
+
+        if func in [
+            np.broadcast_to,
+            np.unravel_index,
+            np.stack,
+            np.ndim,
+            np.argmin,
+            np.nanargmin,
+            np.min,
+            np.nanmin,
+            np.argmax,
+            np.nanargmax,
+            np.max,
+            np.nanmax,
+            np.sum,
+            np.nansum,
+            np.mean,
+            np.nanmean,
+            np.median,
+            np.nanmedian,
+            np.percentile,
+            np.nanpercentile,
+            np.all,
+            np.any,
+            np.array_equal,
+            np.isclose,
+        ]:
+            coordinates = dict()
+            for component in self.components:
+                args_component = [getattr(arg, component, arg) for arg in args]
+                kwargs_component = {kw: getattr(kwargs[kw], component, kwargs[kw]) for kw in kwargs}
+                coordinates[component] = func(*args_component, **kwargs_component)
+
+            return type(self)(**coordinates)
+
+        else:
+            return NotImplemented
 
     def __getitem__(self, item):
         pass
