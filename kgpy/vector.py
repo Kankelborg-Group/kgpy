@@ -88,6 +88,13 @@ class AbstractVector(
 
         return type(self)(**components_result)
 
+    def __bool__(self: AbstractVectorT) -> bool:
+        result = True
+        coordinates = self.coordinates
+        for component in coordinates:
+            result = result and coordinates[component].__bool__()
+        return result
+
     def __mul__(self: AbstractVectorT, other: typ.Union[VectorLike, u.Unit]) -> AbstractVectorT:
         if isinstance(other, u.Unit):
             coordinates = self.coordinates
