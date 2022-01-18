@@ -200,6 +200,14 @@ class Cartesian2D(
     x: XT = 0
     y: YT = 0
 
+    @classmethod
+    def x_hat(cls: typ.Type[Cartesian2DT]) -> Cartesian2DT:
+        return cls(x=1)
+
+    @classmethod
+    def y_hat(cls: typ.Type[Cartesian2DT]) -> Cartesian2DT:
+        return cls(y=1)
+
     @property
     def length(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
         return np.sqrt(np.square(self.x) + np.square(self.y))
