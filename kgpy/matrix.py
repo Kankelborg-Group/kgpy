@@ -103,6 +103,14 @@ class Cartesian2D(
             y=kgpy.vector.Cartesian2D(x=self.x.y, y=self.y.y),
         )
 
+    def __invert__(self: Cartesian2DT) -> Cartesian2DT:
+        result = type(self)(
+            x=kgpy.vector.Cartesian2D(x=self.y.y, y=-self.x.y),
+            y=kgpy.vector.Cartesian2D(x=-self.y.x, y=self.x.x),
+        )
+        result = result / self.determinant
+        return result
+
 
 @dataclasses.dataclass(eq=False)
 class Cartesian3D(
@@ -126,6 +134,18 @@ class Cartesian3D(
             y=vector.Cartesian3D(self.x.y, self.y.y, self.z.y),
             z=vector.Cartesian3D(self.x.z, self.y.z, self.z.z),
         )
+
+    def __invert__(self: Cartesian3DT) -> Cartesian3DT:
+        a, b, c = self.x.tuple
+        d, e, f = self.y.tuple
+        g, h, i = self.z.tuple
+        result = type(self)(
+            x=kgpy.vector.Cartesian3D(x=+(e * i - f * h), y=-(b * i - c * h), z=+(b * f - c * e)),
+            y=kgpy.vector.Cartesian3D(x=-(d * i - f * g), y=+(a * i - c * g), z=-(a * f - c * d)),
+            z=kgpy.vector.Cartesian3D(x=+(d * h - e * g), y=-(a * h - b * g), z=+(a * e - b * d)),
+        )
+        determinant = a * result.x.x + b * result.y.x + c * result.z.x
+        return result / determinant
 
 
 @dataclasses.dataclass
