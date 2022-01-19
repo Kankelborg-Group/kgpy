@@ -76,6 +76,11 @@ class AbstractMatrix(
     abc.ABC,
 ):
 
+    @classmethod
+    @abc.abstractmethod
+    def identity(cls: typ.Type[AbstractMatrixT]) -> AbstractMatrixT:
+        pass
+
     @property
     @abc.abstractmethod
     def determinant(self: AbstractMatrixT) -> kgpy.uncertainty.ArrayLike:
@@ -91,6 +96,13 @@ class AbstractMatrix(
 class Cartesian2D(
     kgpy.vector.Cartesian2D[kgpy.vector.Cartesian2D, kgpy.vector.Cartesian2D],
 ):
+
+    @classmethod
+    def identity(cls: typ.Type[Cartesian2DT]) -> Cartesian2DT:
+        return cls(
+            x=kgpy.vector.Cartesian2D(x=1, y=0),
+            y=kgpy.vector.Cartesian2D(x=0, y=1),
+        )
 
     @property
     def determinant(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
@@ -157,6 +169,15 @@ class Cartesian3D(
         kgpy.vector.Cartesian3D,
     ],
 ):
+
+    @classmethod
+    def identity(cls: typ.Type[Cartesian3DT]) -> Cartesian3DT:
+        return cls(
+            x=kgpy.vector.Cartesian3D(x=1, y=0, z=0),
+            y=kgpy.vector.Cartesian3D(x=0, y=1, z=0),
+            z=kgpy.vector.Cartesian3D(x=0, y=0, z=1),
+        )
+
     @property
     def determinant(self: Cartesian3DT) -> kgpy.uncertainty.ArrayLike:
         dx = self.x.x * (self.y.y * self.z.z - self.y.z * self.z.y)
