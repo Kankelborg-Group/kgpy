@@ -111,6 +111,43 @@ class Cartesian2D(
         result = result / self.determinant
         return result
 
+    @typ.overload
+    def __matmul__(self: Cartesian2DT, other: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian2D:
+        ...
+
+    @typ.overload
+    def __matmul__(self: Cartesian2DT, other: Cartesian2DT) -> Cartesian2DT:
+        ...
+
+    def __matmul__(self, other):
+        if isinstance(other, kgpy.vector.Cartesian2D):
+            return kgpy.vector.Cartesian2D(
+                x=self.x.x * other.x + self.x.y * other.y,
+                y=self.y.x * other.x + self.y.y * other.y,
+            )
+        elif isinstance(other, type(self)):
+            return type(self)(
+                x=kgpy.vector.Cartesian2D(
+                    x=self.x.x * other.x.x + self.x.y * other.y.x,
+                    y=self.x.x * other.x.y + self.x.y * other.y.y,
+                ),
+                y=kgpy.vector.Cartesian2D(
+                    x=self.y.x * other.x.x + self.y.y * other.y.x,
+                    y=self.y.x * other.x.y + self.y.y * other.y.y,
+                ),
+            )
+        else:
+            return NotImplemented
+
+    def __rmatmul__(self: Cartesian2DT, other: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian2D:
+        if isinstance(other, kgpy.vector.Cartesian2D):
+            return kgpy.vector.Cartesian2D(
+                x=other.x * self.x.x + other.y * self.y.x,
+                y=other.x * self.x.y + other.y * self.y.y,
+            )
+        else:
+            return NotImplemented
+
 
 @dataclasses.dataclass(eq=False)
 class Cartesian3D(
