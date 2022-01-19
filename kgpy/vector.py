@@ -10,6 +10,8 @@ import astropy.units as u
 import kgpy.units
 import kgpy.labeled
 import kgpy.uncertainty
+if typ.TYPE_CHECKING:
+    import kgpy.matrix
 
 __all__ = [
     'ix', 'iy', 'iz',
@@ -711,8 +713,9 @@ class Vector2D(Vector):
     def take(self, indices: numpy.typing.ArrayLike, axis: int = None, out: np.ndarray = None, mode: str = 'raise'):
         return np.take(a=self, indices=indices, axis=axis, out=out, mode=mode)
 
-    def outer(self, other: 'Vector2D') -> 'matrix.Matrix2D':
-        result = matrix.Matrix2D()
+    def outer(self, other: 'Vector2D') -> 'kgpy.matrix.Matrix2D':
+        import kgpy.matrix
+        result = kgpy.matrix.Matrix2D()
         result.xx = self.x * other.x
         result.xy = self.x * other.y
         result.yx = self.y * other.x
@@ -1013,5 +1016,3 @@ def zhat_factory():
 x_hat = xhat_factory()
 y_hat = yhat_factory()
 z_hat = zhat_factory()
-
-from . import matrix
