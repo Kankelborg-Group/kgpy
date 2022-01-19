@@ -55,6 +55,15 @@ class Cartesian2D(
             y=kgpy.vector.Cartesian2D(x=0, y=1),
         )
 
+    @classmethod
+    def rotation(cls: typ.Type[Cartesian2DT], angle: kgpy.uncertainty.ArrayLike) -> Cartesian2DT:
+        cos_a = np.cos(angle)
+        sin_a = np.sin(angle)
+        return cls(
+            x=kgpy.vector.Cartesian2D(x=cos_a, y=-sin_a),
+            y=kgpy.vector.Cartesian2D(x=sin_a, y=cos_a),
+        )
+
     @property
     def determinant(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
         return self.x.x * self.y.y - self.x.y * self.y.x
