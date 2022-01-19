@@ -139,6 +139,36 @@ class Cartesian3D(
             z=kgpy.vector.Cartesian3D(x=0, y=0, z=1),
         )
 
+    @classmethod
+    def rotation_x(cls: typ.Type[Cartesian3DT], angle: kgpy.uncertainty.ArrayLike) -> Cartesian3DT:
+        cos_a = np.cos(angle)
+        sin_a = np.sin(angle)
+        return cls(
+            x=kgpy.vector.Cartesian3D(x=1, y=0, z=0),
+            y=kgpy.vector.Cartesian3D(x=0, y=cos_a, z=-sin_a),
+            z=kgpy.vector.Cartesian3D(x=0, y=sin_a, z=cos_a),
+        )
+
+    @classmethod
+    def rotation_y(cls: typ.Type[Cartesian3DT], angle: kgpy.uncertainty.ArrayLike) -> Cartesian3DT:
+        cos_a = np.cos(angle)
+        sin_a = np.sin(angle)
+        return cls(
+            x=kgpy.vector.Cartesian3D(x=cos_a, y=0, z=sin_a),
+            y=kgpy.vector.Cartesian3D(x=0, y=1, z=0),
+            z=kgpy.vector.Cartesian3D(x=-sin_a, y=0, z=cos_a),
+        )
+
+    @classmethod
+    def rotation_z(cls: typ.Type[Cartesian3DT], angle: kgpy.uncertainty.ArrayLike) -> Cartesian3DT:
+        cos_a = np.cos(angle)
+        sin_a = np.sin(angle)
+        return cls(
+            x=kgpy.vector.Cartesian3D(x=cos_a, y=-sin_a, z=0),
+            y=kgpy.vector.Cartesian3D(x=sin_a, y=cos_a, z=0),
+            z=kgpy.vector.Cartesian3D(x=0, y=0, z=1),
+        )
+
     @property
     def determinant(self: Cartesian3DT) -> kgpy.uncertainty.ArrayLike:
         dx = self.x.x * (self.y.y * self.z.z - self.y.z * self.z.y)
