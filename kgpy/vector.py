@@ -74,7 +74,7 @@ class AbstractVector(
         for component in self.components:
             inputs_component = []
             for inp in inputs:
-                if type(inp) == type(self):
+                if isinstance(inp, type(self)):
                     inp = getattr(inp, component)
                 elif isinstance(inp, self.type_coordinates):
                     pass
