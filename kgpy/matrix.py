@@ -45,6 +45,7 @@ class AbstractMatrix(
 @dataclasses.dataclass(eq=False)
 class Cartesian2D(
     kgpy.vector.Cartesian2D[kgpy.vector.Cartesian2D, kgpy.vector.Cartesian2D],
+    AbstractMatrix
 ):
 
     @classmethod
@@ -118,6 +119,7 @@ class Cartesian3D(
         kgpy.vector.Cartesian3D,
         kgpy.vector.Cartesian3D,
     ],
+    AbstractMatrix,
 ):
 
     @classmethod
