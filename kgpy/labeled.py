@@ -832,7 +832,7 @@ class _NormalMixin(
 
     @property
     def _width_normalized(self: _NormalMixinT) -> AbstractArray:
-        if not isinstance(self.stop, AbstractArray):
+        if not isinstance(self.width, AbstractArray):
             return Array(self.width)
         else:
             return self.width
