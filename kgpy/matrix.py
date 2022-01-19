@@ -184,6 +184,53 @@ class Cartesian3D(
         determinant = a * result.x.x + b * result.y.x + c * result.z.x
         return result / determinant
 
+    @typ.overload
+    def __matmul__(self: Cartesian3DT, other: kgpy.vector.Cartesian3D) -> kgpy.vector.Cartesian3D:
+        ...
+
+    @typ.overload
+    def __matmul__(self: Cartesian3DT, other: Cartesian3DT) -> Cartesian3DT:
+        ...
+
+    def __matmul__(self, other):
+        if isinstance(other, kgpy.vector.Cartesian3D):
+            return kgpy.vector.Cartesian3D(
+                x=self.x.x * other.x + self.x.y * other.y + self.x.z * other.z,
+                y=self.y.x * other.x + self.y.y * other.y + self.y.z * other.z,
+                z=self.z.x * other.x + self.z.y * other.y + self.z.z * other.z,
+            )
+        elif isinstance(other, type(self)):
+            cls = type(self)
+            return cls(
+                x=kgpy.vector.Cartesian3D(
+                    x=self.x.x * other.x.x + self.x.y * other.y.x + self.x.z * other.z.x,
+                    y=self.x.x * other.x.y + self.x.y * other.y.y + self.x.z * other.z.y,
+                    z=self.x.x * other.x.z + self.x.y * other.y.z + self.x.z * other.z.z,
+                ),
+                y=kgpy.vector.Cartesian3D(
+                    x=self.y.x * other.x.x + self.y.y * other.y.x + self.y.z * other.z.x,
+                    y=self.y.x * other.x.y + self.y.y * other.y.y + self.y.z * other.z.y,
+                    z=self.y.x * other.x.z + self.y.y * other.y.z + self.y.z * other.z.z,
+                ),
+                z=kgpy.vector.Cartesian3D(
+                    x=self.z.x * other.x.x + self.z.y * other.y.x + self.z.z * other.z.x,
+                    y=self.z.x * other.x.y + self.z.y * other.y.y + self.z.z * other.z.y,
+                    z=self.z.x * other.x.z + self.z.y * other.y.z + self.z.z * other.z.z,
+                ),
+            )
+        else:
+            return NotImplemented
+
+    def __rmatmul__(self: Cartesian3DT, other: kgpy.vector.Cartesian3D):
+        if isinstance(other, kgpy.vector.Cartesian3D):
+            return kgpy.vector.Cartesian3D(
+                x=other.x * self.x.x + other.y * self.y.x + other.z * self.z.x,
+                y=other.x * self.x.y + other.y * self.y.y + other.z * self.z.y,
+                z=other.x * self.x.z + other.y * self.y.z + other.z * self.z.z,
+            )
+        else:
+            return NotImplemented
+
 
 @dataclasses.dataclass
 class Matrix2D(np.lib.mixins.NDArrayOperatorsMixin):
