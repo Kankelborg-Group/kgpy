@@ -9,7 +9,11 @@ import astropy.units as u
 import kgpy.uncertainty
 import kgpy.vector
 
-__all__ = []
+__all__ = [
+    'AbstractMatrix',
+    'Cartesian2D',
+    'Cartesian3D',
+]
 
 
 AbstractMatrixT = typ.TypeVar('AbstractMatrixT', bound='AbstractMatrix')
