@@ -6,8 +6,8 @@ import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
-from . import vector
 import kgpy.uncertainty
+import kgpy.vector
 
 __all__ = []
 
@@ -89,7 +89,7 @@ class AbstractMatrix(
 
 @dataclasses.dataclass(eq=False)
 class Cartesian2D(
-    vector.Cartesian2D[vector.Cartesian2D, vector.Cartesian2D],
+    kgpy.vector.Cartesian2D[kgpy.vector.Cartesian2D, kgpy.vector.Cartesian2D],
 ):
 
     @property
@@ -114,10 +114,10 @@ class Cartesian2D(
 
 @dataclasses.dataclass(eq=False)
 class Cartesian3D(
-    vector.Cartesian3D[
-        vector.Cartesian3D,
-        vector.Cartesian3D,
-        vector.Cartesian3D,
+    kgpy.vector.Cartesian3D[
+        kgpy.vector.Cartesian3D,
+        kgpy.vector.Cartesian3D,
+        kgpy.vector.Cartesian3D,
     ],
 ):
     @property
@@ -130,9 +130,9 @@ class Cartesian3D(
     @property
     def transpose(self: Cartesian3DT) -> Cartesian3DT:
         return Cartesian3D(
-            x=vector.Cartesian3D(self.x.x, self.y.x, self.z.x),
-            y=vector.Cartesian3D(self.x.y, self.y.y, self.z.y),
-            z=vector.Cartesian3D(self.x.z, self.y.z, self.z.z),
+            x=kgpy.vector.Cartesian3D(self.x.x, self.y.x, self.z.x),
+            y=kgpy.vector.Cartesian3D(self.x.y, self.y.y, self.z.y),
+            z=kgpy.vector.Cartesian3D(self.x.z, self.y.z, self.z.z),
         )
 
     def __invert__(self: Cartesian3DT) -> Cartesian3DT:
@@ -269,8 +269,8 @@ class Matrix2D(np.lib.mixins.NDArrayOperatorsMixin):
         return result
 
     def __matmul__(self, other):
-        if isinstance(other, vector.Vector2D):
-            return vector.Vector2D(
+        if isinstance(other, kgpy.vector.Vector2D):
+            return kgpy.vector.Vector2D(
                 x=self.xx * other.x + self.xy * other.y,
                 y=self.yx * other.x + self.yy * other.y,
             )
@@ -283,8 +283,8 @@ class Matrix2D(np.lib.mixins.NDArrayOperatorsMixin):
             raise NotImplementedError
 
     def __rmatmul__(self, other):
-        if isinstance(other, vector.Vector2D):
-            return vector.Vector2D(
+        if isinstance(other, kgpy.vector.Vector2D):
+            return kgpy.vector.Vector2D(
                 x=other.x * self.xx + other.y * self.yx,
                 y=other.x * self.xy + other.y * self.yy,
             )
@@ -427,8 +427,8 @@ class Matrix3D(Matrix2D):
         raise NotImplementedError
 
     def __matmul__(self, other):
-        if isinstance(other, vector.Vector3D):
-            return vector.Vector3D(
+        if isinstance(other, kgpy.vector.Vector3D):
+            return kgpy.vector.Vector3D(
                 x=self.xx * other.x + self.xy * other.y + self.xz * other.z,
                 y=self.yx * other.x + self.yy * other.y + self.yz * other.z,
                 z=self.zx * other.x + self.zy * other.y + self.zz * other.z,
@@ -443,8 +443,8 @@ class Matrix3D(Matrix2D):
             raise NotImplementedError
 
     def __rmatmul__(self, other):
-        if isinstance(other, vector.Vector3D):
-            return vector.Vector3D(
+        if isinstance(other, kgpy.vector.Vector3D):
+            return kgpy.vector.Vector3D(
                 x=other.x * self.xx + other.y * self.yx + other.z * self.zx,
                 y=other.x * self.xy + other.y * self.yy + other.z * self.zy,
                 z=other.x * self.xz + other.y * self.yz + other.z * self.zz,
