@@ -1,6 +1,7 @@
 import abc
 import typing as typ
 import dataclasses
+import random
 import numpy as np
 import astropy.units as u
 import kgpy.mixin
@@ -238,7 +239,11 @@ class _DistributionMixin(
     kgpy.mixin.Copyable,
 ):
     num_samples: int = 11
-    seed: int = 42
+    seed: typ.Optional[int] = None
+
+    def __post_init__(self):
+        if self.seed is None:
+            self.seed = random.randint(0, 10 ** 12)
 
     @property
     def _rng(self) -> np.random.Generator:
