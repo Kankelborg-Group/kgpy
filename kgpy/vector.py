@@ -102,22 +102,22 @@ class AbstractVector(
             result = result and coordinates[component].__bool__()
         return result
 
-    def __mul__(self: AbstractVectorT, other: typ.Union[VectorLike, u.Unit]) -> AbstractVectorT:
-        if isinstance(other, u.Unit):
+    def __mul__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
+        if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
             return type(self)(**{component: coordinates[component] * other for component in coordinates})
         else:
             return super().__mul__(other)
 
-    def __lshift__(self: AbstractVectorT, other: typ.Union[VectorLike, u.Unit]) -> AbstractVectorT:
-        if isinstance(other, u.Unit):
+    def __lshift__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
+        if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
             return type(self)(**{component: coordinates[component] << other for component in coordinates})
         else:
             return super().__lshift__(other)
 
-    def __truediv__(self: AbstractVectorT, other: typ.Union[VectorLike, u.Unit]) -> AbstractVectorT:
-        if isinstance(other, u.Unit):
+    def __truediv__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
+        if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
             return type(self)(**{component: coordinates[component] / other for component in coordinates})
         else:
