@@ -296,8 +296,8 @@ class AbstractArray(
                 axes=axes_new,
             )
 
-    def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.Unit]):
-        if isinstance(other, u.Unit):
+    def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.UnitBase]):
+        if isinstance(other, u.UnitBase):
             return Array(
                 array=self.array * other,
                 axes=self._axes_normalized.copy(),
@@ -305,7 +305,7 @@ class AbstractArray(
         else:
             return super().__mul__(other)
 
-    def __lshift__(self, other: u.Unit) -> 'Array':
+    def __lshift__(self, other: u.UnitBase) -> 'Array':
         axes = self.axes
         if axes is not None:
             axes = axes.copy()
