@@ -63,6 +63,10 @@ class AbstractTransform(
 class Translation(AbstractTransform):
     vector: kgpy.vector.Cartesian3D = None
 
+    def __post_init__(self: TranslationT) -> None:
+        if self.vector is None:
+            self.vector = kgpy.vector.Cartesian3D() * u.mm
+
     def __invert__(self: TranslationT) -> TranslationT:
         return type(self)(vector=-self.vector)
 
