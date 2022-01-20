@@ -197,6 +197,10 @@ class AbstractVector(
         result = np.sqrt(result)
         return result
 
+    @property
+    def normalized(self: AbstractVectorT) -> AbstractVectorT:
+        return self / self.length
+
 
 @dataclasses.dataclass(eq=False)
 class Cartesian2D(
