@@ -692,6 +692,7 @@ class _SpaceMixin(
     AbstractArray[kgpy.units.QuantityLike],
 ):
     num: int = None
+    endpoint: bool = True
     axis: str = None
 
     @property
@@ -768,6 +769,7 @@ class LinearSpace(
             stop=self._stop_normalized._data_aligned(shape)[..., 0],
             num=self.num,
             axis=~0,
+            endpoint=self.endpoint,
         )
 
 
