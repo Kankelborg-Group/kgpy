@@ -37,6 +37,7 @@ class TestCartesian2D:
     @pytest.mark.parametrize(
         argnames='a,b,out',
         argvalues=[
+            (identity, kgpy.vector.Cartesian2D.x_hat(), kgpy.vector.Cartesian2D.x_hat()),
             (identity, identity, identity, ),
             (xy, yx, xx),
         ]
@@ -48,6 +49,7 @@ class TestCartesian2D:
             out: kgpy.matrix.Cartesian2D,
     ):
         out_test = a @ b
+        assert isinstance(out_test, type(out))
         assert out_test == out
 
     @pytest.mark.parametrize(
