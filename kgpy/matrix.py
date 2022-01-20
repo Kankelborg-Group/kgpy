@@ -92,12 +92,7 @@ class Cartesian2D(
         ...
 
     def __matmul__(self, other):
-        if isinstance(other, kgpy.vector.Cartesian2D):
-            return kgpy.vector.Cartesian2D(
-                x=self.x.x * other.x + self.x.y * other.y,
-                y=self.y.x * other.x + self.y.y * other.y,
-            )
-        elif isinstance(other, type(self)):
+        if isinstance(other, type(self)):
             return type(self)(
                 x=kgpy.vector.Cartesian2D(
                     x=self.x.x * other.x.x + self.x.y * other.y.x,
@@ -107,6 +102,11 @@ class Cartesian2D(
                     x=self.y.x * other.x.x + self.y.y * other.y.x,
                     y=self.y.x * other.x.y + self.y.y * other.y.y,
                 ),
+            )
+        elif isinstance(other, kgpy.vector.Cartesian2D):
+            return kgpy.vector.Cartesian2D(
+                x=self.x.x * other.x + self.x.y * other.y,
+                y=self.y.x * other.x + self.y.y * other.y,
             )
         else:
             return NotImplemented
@@ -205,13 +205,7 @@ class Cartesian3D(
         ...
 
     def __matmul__(self, other):
-        if isinstance(other, kgpy.vector.Cartesian3D):
-            return kgpy.vector.Cartesian3D(
-                x=self.x.x * other.x + self.x.y * other.y + self.x.z * other.z,
-                y=self.y.x * other.x + self.y.y * other.y + self.y.z * other.z,
-                z=self.z.x * other.x + self.z.y * other.y + self.z.z * other.z,
-            )
-        elif isinstance(other, type(self)):
+        if isinstance(other, type(self)):
             cls = type(self)
             return cls(
                 x=kgpy.vector.Cartesian3D(
@@ -229,6 +223,12 @@ class Cartesian3D(
                     y=self.z.x * other.x.y + self.z.y * other.y.y + self.z.z * other.z.y,
                     z=self.z.x * other.x.z + self.z.y * other.y.z + self.z.z * other.z.z,
                 ),
+            )
+        elif isinstance(other, kgpy.vector.Cartesian3D):
+            return kgpy.vector.Cartesian3D(
+                x=self.x.x * other.x + self.x.y * other.y + self.x.z * other.z,
+                y=self.y.x * other.x + self.y.y * other.y + self.y.z * other.z,
+                z=self.z.x * other.x + self.z.y * other.y + self.z.z * other.z,
             )
         else:
             return NotImplemented
