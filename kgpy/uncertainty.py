@@ -174,8 +174,8 @@ class AbstractArray(
         else:
             raise NotImplementedError
 
-    def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.Unit]):
-        if isinstance(other, u.Unit):
+    def __mul__(self: AbstractArrayT, other: typ.Union['ArrayLike', u.UnitBase]):
+        if isinstance(other, u.UnitBase):
             return Array(
                 nominal=self.nominal * other,
                 distribution=self.distribution * other,
@@ -183,8 +183,8 @@ class AbstractArray(
         else:
             return super().__mul__(other)
 
-    def __lshift__(self: AbstractArrayT, other: u.Unit) -> ArrayT:
-        if isinstance(other, u.Unit):
+    def __lshift__(self: AbstractArrayT, other: u.UnitBase) -> ArrayT:
+        if isinstance(other, u.UnitBase):
             return Array(
                 nominal=self.nominal << other,
                 distribution=self.distribution << other,
@@ -192,8 +192,8 @@ class AbstractArray(
         else:
             return super().__lshift__(other)
 
-    def __truediv__(self: AbstractArrayT, other: u.Unit) -> ArrayT:
-        if isinstance(other, u.Unit):
+    def __truediv__(self: AbstractArrayT, other: u.UnitBase) -> ArrayT:
+        if isinstance(other, u.UnitBase):
             return Array(
                 nominal=self.nominal / other,
                 distribution=self.distribution / other,
