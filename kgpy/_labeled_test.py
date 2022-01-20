@@ -119,6 +119,17 @@ class TestArray:
         assert a.array[0, 0] == shape['x'] * shape['y']
         assert a.shape == dict(x=1, y=1)
 
+    @pytest.mark.parametrize(
+        argnames='a, shift',
+        argvalues=[
+            (kgpy.labeled.LinearSpace(0, 1, num=11, axis='x'), 1),
+            (kgpy.labeled.LinearSpace(0, 1, num=11, axis='x') * kgpy.labeled.LinearSpace(0, 1, num=11, axis='y'), 1),
+        ],
+    )
+    def test__array_function__roll(self, a: kgpy.labeled.AbstractArray, shift: int):
+        b = np.roll(a, shift, axis='x')
+        assert np.all(b.array == np.roll(a.array, shift, axis=0))
+
     def test__getitem__int(self):
         a = kgpy.labeled.Range(stop=10, axis='x')
         b = kgpy.labeled.Range(stop=11, axis='y')
