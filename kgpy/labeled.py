@@ -411,15 +411,21 @@ class AbstractArray(
             raise ValueError(f'{func} is unsupported, use kgpy.LabeledArray.matrix_inverse() instead.')
 
         elif func is np.stack:
-            if 'arrays' in kwargs:
-                arrays = kwargs.pop('arrays')
-            else:
-                arrays = args[0]
+            args = list(args)
 
-            if 'axis' in kwargs:
-                axis = kwargs.pop('axis')
+            if args:
+                if 'arrays' in kwargs:
+                    raise TypeError(f"{func} got multiple values for 'arrays'")
+                arrays = args.pop(0)
             else:
-                raise ValueError('axis must be specified')
+                arrays = kwargs['arrays']
+
+            if args:
+                if 'axis' in kwargs:
+                    raise TypeError(f"{func} got multiple values for 'axis'")
+                axis = args.pop(0)
+            else:
+                axis = kwargs['axis']
 
             shape = self.broadcast_shapes(*arrays)
             arrays = [arr._data_aligned(shape) for arr in arrays]
