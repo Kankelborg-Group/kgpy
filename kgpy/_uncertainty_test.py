@@ -92,3 +92,28 @@ class TestArray:
             assert np.all(c.distribution == a.distribution * b)
             assert np.all(d.nominal == b * a.nominal)
             assert np.all(d.distribution == b * a.distribution)
+
+    @pytest.mark.parametrize(
+        argnames='a',
+        argvalues=[
+            kgpy.uncertainty.Uniform(nominal=1, width=1)
+        ],
+    )
+    @pytest.mark.parametrize(
+        argnames='b',
+        argvalues=[
+            kgpy.uncertainty.Uniform(nominal=2, width=1)
+        ],
+    )
+    def test__array_function__stack(self, a: kgpy.uncertainty.ArrayLike, b: kgpy.uncertainty.ArrayLike):
+        result = np.stack([a, b], 'y')
+        if not isinstance(a.nominal, kgpy.labeled.AbstractArray):
+            a.nominal = kgpy.labeled.Array(a.nominal)
+        if not isinstance(a.distribution, kgpy.labeled.AbstractArray):
+            a.distribution = kgpy.labeled.Array(a.nominal)
+        if not isinstance(b.nominal, kgpy.labeled.AbstractArray):
+            b.nominal = kgpy.labeled.Array(b.nominal)
+        if not isinstance(b.distribution, kgpy.labeled.AbstractArray):
+            b.distribution = kgpy.labeled.Array(b.nominal)
+        assert np.all(result.nominal == np.stack([a.nominal, b.nominal], 'y'))
+        assert np.all(result.distribution == np.stack([a.distribution, b.distribution], 'y'))

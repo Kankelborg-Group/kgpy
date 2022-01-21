@@ -120,10 +120,29 @@ class AbstractArray(
             kwargs: typ.Dict[str, typ.Any],
     ) -> AbstractArrayT:
 
+        if func is np.stack:
+            args = list(args)
+            if args:
+                if 'arrays' in kwargs:
+                    raise TypeError(f"{func} got multiple values for argument 'arrays'")
+                arrays = args.pop(0)
+            else:
+                arrays = kwargs.pop('arrays')
+
+            arrays_nominal = [a.nominal if isinstance(a, type(self)) else a for a in arrays]
+            arrays_nominal = [a if isinstance(a, kgpy.labeled.AbstractArray) else kgpy.labeled.Array(a) for a in arrays_nominal]
+
+            arrays_distribution = [a.distribution if isinstance(a, type(self)) else a for a in arrays]
+            arrays_distribution = [a if isinstance(a, kgpy.labeled.AbstractArray) else kgpy.labeled.Array(a) for a in arrays_distribution]
+
+            return Array(
+                nominal=np.stack(arrays_nominal, *args, **kwargs),
+                distribution=np.stack(arrays_distribution, *args, **kwargs),
+            )
+
         if func in [
             np.broadcast_to,
             np.unravel_index,
-            np.stack,
             np.ndim,
             np.argmin,
             np.nanargmin,
