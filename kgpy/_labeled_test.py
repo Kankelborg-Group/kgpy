@@ -101,6 +101,16 @@ class TestArray:
         with pytest.raises(ValueError):
             a * b
 
+    def test__array_function__broadcast_to(self):
+        shape = dict(x=5, y=6)
+        a = kgpy.labeled.LinearSpace(1, 5, num=shape['y'], axis='y')
+        b = np.broadcast_to(a, shape)
+        c = np.broadcast_to(a, shape=shape)
+        d = np.broadcast_to(array=a, shape=shape)
+        assert np.all(b == c)
+        assert np.all(b == d)
+
+
     def test__array_function__sum(self):
         shape = dict(x=4, y=7)
         a = np.sum(kgpy.labeled.Array.ones(shape))

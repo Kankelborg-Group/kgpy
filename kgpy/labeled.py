@@ -355,21 +355,19 @@ class AbstractArray(
             kwargs: typ.Dict[str, typ.Any],
     ):
         if func is np.broadcast_to:
-            args_list = list(args)
-            if 'subok' in kwargs:
-                subok = kwargs['subok']
-            else:
-                subok = args_list.pop()
-            if 'shape' in kwargs:
-                shape = kwargs['shape']
-            else:
-                shape = args_list.pop()
+            args = list(args)
             if 'array' in kwargs:
-                array = kwargs['array']
+                array = kwargs.pop('array')
             else:
-                array = args_list.pop()
+                array = args.pop(0)
+
+            if 'shape' in kwargs:
+                shape = kwargs.pop('shape')
+            else:
+                shape = args.pop(0)
+
             return Array(
-                array=np.broadcast_to(array=array._data_aligned(shape), shape=tuple(shape.values()), subok=subok),
+                array=np.broadcast_to(array._data_aligned(shape), tuple(shape.values()), subok=True),
                 axes=list(shape.keys()),
             )
         elif func is np.result_type:
