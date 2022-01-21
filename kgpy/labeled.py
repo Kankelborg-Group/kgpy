@@ -373,16 +373,16 @@ class AbstractArray(
         elif func is np.result_type:
             return type(self)
         elif func is np.unravel_index:
-            args_list = list(args)
+            args = list(args)
             if 'shape' in kwargs:
                 shape = kwargs['shape']
             else:
-                shape = args_list.pop()
+                shape = args.pop()
 
             if 'indices' in kwargs:
                 indices = kwargs['indices'].data
             else:
-                indices = args_list.pop().data
+                indices = args.pop().data
 
             result_value = np.unravel_index(indices=indices, shape=tuple(shape.values()))
             result = dict()     # type: typ.Dict[str, Array]
