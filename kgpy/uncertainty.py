@@ -27,10 +27,7 @@ NormalT = typ.TypeVar('NormalT', bound='Normal')
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
-    kgpy.mixin.Copyable,
-    kgpy.labeled.NDArrayMethodsMixin,
-    np.lib.mixins.NDArrayOperatorsMixin,
-    abc.ABC,
+    kgpy.labeled.ArrayInterface,
     typ.Generic[NominalT, DistributionT],
 ):
     type_array_primary: typ.ClassVar[typ.Type] = kgpy.labeled.AbstractArray
@@ -230,6 +227,16 @@ class AbstractArray(
     @property
     def num_samples(self) -> int:
         return self.shape[self.axis_distribution]
+
+    def combine_axes(
+            self: AbstractArrayT,
+            axes: typ.Sequence[str],
+            axis_new: typ.Optional[str] = None,
+    ) -> AbstractArrayT:
+        return Array(
+            nominal=self.nominal.combine_axes(axes=axes, axis_new=axis_new),
+            distribution=self.distribution.combine_axes(axes=axes, axis_new=axis_new),
+        )
 
 
 ArrayLike = typ.Union[kgpy.labeled.ArrayLike, AbstractArray]
