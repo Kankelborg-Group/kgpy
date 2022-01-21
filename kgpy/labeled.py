@@ -18,6 +18,7 @@ __all__ = [
 
 NDArrayMethodsMixinT = typ.TypeVar('NDArrayMethodsMixinT', bound='NDArrayMethodsMixin')
 ArrT = typ.TypeVar('ArrT', bound=kgpy.units.QuantityLike)
+ArrayInterfaceT = typ.TypeVar('ArrayInterfaceT', bound='ArrayInterface')
 AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 OtherAbstractArrayT = typ.TypeVar('OtherAbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
@@ -57,11 +58,24 @@ class NDArrayMethodsMixin:
 
 
 @dataclasses.dataclass(eq=False)
-class AbstractArray(
+class ArrayInterface(
     kgpy.mixin.Copyable,
     NDArrayMethodsMixin,
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
+):
+    @abc.abstractmethod
+    def combine_axes(
+            self: ArrayInterfaceT,
+            axes: typ.Sequence[str],
+            axis_new: typ.Optional[str] = None,
+    ) -> ArrayInterfaceT:
+        pass
+
+
+@dataclasses.dataclass(eq=False)
+class AbstractArray(
+    ArrayInterface,
     typ.Generic[ArrT],
 ):
 
