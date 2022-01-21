@@ -14,7 +14,8 @@ __all__ = [
     'RotationX',
     'RotationY',
     'RotationZ',
-    'TransformList'
+    'TransformList',
+    'Transformable',
 ]
 
 AbstractTransformT = typ.TypeVar('AbstractTransformT', bound='AbstractTransform')
@@ -153,3 +154,8 @@ class TransformList(
             other.append(transform)
         other.reverse()
         return other
+
+
+@dataclasses.dataclass
+class Transformable:
+    transform: TransformList = dataclasses.field(default_factory=TransformList)
