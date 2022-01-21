@@ -110,6 +110,12 @@ class TestArray:
         assert np.all(b == c)
         assert np.all(b == d)
 
+    def test__array_function__stack(self):
+        a = kgpy.labeled.LinearSpace(0, 1, num=11, axis='x')
+        b = kgpy.labeled.LinearSpace(2, 3, num=11, axis='x')
+        c = kgpy.labeled.LinearSpace(3, 4, num=11, axis='x')
+        result = np.stack([a, b, c], axis='y')
+        assert np.all(result.array == np.stack([a.array, b.array, c.array]))
 
     def test__array_function__sum(self):
         shape = dict(x=4, y=7)
