@@ -27,7 +27,7 @@ class TestArray:
     def test_data_aligned(self):
         shape = dict(x=5, y=6, z=7)
         d = kgpy.labeled.Array.empty(dict(z=shape['z']))
-        assert d._data_aligned(shape).shape == (1, 1, shape['z'])
+        assert d.array_aligned(shape).shape == (1, 1, shape['z'])
 
     def test_combine_axes(self):
         shape = dict(x=5, y=6, z=7)

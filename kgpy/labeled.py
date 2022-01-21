@@ -137,7 +137,7 @@ class AbstractArray(
     def shape_broadcasted(self: AbstractArrayT, *arrs: AbstractArrayT) -> typ.Dict[str, int]:
         return self.broadcast_shapes(self, *arrs)
 
-    def _data_aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ArrT:
+    def array_aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ArrT:
         ndim_missing = len(shape) - np.ndim(self.array)
         value = np.expand_dims(self.array, tuple(~np.arange(ndim_missing)))
         source = []
@@ -152,7 +152,7 @@ class AbstractArray(
         shape_new = {axis: 1 for axis in axes}
         shape = {**self.shape, **shape_new}
         return Array(
-            array=self._data_aligned(shape),
+            array=self.array_aligned(shape),
             axes=list(shape.keys()),
         )
 
@@ -200,8 +200,8 @@ class AbstractArray(
         shape_columns = shape.pop(axis_columns)
         shape = {**shape, axis_rows: shape_rows, axis_columns: shape_columns}
 
-        data_self = self._data_aligned(shape)
-        data_other = other._data_aligned(shape)
+        data_self = self.array_aligned(shape)
+        data_other = other.array_aligned(shape)
 
         return Array(
             array=np.matmul(data_self, data_other),
@@ -349,7 +349,7 @@ class AbstractArray(
         inputs = inputs_normalized
 
         shape = self.broadcast_shapes(*inputs)
-        inputs = tuple(inp._data_aligned(shape) for inp in inputs)
+        inputs = tuple(inp.array_aligned(shape) for inp in inputs)
 
         for inp in inputs:
             result = inp.__array_ufunc__(function, method, *inputs, **kwargs)
@@ -381,7 +381,7 @@ class AbstractArray(
                 shape = args.pop(0)
 
             return Array(
-                array=np.broadcast_to(array._data_aligned(shape), tuple(shape.values()), subok=True),
+                array=np.broadcast_to(array.array_aligned(shape), tuple(shape.values()), subok=True),
                 axes=list(shape.keys()),
             )
         elif func is np.result_type:
@@ -428,7 +428,7 @@ class AbstractArray(
                 axis = kwargs['axis']
 
             shape = self.broadcast_shapes(*arrays)
-            arrays = [arr._data_aligned(shape) for arr in arrays]
+            arrays = [arr.array_aligned(shape) for arr in arrays]
 
             return Array(
                 array=np.stack(arrays=arrays, axis=0, **kwargs),
@@ -465,8 +465,8 @@ class AbstractArray(
             shape = Array.broadcast_shapes(*labeled_arrays)
             axes = list(shape.keys())
 
-            args = tuple(arg._data_aligned(shape) if isinstance(arg, AbstractArray) else arg for arg in args)
-            kwargs = {k: kwargs[k]._data_aligned(shape) if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
+            args = tuple(arg.array_aligned(shape) if isinstance(arg, AbstractArray) else arg for arg in args)
+            kwargs = {k: kwargs[k].array_aligned(shape) if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
             types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
 
             axes_new = axes.copy()
@@ -570,7 +570,7 @@ class AbstractArray(
             for axis_name in item_casted:
                 item_axis = item_casted[axis_name]
                 if isinstance(item_axis, AbstractArray):
-                    item_axis = item_axis._data_aligned(shape_advanced)
+                    item_axis = item_axis.array_aligned(shape_advanced)
                 index[axes.index(axis_name)] = item_axis
                 if not isinstance(item_axis, slice):
                     axes_new.remove(axis_name)
@@ -653,7 +653,7 @@ class Array(
 
         if isinstance(key, Array):
             shape = self.shape_broadcasted(key)
-            self._data_aligned(shape)[key._data_aligned(shape)] = value
+            self.array_aligned(shape)[key.array_aligned(shape)] = value
 
         else:
             key_casted = typ.cast(typ.Dict[str, typ.Union[int, slice, AbstractArray]], key)
@@ -664,10 +664,10 @@ class Array(
                 if isinstance(item_axis, int):
                     axes.remove(axis)
                 if isinstance(item_axis, Array):
-                    item_axis = item_axis._data_aligned(self.shape_broadcasted(item_axis))
+                    item_axis = item_axis.array_aligned(self.shape_broadcasted(item_axis))
                 index[self._axes_normalized.index(axis)] = item_axis
 
-            self.value[tuple(index)] = value._data_aligned({axis: 1 for axis in axes})
+            self.value[tuple(index)] = value.array_aligned({axis: 1 for axis in axes})
 
 
 @dataclasses.dataclass(eq=False)
@@ -783,8 +783,8 @@ class LinearSpace(
     def array(self: LinearSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
         return np.linspace(
-            start=self._start_normalized._data_aligned(shape)[..., 0],
-            stop=self._stop_normalized._data_aligned(shape)[..., 0],
+            start=self._start_normalized.array_aligned(shape)[..., 0],
+            stop=self._stop_normalized.array_aligned(shape)[..., 0],
             num=self.num,
             axis=~0,
             endpoint=self.endpoint,
@@ -811,8 +811,8 @@ class UniformRandomSpace(
     def array(self: UniformRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
 
-        start = self.start_broadcasted._data_aligned(shape)
-        stop = self.stop_broadcasted._data_aligned(shape)
+        start = self.start_broadcasted.array_aligned(shape)
+        stop = self.stop_broadcasted.array_aligned(shape)
 
         unit = None
         if isinstance(start, u.Quantity):
@@ -888,8 +888,8 @@ class NormalRandomSpace(
     def array(self: NormalRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
 
-        center = self.center_broadcasted._data_aligned(shape)
-        width = self.width_broadcasted._data_aligned(shape)
+        center = self.center_broadcasted.array_aligned(shape)
+        width = self.width_broadcasted.array_aligned(shape)
 
         unit = None
         if isinstance(center, u.Quantity):
