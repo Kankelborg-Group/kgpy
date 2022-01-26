@@ -64,6 +64,29 @@ class ArrayInterface(
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
 ):
+
+    @property
+    @abc.abstractmethod
+    def shape(self: ArrayInterfaceT) -> typ.Dict[str, int]:
+        pass
+
+    def ndindex(
+            self: typ.Type[ArrayInterfaceT],
+            axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Iterator[typ.Dict[str, int]]:
+
+        if axis_ignored is None:
+            axis_ignored = []
+        elif isinstance(axis_ignored, str):
+            axis_ignored = [axis_ignored]
+
+        shape = self.shape
+        for axis in axis_ignored:
+            shape.pop(axis)
+        shape_tuple = tuple(shape.values())
+        for index in np.ndindex(*shape_tuple):
+            yield dict(zip(shape.keys(), index))
+
     @abc.abstractmethod
     def combine_axes(
             self: ArrayInterfaceT,
@@ -581,12 +604,6 @@ class AbstractArray(
             )
         # else:
         #     raise ValueError('Invalid index type')
-
-    @classmethod
-    def ndindex(cls: typ.Type[AbstractArrayT], shape: typ.Dict[str, int]) -> typ.Iterator[typ.Dict[str, int]]:
-        shape_tuple = tuple(shape.values())
-        for index in np.ndindex(*shape_tuple):
-            yield dict(zip(shape.keys(), index))
 
 
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
