@@ -6,6 +6,8 @@ import abc
 import dataclasses
 import numpy as np
 import numpy.typing
+import matplotlib.lines
+import matplotlib.axes
 import astropy.units as u
 import kgpy.units
 import kgpy.labeled
@@ -210,6 +212,13 @@ class AbstractVector(
             coordinates_new[component] = coordinates[component].combine_axes(axes=axes, axis_new=axis_new)
         return type(self)(**coordinates_new)
 
+    def plot(
+            self: AbstractVectorT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        pass
+
 
 @dataclasses.dataclass(eq=False)
 class Cartesian2D(
@@ -244,6 +253,38 @@ class Cartesian2D(
             y=self.y,
             z=z,
         )
+
+    def plot(
+            self: Cartesian2DT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+
+        lines = []
+
+        if isinstance(self.x, kgpy.uncertainty.AbstractArray):
+            if isinstance(self.y, kgpy.uncertainty.AbstractArray):
+                lines += type(self)(x=self.x.nominal, y=self.y.nominal).plot(ax=ax, axis_plot=axis_plot)
+                lines += type(self)(x=self.x.distribution, y=self.y.distribution).plot(ax=ax, axis_plot=axis_plot)
+            else:
+                lines += type(self)(x=self.x.nominal, y=self.y).plot(ax=ax, axis_plot=axis_plot)
+                lines += type(self)(x=self.x.distribution, y=self.y).plot(ax=ax, axis_plot=axis_plot)
+
+        else:
+            if isinstance(self.y, kgpy.uncertainty.AbstractArray):
+                lines += type(self)(x=self.x, y=self.y.nominal).plot(ax=ax, axis_plot=axis_plot)
+                lines += type(self)(x=self.x, y=self.y.distribution).plot(ax=ax, axis_plot=axis_plot)
+            else:
+                shape = kgpy.labeled.Array.broadcast_shapes(self.x, self.y)
+                x = np.broadcast_to(self.x, shape)
+                y = np.broadcast_to(self.y, shape)
+                for index in x.ndindex(axis_ignored=axis_plot):
+                    lines += ax.plot(
+                        x[index].array,
+                        y[index].array,
+                    )
+
+        return lines
 
 
 @dataclasses.dataclass(eq=False)

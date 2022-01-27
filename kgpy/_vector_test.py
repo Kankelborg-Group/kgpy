@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.labeled
 import kgpy.uncertainty
@@ -32,3 +33,24 @@ class TestCartesian2D:
         else:
             assert np.all(c.x == a.x * b.x)
             assert np.all(c.y == a.y * b.y)
+
+    @pytest.mark.parametrize(
+        argnames='x',
+        argvalues=[
+            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
+            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
+        ]
+    )
+    @pytest.mark.parametrize(
+        argnames='y',
+        argvalues=[
+            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
+            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a') * kgpy.labeled.LinearSpace(0, 1, num=3, axis='b'),
+            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
+        ]
+    )
+    def test_plot(self, x, y):
+        fig, ax = plt.subplots()
+        a = kgpy.vector.Cartesian2D(x, y)
+        lines = a.plot(ax, axis_plot='a')
+        assert lines
