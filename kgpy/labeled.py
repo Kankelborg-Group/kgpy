@@ -56,6 +56,20 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.mean(self, axis=axis, where=where)
 
+    def all(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.all(self, axis=axis, where=where)
+
+    def any(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.any(self, axis=axis, where=where)
+
 
 @dataclasses.dataclass(eq=False)
 class ArrayInterface(
