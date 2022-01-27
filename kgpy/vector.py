@@ -326,6 +326,68 @@ class Cartesian3D(
             inclination=np.arccos(self.z / radius)
         )
 
+    def plot(
+            self: Cartesian3DT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            component_x: str = 'x',
+            component_y: str = 'y',
+            component_z: typ.Optional[str] = None,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+
+        coordinates = self.coordinates
+
+        if component_z is None:
+            return Cartesian2D(x=coordinates[component_x], y=coordinates[component_y]).plot(ax=ax, axis_plot=axis_plot)
+
+        else:
+            lines = []
+            kwargs = dict(
+                ax=ax,
+                axis_plot=axis_plot,
+                component_x=component_x,
+                component_y=component_y,
+                component_z=component_z,
+            )
+            uncertain_x = isinstance(self.x, kgpy.uncertainty.AbstractArray)
+            uncertain_y = isinstance(self.y, kgpy.uncertainty.AbstractArray)
+            uncertain_z = isinstance(self.z, kgpy.uncertainty.AbstractArray)
+            if uncertain_x or uncertain_y or uncertain_z:
+                if uncertain_x:
+                    x_nominal = self.x.nominal
+                    x_distribution = self.x.distribution
+                else:
+                    x_nominal = x_distribution = self.x
+
+                if uncertain_y:
+                    y_nominal = self.y.nominal
+                    y_distribution = self.y.distribution
+                else:
+                    y_nominal = y_distribution = self.y
+
+                if uncertain_z:
+                    z_nominal = self.z.nominal
+                    z_distribution = self.z.distribution
+                else:
+                    z_nominal = z_distribution = self.z
+
+                lines += type(self)(x_nominal, y_nominal, z_nominal).plot(**kwargs)
+                lines += type(self)(x_distribution, y_distribution, z_distribution).plot(**kwargs)
+
+            else:
+                shape = kgpy.labeled.Array.broadcast_shapes(self.x, self.y, self.z)
+                x = np.broadcast_to(self.x, shape)
+                y = np.broadcast_to(self.y, shape)
+                z = np.broadcast_to(self.z, shape)
+                for index in x.ndindex(axis_ignored=axis_plot):
+                    lines += ax.plot(
+                        x[index].array,
+                        y[index].array,
+                        z[index].array,
+                    )
+
+            return lines
+
 
 @dataclasses.dataclass(eq=False)
 class Polar(
