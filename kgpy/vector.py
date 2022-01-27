@@ -45,9 +45,7 @@ ItemArrayT = typ.Union[kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArra
 
 @dataclasses.dataclass(eq=False)
 class AbstractVector(
-    kgpy.mixin.Copyable,
-    np.lib.mixins.NDArrayOperatorsMixin,
-    abc.ABC,
+    kgpy.labeled.ArrayInterface,
 ):
     type_coordinates = kgpy.uncertainty.AbstractArray.type_array + (kgpy.uncertainty.AbstractArray, )
 
@@ -200,6 +198,17 @@ class AbstractVector(
     @property
     def normalized(self: AbstractVectorT) -> AbstractVectorT:
         return self / self.length
+
+    def combine_axes(
+            self: AbstractVectorT,
+            axes: typ.Sequence[str],
+            axis_new: typ.Optional[str] = None,
+    ) -> AbstractVectorT:
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component].combine_axes(axes=axes, axis_new=axis_new)
+        return type(self)(**coordinates_new)
 
 
 @dataclasses.dataclass(eq=False)
