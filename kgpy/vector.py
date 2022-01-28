@@ -414,12 +414,13 @@ class Cartesian3D(
                 x = np.broadcast_to(self.x, shape)
                 y = np.broadcast_to(self.y, shape)
                 z = np.broadcast_to(self.z, shape)
-                for index in x.ndindex(axis_ignored=axis_plot):
-                    lines += ax.plot(
-                        x[index].array,
-                        y[index].array,
-                        z[index].array,
-                    )
+                with astropy.visualization.quantity_support():
+                    for index in x.ndindex(axis_ignored=axis_plot):
+                        lines += ax.plot(
+                            x[index].array,
+                            y[index].array,
+                            z[index].array,
+                        )
 
             return lines
 
