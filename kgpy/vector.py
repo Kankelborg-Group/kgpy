@@ -9,6 +9,7 @@ import numpy.typing
 import matplotlib.lines
 import matplotlib.axes
 import astropy.units as u
+import astropy.visualization
 import kgpy.units
 import kgpy.labeled
 import kgpy.uncertainty
@@ -278,31 +279,45 @@ class Cartesian2D(
             self: Cartesian2DT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
+            **kwargs: typ.Any,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
         lines = []
 
         if isinstance(self.x, kgpy.uncertainty.AbstractArray):
             if isinstance(self.y, kgpy.uncertainty.AbstractArray):
-                lines += type(self)(x=self.x.nominal, y=self.y.nominal).plot(ax=ax, axis_plot=axis_plot)
-                lines += type(self)(x=self.x.distribution, y=self.y.distribution).plot(ax=ax, axis_plot=axis_plot)
+                lines += type(self)(x=self.x.nominal, y=self.y.nominal).plot(ax=ax, axis_plot=axis_plot, **kwargs)
+                lines += type(self)(x=self.x.distribution, y=self.y.distribution).plot(ax=ax, axis_plot=axis_plot, **kwargs)
             else:
-                lines += type(self)(x=self.x.nominal, y=self.y).plot(ax=ax, axis_plot=axis_plot)
-                lines += type(self)(x=self.x.distribution, y=self.y).plot(ax=ax, axis_plot=axis_plot)
+                lines += type(self)(x=self.x.nominal, y=self.y).plot(ax=ax, axis_plot=axis_plot, **kwargs)
+                lines += type(self)(x=self.x.distribution, y=self.y).plot(ax=ax, axis_plot=axis_plot, **kwargs)
 
         else:
             if isinstance(self.y, kgpy.uncertainty.AbstractArray):
-                lines += type(self)(x=self.x, y=self.y.nominal).plot(ax=ax, axis_plot=axis_plot)
-                lines += type(self)(x=self.x, y=self.y.distribution).plot(ax=ax, axis_plot=axis_plot)
+                lines += type(self)(x=self.x, y=self.y.nominal).plot(ax=ax, axis_plot=axis_plot, **kwargs)
+                lines += type(self)(x=self.x, y=self.y.distribution).plot(ax=ax, axis_plot=axis_plot, **kwargs)
             else:
                 shape = kgpy.labeled.Array.broadcast_shapes(self.x, self.y)
                 x = np.broadcast_to(self.x, shape)
                 y = np.broadcast_to(self.y, shape)
-                for index in x.ndindex(axis_ignored=axis_plot):
-                    lines += ax.plot(
-                        x[index].array,
-                        y[index].array,
-                    )
+
+                shape_kw = shape.copy()
+                shape_kw.pop(axis_plot)
+                kwargs_broadcasted = dict()
+                for k in kwargs:
+                    kwarg = kwargs[k]
+                    if not isinstance(kwarg, kgpy.labeled.ArrayInterface):
+                        kwarg = kgpy.labeled.Array(kwarg)
+                    kwargs_broadcasted[k] = np.broadcast_to(kwarg, shape_kw)
+
+                with astropy.visualization.quantity_support():
+                    for index in x.ndindex(axis_ignored=axis_plot):
+                        kwargs_index = {k: kwargs_broadcasted[k][index].array for k in kwargs_broadcasted}
+                        lines += ax.plot(
+                            x[index].array,
+                            y[index].array,
+                            **kwargs_index
+                        )
 
         return lines
 

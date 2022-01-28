@@ -65,15 +65,19 @@ class TestCartesian2D:
         ]
     )
     @pytest.mark.parametrize(
-        argnames='y',
+        argnames='y, color',
         argvalues=[
-            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
-            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a') * kgpy.labeled.LinearSpace(0, 1, num=3, axis='b'),
-            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
+            (kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), 'black'),
+            (
+                kgpy.labeled.LinearSpace(0, 1, num=5, axis='a') * kgpy.labeled.LinearSpace(0, 1, num=3, axis='b'),
+                kgpy.labeled.Array(np.array(['black', 'blue', 'red',]), axes=['b']),
+            ),
+            (kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1), 'black'),
         ]
     )
-    def test_plot(self, x, y):
+    def test_plot(self, x, y, color):
         fig, ax = plt.subplots()
         a = kgpy.vector.Cartesian2D(x, y)
-        lines = a.plot(ax, axis_plot='a')
+        lines = a.plot(ax, axis_plot='a', color=color)
         assert lines
+        # plt.show()
