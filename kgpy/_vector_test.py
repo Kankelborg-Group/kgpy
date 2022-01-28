@@ -44,6 +44,29 @@ class TestCartesian2D:
     @pytest.mark.parametrize(
         argnames='y',
         argvalues=[
+            0,
+            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
+            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a') * kgpy.labeled.LinearSpace(0, 1, num=3, axis='b'),
+            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
+        ]
+    )
+    def test_broadcast_to(self, x, y):
+        a = kgpy.vector.Cartesian2D(x, y)
+        b = np.broadcast_to(a, a.shape)
+        assert b.x.shape == a.shape
+        assert b.y.shape == a.shape
+
+
+    @pytest.mark.parametrize(
+        argnames='x',
+        argvalues=[
+            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
+            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
+        ]
+    )
+    @pytest.mark.parametrize(
+        argnames='y',
+        argvalues=[
             kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
             kgpy.labeled.LinearSpace(0, 1, num=5, axis='a') * kgpy.labeled.LinearSpace(0, 1, num=3, axis='b'),
             kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)

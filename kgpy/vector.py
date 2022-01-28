@@ -132,7 +132,6 @@ class AbstractVector(
     ) -> AbstractVectorT:
 
         if func in [
-            np.broadcast_to,
             np.unravel_index,
             np.stack,
             np.ndim,
@@ -165,6 +164,24 @@ class AbstractVector(
                 coordinates[component] = func(*args_component, **kwargs_component)
 
             return type(self)(**coordinates)
+
+        elif func is np.broadcast_to:
+            args = list(args)
+            if args:
+                array = args[0]
+                args.pop(0)
+            else:
+                array = kwargs['array']
+                kwargs.pop('array')
+            coordinates = array.coordinates
+            coordinates_new = dict()
+            for component in coordinates:
+                coordinate = coordinates[component]
+                if not isinstance(coordinate, kgpy.labeled.ArrayInterface):
+                    coordinate = kgpy.labeled.Array(coordinate)
+                coordinates_new[component] = np.broadcast_to(coordinate, *args, **kwargs)
+
+            return type(self)(**coordinates_new)
 
         else:
             return NotImplemented
