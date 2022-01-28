@@ -247,7 +247,9 @@ class Cartesian2D(
             azimuth=np.arctan2(self.y, self.x)
         )
 
-    def to_3d(self: Cartesian2DT, z: kgpy.uncertainty.ArrayLike) -> Cartesian3DT:
+    def to_3d(self: Cartesian2DT, z: typ.Optional[kgpy.uncertainty.ArrayLike] = None) -> Cartesian3DT:
+        if z is None:
+            z = 0 * self.x
         return Cartesian3D(
             x=self.x,
             y=self.y,
