@@ -248,6 +248,7 @@ class AbstractVector(
             self: AbstractVectorT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
+            **kwargs: typ.Any,
     ) -> typ.List[matplotlib.lines.Line2D]:
         pass
 
