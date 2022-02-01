@@ -134,7 +134,6 @@ class AbstractVector(
 
         if func in [
             np.unravel_index,
-            np.stack,
             np.ndim,
             np.argmin,
             np.nanargmin,
@@ -183,6 +182,19 @@ class AbstractVector(
                 coordinates_new[component] = np.broadcast_to(coordinate, *args, **kwargs)
 
             return type(self)(**coordinates_new)
+
+        elif func in [np.stack, np.concatenate]:
+            if args:
+                arrays = args[0]
+            else:
+                arrays = kwargs['arrays']
+
+            coordinates_new = dict()
+            for component in arrays[0].coordinates:
+                coordinates_new[component] = func([getattr(array, component) for array in arrays], **kwargs)
+
+            return type(self)(**coordinates_new)
+
 
         else:
             return NotImplemented
