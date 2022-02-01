@@ -462,10 +462,11 @@ class AbstractArray(
                     raise TypeError(f"{func} got multiple values for 'axis'")
                 axis = args.pop(0)
             else:
-                axis = kwargs['axis']
+                axis = kwargs.pop('axis')
 
             shape = self.broadcast_shapes(*arrays)
-            arrays = [arr.array_aligned(shape) for arr in arrays]
+            arrays = [Array(arr) if not isinstance(arr, ArrayInterface) else arr for arr in arrays]
+            arrays = [np.broadcast_to(arr, shape).array for arr in arrays]
 
             return Array(
                 array=np.stack(arrays=arrays, axis=0, **kwargs),
