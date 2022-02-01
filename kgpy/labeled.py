@@ -433,17 +433,18 @@ class AbstractArray(
             return type(self)
         elif func is np.unravel_index:
             args = list(args)
-            if 'shape' in kwargs:
-                shape = kwargs['shape']
-            else:
-                shape = args.pop()
 
-            if 'indices' in kwargs:
-                indices = kwargs['indices'].data
+            if args:
+                indices = args.pop(0)
             else:
-                indices = args.pop().data
+                indices = kwargs.pop('indices')
 
-            result_value = np.unravel_index(indices=indices, shape=tuple(shape.values()))
+            if args:
+                shape = args.pop(0)
+            else:
+                shape = kwargs.pop('shape')
+
+            result_value = np.unravel_index(indices=indices.array, shape=tuple(shape.values()))
             result = dict()     # type: typ.Dict[str, Array]
             for axis, array in zip(shape, result_value):
                 result[axis] = Array(
