@@ -1,35 +1,57 @@
 import typing as typ
+import abc
 import dataclasses
+import copy
 import numpy as np
 import scipy.interpolate
 import numba
+import kgpy.mixin
 import kgpy.labeled
 import kgpy.grid
+import kgpy.vector
 
 __all__ = [
 
 ]
 
-GridT = typ.TypeVar('GridT', bound=kgpy.grid.Grid)
+InputT = typ.TypeVar('InputT', bound=kgpy.vector.AbstractVector)
+OutputT = typ.TypeVar('OutputT', bound=kgpy.vector.AbstractVector)
+AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
+
+
+@dataclasses.dataclass(eq=False)
+class AbstractArray(
+    kgpy.mixin.Copyable,
+    abc.ABC,
+    typ.Generic[InputT, OutputT],
+):
+
+    input: InputT
+
+    @property
+    @abc.abstractmethod
+    def output(self: AbstractArrayT) -> OutputT:
+        pass
+
+    @property
+    def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
+        return kgpy.labeled.Array.broadcast_shapes(self.input, self.output)
 
 
 @dataclasses.dataclass
 class Array(
-    kgpy.mixin.Copyable,
-    typ.Generic[GridT],
+    AbstractArray[InputT, OutputT],
 ):
 
-    value: kgpy.labeled.Array
-    grid: GridT
+    output: OutputT = None
 
     @property
-    def shape(self: ArrayT) -> typ.Dict[str, int]:
-        return self.grid.shape
-
-    @property
-    def value_broadcasted(self: ArrayT) -> ArrayT:
-        return np.broadcast_to(self.value, shape=self.shape, subok=True)
+    def output_broadcasted(self: ArrayT) -> OutputT:
+        output = self.output
+        if not isinstance(output, kgpy.labeled.ArrayInterface):
+            output = kgpy.labeled.Array(output)
+        return np.broadcast_to(output, shape=self.shape)
 
     # @property
     # def axes_separable(self) -> typ.List[str]:
@@ -68,112 +90,119 @@ class Array(
             grid=grid,
         )
 
-    # def calc_index_nearest(self, **grid: LabeledArray, ) -> typ.Dict[str, LabeledArray]:
-    #
-    #     grid_data = self.grid_normalized
-    #
-    #     shape_dummy = dict()
-    #     for axis_name_data in grid_data:
-    #         axis_names = grid_data[axis_name_data].axis_names
-    #         for axis_name in grid:
-    #             if axis_name in axis_names:
-    #                 axis_name_dummy = f'{axis_name}_dummy'
-    #                 shape_dummy[axis_name_dummy] = self.shape[axis_name]
-    #                 axis_index = axis_names.index(axis_name)
-    #                 axis_names[axis_index] = axis_name_dummy
-    #
-    #     distance_squared = 0
-    #     for axis_name in grid:
-    #         distance_squared = distance_squared + np.square(grid[axis_name] - grid_data[axis_name])
-    #
-    #     distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
-    #     index = np.argmin(distance_squared, axis='dummy')
-    #     index = np.unravel_index(index, shape_dummy)
-    #
-    #     index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
-    #
-    #     return index
-    #
-    # def interp_nearest(self, **grid: LabeledArray) -> 'DataArray':
-    #     return DataArray(
-    #         data=self.data[self.calc_index_nearest(**grid)],
-    #         grid={**self.grid, **grid},
-    #     )
-    #
-    # def calc_index_lower(self, **grid: LabeledArray, ) -> typ.Dict[str, LabeledArray]:
-    #
-    #     grid_data = self.grid_normalized
-    #
-    #     shape_dummy = dict()
-    #     for axis_name_data in grid_data:
-    #         axis_names = grid_data[axis_name_data].axis_names
-    #         for axis_name in grid:
-    #             if axis_name in axis_names:
-    #                 axis_name_dummy = f'{axis_name}_dummy'
-    #                 shape_dummy[axis_name_dummy] = self.shape[axis_name]
-    #                 axis_index = axis_names.index(axis_name)
-    #                 axis_names[axis_index] = axis_name_dummy
-    #
-    #     distance_squared = 0
-    #     for axis_name in grid:
-    #         d = grid_data[axis_name] - grid[axis_name]
-    #         d[d > 0] = -np.inf
-    #         distance_squared = distance_squared + d
-    #
-    #     distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
-    #     index = np.argmax(distance_squared, axis='dummy')
-    #     index = np.unravel_index(index, shape_dummy)
-    #
-    #     for axis in index:
-    #         index_max = shape_dummy[axis] - 2
-    #         index[axis][index[axis] > index_max] = index_max
-    #
-    #     index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
-    #
-    #     return index
-    #
-    # def _interp_linear_1d_recursive(
-    #         self,
-    #         grid: typ.Dict[str, LabeledArray],
-    #         index_lower: typ.Dict[str, LabeledArray],
-    #         axis_stack: typ.List[str],
-    # ) -> LabeledArray:
-    #
-    #     axis = axis_stack.pop(0)
-    #
-    #     index_upper = copy.deepcopy(index_lower)
-    #     index_upper[axis] = index_upper[axis] + 1
-    #
-    #     x = grid[axis]
-    #
-    #     grid_data = self.grid_broadcasted
-    #     x0 = grid_data[axis][index_lower]
-    #     x1 = grid_data[axis][index_upper]
-    #
-    #     if axis_stack:
-    #         y0 = self._interp_linear_1d_recursive(grid=grid, index_lower=index_lower, axis_stack=axis_stack.copy())
-    #         y1 = self._interp_linear_1d_recursive(grid=grid, index_lower=index_upper, axis_stack=axis_stack.copy())
-    #
-    #     else:
-    #         data = self.data_broadcasted
-    #         y0 = data[index_lower]
-    #         y1 = data[index_upper]
-    #
-    #     result = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
-    #
-    #     return result
-    #
-    # def interp_linear(self, **grid: LabeledArray, ) -> 'DataArray':
-    #
-    #     return DataArray(
-    #         data=self._interp_linear_1d_recursive(
-    #             grid=grid,
-    #             index_lower=self.calc_index_lower(**grid),
-    #             axis_stack=list(grid.keys()),
-    #         ),
-    #         grid={**self.grid, **grid}
-    #     )
-    #
+    def calc_index_nearest(self: ArrayT, input_new: InputT, ) -> typ.Dict[str, kgpy.labeled.Array]:
+
+        input_old = self.input
+
+        input_old = input_old.copy_shallow()
+        for component in input_old.coordinates:
+            coordinate = input_old.coordinates[component]
+            coordinate = kgpy.labeled.Array(coordinate.array, coordinate.axes)
+            coordinate.axes = [f'{ax}_dummy' for ax in coordinate.axes]
+            setattr(input_old, component, coordinate)
+        shape_dummy = input_old.shape
+
+        distance = (input_new - input_old).length
+        distance = distance.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+
+        index = np.argmin(distance, axis='dummy')
+        index = np.unravel_index(index, self.input.shape)
+        return index
+
+    def interp_nearest(self: ArrayT, input_new: InputT) -> OutputT:
+        return self.output_broadcasted[self.calc_index_nearest(input_new)]
+
+    def calc_index_lower(self: ArrayT, input_new: InputT ) -> typ.Dict:
+
+        input_old = self.input
+
+        input_old = input_old.copy_shallow()
+        for component in input_old.coordinates:
+            coordinate = input_old.coordinates[component]
+            coordinate = kgpy.labeled.Array(coordinate.array, coordinate.axes)
+            coordinate.axes = [f'{ax}_dummy' for ax in coordinate.axes]
+            setattr(input_old, component, coordinate)
+        shape_dummy = input_old.shape
+
+        distance = (input_new - input_old)
+        distance = np.broadcast_to(distance, distance.shape)
+        distance[distance > 0] = -np.inf
+        distance = distance.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+
+        index = np.argmax(distance, axis='dummy')
+        index = np.unravel_index(index, self.input.shape)
+        return index
+
+        # grid_data = self.grid_normalized
+        #
+        # shape_dummy = dict()
+        # for axis_name_data in grid_data:
+        #     axis_names = grid_data[axis_name_data].axis_names
+        #     for axis_name in grid:
+        #         if axis_name in axis_names:
+        #             axis_name_dummy = f'{axis_name}_dummy'
+        #             shape_dummy[axis_name_dummy] = self.shape[axis_name]
+        #             axis_index = axis_names.index(axis_name)
+        #             axis_names[axis_index] = axis_name_dummy
+        #
+        # distance_squared = 0
+        # for axis_name in grid:
+        #     d = grid_data[axis_name] - grid[axis_name]
+        #     d[d > 0] = -np.inf
+        #     distance_squared = distance_squared + d
+        #
+        # distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+        # index = np.argmax(distance_squared, axis='dummy')
+        # index = np.unravel_index(index, shape_dummy)
+        #
+        # for axis in index:
+        #     index_max = shape_dummy[axis] - 2
+        #     index[axis][index[axis] > index_max] = index_max
+        #
+        # index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
+        #
+        # return index
+
+    def _interp_linear_1d_recursive(
+            self,
+            input_new: InputT,
+            index_lower: typ.Dict[str, kgpy.labeled.AbstractArray],
+            axis_stack: typ.List[str],
+    ) -> kgpy.labeled.AbstractArray:
+
+        axis = axis_stack.pop(0)
+
+        print(index_lower)
+
+        index_upper = copy.deepcopy(index_lower)
+        # index_upper[axis] = index_upper[axis] + 1
+
+        x = input_new.coordinates[axis]
+
+        input_old = self.input
+        x0 = input_old.coordinates[axis][index_lower]
+        x1 = input_old.coordinates[axis][index_upper]
+
+        if axis_stack:
+            y0 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_lower, axis_stack=axis_stack.copy())
+            y1 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_upper, axis_stack=axis_stack.copy())
+
+        else:
+            output = self.output_broadcasted
+            y0 = output[index_lower]
+            y1 = output[index_upper]
+
+        result = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
+
+        return result
+
+    def interp_linear(self: ArrayT, input_new: InputT, ) -> OutputT:
+        return self._interp_linear_1d_recursive(
+            input_new=input_new,
+            index_lower=self.calc_index_lower(input_new),
+            axis_stack=list(input_new.shape.keys()),
+        )
+
     # def interp_idw(
     #         self,
     #         grid: typ.Dict[str, LabeledArray],
@@ -230,7 +259,7 @@ class Array(
 
         return index_nearest_even
 
-    def _calc_index_nearest_even(self, grid: GridT) -> GridT:
+    def _calc_index_nearest_even(self, grid):
 
         grid_data = self.grid.subspace(grid)
         shape_grid_data = grid_data.shape
@@ -302,7 +331,7 @@ class Array(
 
     def interp_barycentric_linear(
             self: ArrayT,
-            grid: GridT,
+            grid,
     ) -> ArrayT:
 
         grid_data = self.grid.subspace(grid)
@@ -380,7 +409,7 @@ class Array(
             grid=self.grid.from_dict({**self.grid.value, **grid.value}),
         )
 
-    def interp_barycentric_linear_scipy(self: ArrayT, grid: GridT):
+    def interp_barycentric_linear_scipy(self: ArrayT, grid):
 
         axes_uninterpolated = self.grid.keys() - grid.keys()
         print('axes_uninterpolated', axes_uninterpolated)
@@ -406,6 +435,6 @@ class Array(
 
     def __call__(
             self: ArrayT,
-            grid: GridT,
+            grid,
     ) -> ArrayT:
         return self.interp_barycentric_linear(grid=grid)
