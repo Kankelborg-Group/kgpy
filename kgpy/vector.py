@@ -416,58 +416,70 @@ class Cartesian3D(
             component_x: str = 'x',
             component_y: str = 'y',
             component_z: typ.Optional[str] = None,
+            **kwargs: typ.Any
     ) -> typ.List[matplotlib.lines.Line2D]:
 
         coordinates = self.coordinates
 
         if component_z is None:
-            return Cartesian2D(x=coordinates[component_x], y=coordinates[component_y]).plot(ax=ax, axis_plot=axis_plot)
+            return Cartesian2D(x=coordinates[component_x], y=coordinates[component_y]).plot(
+                ax=ax,
+                axis_plot=axis_plot,
+                **kwargs,
+            )
 
         else:
+            x, y, z = coordinates[component_x], coordinates[component_y], coordinates[component_z]
             lines = []
-            kwargs = dict(
+            kwargs_final = dict(
                 ax=ax,
                 axis_plot=axis_plot,
                 component_x=component_x,
                 component_y=component_y,
                 component_z=component_z,
+                **kwargs
             )
-            uncertain_x = isinstance(self.x, kgpy.uncertainty.AbstractArray)
-            uncertain_y = isinstance(self.y, kgpy.uncertainty.AbstractArray)
-            uncertain_z = isinstance(self.z, kgpy.uncertainty.AbstractArray)
+            uncertain_x = isinstance(x, kgpy.uncertainty.AbstractArray)
+            uncertain_y = isinstance(y, kgpy.uncertainty.AbstractArray)
+            uncertain_z = isinstance(z, kgpy.uncertainty.AbstractArray)
             if uncertain_x or uncertain_y or uncertain_z:
                 if uncertain_x:
-                    x_nominal = self.x.nominal
-                    x_distribution = self.x.distribution
+                    x_nominal = x.nominal
+                    x_distribution = x.distribution
                 else:
-                    x_nominal = x_distribution = self.x
+                    x_nominal = x_distribution = x
 
                 if uncertain_y:
-                    y_nominal = self.y.nominal
-                    y_distribution = self.y.distribution
+                    y_nominal = y.nominal
+                    y_distribution = y.distribution
                 else:
-                    y_nominal = y_distribution = self.y
+                    y_nominal = y_distribution = y
 
                 if uncertain_z:
-                    z_nominal = self.z.nominal
-                    z_distribution = self.z.distribution
+                    z_nominal = z.nominal
+                    z_distribution = z.distribution
                 else:
-                    z_nominal = z_distribution = self.z
+                    z_nominal = z_distribution = z
 
-                lines += type(self)(x_nominal, y_nominal, z_nominal).plot(**kwargs)
-                lines += type(self)(x_distribution, y_distribution, z_distribution).plot(**kwargs)
+                lines += type(self)(x_nominal, y_nominal, z_nominal).plot(**kwargs_final)
+                lines += type(self)(x_distribution, y_distribution, z_distribution).plot(**kwargs_final)
 
             else:
-                shape = kgpy.labeled.Array.broadcast_shapes(self.x, self.y, self.z)
-                x = np.broadcast_to(self.x, shape)
-                y = np.broadcast_to(self.y, shape)
-                z = np.broadcast_to(self.z, shape)
+                shape = kgpy.labeled.Array.broadcast_shapes(x, y, z)
+                x = np.broadcast_to(x, shape)
+                y = np.broadcast_to(y, shape)
+                z = np.broadcast_to(z, shape)
+
+                kwargs = self._broadcast_kwargs(kwargs, shape, axis_plot)
+
                 with astropy.visualization.quantity_support():
                     for index in x.ndindex(axis_ignored=axis_plot):
+                        kwargs_index = {k: kwargs[k][index].array for k in kwargs}
                         lines += ax.plot(
                             x[index].array,
                             y[index].array,
                             z[index].array,
+                            **kwargs_index,
                         )
 
             return lines
