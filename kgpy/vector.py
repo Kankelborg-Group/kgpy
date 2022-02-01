@@ -243,6 +243,7 @@ class AbstractVector(
             coordinates_new[component] = coordinates[component].combine_axes(axes=axes, axis_new=axis_new)
         return type(self)(**coordinates_new)
 
+    @abc.abstractmethod
     def plot(
             self: AbstractVectorT,
             ax: matplotlib.axes.Axes,
