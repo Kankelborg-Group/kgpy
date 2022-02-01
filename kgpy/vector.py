@@ -7,7 +7,9 @@ import dataclasses
 import numpy as np
 import numpy.typing
 import matplotlib.lines
+import matplotlib.patches
 import matplotlib.axes
+import mpl_toolkits.mplot3d.art3d
 import astropy.units as u
 import astropy.visualization
 import kgpy.units
@@ -32,6 +34,7 @@ iz = 2
 XT = typ.TypeVar('XT', bound=kgpy.uncertainty.ArrayLike)
 YT = typ.TypeVar('YT', bound=kgpy.uncertainty.ArrayLike)
 ZT = typ.TypeVar('ZT', bound=kgpy.uncertainty.ArrayLike)
+ReturnT = typ.TypeVar('ReturnT')
 RadiusT = typ.TypeVar('RadiusT', bound=kgpy.uncertainty.ArrayLike)
 AzimuthT = typ.TypeVar('AzimuthT', bound=kgpy.uncertainty.ArrayLike)
 InclinationT = typ.TypeVar('InclinationT', bound=kgpy.uncertainty.ArrayLike)
@@ -252,6 +255,15 @@ class AbstractVector(
     ) -> typ.List[matplotlib.lines.Line2D]:
         pass
 
+    @abc.abstractmethod
+    def plot_filled(
+            self: AbstractVectorT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            **kwargs: typ.Any,
+    ) -> typ.List[matplotlib.patches.Polygon]:
+        pass
+
 
 @dataclasses.dataclass(eq=False)
 class Cartesian2D(
@@ -369,6 +381,28 @@ class Cartesian2D(
 
         return lines
 
+    def plot_filled(
+            self: Cartesian2DT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            **kwargs: typ.Any,
+    ) -> typ.List[matplotlib.patches.Polygon]:
+
+        x, y = self.x, self.y
+
+        if isinstance(x, kgpy.uncertainty.AbstractArray):
+            x = x.nominal
+        if isinstance(y, kgpy.uncertainty.AbstractArray):
+            y = y.nominal
+
+        return self._plot_func(
+            func=ax.fill,
+            x=x,
+            y=y,
+            axis_plot=axis_plot,
+            **kwargs,
+        )
+
 
 @dataclasses.dataclass(eq=False)
 class Cartesian3D(
@@ -484,6 +518,53 @@ class Cartesian3D(
 
             return lines
 
+    def plot_filled(
+        self: Cartesian3DT,
+        ax: matplotlib.axes.Axes,
+        axis_plot: str,
+        component_x: str = 'x',
+        component_y: str = 'y',
+        component_z: str = 'z',
+        **kwargs: typ.Any,
+    ) -> typ.List[mpl_toolkits.mplot3d.art3d.Poly3DCollection]:
+
+        coordinates = self.coordinates
+        x, y, z = coordinates[component_x], coordinates[component_y], coordinates[component_z]
+
+        if not isinstance(x, kgpy.labeled.ArrayInterface):
+            x = kgpy.labeled.Array(x)
+        if not isinstance(y, kgpy.labeled.ArrayInterface):
+            y = kgpy.labeled.Array(y)
+        if not isinstance(z, kgpy.labeled.ArrayInterface):
+            z = kgpy.labeled.Array(z)
+
+        shape = kgpy.labeled.Array.broadcast_shapes(x, y, z)
+        x = np.broadcast_to(x, shape)
+        y = np.broadcast_to(y, shape)
+        z = np.broadcast_to(z, shape)
+
+        kwargs = self._broadcast_kwargs(kwargs, shape, axis_plot)
+
+        if 'color' in kwargs:
+            kwargs['edgecolors'] = kwargs.pop('color')
+        if 'linewidth' in kwargs:
+            kwargs['linewidths'] = kwargs.pop('linewidth')
+        if 'linestyle' in kwargs:
+            kwargs['linestyles'] = kwargs.pop('linestyle')
+
+        polygons = []
+        with astropy.visualization.quantity_support():
+            for index in x.ndindex(axis_ignored=axis_plot):
+                kwargs_index = {k: kwargs[k][index].array for k in kwargs}
+                verts = [np.stack([x[index].array, y[index].array, z[index].array], axis=~0)]
+                polygons += [ax.add_collection(mpl_toolkits.mplot3d.art3d.Poly3DCollection(
+                    verts=verts,
+                    # zsort='max',
+                    **kwargs_index,
+                ))]
+
+        return polygons
+
 
 @dataclasses.dataclass(eq=False)
 class Polar(
@@ -503,6 +584,22 @@ class Polar(
             x=self.radius * np.cos(self.azimuth),
             y=self.radius * np.sin(self.azimuth),
         )
+
+    def plot(
+            self: PolarT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            **kwargs: typ.Any,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        return self.cartesian.plot(ax=ax, axis_plot=axis_plot, **kwargs)
+
+    def plot_filled(
+            self: PolarT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            **kwargs: typ.Any,
+    ) -> typ.List[matplotlib.patches.Polygon]:
+        return self.cartesian.plot_filled(ax=ax, axis_plot=axis_plot, **kwargs)
 
 
 @dataclasses.dataclass(eq=False)
