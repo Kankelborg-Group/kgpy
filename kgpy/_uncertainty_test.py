@@ -96,13 +96,13 @@ class TestArray:
     @pytest.mark.parametrize(
         argnames='a',
         argvalues=[
-            kgpy.uncertainty.Uniform(nominal=1, width=1)
+            kgpy.uncertainty.Uniform(nominal=kgpy.labeled.LinearSpace(0, 1, 11, axis='x'), width=1),
         ],
     )
     @pytest.mark.parametrize(
         argnames='b',
         argvalues=[
-            kgpy.uncertainty.Uniform(nominal=2, width=1)
+            kgpy.uncertainty.Uniform(nominal=kgpy.labeled.LinearSpace(1, 2, 11, axis='x'), width=1),
         ],
     )
     def test__array_function__stack(self, a: kgpy.uncertainty.ArrayLike, b: kgpy.uncertainty.ArrayLike):
