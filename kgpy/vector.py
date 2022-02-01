@@ -17,12 +17,12 @@ if typ.TYPE_CHECKING:
     import kgpy.matrix
 
 __all__ = [
-    'ix', 'iy', 'iz',
-    'Vector',
-    'Vector2D',
-    'Vector3D',
-    'xhat_factory', 'yhat_factory', 'zhat_factory',
-    'x_hat', 'y_hat', 'z_hat',
+    'AbstractVector',
+    'Cartesian2D',
+    'Cartesian3D',
+    'Polar',
+    'Cylindrical',
+    'Spherical',
 ]
 
 ix = 0
