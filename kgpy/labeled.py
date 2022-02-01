@@ -711,7 +711,7 @@ class Array(
 
         if isinstance(key, Array):
             shape = self.shape_broadcasted(key)
-            self.array_aligned(shape)[key.array_aligned(shape)] = value
+            self.array_aligned(shape)[key.array_aligned(shape)] = value.array
 
         else:
             key_casted = typ.cast(typ.Dict[str, typ.Union[int, slice, AbstractArray]], key)
