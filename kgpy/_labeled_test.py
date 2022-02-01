@@ -174,4 +174,5 @@ class TestArray:
     def test_ndindex(self):
         shape = dict(x=2, y=2)
         result_expected = [{'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 1, 'y': 0}, {'x': 1, 'y': 1}]
-        assert list(kgpy.labeled.Array.ndindex(shape)) == result_expected
+        a = kgpy.labeled.Array.empty(shape)
+        assert list(a.ndindex()) == result_expected
