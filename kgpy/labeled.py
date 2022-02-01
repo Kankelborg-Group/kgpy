@@ -49,6 +49,14 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.max(self, axis=axis, where=where)
 
+    def sum(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.sum(self, axis=axis, where=where)
+
+
     def mean(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
