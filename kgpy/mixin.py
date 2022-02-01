@@ -170,11 +170,9 @@ class Plottable(
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            components: typ.Tuple[str, str],
+            component_x: str = 'x',
+            component_y: str = 'y',
             component_z: typ.Optional[str] = None,
-            # color: typ.Optional[str] = None,
-            # linewidth: typ.Optional[float] = None,
-            # linestyle: typ.Optional[str] = None,
             **kwargs,
     ) -> typ.List[matplotlib.lines.Line2D]:
         pass
