@@ -473,6 +473,32 @@ class AbstractArray(
                 axes=[axis] + self._axes_normalized,
             )
 
+        elif func is np.concatenate:
+            args = list(args)
+            if args:
+                arrays = args.pop(0)
+            else:
+                arrays = kwargs['arrays']
+
+            if args:
+                axis = args.pop(0)
+            else:
+                axis = kwargs['axis']
+
+            arrays = [Array(arr) if not isinstance(arr, ArrayInterface) else arr for arr in arrays]
+            for arr in arrays:
+                if not isinstance(arr, kgpy.labeled.AbstractArray):
+                    return NotImplemented
+
+            shape = self.broadcast_shapes(*arrays)
+            arrays = [np.broadcast_to(arr, shape).array for arr in arrays]
+
+            axes = list(shape.keys())
+            return Array(
+                array=func(arrays=arrays, axis=axes.index(axis)),
+                axes=axes,
+            )
+
         elif func in [
             np.ndim,
             np.argmin,
