@@ -223,6 +223,14 @@ class AbstractVector(
         pass
 
     @property
+    def length_manhattan(self) -> kgpy.uncertainty.ArrayLike:
+        result = 0
+        coordinates = self.coordinates
+        for component in coordinates:
+            result = result + coordinates[component]
+        return result
+
+    @property
     def length(self) -> kgpy.uncertainty.ArrayLike:
         result = 0
         coordinates = self.coordinates
