@@ -220,12 +220,12 @@ class TestArray:
         )
 
         b = a.interp_linear(position)
-        # assert np.isclose(a.data, b.data).data.all()
+        assert np.all(a.output - b < 1e-6)
 
         shape_large = dict(
             x=100,
             y=101,
-            z=shape['z'],
+            # z=shape['z'],
         )
         x_large = kgpy.labeled.LinearSpace(start=-np.pi, stop=np.pi, num=shape_large['x'], axis='x')
         y_large = kgpy.labeled.LinearSpace(start=-np.pi, stop=np.pi, num=shape_large['y'], axis='y')
@@ -237,15 +237,15 @@ class TestArray:
         position = np.broadcast_to(position, position.shape)
         position_large = np.broadcast_to(position_large, position_large.shape)
 
-        # plt.figure()
-        # plt.scatter(
-        #     x=a.grid_broadcasted['x'].data,
-        #     y=a.grid_broadcasted['y'].data,
-        #     c=a.data_broadcasted.data,
-        #     vmin=-1,
-        #     vmax=1,
-        # )
-        # plt.colorbar()
+        plt.figure()
+        plt.scatter(
+            x=position.x.array,
+            y=position.y.array,
+            c=a.output.array,
+            # vmin=-1,
+            # vmax=1,
+        )
+        plt.colorbar()
 
         plt.figure()
         plt.scatter(
@@ -260,8 +260,8 @@ class TestArray:
             x=position_large.x.array,
             y=position_large.y.array,
             c=c.array,
-            vmin=-1,
-            vmax=1,
+            # vmin=-1,
+            # vmax=1,
         )
         plt.colorbar()
 
