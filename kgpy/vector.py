@@ -220,7 +220,16 @@ class AbstractVector(
         return type(self)(**coordinates)
 
     def __setitem__(self, key, value):
-        pass
+        if isinstance(key, AbstractVector):
+            for component in self.components:
+                if isinstance(value, AbstractVector):
+                    val = value.coordinates[component]
+                else:
+                    val = value
+                self.coordinates[component].__setitem__(key.coordinates[component], val)
+
+        else:
+            raise NotImplementedError
 
     @property
     def length_manhattan(self) -> kgpy.uncertainty.ArrayLike:

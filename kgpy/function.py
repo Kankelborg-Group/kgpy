@@ -124,13 +124,18 @@ class Array(
             setattr(input_old, component, coordinate)
         shape_dummy = input_old.shape
 
-        distance = (input_new - input_old)
-        distance = np.broadcast_to(distance, distance.shape)
+        distance = input_old - input_new
         distance[distance > 0] = -np.inf
+        distance = distance.x + distance.y
         distance = distance.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
 
         index = np.argmax(distance, axis='dummy')
         index = np.unravel_index(index, self.input.shape)
+
+        for axis in index:
+            index_max = self.input.shape[axis] - 2
+            index[axis][index[axis] > index_max] = index_max
+
         return index
 
         # grid_data = self.grid_normalized
@@ -172,14 +177,13 @@ class Array(
 
         axis = axis_stack.pop(0)
 
-        print(index_lower)
-
         index_upper = copy.deepcopy(index_lower)
-        # index_upper[axis] = index_upper[axis] + 1
+        index_upper[axis] = index_upper[axis] + 1
 
         x = input_new.coordinates[axis]
 
         input_old = self.input
+        input_old = np.broadcast_to(input_old, input_old.shape)
         x0 = input_old.coordinates[axis][index_lower]
         x1 = input_old.coordinates[axis][index_upper]
 
