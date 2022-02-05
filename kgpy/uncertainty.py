@@ -359,3 +359,26 @@ class Normal(Uniform):
 class Array(AbstractArray[NominalT, DistributionT]):
 
     distribution: typ.Optional[DistributionT] = None
+
+    def __setitem__(
+            self: AbstractArrayT,
+            key: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray, 'AbstractArray']], kgpy.labeled.AbstractArray, 'AbstractArray'],
+            value: typ.Union[bool, int, float, np.ndarray, kgpy.labeled.AbstractArray, 'AbstractArray'],
+    ):
+        if isinstance(value, AbstractArray):
+            value_nominal = value.nominal
+            value_distribution = value.distribution
+        else:
+            value_nominal = value_distribution = value
+
+        if isinstance(key, AbstractArray):
+            key_nominal = key.nominal
+            key_distribution = key.distribution
+        else:
+            key_nominal = key_distribution = key
+            if not isinstance(key_distribution, dict):
+                key_distribution = np.broadcast_to(key_distribution, {**key_distribution.shape, **self.shape_distribution})
+
+        self.nominal[key_nominal] = value_nominal
+        if self.distribution is not None:
+            self.distribution[key_distribution] = value_distribution
