@@ -71,8 +71,21 @@ class AbstractArray(
             return None
 
     @property
-    def shape(self) -> typ.Dict[str, int]:
-        return kgpy.labeled.Array.broadcast_shapes(self.nominal, self.distribution)
+    def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
+        shape = kgpy.labeled.Array.broadcast_shapes(self.nominal, self.distribution)
+        shape.pop(self.axis_distribution)
+        return shape
+
+    @property
+    def shape_distribution(self: AbstractArrayT) -> typ.Dict[str, int]:
+        if self.distribution is not None:
+            return {self.axis_distribution: self.distribution.shape[self.axis_distribution]}
+        else:
+            return {}
+
+    @property
+    def shape_all(self: AbstractArrayT) -> typ.Dict[str, int]:
+        return {**self.shape, **self.shape_distribution}
 
     def __array_ufunc__(
             self,
@@ -140,8 +153,26 @@ class AbstractArray(
                 distribution=np.stack(arrays_distribution, *args, **kwargs),
             )
 
-        if func in [
-            np.broadcast_to,
+        elif func is np.broadcast_to:
+            args = list(args)
+            if args:
+                array = args.pop(0)
+            else:
+                array = kwargs['array']
+
+            if args:
+                shape = args.pop(0)
+            else:
+                shape = kwargs['shape']
+
+            shape_distribution = {**shape, **self.shape_distribution}
+
+            return Array(
+                nominal=np.broadcast_to(array.nominal, shape),
+                distribution=np.broadcast_to(array.distribution, shape_distribution),
+            )
+
+        elif func in [
             np.unravel_index,
             np.ndim,
             np.argmin,
