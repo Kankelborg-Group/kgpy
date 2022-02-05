@@ -39,6 +39,7 @@ RadiusT = typ.TypeVar('RadiusT', bound=kgpy.uncertainty.ArrayLike)
 AzimuthT = typ.TypeVar('AzimuthT', bound=kgpy.uncertainty.ArrayLike)
 InclinationT = typ.TypeVar('InclinationT', bound=kgpy.uncertainty.ArrayLike)
 AbstractVectorT = typ.TypeVar('AbstractVectorT', bound='AbstractVector')
+Cartesian1DT = typ.TypeVar('Cartesian1DT', bound='Cartesian1D')
 Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
 Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
 PolarT = typ.TypeVar('PolarT', bound='Polar')
@@ -287,16 +288,49 @@ class AbstractVector(
 
 
 @dataclasses.dataclass(eq=False)
-class Cartesian2D(
+class Cartesian1D(
     AbstractVector,
-    typ.Generic[XT, YT],
+    typ.Generic[XT],
 ):
     x: XT = 0
-    y: YT = 0
 
     @classmethod
-    def x_hat(cls: typ.Type[Cartesian2DT]) -> Cartesian2DT:
+    def x_hat(cls: typ.Type[Cartesian1DT]) -> Cartesian1DT:
         return cls(x=1)
+
+    @property
+    def length(self: Cartesian1DT) -> kgpy.uncertainty.ArrayLike:
+        return np.abs(self.x)
+
+    def outer(self: Cartesian1DT, other: Cartesian1DT) -> 'kgpy.matrix.AbstractMatrixT':
+        raise NotImplementedError
+
+    def to_matrix(self: Cartesian1DT) -> 'kgpy.matrix.AbstractMatrixT':
+        raise NotImplementedError
+
+    def plot(
+            self: Cartesian1DT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            **kwargs: typ.Any,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        raise NotImplementedError
+
+    def plot_filled(
+            self: Cartesian1DT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            **kwargs: typ.Any,
+    ) -> typ.List[matplotlib.patches.Polygon]:
+        raise NotImplementedError
+
+
+@dataclasses.dataclass(eq=False)
+class Cartesian2D(
+    Cartesian1D[XT],
+    typ.Generic[XT, YT],
+):
+    y: YT = 0
 
     @classmethod
     def y_hat(cls: typ.Type[Cartesian2DT]) -> Cartesian2DT:
