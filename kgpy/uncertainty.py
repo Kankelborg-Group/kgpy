@@ -61,7 +61,7 @@ class AbstractArray(
         if self.distribution is not None:
             return self._normalize_array(self.distribution)
         else:
-            return self._nominal_normalized
+            return self.nominal_normalized
 
     @property
     def unit(self: AbstractArrayT) -> typ.Optional[u.Unit]:
