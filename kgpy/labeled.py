@@ -479,7 +479,7 @@ class AbstractArray(
 
             return Array(
                 array=np.stack(arrays=arrays, axis=0, **kwargs),
-                axes=[axis] + self._axes_normalized,
+                axes=[axis] + list(shape.keys()),
             )
 
         elif func is np.concatenate:
