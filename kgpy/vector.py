@@ -279,6 +279,14 @@ class AbstractVector(
         return type(self)(**coordinates_new)
 
     @abc.abstractmethod
+    def outer(self: AbstractVectorT, other: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
+        pass
+
+    @abc.abstractmethod
+    def to_matrix(self: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
+        pass
+
+    @abc.abstractmethod
     def plot(
             self: AbstractVectorT,
             ax: matplotlib.axes.Axes,
@@ -347,6 +355,22 @@ class Cartesian2D(
         return Polar(
             radius=np.sqrt(np.square(self.x) + np.square(self.y)),
             azimuth=np.arctan2(self.y, self.x)
+        )
+
+    def outer(self: Cartesian2DT, other: Cartesian2DT) -> 'kgpy.matrix.Cartesian2D':
+        import kgpy.matrix
+        result = kgpy.matrix.Cartesian2D()
+        result.x.x = self.x * other.x
+        result.x.y = self.x * other.y
+        result.y.x = self.y * other.x
+        result.y.y = self.y * other.y
+        return result
+
+    def to_matrix(self: Cartesian2DT) -> 'kgpy.matrix.Cartesian2D':
+        import kgpy.matrix
+        return kgpy.matrix.Cartesian2D(
+            x=self.x,
+            y=self.y,
         )
 
     def to_3d(self: Cartesian2DT, z: typ.Optional[kgpy.uncertainty.ArrayLike] = None) -> Cartesian3DT:
@@ -498,6 +522,27 @@ class Cartesian3D(
             radius=radius,
             azimuth=np.arctan2(self.y, self.x),
             inclination=np.arccos(self.z / radius)
+        )
+
+    def outer(self: Cartesian3DT, other: Cartesian3DT) -> 'kgpy.matrix.Cartesian3D':
+        import kgpy.matrix
+        result = kgpy.matrix.Cartesian3D()
+        result.x.x = self.x * other.x
+        result.x.y = self.x * other.y
+        result.x.z = self.x * other.z
+        result.y.x = self.y * other.x
+        result.y.y = self.y * other.y
+        result.y.z = self.y * other.z
+        result.z.x = self.z * other.x
+        result.z.y = self.z * other.y
+        result.z.z = self.z * other.z
+        return result
+
+    def to_matrix(self: Cartesian2DT) -> 'kgpy.matrix.Cartesian2D':
+        import kgpy.matrix
+        return kgpy.matrix.Cartesian2D(
+            x=self.x,
+            y=self.y,
         )
 
     def plot(
