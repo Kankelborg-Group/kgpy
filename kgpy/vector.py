@@ -256,7 +256,10 @@ class AbstractVector(
         result = 0
         coordinates = self.coordinates
         for component in coordinates:
-            result = result + np.square(coordinates[component])
+            coordinate = coordinates[component]
+            if isinstance(coordinate, AbstractVector):
+                coordinate = coordinate.length
+            result = result + np.square(coordinate)
         result = np.sqrt(result)
         return result
 
@@ -305,10 +308,6 @@ class Cartesian1D(
     def x_hat(cls: typ.Type[Cartesian1DT]) -> Cartesian1DT:
         return cls(x=1)
 
-    @property
-    def length(self: Cartesian1DT) -> kgpy.uncertainty.ArrayLike:
-        return np.abs(self.x)
-
     def outer(self: Cartesian1DT, other: Cartesian1DT) -> 'kgpy.matrix.AbstractMatrixT':
         raise NotImplementedError
 
@@ -342,10 +341,6 @@ class Cartesian2D(
     @classmethod
     def y_hat(cls: typ.Type[Cartesian2DT]) -> Cartesian2DT:
         return cls(y=1)
-
-    @property
-    def length(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
-        return np.sqrt(np.square(self.x) + np.square(self.y))
 
     @property
     def polar(self: Cartesian2DT) -> PolarT:
