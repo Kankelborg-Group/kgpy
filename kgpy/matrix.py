@@ -23,6 +23,7 @@ Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
 
 @dataclasses.dataclass(eq=False)
 class AbstractMatrix(
+    kgpy.vector.AbstractVector,
     abc.ABC,
 ):
 
@@ -40,6 +41,22 @@ class AbstractMatrix(
     @abc.abstractmethod
     def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
         pass
+
+    def inverse_schulz(self: AbstractMatrixT, max_iterations: int = 100):
+
+        inverse = 2 * self.transpose / np.square(self.length)
+
+        for i in range(max_iterations):
+            inverse_new = 2 * inverse - inverse @ self @ inverse
+            if np.all(np.abs((inverse_new - inverse) / inverse) < 1e-10):
+                print('max_iteration', i)
+                return inverse_new
+            inverse = inverse_new
+
+        raise ValueError
+
+    def __invert__(self: AbstractMatrixT) -> AbstractMatrixT:
+        return self.inverse_schulz()
 
 
 @dataclasses.dataclass(eq=False)
