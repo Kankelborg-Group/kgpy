@@ -734,7 +734,7 @@ class Array(
                     item_axis = item_axis.array_aligned(self.shape_broadcasted(item_axis))
                 index[self._axes_normalized.index(axis)] = item_axis
 
-            self.value[tuple(index)] = value.array_aligned({axis: 1 for axis in axes})
+            self.array[tuple(index)] = value.array_aligned({axis: 1 for axis in axes})
 
 
 @dataclasses.dataclass(eq=False)
