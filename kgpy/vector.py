@@ -443,13 +443,31 @@ class Cartesian2D(
 
         lines = []
 
-        if isinstance(self.x, kgpy.uncertainty.AbstractArray):
-            if isinstance(self.y, kgpy.uncertainty.AbstractArray):
-                lines += type(self)(x=self.x.nominal, y=self.y.nominal).plot(ax=ax, axis_plot=axis_plot, **kwargs)
-                lines += type(self)(x=self.x.distribution, y=self.y.distribution).plot(ax=ax, axis_plot=axis_plot, **kwargs)
+        x, y = self.x, self.y
+
+        uncertain_x = isinstance(x, kgpy.uncertainty.AbstractArray)
+        uncertain_y = isinstance(y, kgpy.uncertainty.AbstractArray)
+
+        if uncertain_x or uncertain_y:
+            if uncertain_x:
+                x_nominal = x.nominal
+                x_distribution = x.distribution
             else:
-                lines += type(self)(x=self.x.nominal, y=self.y).plot(ax=ax, axis_plot=axis_plot, **kwargs)
-                lines += type(self)(x=self.x.distribution, y=self.y).plot(ax=ax, axis_plot=axis_plot, **kwargs)
+                x_nominal = x_distribution = x
+
+            if uncertain_y:
+                y_nominal = y.nominal
+                y_distribution = y.distribution
+            else:
+                y_nominal = y_distribution = y
+
+            kwargs_final = dict(
+                ax=ax,
+                axis_plot=axis_plot,
+                **kwargs
+            )
+            lines += type(self)(x_nominal, y_nominal).plot(**kwargs_final)
+            lines += type(self)(x_distribution, y_distribution).plot(**kwargs_final)
 
         else:
             lines = self._plot_func(
