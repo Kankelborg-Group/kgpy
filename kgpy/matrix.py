@@ -92,6 +92,17 @@ class Cartesian2D(
             y=kgpy.vector.Cartesian2D(x=self.x.y, y=self.y.y),
         )
 
+    def inverse_numpy(self: Cartesian2DT) -> Cartesian2DT:
+        a = np.stack([
+            np.stack([self.x.x, self.x.y], axis='columns'),
+            np.stack([self.y.x, self.y.y], axis='columns'),
+        ], axis='rows')
+        result = a.matrix_inverse(axis_rows='rows', axis_columns='columns')
+        return Cartesian2D(
+            x=kgpy.vector.Cartesian2D(x=result[dict(rows=0, columns=0)], y=result[dict(rows=0, columns=1)]),
+            y=kgpy.vector.Cartesian2D(x=result[dict(rows=1, columns=0)], y=result[dict(rows=1, columns=1)]),
+        )
+
     def __invert__(self: Cartesian2DT) -> Cartesian2DT:
         result = type(self)(
             x=kgpy.vector.Cartesian2D(x=self.y.y, y=-self.x.y),
