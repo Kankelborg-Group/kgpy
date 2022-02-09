@@ -64,11 +64,8 @@ class AbstractArray(
             return self.nominal_normalized
 
     @property
-    def unit(self: AbstractArrayT) -> typ.Optional[u.Unit]:
-        if hasattr(self.nominal, 'unit'):
-            return self.nominal.unit
-        else:
-            return None
+    def unit(self: AbstractArrayT) -> typ.Union[float, u.Unit]:
+        return getattr(self.nominal, 'unit', 1)
 
     @property
     def shape(self: AbstractArrayT) -> typ.Dict[str, int]:

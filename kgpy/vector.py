@@ -60,7 +60,7 @@ class AbstractVector(
 
     @property
     def unit(self):
-        return getattr(self.coordinates[self.components[0]], 'unit', None)
+        return getattr(self.coordinates[self.components[0]], 'unit', 1)
 
     @property
     def coordinates(self: AbstractVectorT) -> typ.Dict[str, VectorLike]:

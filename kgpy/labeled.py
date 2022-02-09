@@ -142,8 +142,8 @@ class AbstractArray(
 
     @property
     @abc.abstractmethod
-    def unit(self) -> typ.Optional[u.Unit]:
-        return None
+    def unit(self) -> typ.Union[float, u.Unit]:
+        return 1
 
     @property
     @abc.abstractmethod
@@ -700,7 +700,7 @@ class Array(
         )
 
     @property
-    def unit(self) -> typ.Optional[u.Unit]:
+    def unit(self) -> typ.Union[float, u.Unit]:
         unit = super().unit
         if hasattr(self.array, 'unit'):
             unit = self.array.unit
@@ -750,7 +750,7 @@ class Range(AbstractArray[np.ndarray]):
     axis: str = None
 
     @property
-    def unit(self) -> typ.Optional[u.Unit]:
+    def unit(self) -> typ.Union[float, u.Unit]:
         unit = super().unit
         if hasattr(self.start, 'unit'):
             unit = self.start.unit
@@ -830,7 +830,7 @@ class _LinearMixin(
         return np.broadcast_to(self._stop_normalized, shape=self.shape, subok=True)
 
     @property
-    def unit(self) -> typ.Optional[u.Unit]:
+    def unit(self) -> typ.Union[float, u.Unit]:
         unit = super().unit
         if hasattr(self.start, 'unit'):
             unit = self.start.unit
