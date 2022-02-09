@@ -66,6 +66,12 @@ class AbstractVector(
     def coordinates(self: AbstractVectorT) -> typ.Dict[str, VectorLike]:
         return {component: getattr(self, component) for component in self.components}
 
+    def get_coordinate(self, component: str):
+        return getattr(self, component)
+
+    def set_coordinate(self, component: str, value: kgpy.uncertainty.ArrayLike):
+        setattr(self, component, value)
+
     @property
     def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
         return tuple(field.name for field in dataclasses.fields(self))
