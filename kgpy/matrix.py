@@ -42,33 +42,32 @@ class AbstractMatrix(
     def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
         pass
 
-    def inverse_numpy(self: AbstractMatrixT):
-        unit_matrix = type(self)()
-        for i in self.coordinates:
-            unit_matrix.coordinates[i] = dict()
-            for j in self.coordinates[i].coordinates:
-                unit = self.coordinates[i].coordinates[j].unit
-                if unit is None:
-                    unit = 1
-                unit_matrix.coordinates[i].coordinates[j] = unit
+    def inverse_numpy(self: AbstractMatrixT) -> AbstractMatrixT:
+
+        unit_matrix = self.copy()
+        for component_row in self.components:
+            for component_column in self.coordinates[component_row].components:
+                unit = 1 * getattr(self.coordinates[component_row].coordinates[component_column], 'unit', 1)
+                unit_matrix.coordinates[component_row].set_coordinate(component_column, unit)
 
         value_matrix = self / unit_matrix
 
         arrays = []
-        for i in value_matrix.coordinates:
-            array = np.stack(value_matrix.coordinates[i].coordinates.values(), axis='column')
+        for component_row in value_matrix.components:
+            array = np.stack(list(value_matrix.coordinates[component_row].coordinates.values()), axis='column')
             arrays.append(array)
         arrays = np.stack(arrays, axis='row')
 
+        arrays_inverse = arrays.matrix_inverse(axis_rows='row', axis_columns='column')
 
-        rows = self.coordinates
-        arrays = []
-        for r in rows:
-            row = rows[r]
-            columns = row.coordinates
-            array = np.stack(row.coordinates.values(), axis='column')
+        inverse_matrix = self.copy()
+        for i, component_row in enumerate(inverse_matrix.components):
+            coordinates_row = inverse_matrix.coordinates[component_row]
+            for j, component_column in enumerate(coordinates_row.components):
+                coordinates_row.set_coordinate(component_column, arrays_inverse[dict(row=i, column=j)])
 
-
+        inverse_matrix = inverse_matrix / unit_matrix.transpose
+        return inverse_matrix
 
     def inverse_schulz(self: AbstractMatrixT, max_iterations: int = 100):
 
@@ -118,17 +117,6 @@ class Cartesian2D(
         return Cartesian2D(
             x=kgpy.vector.Cartesian2D(x=self.x.x, y=self.y.x),
             y=kgpy.vector.Cartesian2D(x=self.x.y, y=self.y.y),
-        )
-
-    def inverse_numpy(self: Cartesian2DT) -> Cartesian2DT:
-        a = np.stack([
-            np.stack([self.x.x, self.x.y], axis='columns'),
-            np.stack([self.y.x, self.y.y], axis='columns'),
-        ], axis='rows')
-        result = a.matrix_inverse(axis_rows='rows', axis_columns='columns')
-        return Cartesian2D(
-            x=kgpy.vector.Cartesian2D(x=result[dict(rows=0, columns=0)], y=result[dict(rows=0, columns=1)]),
-            y=kgpy.vector.Cartesian2D(x=result[dict(rows=1, columns=0)], y=result[dict(rows=1, columns=1)]),
         )
 
     def __invert__(self: Cartesian2DT) -> Cartesian2DT:
