@@ -42,6 +42,34 @@ class AbstractMatrix(
     def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
         pass
 
+    def inverse_numpy(self: AbstractMatrixT):
+        unit_matrix = type(self)()
+        for i in self.coordinates:
+            unit_matrix.coordinates[i] = dict()
+            for j in self.coordinates[i].coordinates:
+                unit = self.coordinates[i].coordinates[j].unit
+                if unit is None:
+                    unit = 1
+                unit_matrix.coordinates[i].coordinates[j] = unit
+
+        value_matrix = self / unit_matrix
+
+        arrays = []
+        for i in value_matrix.coordinates:
+            array = np.stack(value_matrix.coordinates[i].coordinates.values(), axis='column')
+            arrays.append(array)
+        arrays = np.stack(arrays, axis='row')
+
+
+        rows = self.coordinates
+        arrays = []
+        for r in rows:
+            row = rows[r]
+            columns = row.coordinates
+            array = np.stack(row.coordinates.values(), axis='column')
+
+
+
     def inverse_schulz(self: AbstractMatrixT, max_iterations: int = 100):
 
         inverse = 2 * self.transpose / np.square(self.length)
@@ -270,6 +298,23 @@ class Cartesian3D(
             )
         else:
             return NotImplemented
+
+
+class CartesianND(
+    kgpy.vector.CartesianND[kgpy.vector.CartesianND],
+    AbstractMatrix,
+):
+    @classmethod
+    def identity(cls: typ.Type[AbstractMatrixT]) -> AbstractMatrixT:
+        raise NotImplementedError
+
+    @property
+    def determinant(self: AbstractMatrixT) -> kgpy.uncertainty.ArrayLike:
+        raise NotImplementedError
+
+    @property
+    def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
+        raise NotImplementedError
 
 
 @dataclasses.dataclass
