@@ -58,6 +58,10 @@ class AbstractVector(
 ):
     type_coordinates = kgpy.uncertainty.AbstractArray.type_array + (kgpy.uncertainty.AbstractArray, )
 
+    @classmethod
+    def from_coordinates(cls: typ.Type[AbstractVectorT], coordinates: typ.Dict[str, VectorLike]) -> AbstractVectorT:
+        return cls(**coordinates)
+
     @property
     def unit(self):
         return getattr(self.coordinates[self.components[0]], 'unit', 1)
@@ -104,7 +108,7 @@ class AbstractVector(
             if component not in components_result:
                 return NotImplemented
 
-        return type(self)(**components_result)
+        return type(self).from_coordinates(components_result)
 
     def __bool__(self: AbstractVectorT) -> bool:
         result = True
@@ -116,21 +120,21 @@ class AbstractVector(
     def __mul__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
         if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
-            return type(self)(**{component: coordinates[component] * other for component in coordinates})
+            return type(self).from_coordinates({component: coordinates[component] * other for component in coordinates})
         else:
             return super().__mul__(other)
 
     def __lshift__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
         if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
-            return type(self)(**{component: coordinates[component] << other for component in coordinates})
+            return type(self).from_coordinates({component: coordinates[component] << other for component in coordinates})
         else:
             return super().__lshift__(other)
 
     def __truediv__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
         if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
-            return type(self)(**{component: coordinates[component] / other for component in coordinates})
+            return type(self).from_coordinates({component: coordinates[component] / other for component in coordinates})
         else:
             return super().__truediv__(other)
 
@@ -173,7 +177,7 @@ class AbstractVector(
                 kwargs_component = {kw: kwargs[kw].coordinates[component] if isinstance(kwargs[kw], AbstractVector) else kwargs[kw] for kw in kwargs}
                 coordinates[component] = func(*args_component, **kwargs_component)
 
-            return type(self)(**coordinates)
+            return type(self).from_coordinates(coordinates)
 
         elif func is np.broadcast_to:
             args = list(args)
@@ -191,7 +195,7 @@ class AbstractVector(
                     coordinate = kgpy.labeled.Array(coordinate)
                 coordinates_new[component] = np.broadcast_to(coordinate, *args, **kwargs)
 
-            return type(self)(**coordinates_new)
+            return type(self).from_coordinates(coordinates_new)
 
         elif func in [np.stack, np.concatenate]:
             if args:
@@ -201,10 +205,9 @@ class AbstractVector(
 
             coordinates_new = dict()
             for component in arrays[0].coordinates:
-                coordinates_new[component] = func([getattr(array, component) for array in arrays], **kwargs)
+                coordinates_new[component] = func([array.coordinates[component] for array in arrays], **kwargs)
 
-            return type(self)(**coordinates_new)
-
+            return type(self).from_coordinates(coordinates_new)
 
         else:
             return NotImplemented
@@ -224,7 +227,7 @@ class AbstractVector(
                 coordinates[component] = getattr(self, component).__getitem__(item_component)
         else:
             raise TypeError
-        return type(self)(**coordinates)
+        return type(self).from_coordinates(coordinates)
 
     def __setitem__(
             self: AbstractVectorT,
@@ -695,6 +698,10 @@ class CartesianND(
 ):
 
     coordinates: typ.Dict[str, CoordinateT] = None
+
+    @classmethod
+    def from_coordinates(cls: typ.Type[CartesianNDT], coordinates: typ.Dict[str, CoordinateT]) -> CartesianNDT:
+        return cls(coordinates)
 
     def __post_init__(self: CartesianNDT):
         if self.coordinates is None:
