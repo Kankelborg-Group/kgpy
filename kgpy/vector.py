@@ -249,7 +249,7 @@ class AbstractVector(
             coordinates[component][key[component]] = value[component]
 
     @property
-    def length_manhattan(self) -> kgpy.uncertainty.ArrayLike:
+    def component_sum(self) -> kgpy.uncertainty.ArrayLike:
         result = 0
         coordinates = self.coordinates
         for component in coordinates:

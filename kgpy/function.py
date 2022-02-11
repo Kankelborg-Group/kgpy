@@ -126,7 +126,7 @@ class Array(
 
         distance = input_old - input_new
         distance[distance > 0] = -np.inf
-        distance = distance.x + distance.y
+        distance = distance.component_sum
         distance = distance.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
 
         index = np.argmax(distance, axis='dummy')
