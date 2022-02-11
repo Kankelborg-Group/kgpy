@@ -39,9 +39,27 @@ class AbstractMatrix(
         pass
 
     @property
-    @abc.abstractmethod
     def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
-        pass
+        row_prototype = next(iter(self.coordinates.values()))
+        result = type(row_prototype)().to_matrix()
+        for component_column in row_prototype.coordinates:
+            result.coordinates[component_column] = type(self)().to_vector()
+
+        for component_row in self.coordinates:
+            for component_column in self.coordinates[component_row].coordinates:
+                result.coordinates[component_column].coordinates[component_row] = self.coordinates[component_row].coordinates[component_column]
+
+        return result
+
+    def __matmul__(self: CartesianNDT, other: CartesianNDT):
+        result = CartesianND()
+        other = other.transpose
+        for self_component_row in self.coordinates:
+            result.coordinates[self_component_row] = type(other)().to_vector()
+            for other_component_row in other.coordinates:
+                element = self.coordinates[self_component_row] @ other.coordinates[other_component_row]
+                result.coordinates[self_component_row].coordinates[other_component_row] = element
+        return result
 
     def inverse_numpy(self: AbstractMatrixT) -> AbstractMatrixT:
 
