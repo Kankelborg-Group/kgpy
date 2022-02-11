@@ -19,6 +19,7 @@ __all__ = [
 AbstractMatrixT = typ.TypeVar('AbstractMatrixT', bound='AbstractMatrix')
 Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
 Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
+CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
 
 
 @dataclasses.dataclass(eq=False)
