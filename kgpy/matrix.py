@@ -86,6 +86,10 @@ class AbstractMatrix(
     def __invert__(self: AbstractMatrixT) -> AbstractMatrixT:
         return self.inverse_schulz()
 
+    @abc.abstractmethod
+    def to_vector(self: AbstractMatrixT) -> kgpy.vector.AbstractVector:
+        pass
+
 
 @dataclasses.dataclass(eq=False)
 class Cartesian2D(
@@ -164,6 +168,9 @@ class Cartesian2D(
             )
         else:
             return NotImplemented
+
+    def to_vector(self: Cartesian2DT) -> kgpy.vector.Cartesian2D:
+        return kgpy.vector.Cartesian2D(x=self.x, y=self.y)
 
 
 @dataclasses.dataclass(eq=False)
@@ -288,6 +295,9 @@ class Cartesian3D(
         else:
             return NotImplemented
 
+    def to_vector(self: Cartesian3DT) -> kgpy.vector.Cartesian3D:
+        return kgpy.vector.Cartesian3D(x=self.x, y=self.y, z=self.z)
+
 
 class CartesianND(
     kgpy.vector.CartesianND[kgpy.vector.CartesianND],
@@ -301,9 +311,8 @@ class CartesianND(
     def determinant(self: AbstractMatrixT) -> kgpy.uncertainty.ArrayLike:
         raise NotImplementedError
 
-    @property
-    def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
-        raise NotImplementedError
+    def to_vector(self: CartesianNDT) -> kgpy.vector.CartesianNDT:
+        return kgpy.vector.CartesianND(self.coordinates)
 
 
 @dataclasses.dataclass
