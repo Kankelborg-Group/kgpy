@@ -64,13 +64,7 @@ class AbstractVector(
 
     @property
     def coordinates(self: AbstractVectorT) -> typ.Dict[str, VectorLike]:
-        return {component: getattr(self, component) for component in self.components}
-
-    def get_coordinate(self, component: str):
-        return getattr(self, component)
-
-    def set_coordinate(self, component: str, value: kgpy.uncertainty.ArrayLike):
-        setattr(self, component, value)
+        return self.__dict__
 
     @property
     def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
@@ -92,7 +86,7 @@ class AbstractVector(
             inputs_component = []
             for inp in inputs:
                 if isinstance(inp, type(self)):
-                    inp = getattr(inp, component)
+                    inp = inp.coordinates[component]
                 elif isinstance(inp, self.type_coordinates):
                     pass
                 else:
@@ -175,8 +169,8 @@ class AbstractVector(
         ]:
             coordinates = dict()
             for component in self.components:
-                args_component = [getattr(arg, component, arg) for arg in args]
-                kwargs_component = {kw: getattr(kwargs[kw], component, kwargs[kw]) for kw in kwargs}
+                args_component = [arg.coordinates[component] if isinstance(arg, AbstractVector) else arg for arg in args]
+                kwargs_component = {kw: kwargs[kw].coordinates[component] if isinstance(kwargs[kw], AbstractVector) else kwargs[kw] for kw in kwargs}
                 coordinates[component] = func(*args_component, **kwargs_component)
 
             return type(self)(**coordinates)

@@ -48,7 +48,7 @@ class AbstractMatrix(
         for component_row in self.components:
             for component_column in self.coordinates[component_row].components:
                 unit = 1 * getattr(self.coordinates[component_row].coordinates[component_column], 'unit', 1)
-                unit_matrix.coordinates[component_row].set_coordinate(component_column, unit)
+                unit_matrix.coordinates[component_row].coordinates[component_column] = unit
 
         value_matrix = self / unit_matrix
 
@@ -64,7 +64,7 @@ class AbstractMatrix(
         for i, component_row in enumerate(inverse_matrix.components):
             coordinates_row = inverse_matrix.coordinates[component_row]
             for j, component_column in enumerate(coordinates_row.components):
-                coordinates_row.set_coordinate(component_column, arrays_inverse[dict(row=i, column=j)])
+                coordinates_row.coordinates[component_column] = arrays_inverse[dict(row=i, column=j)]
 
         inverse_matrix = inverse_matrix / unit_matrix.transpose
         return inverse_matrix
