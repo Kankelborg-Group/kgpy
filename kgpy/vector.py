@@ -138,6 +138,15 @@ class AbstractVector(
         else:
             return super().__truediv__(other)
 
+    def __matmul__(self: AbstractVectorT, other: AbstractVectorT) -> AbstractVectorT:
+        if isinstance(other, AbstractVector):
+            result = 0
+            for component in self.coordinates:
+                result = result + self.coordinates[component] * other.coordinates[component]
+            return result
+        else:
+            return NotImplemented
+
     def __array_function__(
             self: AbstractVectorT,
             func: typ.Callable,
