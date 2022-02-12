@@ -347,8 +347,10 @@ class AbstractArray(
             )
 
             axes_new = self._axes_normalized.copy()
-            axes_new.append(axes_new.pop(index_axis_rows))
-            axes_new.append(axes_new.pop(index_axis_columns))
+            axes_new.remove(axis_rows)
+            axes_new.remove(axis_columns)
+            axes_new.append(axis_rows)
+            axes_new.append(axis_columns)
 
             return Array(
                 array=np.linalg.inv(value),
