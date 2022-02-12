@@ -159,13 +159,6 @@ class Cartesian2D(
     def determinant(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
         return self.x.x * self.y.y - self.x.y * self.y.x
 
-    @property
-    def transpose(self: Cartesian2DT) -> Cartesian2DT:
-        return Cartesian2D(
-            x=kgpy.vector.Cartesian2D(x=self.x.x, y=self.y.x),
-            y=kgpy.vector.Cartesian2D(x=self.x.y, y=self.y.y),
-        )
-
     def __invert__(self: Cartesian2DT) -> Cartesian2DT:
         result = type(self)(
             x=kgpy.vector.Cartesian2D(x=self.y.y, y=-self.x.y),
@@ -269,14 +262,6 @@ class Cartesian3D(
         dy = self.x.y * (self.y.z * self.z.x - self.y.x * self.z.z)
         dz = self.x.z * (self.y.x * self.z.y - self.y.y * self.z.x)
         return dx + dy + dz
-
-    @property
-    def transpose(self: Cartesian3DT) -> Cartesian3DT:
-        return Cartesian3D(
-            x=kgpy.vector.Cartesian3D(self.x.x, self.y.x, self.z.x),
-            y=kgpy.vector.Cartesian3D(self.x.y, self.y.y, self.z.y),
-            z=kgpy.vector.Cartesian3D(self.x.z, self.y.z, self.z.z),
-        )
 
     def __invert__(self: Cartesian3DT) -> Cartesian3DT:
         a, b, c = self.x.tuple
