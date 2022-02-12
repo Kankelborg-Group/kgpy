@@ -334,7 +334,8 @@ class Cartesian1D(
         raise NotImplementedError
 
     def to_matrix(self: Cartesian1DT) -> 'kgpy.matrix.AbstractMatrixT':
-        raise NotImplementedError
+        import kgpy.matrix
+        return kgpy.matrix.Cartesian1D(self.x)
 
     def plot(
             self: Cartesian1DT,
