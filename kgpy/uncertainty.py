@@ -266,9 +266,14 @@ class AbstractArray(
                 distribution=self.distribution.__getitem__(item_distribution),
             )
         else:
+            if self.axis_distribution not in item.shape:
+                shape = {**item.shape, **self.shape_distribution}
+                item_distribution = np.broadcast_to(item, shape)
+            else:
+                item_distribution = item.shape
             return Array(
                 nominal=self.nominal.__getitem__(item),
-                distribution=self.distribution.__getitem__(item),
+                distribution=self.distribution.__getitem__(item_distribution),
             )
 
     @property
