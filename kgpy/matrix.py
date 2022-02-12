@@ -17,6 +17,7 @@ __all__ = [
 
 
 AbstractMatrixT = typ.TypeVar('AbstractMatrixT', bound='AbstractMatrix')
+Cartesian1DT = typ.TypeVar('Cartesian1DT', bound='Cartesian1D')
 Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
 Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
 CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
@@ -107,6 +108,29 @@ class AbstractMatrix(
     @abc.abstractmethod
     def to_vector(self: AbstractMatrixT) -> kgpy.vector.AbstractVector:
         pass
+
+
+@dataclasses.dataclass(eq=False)
+class Cartesian1D(
+    kgpy.vector.Cartesian1D[kgpy.vector.Cartesian1D],
+    AbstractMatrix,
+):
+    @classmethod
+    def identity(cls: typ.Type[Cartesian1DT]) -> Cartesian1DT:
+        return cls(
+            x=kgpy.vector.Cartesian1D(x=1),
+        )
+
+    @property
+    def determinant(self: Cartesian1DT) -> kgpy.uncertainty.ArrayLike:
+        return self.x.x
+
+    @property
+    def transpose(self: Cartesian1DT) -> Cartesian1DT:
+        return self
+
+    def to_vector(self: Cartesian1DT) -> kgpy.vector.Cartesian1D:
+        return kgpy.vector.Cartesian1D(self.x)
 
 
 @dataclasses.dataclass(eq=False)
