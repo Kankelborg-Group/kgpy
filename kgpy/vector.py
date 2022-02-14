@@ -47,6 +47,7 @@ CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
 PolarT = typ.TypeVar('PolarT', bound='Polar')
 CylindricalT = typ.TypeVar('CylindricalT', bound='Cylindrical')
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
+SpatialSpectralT = typ.TypeVar('SpatialSpectralT', bound='SpatialSpectral')
 
 VectorLike = typ.Union[kgpy.uncertainty.ArrayLike, 'AbstractVector']
 ItemArrayT = typ.Union[kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray, AbstractVectorT]
@@ -838,6 +839,20 @@ class Spherical(
             radius=self.radius * np.sin(self.inclination),
             azimuth=self.azimuth,
             z=self.radius * np.cos(self.inclination),
+        )
+
+
+@dataclasses.dataclass(eq=False)
+class SpatialSpectral(
+    Cartesian2D,
+):
+    wavelength: kgpy.uncertainty.ArrayLike = 0 * u.nm
+
+    @property
+    def xy(self: SpatialSpectralT) -> Cartesian2D:
+        return Cartesian2D(
+            x=self.x,
+            y=self.y,
         )
 
 
