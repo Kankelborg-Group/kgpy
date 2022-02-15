@@ -97,6 +97,10 @@ class ArrayInterface(
     def shape(self: ArrayInterfaceT) -> typ.Dict[str, int]:
         pass
 
+    @property
+    def broadcasted(self: ArrayInterfaceT) -> ArrayInterfaceT:
+        return np.broadcast_to(self, shape=self.shape)
+
     def ndindex(
             self: typ.Type[ArrayInterfaceT],
             axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
