@@ -56,6 +56,11 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.sum(self, axis=axis, where=where)
 
+    def ptp(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> NDArrayMethodsMixinT:
+        return np.ptp(self, axis=axis)
 
     def mean(
             self: NDArrayMethodsMixinT,
