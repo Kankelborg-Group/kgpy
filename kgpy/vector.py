@@ -76,6 +76,29 @@ class AbstractVector(
         return tuple(field.name for field in dataclasses.fields(self))
 
     @property
+    def normalize(self: AbstractVectorT) -> AbstractVectorT:
+        other = super().normalized
+        for component in other.coordinates:
+            if not isinstance(other.coordinates[component], kgpy.labeled.ArrayInterface):
+                other.coordinates[component] = kgpy.labeled.Array(other.coordinates[component])
+        return other
+
+    @property
+    def array_labeled(self: AbstractVectorT) -> kgpy.labeled.ArrayInterface:
+        coordinates = self.broadcasted.coordinates
+        return np.stack(list(coordinates.values()), axis='component')
+
+    @property
+    def array(self: AbstractVectorT) -> np.ndarray:
+        return self.array_labeled.array
+
+    def to(self: AbstractVectorT, unit: u.UnitBase) -> AbstractVectorT:
+        other = self.copy_shallow()
+        for component in other.coordinates:
+            other.coordinates[component] = other.coordinates[component].to(unit)
+        return other
+
+    @property
     def tuple(self: AbstractVectorT) -> typ.Tuple[VectorLike, ...]:
         return tuple(self.coordinates.values())
 
