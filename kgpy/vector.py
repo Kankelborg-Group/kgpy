@@ -6,6 +6,8 @@ import abc
 import dataclasses
 import numpy as np
 import numpy.typing
+import matplotlib.colors
+import matplotlib.cm
 import matplotlib.lines
 import matplotlib.patches
 import matplotlib.axes
@@ -435,46 +437,83 @@ class Cartesian2D(
 
         return kwargs_broadcasted
 
+    @classmethod
+    def _calc_color(
+            cls: typ.Type[Cartesian2DT],
+            color: typ.Optional[kgpy.labeled.ArrayLike] = None,
+            colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
+    ) -> typ.Tuple[typ.Optional[kgpy.labeled.ArrayLike], typ.Optional[matplotlib.cm.ScalarMappable]]:
+
+        color_array = color.array
+        if isinstance(color_array, u.Quantity):
+            color_array = color_array.value
+
+        if np.issubdtype(color_array.dtype, np.number):
+            if colormap is None:
+                colormap = matplotlib.cm.ScalarMappable(
+                    norm=matplotlib.colors.Normalize(
+                        vmin=color_array.min(),
+                        vmax=color_array.max(),
+                    ),
+                    cmap=matplotlib.cm.viridis
+                )
+            color = kgpy.labeled.Array(np.array(colormap.to_rgba(color_array)), axes=color.axes + ['channel'])
+
+        return color, colormap
+
     def _plot_func(
             self,
             func: typ.Callable[[], typ.List[ReturnT]],
             x: kgpy.labeled.ArrayLike,
             y: kgpy.labeled.ArrayLike,
             axis_plot: str,
+            color: typ.Optional[kgpy.labeled.ArrayLike] = None,
+            colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
             **kwargs: typ.Any,
-    ) -> typ.List[ReturnT]:
-
-        if not isinstance(x, kgpy.labeled.ArrayInterface):
-            x = kgpy.labeled.Array(x)
-
-        if not isinstance(y, kgpy.labeled.ArrayInterface):
-            y = kgpy.labeled.Array(y)
-
-        shape = kgpy.labeled.Array.broadcast_shapes(x, y)
-        x = np.broadcast_to(x, shape)
-        y = np.broadcast_to(y, shape)
-
-        kwargs = self._broadcast_kwargs(kwargs, shape, axis_plot)
-
-        lines = []
+    ) -> typ.Tuple[typ.List[ReturnT], typ.Optional[matplotlib.cm.ScalarMappable]]:
 
         with astropy.visualization.quantity_support():
+
+            if not isinstance(x, kgpy.labeled.ArrayInterface):
+                x = kgpy.labeled.Array(x)
+
+            if not isinstance(y, kgpy.labeled.ArrayInterface):
+                y = kgpy.labeled.Array(y)
+
+            if not isinstance(color, kgpy.labeled.ArrayInterface):
+                color = kgpy.labeled.Array(color)
+
+            shape = kgpy.labeled.Array.broadcast_shapes(x, y, color)
+            x = np.broadcast_to(x, shape)
+            y = np.broadcast_to(y, shape)
+
+            shape_color = shape.copy()
+            shape_color.pop(axis_plot)
+            color = np.broadcast_to(color, shape_color)
+            color, colormap = self._calc_color(color, colormap)
+
+            kwargs = self._broadcast_kwargs(kwargs, shape, axis_plot)
+
+            lines = []
             for index in x.ndindex(axis_ignored=axis_plot):
                 kwargs_index = {k: kwargs[k][index].array for k in kwargs}
                 lines += func(
                     x[index].array,
                     y[index].array,
+                    color=color[index].array,
                     **kwargs_index
                 )
 
-        return lines
+        return lines, colormap
 
     def plot(
             self: Cartesian2DT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
+            color: typ.Optional[kgpy.labeled.ArrayLike] = None,
+            colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
             **kwargs: typ.Any,
-    ) -> typ.List[matplotlib.lines.Line2D]:
+    ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.cm.ScalarMappable]]:
 
         lines = []
 
@@ -482,8 +521,9 @@ class Cartesian2D(
 
         uncertain_x = isinstance(x, kgpy.uncertainty.AbstractArray)
         uncertain_y = isinstance(y, kgpy.uncertainty.AbstractArray)
+        uncertain_color = isinstance(color, kgpy.uncertainty.AbstractArray)
 
-        if uncertain_x or uncertain_y:
+        if uncertain_x or uncertain_y or uncertain_color:
             if uncertain_x:
                 x_nominal = x.nominal
                 x_distribution = x.distribution
@@ -496,24 +536,43 @@ class Cartesian2D(
             else:
                 y_nominal = y_distribution = y
 
+            if uncertain_color:
+                color_nominal = color.nominal
+                color_distribution = color.distribution
+            else:
+                color_nominal = color_distribution = color
+
             kwargs_final = dict(
                 ax=ax,
                 axis_plot=axis_plot,
                 **kwargs
             )
-            lines += type(self)(x_nominal, y_nominal).plot(**kwargs_final)
-            lines += type(self)(x_distribution, y_distribution).plot(**kwargs_final)
+            self_nominal = type(self)(x_nominal, y_nominal)
+            self_distribution = type(self)(x_distribution, y_distribution)
+            lines_distribution, colormap = self_distribution.plot(
+                color=color_distribution,
+                colormap=colormap,
+                **kwargs_final,
+            )
+            lines_nominal, colormap = self_nominal.plot(
+                color=color_nominal,
+                colormap=colormap,
+                **kwargs_final,
+            )
+
+            lines = lines + lines_nominal + lines_distribution
 
         else:
-            lines = self._plot_func(
+            lines, colormap = self._plot_func(
                 func=ax.plot,
                 x=self.x,
                 y=self.y,
                 axis_plot=axis_plot,
+                color=color,
                 **kwargs,
             )
 
-        return lines
+        return lines, colormap
 
     def plot_filled(
             self: Cartesian2DT,
@@ -602,11 +661,13 @@ class Cartesian3D(
             self: Cartesian3DT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
+            color: typ.Optional[kgpy.labeled.ArrayLike] = None,
+            colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
             component_x: str = 'x',
             component_y: str = 'y',
             component_z: typ.Optional[str] = None,
             **kwargs: typ.Any
-    ) -> typ.List[matplotlib.lines.Line2D]:
+    ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.cm.ScalarMappable]]:
 
         coordinates = self.coordinates
 
@@ -614,6 +675,8 @@ class Cartesian3D(
             return Cartesian2D(x=coordinates[component_x], y=coordinates[component_y]).plot(
                 ax=ax,
                 axis_plot=axis_plot,
+                color=color,
+                colormap=colormap,
                 **kwargs,
             )
 
@@ -631,7 +694,8 @@ class Cartesian3D(
             uncertain_x = isinstance(x, kgpy.uncertainty.AbstractArray)
             uncertain_y = isinstance(y, kgpy.uncertainty.AbstractArray)
             uncertain_z = isinstance(z, kgpy.uncertainty.AbstractArray)
-            if uncertain_x or uncertain_y or uncertain_z:
+            uncertain_color = isinstance(color, kgpy.uncertainty.AbstractArray)
+            if uncertain_x or uncertain_y or uncertain_z or uncertain_color:
                 if uncertain_x:
                     x_nominal = x.nominal
                     x_distribution = x.distribution
@@ -650,14 +714,36 @@ class Cartesian3D(
                 else:
                     z_nominal = z_distribution = z
 
-                lines += type(self)(x_nominal, y_nominal, z_nominal).plot(**kwargs_final)
-                lines += type(self)(x_distribution, y_distribution, z_distribution).plot(**kwargs_final)
+                if uncertain_color:
+                    color_nominal = color.nominal
+                    color_distribution = color.distribution
+                else:
+                    color_nominal = color_distribution = color
+
+                self_nominal = type(self)(x_nominal, y_nominal, z_nominal)
+                self_distribution = type(self)(x_distribution, y_distribution, z_distribution)
+                lines_distribution, colormap = self_distribution.plot(
+                    color=color_distribution,
+                    colormap=colormap,
+                    **kwargs_final,
+                )
+                lines_nominal, colormap = self_nominal.plot(
+                    color=color_nominal,
+                    colormap=colormap,
+                    **kwargs_final,
+                )
+                lines = lines + lines_nominal + lines_distribution
 
             else:
                 shape = kgpy.labeled.Array.broadcast_shapes(x, y, z)
                 x = np.broadcast_to(x, shape)
                 y = np.broadcast_to(y, shape)
                 z = np.broadcast_to(z, shape)
+
+                shape_color = shape.copy()
+                shape_color.pop(axis_plot)
+                color = np.broadcast_to(color, shape_color)
+                color, colormap = self._calc_color(color, colormap)
 
                 kwargs = self._broadcast_kwargs(kwargs, shape, axis_plot)
 
@@ -668,6 +754,7 @@ class Cartesian3D(
                             x[index].array,
                             y[index].array,
                             z[index].array,
+                            color=color[index].array,
                             **kwargs_index,
                         )
 
