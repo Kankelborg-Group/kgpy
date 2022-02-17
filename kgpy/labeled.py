@@ -24,10 +24,14 @@ OtherAbstractArrayT = typ.TypeVar('OtherAbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
 RangeT = typ.TypeVar('RangeT', bound='Range')
 _SpaceMixinT = typ.TypeVar('_SpaceMixinT', bound='_SpaceMixin')
+StartArrayT = typ.TypeVar('StartArrayT', bound='ArrayLike')
+StopArrayT = typ.TypeVar('StopArrayT', bound='ArrayLike')
 _LinearMixinT = typ.TypeVar('_LinearMixinT', bound='_LinearMixin')
 LinearSpaceT = typ.TypeVar('LinearSpaceT', bound='LinearSpace')
 _RandomSpaceMixinT = typ.TypeVar('_RandomSpaceMixinT', bound='_RandomSpaceMixin')
 UniformRandomSpaceT = typ.TypeVar('UniformRandomSpaceT', bound='UniformRandomSpace')
+CenterT = typ.TypeVar('CenterT', bound='ArrayLike')
+WidthT = typ.TypeVar('WidthT', bound='ArrayLike')
 _NormalMixinT = typ.TypeVar('_NormalMixinT', bound='WidthMixin')
 NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace')
 
@@ -812,10 +816,6 @@ class _SpaceMixin(
         return list(self.shape.keys())
 
 
-StartArrayT = typ.TypeVar('StartArrayT', bound=ArrayLike)
-StopArrayT = typ.TypeVar('StopArrayT', bound=ArrayLike)
-
-
 @dataclasses.dataclass(eq=False)
 class _LinearMixin(
     AbstractArray[kgpy.units.QuantityLike],
@@ -917,10 +917,6 @@ class UniformRandomSpace(
             value = value << unit
 
         return value
-
-
-CenterT = typ.TypeVar('CenterT', bound=ArrayLike)
-WidthT = typ.TypeVar('WidthT', bound=ArrayLike)
 
 
 @dataclasses.dataclass(eq=False)
