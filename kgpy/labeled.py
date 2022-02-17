@@ -148,7 +148,8 @@ class ArrayInterface(
 
         shape = self.shape
         for axis in axis_ignored:
-            shape.pop(axis)
+            if axis in shape:
+                shape.pop(axis)
         shape_tuple = tuple(shape.values())
         for index in np.ndindex(*shape_tuple):
             yield dict(zip(shape.keys(), index))
