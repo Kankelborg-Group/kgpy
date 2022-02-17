@@ -127,12 +127,12 @@ class Copyable(abc.ABC):
 
 @dataclasses.dataclass
 class Named(Copyable, Dataframable):
-    name: Name = dataclasses.field(default_factory=lambda: Name())
+    name: str = ''
 
     @property
     def dataframe(self) -> pandas.DataFrame:
         dataframe = super().dataframe
-        dataframe['name'] = [str(self.name)]
+        dataframe['name'] = [self.name]
         return dataframe
 
 
