@@ -168,6 +168,7 @@ class AbstractArray(
 
             shape_distribution = {**shape, **self.shape_distribution}
 
+            array = array.normalized
             return Array(
                 nominal=np.broadcast_to(array.nominal, shape),
                 distribution=np.broadcast_to(array.distribution, shape_distribution),
