@@ -316,31 +316,27 @@ class AbstractVector(
             coordinates_new[component] = coordinates[component].combine_axes(axes=axes, axis_new=axis_new)
         return type(self)(**coordinates_new)
 
-    @abc.abstractmethod
     def outer(self: AbstractVectorT, other: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def to_matrix(self: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def plot(
             self: AbstractVectorT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
             **kwargs: typ.Any,
     ) -> typ.List[matplotlib.lines.Line2D]:
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def plot_filled(
             self: AbstractVectorT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
             **kwargs: typ.Any,
     ) -> typ.List[matplotlib.patches.Polygon]:
-        pass
+        raise NotImplementedError
 
 
 @dataclasses.dataclass(eq=False)
