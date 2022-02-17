@@ -56,28 +56,46 @@ class TestCartesian2D:
         assert b.x.shape == a.shape
         assert b.y.shape == a.shape
 
-
     @pytest.mark.parametrize(
         argnames='x',
         argvalues=[
-            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
-            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
+            kgpy.labeled.LinearSpace(0, 10, num=10, axis='a'),
         ]
     )
     @pytest.mark.parametrize(
-        argnames='y, color',
+        argnames='y',
         argvalues=[
-            (kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), 'black'),
-            (
-                kgpy.labeled.LinearSpace(0, 1, num=5, axis='a') * kgpy.labeled.LinearSpace(0, 1, num=3, axis='b'),
-                kgpy.labeled.Array(np.array(['black', 'blue', 'red',]), axes=['b']),
-            ),
-            (kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1), 'black'),
+            1,
+            kgpy.labeled.LinearSpace(0, 10, num=11, axis='b'),
         ]
     )
-    def test_plot(self, x, y, color):
+    @pytest.mark.parametrize(
+        argnames='width_x',
+        argvalues=[None, 1],
+    )
+    @pytest.mark.parametrize(
+        argnames='width_y',
+        argvalues=[None, 1],
+    )
+    @pytest.mark.parametrize(
+        argnames='unit',
+        argvalues=[1, u.mm]
+    )
+    def test_plot(self, x, y, width_x, width_y, unit):
+
+        if width_x is not None:
+            x = kgpy.uncertainty.Uniform(x, width_x)
+
+        if width_y is not None:
+            y = kgpy.uncertainty.Uniform(y, width_y)
+
+        x = x * unit
+        y = y * unit
+
+        z = x * x + y * y
+
         fig, ax = plt.subplots()
-        a = kgpy.vector.Cartesian2D(x, y)
-        lines = a.plot(ax, axis_plot='a', color=color)
+        a = kgpy.vector.Cartesian2D(x, z)
+        lines = a.plot(ax, axis_plot='a', color=y)
         assert lines
         # plt.show()
