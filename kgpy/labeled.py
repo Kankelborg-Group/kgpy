@@ -35,6 +35,12 @@ NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace'
 @dataclasses.dataclass(eq=False)
 class NDArrayMethodsMixin:
 
+    def broadcast_to(
+            self: NDArrayMethodsMixinT,
+            shape: typ.Dict[str, int],
+    ) -> NDArrayMethodsMixinT:
+        return np.broadcast_to(self, shape=shape)
+
     def min(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
