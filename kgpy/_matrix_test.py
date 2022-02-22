@@ -97,7 +97,6 @@ class TestCartesian2D:
     ):
         a = self._calc_matrix(xy, yx, width_xy, width_yx, unit)
         b = a.inverse_numpy()
-        print(b)
         c = b.inverse_numpy()
         assert np.all(np.isclose(a @ b, kgpy.matrix.Cartesian2D.identity()))
         assert np.all(np.isclose(c, a))

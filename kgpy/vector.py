@@ -34,6 +34,7 @@ iz = 2
 XT = typ.TypeVar('XT', bound=kgpy.uncertainty.ArrayLike)
 YT = typ.TypeVar('YT', bound=kgpy.uncertainty.ArrayLike)
 ZT = typ.TypeVar('ZT', bound=kgpy.uncertainty.ArrayLike)
+CoordinateT = typ.TypeVar('CoordinateT', bound=kgpy.uncertainty.ArrayLike)
 ReturnT = typ.TypeVar('ReturnT')
 RadiusT = typ.TypeVar('RadiusT', bound=kgpy.uncertainty.ArrayLike)
 AzimuthT = typ.TypeVar('AzimuthT', bound=kgpy.uncertainty.ArrayLike)
@@ -42,6 +43,7 @@ AbstractVectorT = typ.TypeVar('AbstractVectorT', bound='AbstractVector')
 Cartesian1DT = typ.TypeVar('Cartesian1DT', bound='Cartesian1D')
 Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
 Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
+CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
 PolarT = typ.TypeVar('PolarT', bound='Polar')
 CylindricalT = typ.TypeVar('CylindricalT', bound='Cylindrical')
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
@@ -58,11 +60,17 @@ class AbstractVector(
 
     @property
     def unit(self):
-        return getattr(self.coordinates[self.components[0]], 'unit', None)
+        return getattr(self.coordinates[self.components[0]], 'unit', 1)
 
     @property
     def coordinates(self: AbstractVectorT) -> typ.Dict[str, VectorLike]:
         return {component: getattr(self, component) for component in self.components}
+
+    def get_coordinate(self, component: str):
+        return getattr(self, component)
+
+    def set_coordinate(self, component: str, value: kgpy.uncertainty.ArrayLike):
+        setattr(self, component, value)
 
     @property
     def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
@@ -684,6 +692,54 @@ class Cartesian3D(
                 ))]
 
         return polygons
+
+
+@dataclasses.dataclass(eq=False)
+class CartesianND(
+    AbstractVector,
+    typ.Generic[CoordinateT],
+):
+
+    coordinates: typ.Dict[str, CoordinateT] = None
+
+    def __post_init__(self: CartesianNDT):
+        if self.coordinates is None:
+            self.coordinates = dict()
+
+    @property
+    def components(self: CartesianNDT) -> typ.Tuple[str, ...]:
+        return tuple(self.coordinates.keys())
+
+    def outer(self: CartesianNDT, other: AbstractVectorT) -> 'kgpy.matrix.CartesianND':
+        import kgpy.matrix
+        coordinates_result = dict()
+        coordinates_self = self.coordinates
+        coordinates_other = other.coordinates
+        for component_self in coordinates_self:
+            coordinate_self = coordinates_self[component_self]
+            coordinate_result = type(other)(**{c: coordinate_self * coordinates_other[c] for c in coordinates_other})
+            coordinates_result[component_self] = coordinate_result
+        return kgpy.matrix.CartesianND(coordinates=coordinates_result)
+
+    def to_matrix(self: CartesianNDT) -> 'kgpy.matrix.CartesianND':
+        import kgpy.matrix
+        return kgpy.matrix.CartesianND(coordinates=self.coordinates)
+
+    def plot(
+            self: AbstractVectorT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            **kwargs: typ.Any,
+    ) -> typ.List[matplotlib.lines.Line2D]:
+        raise NotImplementedError
+
+    def plot_filled(
+            self: AbstractVectorT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            **kwargs: typ.Any,
+    ) -> typ.List[matplotlib.patches.Polygon]:
+        raise NotImplementedError
 
 
 @dataclasses.dataclass(eq=False)

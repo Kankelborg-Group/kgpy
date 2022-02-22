@@ -26,6 +26,7 @@ setup(
         'xrt',
         'thermo',
         'numba',
+        'mayavi',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',

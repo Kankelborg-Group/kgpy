@@ -64,11 +64,8 @@ class AbstractArray(
             return self.nominal_normalized
 
     @property
-    def unit(self: AbstractArrayT) -> typ.Optional[u.Unit]:
-        if hasattr(self.nominal, 'unit'):
-            return self.nominal.unit
-        else:
-            return None
+    def unit(self: AbstractArrayT) -> typ.Union[float, u.Unit]:
+        return getattr(self.nominal, 'unit', 1)
 
     @property
     def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
@@ -286,6 +283,17 @@ class AbstractArray(
         return Array(
             nominal=self.nominal.combine_axes(axes=axes, axis_new=axis_new),
             distribution=self.distribution.combine_axes(axes=axes, axis_new=axis_new),
+        )
+
+    def matrix_inverse(self, axis_rows: str, axis_columns: str):
+        inverse_nominal = self.nominal.matrix_inverse(axis_rows=axis_rows, axis_columns=axis_columns)
+        if self.distribution is not None:
+            inverse_distribution = self.distribution.matrix_inverse(axis_rows=axis_rows, axis_columns=axis_columns)
+        else:
+            inverse_distribution = None
+        return Array(
+            nominal=inverse_nominal,
+            distribution=inverse_distribution,
         )
 
 

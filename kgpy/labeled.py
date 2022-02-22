@@ -142,8 +142,8 @@ class AbstractArray(
 
     @property
     @abc.abstractmethod
-    def unit(self) -> typ.Optional[u.Unit]:
-        return None
+    def unit(self) -> typ.Union[float, u.Unit]:
+        return 1
 
     @property
     @abc.abstractmethod
@@ -458,13 +458,14 @@ class AbstractArray(
 
         elif func is np.stack:
             args = list(args)
+            kwargs = kwargs.copy()
 
             if args:
                 if 'arrays' in kwargs:
                     raise TypeError(f"{func} got multiple values for 'arrays'")
                 arrays = args.pop(0)
             else:
-                arrays = kwargs['arrays']
+                arrays = kwargs.pop('arrays')
 
             if args:
                 if 'axis' in kwargs:
@@ -475,6 +476,9 @@ class AbstractArray(
 
             shape = self.broadcast_shapes(*arrays)
             arrays = [Array(arr) if not isinstance(arr, ArrayInterface) else arr for arr in arrays]
+            for array in arrays:
+                if not isinstance(array, AbstractArray):
+                    return NotImplemented
             arrays = [np.broadcast_to(arr, shape).array for arr in arrays]
 
             return Array(
@@ -696,7 +700,7 @@ class Array(
         )
 
     @property
-    def unit(self) -> typ.Optional[u.Unit]:
+    def unit(self) -> typ.Union[float, u.Unit]:
         unit = super().unit
         if hasattr(self.array, 'unit'):
             unit = self.array.unit
@@ -746,7 +750,7 @@ class Range(AbstractArray[np.ndarray]):
     axis: str = None
 
     @property
-    def unit(self) -> typ.Optional[u.Unit]:
+    def unit(self) -> typ.Union[float, u.Unit]:
         unit = super().unit
         if hasattr(self.start, 'unit'):
             unit = self.start.unit
@@ -826,7 +830,7 @@ class _LinearMixin(
         return np.broadcast_to(self._stop_normalized, shape=self.shape, subok=True)
 
     @property
-    def unit(self) -> typ.Optional[u.Unit]:
+    def unit(self) -> typ.Union[float, u.Unit]:
         unit = super().unit
         if hasattr(self.start, 'unit'):
             unit = self.start.unit
