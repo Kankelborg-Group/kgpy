@@ -12,8 +12,6 @@ import pickle
 import typing as typ
 from ezdxf.addons.r12writer import R12FastStreamWriter
 
-from kgpy import Name
-
 __all__ = [
     'AutoAxis',
     'Broadcastable',
