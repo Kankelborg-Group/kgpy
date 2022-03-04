@@ -2,61 +2,14 @@
 kgpy root package
 """
 import typing as typ
-import dataclasses
-import copy
 import numpy as np
 import numpy.typing
-import numba
 
 __all__ = [
-    'linspace', 'midspace',
-    'Name',
-    'fft',
+    'linspace',
+    'midspace',
     'rebin',
 ]
-
-import scipy.interpolate
-
-
-@dataclasses.dataclass
-class Name:
-    """
-    Representation of a hierarchical namespace.
-    Names are a composition of a parent, which is also a name, and a base which is a simple string.
-    The string representation of a name is <parent>.base, where <parent> is the parent's string expansion.
-    """
-
-    base: str = ''  #: Base of the name, this string will appear last in the string representation
-    parent: 'typ.Optional[Name]' = None     #: Parent string of the name, this itself also a name
-
-    def copy(self):
-        if self.parent is not None:
-            parent = self.parent.copy()
-        else:
-            parent = self.parent
-        return type(self)(
-            base=self.base,
-            parent=parent,
-        )
-
-    def __add__(self, other: str) -> 'Name':
-        """
-        Quickly create the name of a child's name by adding a string to the current instance.
-        Adding a string to a name instance returns
-        :param other: A string representing the basename of the new Name instance.
-        :return: A new `kgpy.Name` instance with the `self` as the `parent` and `other` as the `base`.
-        """
-        return type(self)(base=other, parent=self)
-
-    def __repr__(self):
-        if self.parent is not None:
-            return self.parent.__repr__() + '.' + self.base
-
-        else:
-            return self.base
-
-
-import kgpy.mixin
 
 
 def rebin(arr: np.ndarray, scale_dims: typ.Tuple[int, ...]) -> np.ndarray:
@@ -119,25 +72,3 @@ def midspace(start: np.ndarray, stop: np.ndarray, num: int, axis: int = 0) -> nu
 
 def rms(a: np.ndarray, axis: typ.Optional[typ.Union[int, typ.Sequence[int]]] = None):
     return np.sqrt(np.mean(np.square(a), axis=axis))
-
-
-def take(
-        a: numpy.typing.ArrayLike,
-        key: typ.Union[numpy.typing.ArrayLike, slice],
-        axis: int = 0,
-) -> numpy.typing.ArrayLike:
-    if isinstance(key, slice):
-        return a[(slice(None),) * (axis % a.ndim) + (key,)]
-    else:
-        return np.take(a=a, indices=key, axis=axis)
-
-
-def takes(
-        a: numpy.typing.ArrayLike,
-        keys: typ.Sequence[typ.Union[numpy.typing.ArrayLike, slice]],
-        axes: typ.Sequence[int],
-) -> numpy.typing.ArrayLike:
-    for key, axis in zip(keys, axes):
-        a = take(a=a, key=key, axis=axis)
-    return a
-
