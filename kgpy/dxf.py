@@ -3,7 +3,7 @@ import abc
 import dataclasses
 import astropy.units as u
 from ezdxf.addons.r12writer import R12FastStreamWriter
-import kgpy.transform
+import kgpy.transforms
 
 
 WritableMixinT = typ.TypeVar('WritableMixinT', bound='WritableMixin')
@@ -17,6 +17,6 @@ class WritableMixin(abc.ABC):
             self: WritableMixinT,
             file_writer: R12FastStreamWriter,
             unit: u.Unit,
-            transform_extra: typ.Optional[kgpy.transform.rigid.Transform] = None,
+            transform_extra: typ.Optional[kgpy.transforms.AbstractTransform] = None,
     ) -> None:
         pass
