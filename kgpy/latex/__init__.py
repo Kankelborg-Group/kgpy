@@ -2,7 +2,7 @@ import typing as typ
 import dataclasses
 import pylatex
 import astropy.units as u
-import kgpy.format
+from kgpy import format
 
 __all__ = ['Title', 'Author', 'Abstract', 'aas']
 
@@ -41,7 +41,7 @@ class Document(pylatex.Document):
     ) -> typ.NoReturn:
         self.set_variable(
             name=name,
-            value=pylatex.NoEscape(kgpy.format.quantity(
+            value=pylatex.NoEscape(format.quantity(
                 a=value,
                 scientific_notation=scientific_notation,
                 digits_after_decimal=digits_after_decimal,
