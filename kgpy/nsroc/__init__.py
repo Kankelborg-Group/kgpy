@@ -11,7 +11,9 @@ import astropy.visualization
 import astropy.modeling
 import astropy.coordinates
 import pandas
-from kgpy import mixin, Name, vector, plot
+from kgpy import mixin
+from kgpy import vector
+from kgpy import plot
 from . import sparcs
 
 __all__ = [
@@ -27,7 +29,7 @@ class Trajectory(mixin.Copyable):
     altitude: u.Quantity
     latitude: u.Quantity
     longitude: u.Quantity
-    velocity: vector.Vector3D
+    velocity: vector.Cartesian3D
 
     @classmethod
     def from_nsroc_csv(
@@ -56,7 +58,7 @@ class Trajectory(mixin.Copyable):
             altitude=(df[altitude_col].values * u.m).to(u.km),
             latitude=df[latitude_col].values * u.deg,
             longitude=df[longitude_col].values * u.deg,
-            velocity=vector.Vector3D(
+            velocity=vector.Cartesian3D(
                 x=(df[velocity_ew_col].values * (u.m / u.s)).to(u.km / u.s),
                 y=(df[velocity_ns_col].values * (u.m / u.s)).to(u.km / u.s),
                 z=(df[velocity_alt_col].values * (u.m / u.s)).to(u.km / u.s),
