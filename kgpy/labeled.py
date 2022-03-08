@@ -136,16 +136,18 @@ class NDArrayMethodsMixin:
     def min(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            initial: kgpy.units.QuantityLike = None,
             where: NDArrayMethodsMixinT = np._NoValue,
     ) -> NDArrayMethodsMixinT:
-        return np.min(self, axis=axis, where=where)
+        return np.min(self, axis=axis, initial=initial, where=where)
 
     def max(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            initial: kgpy.units.QuantityLike = None,
             where: NDArrayMethodsMixinT = np._NoValue,
     ) -> NDArrayMethodsMixinT:
-        return np.max(self, axis=axis, where=where)
+        return np.max(self, axis=axis, initial=initial, where=where)
 
     def sum(
             self: NDArrayMethodsMixinT,
