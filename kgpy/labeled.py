@@ -1,3 +1,91 @@
+"""
+N-dimensional arrays with labeled dimensions.
+
+============
+Introduction
+============
+
+:mod:`kgpy.labeled` is a module which exists to support the concept of n-dimensional array where each of the dimensions
+are labeled by a string.
+This concept is very similar to :class:`xarray.Variable`, except with support for :class:`astropy.units.Quantity`.
+Also see the post `Tensors Considered Harmful <https://nlp.seas.harvard.edu/NamedTensor>`_.
+
+Expressing an n-dimensional array in this way has several advantages.
+First, the arrays will automatically broadcast against one another, without needing extra dimensions for alignment.
+
+.. jupyter-execute::
+
+    import kgpy.labeled
+
+    x = kgpy.labeled.LinearSpace(0, 1, num=2, axis='x')
+    y = kgpy.labeled.LinearSpace(0, 1, num=3, axis='y')
+    z = x * y
+    z
+
+|br| Second, reduction-like operations such as :func:`numpy.sum()`, :func:`numpy.mean()`, :func:`numpy.min()`, etc. can
+use the dimension label instead of the axis position.
+
+.. jupyter-execute::
+
+    z.sum(axis='x')
+
+|br| Finally, elements or slices of the array can be accessed using the dimension label instead of inserting extra
+slices or ellipses to select the appropriate axis.
+
+.. jupyter-execute::
+
+    z[dict(y=1)]
+
+|br| Note that above we would love to be able to do ``z[y=1]``, however Python does not currently support keyword
+arguments to the ``__get_item__`` dunder method.
+
+===============
+Creating Arrays
+===============
+
+The most important member of the :mod:`kgpy.labeled` module is the :class:`kgpy.labeled.Array` class.
+This class is a composition of a :class:`numpy.ndarray` and a :class:`list` of strings labeling the dimensions.
+
+Here is how you would explicitly create a :class:`kgpy.labeled.Array` from a :class:`numpy.ndarray` and a :class:`list`
+of strings.
+
+.. jupyter-execute::
+
+    import numpy as np
+    import kgpy.labeled
+
+    kgpy.labeled.Array(np.linspace(0, 1, num=4), axes=['x'])
+
+|br| Note that trying the above without specifying the ``axes`` argument results in an error since the number of axes
+does not match the number of dimensions.
+
+.. jupyter-execute::
+    :raises:
+
+    kgpy.labeled.Array(np.linspace(0, 1, num=4))
+
+|br| However if the first argument is a scalar, the ``axes`` argument does not need to be specified
+
+.. jupyter-execute::
+
+    kgpy.labeled.Array(5)
+
+|br| It is generally discouraged to create :class:`kgpy.labeled.Array` instances explicitly.
+The above example can be accomplished by using the :class:`kgpy.labeled.LinearSpace` class.
+
+.. jupyter-execute::
+
+    kgpy.labeled.LinearSpace(0, 1, num=4, axis='x')
+
+|br| In addition to :class:`kgpy.labeled.LinearSpace`, there is also :class:`kgpy.labeled.UniformRandomSpace` and
+:class:`kgpy.labeled.NormalRandomSpace` to help with array creation.
+
+.. |br| raw:: html
+
+     <br>
+
+"""
+
 import typing as typ
 import abc
 import dataclasses
