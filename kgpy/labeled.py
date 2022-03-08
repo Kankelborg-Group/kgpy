@@ -751,10 +751,12 @@ class AbstractArray(
                         if kwargs['axis'] is None:
                             axes_new = []
                         elif np.isscalar(kwargs['axis']):
-                            axes_new.remove(kwargs['axis'])
+                            if kwargs['axis'] in axes_new:
+                                axes_new.remove(kwargs['axis'])
                         else:
                             for axis in kwargs['axis']:
-                                axes_new.remove(axis)
+                                if axis in axes_new:
+                                    axes_new.remove(axis)
                     else:
                         axes_new = []
 
@@ -762,9 +764,10 @@ class AbstractArray(
                 if kwargs['axis'] is None:
                     pass
                 elif np.isscalar(kwargs['axis']):
-                    kwargs['axis'] = axes.index(kwargs['axis'])
+                    if kwargs['axis'] in axes:
+                        kwargs['axis'] = axes.index(kwargs['axis'])
                 else:
-                    kwargs['axis'] = tuple(axes.index(ax) for ax in kwargs['axis'])
+                    kwargs['axis'] = tuple(axes.index(ax) for ax in kwargs['axis'] if ax in axes)
 
             array = self.array
             if not hasattr(array, '__array_function__'):
