@@ -645,6 +645,71 @@ class AbstractArray(
                 axes=axes,
             )
 
+        elif func is np.histogram2d:
+            args = list(args)
+            if args:
+                x = args.pop(0)
+            else:
+                x = kwargs.pop('x')
+
+            if args:
+                y = args.pop(0)
+            else:
+                y = kwargs.pop('y')
+
+            shape = kgpy.labeled.Array.broadcast_shapes(x, y)
+            x = x.broadcast_to(shape)
+            y = y.broadcast_to(shape)
+
+            bins = kwargs.pop('bins')           # type: typ.Dict[str, int]
+            if not isinstance(bins[next(iter(bins))], int):
+                raise NotImplementedError
+            range = kwargs.pop('range')
+            weights = kwargs.pop('weights')
+
+            key_x, key_y = bins.keys()
+
+            shape_hist = shape.copy()
+            shape_hist[key_x] = bins[key_x]
+            shape_hist[key_y] = bins[key_y]
+
+            shape_edges_x = shape_hist.copy()
+            shape_edges_x[key_x] = shape_edges_x[key_x] + 1
+            shape_edges_x.pop(key_y)
+
+            shape_edges_y = shape_hist.copy()
+            shape_edges_y[key_y] = shape_edges_y[key_y] + 1
+            shape_edges_y.pop(key_x)
+
+            hist = Array.empty(shape_hist)
+            edges_x = Array.empty(shape_edges_x) * x.unit
+            edges_y = Array.empty(shape_edges_y) * y.unit
+
+            print(edges_x)
+
+
+            for index in x.ndindex(axis_ignored=(key_x, key_y)):
+                if range is not None:
+                    range_index = [[elem.array.value for elem in range[component]] for component in range]
+                else:
+                    range_index = None
+
+                if weights is not None:
+                    weights_index = weights[index].array.reshape(-1)
+                else:
+                    weights_index = None
+
+                hist[index].array[:], edges_x[index].array[:], edges_y[index].array[:] = np.histogram2d(
+                    x=x[index].array.reshape(-1),
+                    y=y[index].array.reshape(-1),
+                    bins=tuple(bins.values()),
+                    range=range_index,
+                    weights=weights_index,
+                    **kwargs,
+                )
+
+            return hist, edges_x, edges_y
+
         elif func in [
             np.ndim,
             np.argmin,
