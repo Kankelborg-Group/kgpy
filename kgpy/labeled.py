@@ -89,6 +89,7 @@ The above example can be accomplished by using the :class:`kgpy.labeled.LinearSp
 import typing as typ
 import abc
 import dataclasses
+import random
 import copy
 import numpy as np
 import numpy.typing
@@ -1067,7 +1068,11 @@ class LinearSpace(
 @dataclasses.dataclass(eq=False)
 class _RandomSpaceMixin(_SpaceMixin):
 
-    seed: typ.Optional[int] = 42
+    seed: typ.Optional[int] = None
+
+    def __post_init__(self):
+        if self.seed is None:
+            self.seed = random.randint(0, 10 ** 12)
 
     @property
     def _rng(self: _RandomSpaceMixinT) -> np.random.Generator:
