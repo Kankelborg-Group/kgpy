@@ -114,7 +114,7 @@ RangeT = typ.TypeVar('RangeT', bound='Range')
 _SpaceMixinT = typ.TypeVar('_SpaceMixinT', bound='_SpaceMixin')
 StartArrayT = typ.TypeVar('StartArrayT', bound='ArrayLike')
 StopArrayT = typ.TypeVar('StopArrayT', bound='ArrayLike')
-_LinearMixinT = typ.TypeVar('_LinearMixinT', bound='_LinearMixin')
+_RangeMixinT = typ.TypeVar('_RangeMixinT', bound='_RangeMixin')
 LinearSpaceT = typ.TypeVar('LinearSpaceT', bound='LinearSpace')
 _RandomSpaceMixinT = typ.TypeVar('_RandomSpaceMixinT', bound='_RandomSpaceMixin')
 UniformRandomSpaceT = typ.TypeVar('UniformRandomSpaceT', bound='UniformRandomSpace')
@@ -1011,7 +1011,7 @@ class _SpaceMixin(
 
 
 @dataclasses.dataclass(eq=False)
-class _LinearMixin(
+class _RangeMixin(
     AbstractArray[kgpy.units.QuantityLike],
     typ.Generic[StartArrayT, StopArrayT],
 ):
@@ -1019,7 +1019,7 @@ class _LinearMixin(
     stop: StopArrayT = None
 
     @property
-    def normalized(self: _LinearMixinT) -> _LinearMixinT:
+    def normalized(self: _RangeMixinT) -> _RangeMixinT:
         other = super().normalized
         if not isinstance(other.start, ArrayInterface):
             other.start = Array(other.start)
@@ -1035,11 +1035,11 @@ class _LinearMixin(
         return unit
 
     @property
-    def range(self: _LinearMixinT) -> Array:
+    def range(self: _RangeMixinT) -> Array:
         return self.stop - self.start
 
     @property
-    def shape(self: _LinearMixinT) -> typ.Dict[str, int]:
+    def shape(self: _RangeMixinT) -> typ.Dict[str, int]:
         norm = self.normalized
         return dict(**super().shape, **self.broadcast_shapes(norm.start, norm.stop))
 
@@ -1047,7 +1047,7 @@ class _LinearMixin(
 @dataclasses.dataclass(eq=False)
 class LinearSpace(
     _SpaceMixin,
-    _LinearMixin,
+    _RangeMixin[StartArrayT, StopArrayT],
 ):
 
     @property
@@ -1077,7 +1077,7 @@ class _RandomSpaceMixin(_SpaceMixin):
 @dataclasses.dataclass(eq=False)
 class UniformRandomSpace(
     _RandomSpaceMixin,
-    _LinearMixin[StartArrayT, StopArrayT],
+    _RangeMixin[StartArrayT, StopArrayT],
 ):
 
     @property
