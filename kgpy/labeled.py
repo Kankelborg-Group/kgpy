@@ -119,9 +119,10 @@ _RangeMixinT = typ.TypeVar('_RangeMixinT', bound='_RangeMixin')
 LinearSpaceT = typ.TypeVar('LinearSpaceT', bound='LinearSpace')
 _RandomSpaceMixinT = typ.TypeVar('_RandomSpaceMixinT', bound='_RandomSpaceMixin')
 UniformRandomSpaceT = typ.TypeVar('UniformRandomSpaceT', bound='UniformRandomSpace')
+StratifiedRandomSpaceT = typ.TypeVar('StratifiedRandomSpaceT', bound='StratifiedRandomSpace')
 CenterT = typ.TypeVar('CenterT', bound='ArrayLike')
 WidthT = typ.TypeVar('WidthT', bound='ArrayLike')
-_NormalMixinT = typ.TypeVar('_NormalMixinT', bound='WidthMixin')
+_SymmetricMixinT = typ.TypeVar('_SymmetricMixinT', bound='SymmetricMixin')
 NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace')
 
 
@@ -1111,7 +1112,52 @@ class UniformRandomSpace(
 
 
 @dataclasses.dataclass(eq=False)
-class _NormalMixin(
+class StratifiedRandomSpace(
+    _RandomSpaceMixin,
+    LinearSpace[StartArrayT, StopArrayT],
+):
+    shape_extra: typ.Dict[str, int] = dataclasses.field(default_factory=dict)
+
+    @property
+    def array(self: StratifiedRandomSpaceT) -> kgpy.units.QuantityLike:
+        result = super().array
+
+        norm = self.normalized
+        shape = norm.shape
+        shape[norm.axis] = norm.num
+        shape = {**shape, **self.shape_extra}
+        step_size = norm.range / (norm.num - 1)
+        step_size = step_size.broadcast_to(shape).array
+
+        if isinstance(step_size, u.Quantity):
+            unit = step_size.unit
+            step_size = step_size.value
+        else:
+            unit = None
+
+        delta = self._rng.uniform(
+            low=-step_size / 2,
+            high=step_size / 2,
+        )
+
+        if unit is not None:
+            delta = delta << unit
+
+        return result + delta
+
+    @property
+    def centers(self: StratifiedRandomSpaceT) -> LinearSpace:
+        return LinearSpace(
+            start=self.start,
+            stop=self.stop,
+            num=self.num,
+            endpoint=self.endpoint,
+            axis=self.axis,
+        )
+
+
+@dataclasses.dataclass(eq=False)
+class _SymmetricMixin(
     AbstractArray[kgpy.units.QuantityLike],
     typ.Generic[CenterT, WidthT]
 ):
@@ -1120,7 +1166,7 @@ class _NormalMixin(
     width: WidthT = 0
 
     @property
-    def normalized(self: _NormalMixinT) -> _NormalMixinT:
+    def normalized(self: _SymmetricMixinT) -> _SymmetricMixinT:
         other = super().normalized
         if not isinstance(other.center, ArrayInterface):
             other.center = Array(other.center)
@@ -1136,7 +1182,7 @@ class _NormalMixin(
         return unit
 
     @property
-    def shape(self: _NormalMixinT) -> typ.Dict[str, int]:
+    def shape(self: _SymmetricMixinT) -> typ.Dict[str, int]:
         norm = self.normalized
         return dict(**super().shape, **self.broadcast_shapes(norm.width, norm.center))
 
@@ -1144,7 +1190,7 @@ class _NormalMixin(
 @dataclasses.dataclass(eq=False)
 class NormalRandomSpace(
     _RandomSpaceMixin,
-    _NormalMixin[CenterT, WidthT],
+    _SymmetricMixin[CenterT, WidthT],
 ):
 
     @property
