@@ -214,6 +214,10 @@ class ArrayInterface(
         pass
 
     @property
+    def dtype(self: ArrayInterfaceT):
+        return self.array.dtype
+
+    @property
     @abc.abstractmethod
     def unit(self) -> typ.Union[float, u.Unit]:
         return 1
