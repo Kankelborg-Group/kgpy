@@ -103,7 +103,7 @@ class AbstractMatrix(
         raise ValueError
 
     def __invert__(self: AbstractMatrixT) -> AbstractMatrixT:
-        return self.inverse_schulz()
+        return self.inverse_numpy()
 
     @abc.abstractmethod
     def to_vector(self: AbstractMatrixT) -> kgpy.vector.AbstractVector:
