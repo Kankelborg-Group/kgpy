@@ -230,6 +230,10 @@ class ArrayInterface(
     def broadcasted(self: ArrayInterfaceT) -> ArrayInterfaceT:
         return np.broadcast_to(self, shape=self.shape)
 
+    @property
+    def centers(self: ArrayInterfaceT) -> ArrayInterfaceT:
+        return self
+
     def ndindex(
             self: typ.Type[ArrayInterfaceT],
             axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
