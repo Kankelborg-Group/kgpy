@@ -1,6 +1,95 @@
+"""
+N-dimensional arrays with labeled dimensions.
+
+============
+Introduction
+============
+
+:mod:`kgpy.labeled` is a module which exists to support the concept of n-dimensional array where each of the dimensions
+are labeled by a string.
+This concept is very similar to :class:`xarray.Variable`, except with support for :class:`astropy.units.Quantity`.
+Also see the post `Tensors Considered Harmful <https://nlp.seas.harvard.edu/NamedTensor>`_.
+
+Expressing an n-dimensional array in this way has several advantages.
+First, the arrays will automatically broadcast against one another, without needing extra dimensions for alignment.
+
+.. jupyter-execute::
+
+    import kgpy.labeled
+
+    x = kgpy.labeled.LinearSpace(0, 1, num=2, axis='x')
+    y = kgpy.labeled.LinearSpace(0, 1, num=3, axis='y')
+    z = x * y
+    z
+
+|br| Second, reduction-like operations such as :func:`numpy.sum()`, :func:`numpy.mean()`, :func:`numpy.min()`, etc. can
+use the dimension label instead of the axis position.
+
+.. jupyter-execute::
+
+    z.sum(axis='x')
+
+|br| Finally, elements or slices of the array can be accessed using the dimension label instead of inserting extra
+slices or ellipses to select the appropriate axis.
+
+.. jupyter-execute::
+
+    z[dict(y=1)]
+
+|br| Note that above we would love to be able to do ``z[y=1]``, however Python does not currently support keyword
+arguments to the ``__get_item__`` dunder method.
+
+===============
+Creating Arrays
+===============
+
+The most important member of the :mod:`kgpy.labeled` module is the :class:`kgpy.labeled.Array` class.
+This class is a composition of a :class:`numpy.ndarray` and a :class:`list` of strings labeling the dimensions.
+
+Here is how you would explicitly create a :class:`kgpy.labeled.Array` from a :class:`numpy.ndarray` and a :class:`list`
+of strings.
+
+.. jupyter-execute::
+
+    import numpy as np
+    import kgpy.labeled
+
+    kgpy.labeled.Array(np.linspace(0, 1, num=4), axes=['x'])
+
+|br| Note that trying the above without specifying the ``axes`` argument results in an error since the number of axes
+does not match the number of dimensions.
+
+.. jupyter-execute::
+    :raises:
+
+    kgpy.labeled.Array(np.linspace(0, 1, num=4))
+
+|br| However if the first argument is a scalar, the ``axes`` argument does not need to be specified
+
+.. jupyter-execute::
+
+    kgpy.labeled.Array(5)
+
+|br| It is generally discouraged to create :class:`kgpy.labeled.Array` instances explicitly.
+The above example can be accomplished by using the :class:`kgpy.labeled.LinearSpace` class.
+
+.. jupyter-execute::
+
+    kgpy.labeled.LinearSpace(0, 1, num=4, axis='x')
+
+|br| In addition to :class:`kgpy.labeled.LinearSpace`, there is also :class:`kgpy.labeled.UniformRandomSpace` and
+:class:`kgpy.labeled.NormalRandomSpace` to help with array creation.
+
+.. |br| raw:: html
+
+     <br>
+
+"""
+
 import typing as typ
 import abc
 import dataclasses
+import random
 import copy
 import numpy as np
 import numpy.typing
@@ -24,30 +113,43 @@ OtherAbstractArrayT = typ.TypeVar('OtherAbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
 RangeT = typ.TypeVar('RangeT', bound='Range')
 _SpaceMixinT = typ.TypeVar('_SpaceMixinT', bound='_SpaceMixin')
-_LinearMixinT = typ.TypeVar('_LinearMixinT', bound='_LinearMixin')
+StartArrayT = typ.TypeVar('StartArrayT', bound='ArrayLike')
+StopArrayT = typ.TypeVar('StopArrayT', bound='ArrayLike')
+_RangeMixinT = typ.TypeVar('_RangeMixinT', bound='_RangeMixin')
 LinearSpaceT = typ.TypeVar('LinearSpaceT', bound='LinearSpace')
 _RandomSpaceMixinT = typ.TypeVar('_RandomSpaceMixinT', bound='_RandomSpaceMixin')
 UniformRandomSpaceT = typ.TypeVar('UniformRandomSpaceT', bound='UniformRandomSpace')
-_NormalMixinT = typ.TypeVar('_NormalMixinT', bound='WidthMixin')
+StratifiedRandomSpaceT = typ.TypeVar('StratifiedRandomSpaceT', bound='StratifiedRandomSpace')
+CenterT = typ.TypeVar('CenterT', bound='ArrayLike')
+WidthT = typ.TypeVar('WidthT', bound='ArrayLike')
+_SymmetricMixinT = typ.TypeVar('_SymmetricMixinT', bound='SymmetricMixin')
 NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace')
 
 
 @dataclasses.dataclass(eq=False)
 class NDArrayMethodsMixin:
 
+    def broadcast_to(
+            self: NDArrayMethodsMixinT,
+            shape: typ.Dict[str, int],
+    ) -> NDArrayMethodsMixinT:
+        return np.broadcast_to(self, shape=shape)
+
     def min(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            initial: kgpy.units.QuantityLike = None,
             where: NDArrayMethodsMixinT = np._NoValue,
     ) -> NDArrayMethodsMixinT:
-        return np.min(self, axis=axis, where=where)
+        return np.min(self, axis=axis, initial=initial, where=where)
 
     def max(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            initial: kgpy.units.QuantityLike = None,
             where: NDArrayMethodsMixinT = np._NoValue,
     ) -> NDArrayMethodsMixinT:
-        return np.max(self, axis=axis, where=where)
+        return np.max(self, axis=axis, initial=initial, where=where)
 
     def sum(
             self: NDArrayMethodsMixinT,
@@ -56,6 +158,11 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.sum(self, axis=axis, where=where)
 
+    def ptp(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> NDArrayMethodsMixinT:
+        return np.ptp(self, axis=axis)
 
     def mean(
             self: NDArrayMethodsMixinT,
@@ -85,12 +192,49 @@ class ArrayInterface(
     NDArrayMethodsMixin,
     np.lib.mixins.NDArrayOperatorsMixin,
     abc.ABC,
+    typ.Generic[ArrT],
 ):
+
+    @property
+    @abc.abstractmethod
+    def normalized(self: ArrayInterfaceT) -> ArrayInterfaceT:
+        return self.copy_shallow()
+
+    @property
+    @abc.abstractmethod
+    def array(self: ArrayInterfaceT) -> ArrT:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def array_labeled(self: ArrayInterfaceT) -> ArrayInterfaceT:
+        pass
 
     @property
     @abc.abstractmethod
     def shape(self: ArrayInterfaceT) -> typ.Dict[str, int]:
         pass
+
+    @property
+    def dtype(self: ArrayInterfaceT):
+        return self.array.dtype
+
+    @property
+    @abc.abstractmethod
+    def unit(self) -> typ.Union[float, u.Unit]:
+        return 1
+
+    @abc.abstractmethod
+    def to(self: ArrayInterfaceT, unit: u.UnitBase) -> ArrayInterfaceT:
+        pass
+
+    @property
+    def broadcasted(self: ArrayInterfaceT) -> ArrayInterfaceT:
+        return np.broadcast_to(self, shape=self.shape)
+
+    @property
+    def centers(self: ArrayInterfaceT) -> ArrayInterfaceT:
+        return self
 
     def ndindex(
             self: typ.Type[ArrayInterfaceT],
@@ -104,7 +248,8 @@ class ArrayInterface(
 
         shape = self.shape
         for axis in axis_ignored:
-            shape.pop(axis)
+            if axis in shape:
+                shape.pop(axis)
         shape_tuple = tuple(shape.values())
         for index in np.ndindex(*shape_tuple):
             yield dict(zip(shape.keys(), index))
@@ -120,8 +265,7 @@ class ArrayInterface(
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
-    ArrayInterface,
-    typ.Generic[ArrT],
+    ArrayInterface[ArrT],
 ):
 
     type_array_primary: typ.ClassVar[typ.Type] = np.ndarray
@@ -129,38 +273,27 @@ class AbstractArray(
     type_array: typ.ClassVar[typ.Tuple[typ.Type, ...]] = type_array_auxiliary + (type_array_primary, )
 
     @property
-    @abc.abstractmethod
-    def array(self: AbstractArrayT) -> ArrT:
-        pass
-
-    @property
-    def _array_normalized(self: AbstractArrayT) -> np.ndarray:
-        value = self.array
-        if isinstance(value, self.type_array_auxiliary):
-            value = np.array(value)
-        return value
-
-    @property
-    @abc.abstractmethod
-    def unit(self) -> typ.Union[float, u.Unit]:
-        return 1
+    def array_labeled(self: AbstractArrayT) -> AbstractArrayT:
+        return self
 
     @property
     @abc.abstractmethod
     def axes(self: AbstractArrayT) -> typ.Optional[typ.List[str]]:
-        pass
-
-    @property
-    def _axes_normalized(self: AbstractArrayT) -> typ.List[str]:
-        if self.axes is not None:
-            return self.axes
-        else:
-            return []
+        return []
 
     @property
     @abc.abstractmethod
     def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
         return dict()
+
+    def to(self: AbstractArrayT, unit: u.Unit) -> ArrayT:
+        array = self.array
+        if not isinstance(array, u.Quantity):
+            array = array << u.dimensionless_unscaled
+        return Array(
+            array=array.to(unit),
+            axes=self.axes.copy(),
+        )
 
     @property
     def ndim(self: AbstractArrayT) -> int:
@@ -187,7 +320,7 @@ class AbstractArray(
         value = np.expand_dims(self.array, tuple(~np.arange(ndim_missing)))
         source = []
         destination = []
-        for axis_index, axis_name in enumerate(self._axes_normalized):
+        for axis_index, axis_name in enumerate(self.axes):
             source.append(axis_index)
             destination.append(list(shape.keys()).index(axis_name))
         value = np.moveaxis(a=value, source=source, destination=destination)
@@ -210,7 +343,7 @@ class AbstractArray(
         if axis_new is None:
             axis_new = ''.join(axes)
 
-        axes_new = self._axes_normalized.copy()
+        axes_new = self.axes.copy()
         shape_new = self.shape
         for axis in axes:
             axes_new.append(axes_new.pop(axes_new.index(axis)))
@@ -219,7 +352,7 @@ class AbstractArray(
         source = []
         destination = []
         for axis in axes:
-            source.append(self._axes_normalized.index(axis))
+            source.append(self.axes.index(axis))
             destination.append(axes_new.index(axis))
 
         for axis in axes:
@@ -288,7 +421,7 @@ class AbstractArray(
                 destination=[~1, ~0],
             )
 
-            axes_new = self._axes_normalized.copy()
+            axes_new = self.axes.copy()
             axes_new.remove(axis_rows)
             axes_new.remove(axis_columns)
 
@@ -307,7 +440,7 @@ class AbstractArray(
             raise ValueError('Matrix must be square')
 
         if shape[axis_rows] == 2:
-            result = Array(array=self.array.copy(), axes=self._axes_normalized.copy())
+            result = Array(array=self.array.copy(), axes=self.axes.copy())
             result[{axis_rows: 0, axis_columns: 0}] = self[{axis_rows: 1, axis_columns: 1}]
             result[{axis_rows: 1, axis_columns: 1}] = self[{axis_rows: 0, axis_columns: 0}]
             result[{axis_rows: 0, axis_columns: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
@@ -325,7 +458,7 @@ class AbstractArray(
             h = self[{axis_rows: 2, axis_columns: 1}]
             i = self[{axis_rows: 2, axis_columns: 2}]
 
-            result = Array(array=self.array.copy(), axes=self._axes_normalized.copy())
+            result = Array(array=self.array.copy(), axes=self.axes.copy())
             result[{axis_rows: 0, axis_columns: 0}] = (e * i - f * h)
             result[{axis_rows: 0, axis_columns: 1}] = -(b * i - c * h)
             result[{axis_rows: 0, axis_columns: 2}] = (b * f - c * e)
@@ -338,17 +471,19 @@ class AbstractArray(
             return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
 
         else:
-            index_axis_rows = self._axes_normalized.index(axis_rows)
-            index_axis_columns = self._axes_normalized.index(axis_columns)
+            index_axis_rows = self.axes.index(axis_rows)
+            index_axis_columns = self.axes.index(axis_columns)
             value = np.moveaxis(
                 a=self.array,
                 source=[index_axis_rows, index_axis_columns],
                 destination=[~1, ~0],
             )
 
-            axes_new = self._axes_normalized.copy()
-            axes_new.append(axes_new.pop(index_axis_rows))
-            axes_new.append(axes_new.pop(index_axis_columns))
+            axes_new = self.axes.copy()
+            axes_new.remove(axis_rows)
+            axes_new.remove(axis_columns)
+            axes_new.append(axis_rows)
+            axes_new.append(axis_columns)
 
             return Array(
                 array=np.linalg.inv(value),
@@ -359,7 +494,7 @@ class AbstractArray(
         if isinstance(other, u.UnitBase):
             return Array(
                 array=self.array * other,
-                axes=self._axes_normalized.copy(),
+                axes=self.axes.copy(),
             )
         else:
             return super().__mul__(other)
@@ -449,7 +584,7 @@ class AbstractArray(
             for axis, array in zip(shape, result_value):
                 result[axis] = Array(
                     array=array,
-                    axes=self._axes_normalized.copy(),
+                    axes=self.axes.copy(),
                 )
             return result
 
@@ -512,6 +647,71 @@ class AbstractArray(
                 axes=axes,
             )
 
+        elif func is np.histogram2d:
+            args = list(args)
+            if args:
+                x = args.pop(0)
+            else:
+                x = kwargs.pop('x')
+
+            if args:
+                y = args.pop(0)
+            else:
+                y = kwargs.pop('y')
+
+            shape = kgpy.labeled.Array.broadcast_shapes(x, y)
+            x = x.broadcast_to(shape)
+            y = y.broadcast_to(shape)
+
+            bins = kwargs.pop('bins')           # type: typ.Dict[str, int]
+            if not isinstance(bins[next(iter(bins))], int):
+                raise NotImplementedError
+            range = kwargs.pop('range')
+            weights = kwargs.pop('weights')
+
+            key_x, key_y = bins.keys()
+
+            shape_hist = shape.copy()
+            shape_hist[key_x] = bins[key_x]
+            shape_hist[key_y] = bins[key_y]
+
+            shape_edges_x = shape_hist.copy()
+            shape_edges_x[key_x] = shape_edges_x[key_x] + 1
+            shape_edges_x.pop(key_y)
+
+            shape_edges_y = shape_hist.copy()
+            shape_edges_y[key_y] = shape_edges_y[key_y] + 1
+            shape_edges_y.pop(key_x)
+
+            hist = Array.empty(shape_hist)
+            edges_x = Array.empty(shape_edges_x) * x.unit
+            edges_y = Array.empty(shape_edges_y) * y.unit
+
+            print(edges_x)
+
+
+            for index in x.ndindex(axis_ignored=(key_x, key_y)):
+                if range is not None:
+                    range_index = [[elem.array.value for elem in range[component]] for component in range]
+                else:
+                    range_index = None
+
+                if weights is not None:
+                    weights_index = weights[index].array.reshape(-1)
+                else:
+                    weights_index = None
+
+                hist[index].array[:], edges_x[index].array[:], edges_y[index].array[:] = np.histogram2d(
+                    x=x[index].array.reshape(-1),
+                    y=y[index].array.reshape(-1),
+                    bins=tuple(bins.values()),
+                    range=range_index,
+                    weights=weights_index,
+                    **kwargs,
+                )
+
+            return hist, edges_x, edges_y
+
         elif func in [
             np.ndim,
             np.argmin,
@@ -553,10 +753,12 @@ class AbstractArray(
                         if kwargs['axis'] is None:
                             axes_new = []
                         elif np.isscalar(kwargs['axis']):
-                            axes_new.remove(kwargs['axis'])
+                            if kwargs['axis'] in axes_new:
+                                axes_new.remove(kwargs['axis'])
                         else:
                             for axis in kwargs['axis']:
-                                axes_new.remove(axis)
+                                if axis in axes_new:
+                                    axes_new.remove(axis)
                     else:
                         axes_new = []
 
@@ -564,9 +766,10 @@ class AbstractArray(
                 if kwargs['axis'] is None:
                     pass
                 elif np.isscalar(kwargs['axis']):
-                    kwargs['axis'] = axes.index(kwargs['axis'])
+                    if kwargs['axis'] in axes:
+                        kwargs['axis'] = axes.index(kwargs['axis'])
                 else:
-                    kwargs['axis'] = tuple(axes.index(ax) for ax in kwargs['axis'])
+                    kwargs['axis'] = tuple(axes.index(ax) for ax in kwargs['axis'] if ax in axes)
 
             array = self.array
             if not hasattr(array, '__array_function__'):
@@ -608,13 +811,13 @@ class AbstractArray(
         if isinstance(item, AbstractArray):
             value = np.moveaxis(
                 a=self.array,
-                source=[self._axes_normalized.index(axis) for axis in item._axes_normalized],
-                destination=np.arange(len(item._axes_normalized)),
+                source=[self.axes.index(axis) for axis in item.axes],
+                destination=np.arange(len(item.axes)),
             )
 
             return Array(
                 array=np.moveaxis(value[item.array], 0, ~0),
-                axes=[axis for axis in self._axes_normalized if axis not in item._axes_normalized] + ['boolean']
+                axes=[axis for axis in self.axes if axis not in item.axes] + ['boolean']
             )
 
         else:
@@ -626,7 +829,7 @@ class AbstractArray(
                 item_axis = item_casted[axis]
                 if isinstance(item_axis, AbstractArray):
                     axes_advanced.append(axis)
-                    axes_indices_advanced.append(self._axes_normalized.index(axis))
+                    axes_indices_advanced.append(self.axes.index(axis))
                     item_advanced[axis] = item_axis
 
             shape_advanced = self.broadcast_shapes(*item_advanced.values())
@@ -637,7 +840,7 @@ class AbstractArray(
                 destination=list(range(len(axes_indices_advanced))),
             )
 
-            axes = self._axes_normalized.copy()
+            axes = self.axes.copy()
             for a, axis in enumerate(axes_advanced):
                 axes.remove(axis)
                 axes.insert(a, axis)
@@ -700,6 +903,15 @@ class Array(
         )
 
     @property
+    def normalized(self: AbstractArrayT) -> ArrayT:
+        other = super().normalized
+        if isinstance(other.array, other.type_array_auxiliary):
+            other.array = np.array(other.array)
+        if other.axes is None:
+            other.axes = []
+        return other
+
+    @property
     def unit(self) -> typ.Union[float, u.Unit]:
         unit = super().unit
         if hasattr(self.array, 'unit'):
@@ -710,7 +922,7 @@ class Array(
     def shape(self: ArrayT) -> typ.Dict[str, int]:
         shape = super().shape
         for i in range(np.ndim(self.array)):
-            shape[self._axes_normalized[i]] = self.array.shape[i]
+            shape[self.axes[i]] = self.array.shape[i]
         return shape
 
     def __setitem__(
@@ -729,14 +941,14 @@ class Array(
         else:
             key_casted = typ.cast(typ.Dict[str, typ.Union[int, slice, AbstractArray]], key)
             index = [slice(None)] * self.ndim   # type: typ.List[typ.Union[int, slice, AbstractArray]]
-            axes = self._axes_normalized.copy()
+            axes = self.axes.copy()
             for axis in key_casted:
                 item_axis = key_casted[axis]
                 if isinstance(item_axis, int):
                     axes.remove(axis)
                 if isinstance(item_axis, Array):
                     item_axis = item_axis.array_aligned(self.shape_broadcasted(item_axis))
-                index[self._axes_normalized.index(axis)] = item_axis
+                index[self.axes.index(axis)] = item_axis
 
             self.array[tuple(index)] = value.array_aligned({axis: 1 for axis in axes})
 
@@ -750,6 +962,10 @@ class Range(AbstractArray[np.ndarray]):
     axis: str = None
 
     @property
+    def normalized(self: RangeT) -> RangeT:
+        return super().normalized
+
+    @property
     def unit(self) -> typ.Union[float, u.Unit]:
         unit = super().unit
         if hasattr(self.start, 'unit'):
@@ -759,8 +975,9 @@ class Range(AbstractArray[np.ndarray]):
     @property
     def shape(self: RangeT) -> typ.Dict[str, int]:
         shape = super().shape
-        for i in range(np.ndim(self.array)):
-            shape[self._axes_normalized[i]] = self.array.shape[i]
+        array = self.array
+        for i in range(np.ndim(array)):
+            shape[self.axes[i]] = array.shape[i]
         return shape
 
     @property
@@ -773,7 +990,7 @@ class Range(AbstractArray[np.ndarray]):
 
     @property
     def axes(self: RangeT) -> typ.List[str]:
-        return [self.axis]
+        return super().axes + [self.axis]
 
 
 @dataclasses.dataclass(eq=False)
@@ -795,12 +1012,8 @@ class _SpaceMixin(
         return list(self.shape.keys())
 
 
-StartArrayT = typ.TypeVar('StartArrayT', bound=ArrayLike)
-StopArrayT = typ.TypeVar('StopArrayT', bound=ArrayLike)
-
-
 @dataclasses.dataclass(eq=False)
-class _LinearMixin(
+class _RangeMixin(
     AbstractArray[kgpy.units.QuantityLike],
     typ.Generic[StartArrayT, StopArrayT],
 ):
@@ -808,26 +1021,13 @@ class _LinearMixin(
     stop: StopArrayT = None
 
     @property
-    def _start_normalized(self: _LinearMixinT) -> AbstractArray:
-        if not isinstance(self.start, AbstractArray):
-            return Array(self.start)
-        else:
-            return self.start
-
-    @property
-    def _stop_normalized(self: _LinearMixinT) -> AbstractArray:
-        if not isinstance(self.stop, AbstractArray):
-            return Array(self.stop)
-        else:
-            return self.stop
-
-    @property
-    def start_broadcasted(self: _LinearMixinT) -> AbstractArray:
-        return np.broadcast_to(self._start_normalized, shape=self.shape, subok=True)
-
-    @property
-    def stop_broadcasted(self: _LinearMixinT) -> AbstractArray:
-        return np.broadcast_to(self._stop_normalized, shape=self.shape, subok=True)
+    def normalized(self: _RangeMixinT) -> _RangeMixinT:
+        other = super().normalized
+        if not isinstance(other.start, ArrayInterface):
+            other.start = Array(other.start)
+        if not isinstance(other.stop, ArrayInterface):
+            other.stop = Array(other.stop)
+        return other
 
     @property
     def unit(self) -> typ.Union[float, u.Unit]:
@@ -837,25 +1037,29 @@ class _LinearMixin(
         return unit
 
     @property
-    def range(self: _LinearMixinT) -> Array:
+    def range(self: _RangeMixinT) -> Array:
         return self.stop - self.start
 
     @property
-    def shape(self: _LinearMixinT) -> typ.Dict[str, int]:
-        return dict(**super().shape, **self.broadcast_shapes(self._start_normalized, self._stop_normalized))
+    def shape(self: _RangeMixinT) -> typ.Dict[str, int]:
+        norm = self.normalized
+        return dict(**super().shape, **self.broadcast_shapes(norm.start, norm.stop))
 
 
 @dataclasses.dataclass(eq=False)
 class LinearSpace(
     _SpaceMixin,
-    _LinearMixin,
+    _RangeMixin[StartArrayT, StopArrayT],
 ):
+
     @property
     def array(self: LinearSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
+        shape.pop(self.axis)
+        norm = self.normalized
         return np.linspace(
-            start=self._start_normalized.array_aligned(shape)[..., 0],
-            stop=self._stop_normalized.array_aligned(shape)[..., 0],
+            start=norm.start.array_aligned(shape),
+            stop=norm.stop.array_aligned(shape),
             num=self.num,
             axis=~0,
             endpoint=self.endpoint,
@@ -865,7 +1069,11 @@ class LinearSpace(
 @dataclasses.dataclass(eq=False)
 class _RandomSpaceMixin(_SpaceMixin):
 
-    seed: typ.Optional[int] = 42
+    seed: typ.Optional[int] = None
+
+    def __post_init__(self):
+        if self.seed is None:
+            self.seed = random.randint(0, 10 ** 12)
 
     @property
     def _rng(self: _RandomSpaceMixinT) -> np.random.Generator:
@@ -875,15 +1083,16 @@ class _RandomSpaceMixin(_SpaceMixin):
 @dataclasses.dataclass(eq=False)
 class UniformRandomSpace(
     _RandomSpaceMixin,
-    _LinearMixin[StartArrayT, StopArrayT],
+    _RangeMixin[StartArrayT, StopArrayT],
 ):
 
     @property
     def array(self: UniformRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
 
-        start = self.start_broadcasted.array_aligned(shape)
-        stop = self.stop_broadcasted.array_aligned(shape)
+        norm = self.normalized
+        start = norm.start.broadcast_to(shape).array
+        stop = norm.stop.broadcast_to(shape).array
 
         unit = None
         if isinstance(start, u.Quantity):
@@ -902,12 +1111,53 @@ class UniformRandomSpace(
         return value
 
 
-CenterT = typ.TypeVar('CenterT', bound=ArrayLike)
-WidthT = typ.TypeVar('WidthT', bound=ArrayLike)
+@dataclasses.dataclass(eq=False)
+class StratifiedRandomSpace(
+    _RandomSpaceMixin,
+    LinearSpace[StartArrayT, StopArrayT],
+):
+    shape_extra: typ.Dict[str, int] = dataclasses.field(default_factory=dict)
+
+    @property
+    def array(self: StratifiedRandomSpaceT) -> kgpy.units.QuantityLike:
+        result = super().array
+
+        norm = self.normalized
+        shape = norm.shape
+        shape[norm.axis] = norm.num
+        shape = {**shape, **self.shape_extra}
+        step_size = norm.range / (norm.num - 1)
+        step_size = step_size.broadcast_to(shape).array
+
+        if isinstance(step_size, u.Quantity):
+            unit = step_size.unit
+            step_size = step_size.value
+        else:
+            unit = None
+
+        delta = self._rng.uniform(
+            low=-step_size / 2,
+            high=step_size / 2,
+        )
+
+        if unit is not None:
+            delta = delta << unit
+
+        return result + delta
+
+    @property
+    def centers(self: StratifiedRandomSpaceT) -> LinearSpace:
+        return LinearSpace(
+            start=self.start,
+            stop=self.stop,
+            num=self.num,
+            endpoint=self.endpoint,
+            axis=self.axis,
+        )
 
 
 @dataclasses.dataclass(eq=False)
-class _NormalMixin(
+class _SymmetricMixin(
     AbstractArray[kgpy.units.QuantityLike],
     typ.Generic[CenterT, WidthT]
 ):
@@ -916,26 +1166,13 @@ class _NormalMixin(
     width: WidthT = 0
 
     @property
-    def _center_normalized(self: _NormalMixinT) -> AbstractArray:
-        if not isinstance(self.center, AbstractArray):
-            return Array(self.center)
-        else:
-            return self.center
-
-    @property
-    def _width_normalized(self: _NormalMixinT) -> AbstractArray:
-        if not isinstance(self.width, AbstractArray):
-            return Array(self.width)
-        else:
-            return self.width
-
-    @property
-    def center_broadcasted(self: _NormalMixinT) -> Array:
-        return np.broadcast_to(self._center_normalized, shape=self.shape, subok=True)
-
-    @property
-    def width_broadcasted(self: _NormalMixinT) -> Array:
-        return np.broadcast_to(self._width_normalized, shape=self.shape, subok=True)
+    def normalized(self: _SymmetricMixinT) -> _SymmetricMixinT:
+        other = super().normalized
+        if not isinstance(other.center, ArrayInterface):
+            other.center = Array(other.center)
+        if not isinstance(other.width, ArrayInterface):
+            other.width = Array(other.width)
+        return other
 
     @property
     def unit(self) -> typ.Optional[u.Unit]:
@@ -945,22 +1182,24 @@ class _NormalMixin(
         return unit
 
     @property
-    def shape(self: _NormalMixinT) -> typ.Dict[str, int]:
-        return dict(**super().shape, **self.broadcast_shapes(self._width_normalized, self._center_normalized))
+    def shape(self: _SymmetricMixinT) -> typ.Dict[str, int]:
+        norm = self.normalized
+        return dict(**super().shape, **self.broadcast_shapes(norm.width, norm.center))
 
 
 @dataclasses.dataclass(eq=False)
 class NormalRandomSpace(
     _RandomSpaceMixin,
-    _NormalMixin[CenterT, WidthT],
+    _SymmetricMixin[CenterT, WidthT],
 ):
 
     @property
     def array(self: NormalRandomSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
 
-        center = self.center_broadcasted.array_aligned(shape)
-        width = self.width_broadcasted.array_aligned(shape)
+        norm = self.normalized
+        center = norm.center.broadcast_to(shape).array
+        width = norm.width.broadcast_to(shape).array
 
         unit = None
         if isinstance(center, u.Quantity):

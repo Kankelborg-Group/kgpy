@@ -18,8 +18,9 @@ import astropy.units
 import astropy.time
 import pandas
 
-
-sys.path.insert(0, os.path.abspath('../'))
+package_path = os.path.abspath('../')
+sys.path.insert(0, package_path)
+os.environ['PYTHONPATH'] = ';'.join((package_path, os.environ.get('PYTHONPATH', '')))
 
 # -- Project information -----------------------------------------------------
 
@@ -40,6 +41,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'sphinx.ext.inheritance_diagram',
+    'jupyter_sphinx',
 ]
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 # autosummary_imported_members = True
@@ -90,13 +92,14 @@ master_doc = 'index'
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
     'matplotlib': ('https://matplotlib.org', None),
     'astropy': ('https://docs.astropy.org/en/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'xarray': ('https://xarray.pydata.org/en/stable/', None),
 }
 
-plt.Axes.__module__ = matplotlib.axes.__name__
-astropy.units.Quantity.__module__ = astropy.units.__name__
-astropy.time.Time.__module__ = astropy.time.__name__
-pandas.DataFrame.__module__ = pandas.__name__
+# plt.Axes.__module__ = matplotlib.axes.__name__
+# astropy.units.Quantity.__module__ = astropy.units.__name__
+# astropy.time.Time.__module__ = astropy.time.__name__
+# pandas.DataFrame.__module__ = pandas.__name__

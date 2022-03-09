@@ -15,20 +15,28 @@ import astropy.modeling
 from ezdxf.addons.r12writer import R12FastStreamWriter
 import kgpy.plot
 import kgpy.mixin
+import kgpy.labeled
+import kgpy.uncertainty
 import kgpy.vector
-import kgpy.transform
+import kgpy.function
+import kgpy.transforms
 import kgpy.format
-import kgpy.grid
-import kgpy.dxf
-from .aberration import Distortion, Vignetting, Aberration
+import kgpy.io.dxf
+from . import vectors
+from . import aberrations
+# from .aberration import Distortion, Vignetting, Aberration
 
 __all__ = [
     'Axis',
-    'RayGrid',
-    'Rays',
-    'RaysList',
+    # 'RayGrid',
+    'RayVector',
+    'RayFunction',
+    'RayFunctionList',
 ]
 
+
+RayVectorT = typ.TypeVar('RayVectorT', bound='RayVector')
+RaysT = typ.TypeVar('RaysT', bound='Rays')
 RaysListT = typ.TypeVar('RaysListT', bound='RaysList')
 
 
@@ -66,321 +74,386 @@ class Axis(kgpy.mixin.AutoAxis):
         return names
 
 
-@dataclasses.dataclass
-class RayGrid(
-    kgpy.mixin.Copyable,
-    abc.ABC,
+# @dataclasses.dataclass
+# class RayGrid(
+#     kgpy.mixin.Copyable,
+#     abc.ABC,
+# ):
+#     axis: typ.ClassVar[Axis] = Axis()
+#     field: kgpy.grid.RegularGrid2D = dataclasses.field(default_factory=kgpy.grid.RegularGrid2D)
+#     pupil: kgpy.grid.RegularGrid2D = dataclasses.field(default_factory=kgpy.grid.RegularGrid2D)
+#     wavelength: kgpy.grid.Grid1D = dataclasses.field(default_factory=lambda: kgpy.grid.RegularGrid1D(min=0 * u.nm, max=0 * u.nm))
+#     velocity_los: kgpy.grid.Grid1D = dataclasses.field(
+#         default_factory=lambda: kgpy.grid.RegularGrid1D(min=0 * u.km / u.s, max=0 * u.km / u.s)
+#     )
+#
+#     @property
+#     def shape(self) -> typ.Tuple[int, ...]:
+#         return np.broadcast(
+#             np.expand_dims(self.field.points.x, self.axis.perp_axes(self.axis.field_x)),
+#             np.expand_dims(self.field.points.y, self.axis.perp_axes(self.axis.field_y)),
+#             np.expand_dims(self.pupil.points.x, self.axis.perp_axes(self.axis.pupil_x)),
+#             np.expand_dims(self.pupil.points.y, self.axis.perp_axes(self.axis.pupil_y)),
+#             np.expand_dims(self.wavelength.points, self.axis.perp_axes(self.axis.wavelength)),
+#             np.expand_dims(self.velocity_los.points, self.axis.perp_axes(self.axis.velocity_los)),
+#         ).shape
+#
+#     @property
+#     def points_field(self) -> kgpy.vector.Vector2D:
+#         return self.field.mesh(shape=self.shape, new_axes=self.axis.perp_axes([self.axis.field_x, self.axis.field_y]))
+#
+#     @property
+#     def points_pupil(self) -> kgpy.vector.Vector2D:
+#         return self.pupil.mesh(shape=self.shape, new_axes=self.axis.perp_axes([self.axis.pupil_x, self.axis.pupil_y]))
+#
+#     @property
+#     def points_wavelength(self) -> u.Quantity:
+#         return self.wavelength.mesh(shape=self.shape, new_axes=self.axis.perp_axes(self.axis.wavelength))
+#
+#     @property
+#     def points_velocity_los(self) -> u.Quantity:
+#         return self.velocity_los.mesh(shape=self.shape, new_axes=self.axis.perp_axes(self.axis.velocity_los))
+#
+#     def points(self, component_axis: int = ~0) -> u.Quantity:
+#
+#         points_field = self.points_field
+#         points_pupil = self.points_pupil
+#
+#         p = [None] * self.axis.ndim
+#         p[self.axis.field_x] = points_field.x
+#         p[self.axis.field_y] = points_field.y
+#         p[self.axis.pupil_x] = points_pupil.x
+#         p[self.axis.pupil_y] = points_pupil.y
+#         p[self.axis.wavelength] = self.points_wavelength
+#         p[self.axis.velocity_los] = self.points_velocity_los
+#         return np.stack(arrays=p, axis=component_axis)
+#
+#     # @property
+#     # def grids(self) -> typ.List[u.Quantity]:
+#     #     return [
+#     #         self.field.points.x,
+#     #         self.field.points.y,
+#     #         self.pupil.points.x,
+#     #         self.pupil.points.y,
+#     #         self.wavelength.points,
+#     #         self.velocity_los.points,
+#     #     ]
+#
+#     def points_from_axis(self, axis: int):
+#         if axis == self.axis.field_x:
+#             return self.points_field.x
+#         elif axis == self.axis.field_y:
+#             return self.points_field.y
+#         elif axis == self.axis.pupil_x:
+#             return self.points_pupil.x
+#         elif axis == self.axis.pupil_y:
+#             return self.points_pupil.y
+#         elif axis == self.axis.wavelength:
+#             return self.points_wavelength
+#         elif axis == self.axis.velocity_los:
+#             return self.points_velocity_los
+#         else:
+#             raise ValueError('Unsupported axis')
+
+
+
+
+@dataclasses.dataclass(eq=False)
+class RayVector(
+    kgpy.transforms.Transformable,
+    kgpy.vector.AbstractVector,
 ):
-    axis: typ.ClassVar[Axis] = Axis()
-    field: kgpy.grid.RegularGrid2D = dataclasses.field(default_factory=kgpy.grid.RegularGrid2D)
-    pupil: kgpy.grid.RegularGrid2D = dataclasses.field(default_factory=kgpy.grid.RegularGrid2D)
-    wavelength: kgpy.grid.Grid1D = dataclasses.field(default_factory=lambda: kgpy.grid.RegularGrid1D(min=0 * u.nm, max=0 * u.nm))
-    velocity_los: kgpy.grid.Grid1D = dataclasses.field(
-        default_factory=lambda: kgpy.grid.RegularGrid1D(min=0 * u.km / u.s, max=0 * u.km / u.s)
-    )
-
-    @property
-    def shape(self) -> typ.Tuple[int, ...]:
-        return np.broadcast(
-            np.expand_dims(self.field.points.x, self.axis.perp_axes(self.axis.field_x)),
-            np.expand_dims(self.field.points.y, self.axis.perp_axes(self.axis.field_y)),
-            np.expand_dims(self.pupil.points.x, self.axis.perp_axes(self.axis.pupil_x)),
-            np.expand_dims(self.pupil.points.y, self.axis.perp_axes(self.axis.pupil_y)),
-            np.expand_dims(self.wavelength.points, self.axis.perp_axes(self.axis.wavelength)),
-            np.expand_dims(self.velocity_los.points, self.axis.perp_axes(self.axis.velocity_los)),
-        ).shape
-
-    @property
-    def points_field(self) -> kgpy.vector.Vector2D:
-        return self.field.mesh(shape=self.shape, new_axes=self.axis.perp_axes([self.axis.field_x, self.axis.field_y]))
-
-    @property
-    def points_pupil(self) -> kgpy.vector.Vector2D:
-        return self.pupil.mesh(shape=self.shape, new_axes=self.axis.perp_axes([self.axis.pupil_x, self.axis.pupil_y]))
-
-    @property
-    def points_wavelength(self) -> u.Quantity:
-        return self.wavelength.mesh(shape=self.shape, new_axes=self.axis.perp_axes(self.axis.wavelength))
-
-    @property
-    def points_velocity_los(self) -> u.Quantity:
-        return self.velocity_los.mesh(shape=self.shape, new_axes=self.axis.perp_axes(self.axis.velocity_los))
-
-    def points(self, component_axis: int = ~0) -> u.Quantity:
-
-        points_field = self.points_field
-        points_pupil = self.points_pupil
-
-        p = [None] * self.axis.ndim
-        p[self.axis.field_x] = points_field.x
-        p[self.axis.field_y] = points_field.y
-        p[self.axis.pupil_x] = points_pupil.x
-        p[self.axis.pupil_y] = points_pupil.y
-        p[self.axis.wavelength] = self.points_wavelength
-        p[self.axis.velocity_los] = self.points_velocity_los
-        return np.stack(arrays=p, axis=component_axis)
-
-    # @property
-    # def grids(self) -> typ.List[u.Quantity]:
-    #     return [
-    #         self.field.points.x,
-    #         self.field.points.y,
-    #         self.pupil.points.x,
-    #         self.pupil.points.y,
-    #         self.wavelength.points,
-    #         self.velocity_los.points,
-    #     ]
-
-    def points_from_axis(self, axis: int):
-        if axis == self.axis.field_x:
-            return self.points_field.x
-        elif axis == self.axis.field_y:
-            return self.points_field.y
-        elif axis == self.axis.pupil_x:
-            return self.points_pupil.x
-        elif axis == self.axis.pupil_y:
-            return self.points_pupil.y
-        elif axis == self.axis.wavelength:
-            return self.points_wavelength
-        elif axis == self.axis.velocity_los:
-            return self.points_velocity_los
-        else:
-            raise ValueError('Unsupported axis')
-
-
-@dataclasses.dataclass
-class Rays(kgpy.transform.rigid.Transformable):
-    axis = Axis()
-
-    # wavelength: u.Quantity = dataclasses.field(default_factory=lambda: [[0]] * u.nm)
-    # position: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 0]] * u.mm)
-    # direction: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, 1]] * u.dimensionless_unscaled)
-    # polarization: u.Quantity = dataclasses.field(default_factory=lambda: [[1, 0]] * u.dimensionless_unscaled)
-    # surface_normal: u.Quantity = dataclasses.field(default_factory=lambda: [[0, 0, -1]] * u.dimensionless_unscaled)
-    # index_of_refraction: u.Quantity = dataclasses.field(default_factory=lambda: [[1]] * u.dimensionless_unscaled)
-    intensity: u.Quantity = 1 * u.dimensionless_unscaled
-    wavelength: u.Quantity = 0 * u.nm
-    position: kgpy.vector.Vector3D = dataclasses.field(default_factory=kgpy.vector.Vector3D)
-    direction: kgpy.vector.Vector3D = dataclasses.field(default_factory=kgpy.vector.zhat_factory)
-    velocity_los: u.Quantity = 0 * u.km / u.s
-    surface_normal: kgpy.vector.Vector3D = dataclasses.field(default_factory=lambda: -kgpy.vector.zhat_factory())
-    index_of_refraction: u.Quantity = 1 * u.dimensionless_unscaled
-    vignetted_mask: np.ndarray = np.array([True])
-    error_mask: np.ndarray = np.array([True])
-    input_grid: typ.Optional[RayGrid] = None
-    distortion_polynomial_degree: int = 2
-    vignetting_polynomial_degree: int = 1
-
-    # input_wavelength: typ.Optional[u.Quantity] = None
-    # input_field: typ.Optional[vector.Vector2D] = None
-    # input_pupil: typ.Optional[vector.Vector2D] = None
-    # input_velocity_z: typ.Optional[u.Quantity] = None
-
-    # input_grids: typ.List[typ.Optional[u.Quantity]] = dataclasses.field(
-    #     default_factory=lambda: [None, None, None, None, None],
-    # )
-
-    @property
-    def field_angles(self) -> kgpy.vector.Vector2D:
-        angle = np.arcsin(self.direction.xy).to(u.deg)
-        angle.y = -angle.y
-        return angle
+    intensity: kgpy.uncertainty.ArrayLike = 1 * u.dimensionless_unscaled
+    position: kgpy.vector.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian3D() * u.mm)
+    direction: kgpy.vector.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian3D.z_hat() * u.dimensionless_unscaled)
+    polarization: vectors.StokesVector = dataclasses.field(default_factory=vectors.StokesVector)
+    wavelength: kgpy.uncertainty.ArrayLike = 0 * u.nm
+    index_refraction: kgpy.uncertainty.ArrayLike = 1 * u.dimensionless_unscaled
+    surface_normal: kgpy.vector.Cartesian3D = dataclasses.field(default_factory=lambda: -kgpy.vector.Cartesian3D.z_hat() * u.dimensionless_unscaled)
+    mask: kgpy.uncertainty.ArrayLike = dataclasses.field(default_factory=lambda: kgpy.labeled.Array(True))
 
     @classmethod
     def from_field_angles(
-            cls,
-            # wavelength_grid: u.Quantity,
-            input_grid: RayGrid,
-            position: kgpy.vector.Vector3D,
-            # field_grid: vector.Vector2D,
-            # pupil_grid: vector.Vector2D,
-            # velocity_z_grid: u.Quantity
-    ) -> 'Rays':
+            cls: typ.Type[RayVectorT],
+            scene_vector: vectors.ObjectVector,
+            position: kgpy.vector.Cartesian3D,
+    ):
+        angle_x = -scene_vector.field.x
+        angle_y = scene_vector.field.y
 
-        # field_x = np.expand_dims(input_grid.field.points.x, cls.axis.perp_axes(cls.axis.field_x))
-        # field_y = np.expand_dims(input_grid.field.points.y, cls.axis.perp_axes(cls.axis.field_y))
-
-        direction = kgpy.transform.rigid.TiltX(input_grid.points_field.y)(kgpy.vector.z_hat)
-        direction = kgpy.transform.rigid.TiltY(input_grid.points_field.x)(direction)
+        transform = kgpy.transforms.TransformList([
+            kgpy.transforms.RotationY(angle_x),
+            kgpy.transforms.RotationX(angle_y),
+        ])
 
         return cls(
-            wavelength=input_grid.points_wavelength,
             position=position,
-            direction=direction,
-            velocity_los=input_grid.points_velocity_los,
-            input_grid=input_grid,
-            # input_wavelength=wavelength_grid,
-            # input_field=field_grid,
-            # input_pupil=pupil_grid,
-            # input_velocity_z=velocity_z_grid,
+            direction=transform(kgpy.vector.Cartesian3D.z_hat()),
+            wavelength=scene_vector.wavelength_doppler,
         )
 
-    @classmethod
-    def from_field_positions(
-            cls,
-            # intensity: u.Quantity,
-            # wavelength_grid: u.Quantity,
-            input_grid: RayGrid,
-            direction: kgpy.vector.Vector3D,
-            # field_grid: vector.Vector2D,
-            # pupil_grid: vector.Vector2D,
-            # velocity_z_grid: u.Quantity,
-    ) -> 'Rays':
-
-        return cls(
-            wavelength=input_grid.points_wavelength,
-            position=input_grid.points_field.to_3d(z=0 * u.mm),
-            direction=direction,
-            velocity_los=input_grid.points_velocity_los,
-            input_grid=input_grid,
-            # input_wavelength=wavelength_grid,
-            # input_field=field_grid,
-            # input_pupil=pupil_grid,
-            # input_velocity_z=velocity_z_grid,
+    @property
+    def angles(self: RayVectorT) -> kgpy.vector.Cartesian2D:
+        direction = self.direction
+        return kgpy.vector.Cartesian2D(
+            x=-np.arctan2(direction.x, direction.z),
+            y=np.arcsin(direction.y / direction.length),
         )
 
-    def apply_transform_list(self, transform_list: kgpy.transform.rigid.TransformList) -> 'Rays':
+    @angles.setter
+    def angles(self: RayVectorT, value: kgpy.vector.Cartesian2D):
+        transform = kgpy.transforms.TransformList([
+            kgpy.transforms.RotationY(-value.x),
+            kgpy.transforms.RotationX(value.y),
+        ])
+        self.direction = transform(kgpy.vector.Cartesian3D.z_hat(), translate=False)
+
+
+    # @property
+    # def direction_cos(self: RayVectorT) -> kgpy.vector.Cartesian3D:
+    #     direction = self.direction
+    #     a = -direction.x
+    #     b = direction.y
+    #     return kgpy.vector.Cartesian3D(
+    #         x=np.sin(a) * np.cos(b),
+    #         y=-np.sin(b),
+    #         z=np.cos(a) * np.cos(b),
+    #     )
+    #
+    # @direction_cos.setter
+    # def direction_cos(self: RayVectorT, value: kgpy.vector.Cartesian3D) -> None:
+    #     self.direction.x = -np.arctan2(value.x, value.z)
+    #     self.direction.y = np.arccos(value.y / value.length)
+
+    def apply_transform(self, transform: kgpy.transforms.TransformList) -> RayVectorT:
         # other = self.copy()
         other = self.copy_shallow()
-        transform_list = transform_list.simplified
-        other.position = transform_list(other.position, num_extra_dims=self.axis.ndim)
-        other.direction = transform_list(other.direction, translate=False, num_extra_dims=self.axis.ndim)
-        other.surface_normal = transform_list(other.surface_normal, translate=False, num_extra_dims=self.axis.ndim)
-        other.transform = self.transform + transform_list.inverse
+        other.position = transform(other.position)
+        other.direction = transform(other.direction, translate=False)
+        other.surface_normal = transform(other.surface_normal, translate=False)
+        other.transform = other.transform + transform.inverse
         return other
 
     @property
-    def transformed(self) -> 'Rays':
-        other = self.apply_transform_list(self.transform)
-        other.transform = kgpy.transform.rigid.TransformList()
+    def transformed(self) -> RayVectorT:
+        other = self.apply_transform(self.transform)
+        other.transform = kgpy.transforms.TransformList()
         return other
 
     @property
-    def grid_shape(self) -> typ.Tuple[int, ...]:
-        return np.broadcast(
-            self.wavelength,
-            self.position,
-            self.direction,
-            self.mask,
-        ).shape
-
-    # @property
-    # def vector_grid_shape(self) -> typ.Tuple[int, ...]:
-    #     return self.grid_shape + (3,)
-    #
-    # @property
-    # def scalar_grid_shape(self) -> typ.Tuple[int, ...]:
-    #     return self.grid_shape + (1,)
-
-    @property
-    def shape(self) -> typ.Tuple[int, ...]:
-        return self.grid_shape[:~(self.axis.ndim - 1)]
-
-    @property
-    def base_shape(self):
-        return self.grid_shape[~(self.axis.ndim - 1)]
-
-    @property
-    def ndim(self):
-        return len(self.shape)
-
-    @property
-    def size(self) -> int:
-        return int(np.prod(np.array(self.shape)))
-
-    @property
-    def num_wavlength(self):
-        return self.grid_shape[self.axis.wavelength]
-
-    # def _input_grid(self, axis: int) -> u.Quantity:
-    #     grid = self.input_grids[axis]
-    #     return np.broadcast_to(grid, self.shape + grid.shape[~0:], subok=True)
-
-    @property
-    def mask(self) -> np.ndarray:
-        return self.vignetted_mask & self.error_mask
-
-    # @property
-    # def input_field_mesh(self) -> vector.Vector2D:
-    #     return vector.Vector2D(
-    #         x=self.input_field.x[..., :, np.newaxis],
-    #         y=self.input_field.y[..., np.newaxis, :],
-    #     )
-
-    @property
-    def energy(self) -> u.Quantity:
+    def energy(self) -> kgpy.uncertainty.ArrayLike:
         return (astropy.constants.h * astropy.constants.c / self.wavelength).to(u.eV)
 
-    def _calc_avg_pupil(self, a: kgpy.vector.Vector3D) -> kgpy.vector.Vector3D:
-        a = a.copy()
-        a[~self.mask] = np.nan
-        return np.nanmean(a=a, axis=self.axis.pupil_xy, keepdims=True)
+    def _calc_average_pupil(self, a: kgpy.vector.Cartesian3D) -> kgpy.vector.Cartesian3D:
+        return np.mean(a=a, axis=('pupil.x', 'pupil.y'), where=self.mask)
 
-    def _calc_relative_pupil(self, a: kgpy.vector.Vector3D) -> kgpy.vector.Vector3D:
-        return a - self._calc_avg_pupil(a)
+    def _calc_relative_pupil(self, a: kgpy.vector.Cartesian3D) -> kgpy.vector.Cartesian3D:
+        return a - self._calc_average_pupil(a)
 
     @property
-    def position_avg_pupil(self) -> kgpy.vector.Vector3D:
-        return self._calc_avg_pupil(self.position)
+    def position_average_pupil(self) -> kgpy.vector.Cartesian3D:
+        return self._calc_average_pupil(self.position)
 
     @property
-    def position_relative_pupil(self) -> kgpy.vector.Vector3D:
+    def position_relative_pupil(self) -> kgpy.vector.Cartesian3D:
         return self._calc_relative_pupil(self.position)
-
-    @property
-    def position_apparent(self):
-        position = self.position.copy()
-        position.z = np.broadcast_to(self.wavelength, position.shape, subok=True).copy()
-        position = self.distortion.model(inverse=True)(position)
-        return position
-
-    @property
-    def distortion(self) -> Distortion:
-        return Distortion(
-            wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
-            spatial_mesh_input=kgpy.vector.Vector2D(
-                x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
-                y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
-            ),
-            spatial_mesh_output=self.position_avg_pupil[..., 0, 0, :, 0].xy,
-            mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
-            polynomial_degree=self.distortion_polynomial_degree,
-        )
-
-    @property
-    def vignetting(self) -> Vignetting:
-        intensity = self.intensity.copy()
-        intensity, mask = np.broadcast_arrays(intensity, self.mask, subok=True)
-        intensity[~mask] = 0
-        counts = intensity.sum((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los))
-        return Vignetting(
-            wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
-            spatial_mesh=kgpy.vector.Vector2D(
-                x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
-                y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
-            ),
-            unvignetted_percent=counts,
-            mask=mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
-            polynomial_degree=self.vignetting_polynomial_degree,
-        )
-
-    @property
-    def aberration(self) -> Aberration:
-        return Aberration(
-            distortion=self.distortion,
-            vignetting=self.vignetting,
-        )
 
     @property
     def spot_size_rms(self):
         position = self.position_relative_pupil
         r = position.xy.length
-        r2 = np.square(r)
-        pupil_axes = self.axis.pupil_x, self.axis.pupil_y
-        sz = np.sqrt(np.ma.average(r2.value, axis=pupil_axes, weights=self.mask) << r2.unit)
-        mask = self.mask.any(pupil_axes)
-        sz[~mask] = np.nan
-        return sz
+        result = np.sqrt(np.mean(np.square(r), axis=('pupil_x', 'pupil_y'), where=self.mask))
+        result[~self.mask.any(axis=('pupil_x', 'pupil_y'))] = np.nan
+        return result
+
+
+@dataclasses.dataclass
+class RayFunction(
+    kgpy.function.Array[vectors.ObjectVector, RayVector],
+):
+    input: vectors.ObjectVector = dataclasses.field(default_factory=vectors.ObjectVector)
+    output: RayVector = dataclasses.field(default_factory=RayVector)
+
+    # axis = Axis()
+    #
+    # intensity: u.Quantity = 1 * u.dimensionless_unscaled
+    # wavelength: u.Quantity = 0 * u.nm
+    # position: kgpy.vector.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian3D() * u.mm)
+    # direction: kgpy.vector.Vector3D = dataclasses.field(default_factory=kgpy.vector.zhat_factory)
+    # velocity_los: u.Quantity = 0 * u.km / u.s
+    # surface_normal: kgpy.vector.Vector3D = dataclasses.field(default_factory=lambda: -kgpy.vector.zhat_factory())
+    # index_of_refraction: u.Quantity = 1 * u.dimensionless_unscaled
+    # vignetted_mask: np.ndarray = np.array([True])
+    # error_mask: np.ndarray = np.array([True])
+    # input_grid: typ.Optional[RayGrid] = None
+    distortion_polynomial_degree: int = 2
+    vignetting_polynomial_degree: int = 1
+    #
+    # @property
+    # def field_angles(self) -> kgpy.vector.Vector2D:
+    #     angle = np.arcsin(self.direction.xy).to(u.deg)
+    #     angle.y = -angle.y
+    #     return angle
+    #
+    # @classmethod
+    # def from_field_angles(
+    #         cls,
+    #         # wavelength_grid: u.Quantity,
+    #         input_grid: RayGrid,
+    #         position: kgpy.vector.Vector3D,
+    #         # field_grid: vector.Vector2D,
+    #         # pupil_grid: vector.Vector2D,
+    #         # velocity_z_grid: u.Quantity
+    # ) -> 'Rays':
+    #
+    #     # field_x = np.expand_dims(input_grid.field.points.x, cls.axis.perp_axes(cls.axis.field_x))
+    #     # field_y = np.expand_dims(input_grid.field.points.y, cls.axis.perp_axes(cls.axis.field_y))
+    #
+    #     direction = kgpy.transform.rigid.TiltX(input_grid.points_field.y)(kgpy.vector.z_hat)
+    #     direction = kgpy.transform.rigid.TiltY(input_grid.points_field.x)(direction)
+    #
+    #     return cls(
+    #         wavelength=input_grid.points_wavelength,
+    #         position=position,
+    #         direction=direction,
+    #         velocity_los=input_grid.points_velocity_los,
+    #         input_grid=input_grid,
+    #         # input_wavelength=wavelength_grid,
+    #         # input_field=field_grid,
+    #         # input_pupil=pupil_grid,
+    #         # input_velocity_z=velocity_z_grid,
+    #     )
+    #
+    # @classmethod
+    # def from_field_positions(
+    #         cls,
+    #         # intensity: u.Quantity,
+    #         # wavelength_grid: u.Quantity,
+    #         input_grid: RayGrid,
+    #         direction: kgpy.vector.Vector3D,
+    #         # field_grid: vector.Vector2D,
+    #         # pupil_grid: vector.Vector2D,
+    #         # velocity_z_grid: u.Quantity,
+    # ) -> 'Rays':
+    #
+    #     return cls(
+    #         wavelength=input_grid.points_wavelength,
+    #         position=input_grid.points_field.to_3d(z=0 * u.mm),
+    #         direction=direction,
+    #         velocity_los=input_grid.points_velocity_los,
+    #         input_grid=input_grid,
+    #         # input_wavelength=wavelength_grid,
+    #         # input_field=field_grid,
+    #         # input_pupil=pupil_grid,
+    #         # input_velocity_z=velocity_z_grid,
+    #     )
+    #
+    # def apply_transform_list(self, transform_list: kgpy.transform.rigid.TransformList) -> 'Rays':
+    #     # other = self.copy()
+    #     other = self.copy_shallow()
+    #     transform_list = transform_list.simplified
+    #     other.position = transform_list(other.position, num_extra_dims=self.axis.ndim)
+    #     other.direction = transform_list(other.direction, translate=False, num_extra_dims=self.axis.ndim)
+    #     other.surface_normal = transform_list(other.surface_normal, translate=False, num_extra_dims=self.axis.ndim)
+    #     other.transform = self.transform + transform_list.inverse
+    #     return other
+    #
+    # @property
+    # def transformed(self) -> 'Rays':
+    #     other = self.apply_transform_list(self.transform)
+    #     other.transform = kgpy.transform.rigid.TransformList()
+    #     return other
+    #
+    # @property
+    # def grid_shape(self) -> typ.Tuple[int, ...]:
+    #     return np.broadcast(
+    #         self.wavelength,
+    #         self.position,
+    #         self.direction,
+    #         self.mask,
+    #     ).shape
+    #
+    # @property
+    # def shape(self) -> typ.Tuple[int, ...]:
+    #     return self.grid_shape[:~(self.axis.ndim - 1)]
+    #
+    # @property
+    # def base_shape(self):
+    #     return self.grid_shape[~(self.axis.ndim - 1)]
+    #
+    # @property
+    # def ndim(self):
+    #     return len(self.shape)
+    #
+    # @property
+    # def size(self) -> int:
+    #     return int(np.prod(np.array(self.shape)))
+    #
+    # @property
+    # def num_wavlength(self):
+    #     return self.grid_shape[self.axis.wavelength]
+    #
+    # @property
+    # def mask(self) -> np.ndarray:
+    #     return self.vignetted_mask & self.error_mask
+
+    @property
+    def output_position_apparent(self):
+        position = self.position.copy()
+        position.z = np.broadcast_to(self.wavelength, position.shape, subok=True).copy()
+        position = self.distortion.model(inverse=True)(position)
+        return position
+
+    # @property
+    # def distortion(self) -> Distortion:
+    #     return Distortion(
+    #
+    #     )
+    #     return Distortion(
+    #         wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
+    #         spatial_mesh_input=kgpy.vector.Vector2D(
+    #             x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
+    #             y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
+    #         ),
+    #         spatial_mesh_output=self.position_avg_pupil[..., 0, 0, :, 0].xy,
+    #         mask=self.mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
+    #         polynomial_degree=self.distortion_polynomial_degree,
+    #     )
+    #
+    # @property
+    # def vignetting(self) -> Vignetting:
+    #     intensity = self.intensity.copy()
+    #     intensity, mask = np.broadcast_arrays(intensity, self.mask, subok=True)
+    #     intensity[~mask] = 0
+    #     counts = intensity.sum((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los))
+    #     return Vignetting(
+    #         wavelength=self.input_grid.wavelength.points[..., np.newaxis, np.newaxis, :],
+    #         spatial_mesh=kgpy.vector.Vector2D(
+    #             x=self.input_grid.field.points.x[..., :, np.newaxis, np.newaxis],
+    #             y=self.input_grid.field.points.y[..., np.newaxis, :, np.newaxis],
+    #         ),
+    #         unvignetted_percent=counts,
+    #         mask=mask.any((self.axis.pupil_x, self.axis.pupil_y, self.axis.velocity_los)),
+    #         polynomial_degree=self.vignetting_polynomial_degree,
+    #     )
+    #
+    # @property
+    # def aberration(self) -> Aberration:
+    #     return Aberration(
+    #         distortion=self.distortion,
+    #         vignetting=self.vignetting,
+    #     )
+
+    # @property
+    # def spot_size_rms(self):
+    #     position = self.position_relative_pupil
+    #     r = position.xy.length
+    #     r2 = np.square(r)
+    #     pupil_axes = self.axis.pupil_x, self.axis.pupil_y
+    #     sz = np.sqrt(np.ma.average(r2.value, axis=pupil_axes, weights=self.mask) << r2.unit)
+    #     mask = self.mask.any(pupil_axes)
+    #     sz[~mask] = np.nan
+    #     return sz
 
     def plot_spot_size_vs_field(
             self,
@@ -458,11 +531,69 @@ class Rays(kgpy.transform.rigid.Transformable):
 
         return axs
 
+    def psf(
+            self,
+            bins: typ.Optional[kgpy.vector.Cartesian2D] = None,
+            use_vignetted: bool = False,
+            use_position_relative: bool = True,
+            use_position_apparent: bool = False,
+    ):
+        if use_position_apparent:
+            position = self.output_position_apparent
+        else:
+            position = self.output.position
+        position = position.xy
+
+        if not use_vignetted:
+            mask = self.output.mask
+        else:
+            mask = kgpy.labeled.Array(True)
+
+        if use_position_relative:
+            position = position - position.mean(axis=('pupil.x', 'pupil.y'), where=mask)
+
+        if bins is None:
+            bins = kgpy.vector.Cartesian2D(
+                x=position.shape['pupil.x'],
+                y=position.shape['pupil.y']
+            )
+
+        bins_dict = dict()
+        bins_dict['pupil.x'] = bins.x
+        bins_dict['pupil.y'] = bins.y
+
+        axis = ('field.x', 'field.y', 'pupil.x', 'pupil.y', 'wavelength', 'velocity_los', '_distribution')
+
+        limit_min = position.min(axis=axis, where=mask, initial=0)
+        limit_max = position.max(axis=axis, where=mask, initial=0)
+
+        hist, edges_x, edges_y = np.histogram2d(
+            x=position.x,
+            y=position.y,
+            bins=bins_dict,
+            range={'pupil.x': [limit_min.x, limit_max.x], 'pupil.y': [limit_min.y, limit_max.y]},
+            weights=mask,
+        )
+
+        centers_x = (edges_x[{'pupil.x': slice(1, None)}] + edges_x[{'pupil.x': slice(None, ~0)}]) / 2
+        centers_y = (edges_y[{'pupil.y': slice(1, None)}] + edges_y[{'pupil.y': slice(None, ~0)}]) / 2
+
+        return aberrations.PointSpreadFunction(
+            input=vectors.ImageVector(
+                field=self.input.field,
+                position=kgpy.vector.Cartesian2D(centers_x, centers_y),
+                wavelength=self.input.wavelength,
+                velocity_los=self.input.velocity_los,
+            ),
+            output=hist,
+        )
+
+
     def pupil_hist2d(
             self,
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            limit_min: typ.Optional[kgpy.vector.Vector2D] = None,
-            limit_max: typ.Optional[kgpy.vector.Vector2D] = None,
+            limit_min: typ.Optional['kgpy.vector.Vector2D'] = None,
+            limit_max: typ.Optional['kgpy.vector.Vector2D'] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
             use_position_apparent: bool = False,
@@ -574,10 +705,10 @@ class Rays(kgpy.transform.rigid.Transformable):
     def calc_mtf(
             cls,
             psf: u.Quantity,
-            limit_min: kgpy.vector.Vector2D,
-            limit_max: kgpy.vector.Vector2D,
+            limit_min: 'kgpy.vector.Vector2D',
+            limit_max: 'kgpy.vector.Vector2D',
             # frequency_min: typ.Optional[typ.Union[u.Quantity, kgpy.vector.Vector2D]] = None,
-    ) -> typ.Tuple[u.Quantity, kgpy.vector.Vector2D]:
+    ) -> typ.Tuple[u.Quantity, 'kgpy.vector.Vector2D']:
 
         psf_sum_pupil = np.nansum(a=psf, axis=cls.axis.pupil_xy, keepdims=True)
         psf = np.nan_to_num(psf / psf_sum_pupil)
@@ -624,10 +755,10 @@ class Rays(kgpy.transform.rigid.Transformable):
 
     def mtf(
             self,
-            bins: typ.Union[int, kgpy.vector.Vector2D] = 10,
-            frequency_min: typ.Optional[typ.Union[u.Quantity, kgpy.vector.Vector2D]] = None,
+            bins: typ.Union[int, 'kgpy.vector.Vector2D'] = 10,
+            frequency_min: typ.Optional[typ.Union[u.Quantity, 'kgpy.vector.Vector2D']] = None,
             use_vignetted: bool = False,
-    ) -> typ.Tuple[u.Quantity, kgpy.vector.Vector2D]:
+    ) -> typ.Tuple[u.Quantity, 'kgpy.vector.Vector2D']:
 
         if not isinstance(bins, kgpy.vector.Vector2D):
             bins = kgpy.vector.Vector2D(x=bins, y=bins)
@@ -698,7 +829,7 @@ class Rays(kgpy.transform.rigid.Transformable):
     def plot_position(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            color_axis: int = axis.wavelength,
+            color_axis: str = 'wavelength',
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         return self.plot_attribute(
@@ -712,7 +843,7 @@ class Rays(kgpy.transform.rigid.Transformable):
     def plot_direction(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            color_axis: int = axis.wavelength,
+            color_axis: str = 'wavelength',
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         return self.plot_attribute(
@@ -728,7 +859,7 @@ class Rays(kgpy.transform.rigid.Transformable):
             attr_x: u.Quantity,
             attr_y: u.Quantity,
             ax: typ.Optional[plt.Axes] = None,
-            color_axis: int = axis.wavelength,
+            color_axis: str = 'wavelength',
             plot_vignetted: bool = False,
     ) -> plt.Axes:
         if ax is None:
@@ -783,8 +914,8 @@ class Rays(kgpy.transform.rigid.Transformable):
             wavlen_index: int = 0,
             velocity_los_index: int = 0,
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            limit_min: typ.Optional[kgpy.vector.Vector2D] = None,
-            limit_max: typ.Optional[kgpy.vector.Vector2D] = None,
+            limit_min: typ.Optional['kgpy.vector.Vector2D'] = None,
+            limit_max: typ.Optional['kgpy.vector.Vector2D'] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (True, True),
             norm: typ.Optional[matplotlib.colors.Normalize] = None,
@@ -886,95 +1017,121 @@ class Rays(kgpy.transform.rigid.Transformable):
 
 
 @dataclasses.dataclass
-class RaysList(
-    kgpy.dxf.WritableMixin,
+class RayFunctionList(
+    kgpy.io.dxf.WritableMixin,
     kgpy.mixin.Plottable,
-    kgpy.mixin.DataclassList[Rays],
+    kgpy.mixin.DataclassList[RayFunction],
 ):
     @property
-    def intercepts(self) -> kgpy.vector.Vector3D:
+    def intercepts(self) -> kgpy.vector.Cartesian3D:
         intercepts = []
         for rays in self:
-            intercept = rays.transform(rays.position, num_extra_dims=rays.axis.ndim)
-            intercept = np.broadcast_to(intercept, self[~0].grid_shape, subok=True)
+            intercept = rays.output.transform(rays.output.position)
+            intercept = np.broadcast_to(intercept, self[~0].shape)
             intercepts.append(intercept)
-        return np.stack(intercepts)
+        return np.stack(intercepts, axis='surface')
 
     def plot(
             self,
             ax: plt.Axes,
-            components: typ.Tuple[str, str] = ('x', 'y'),
-            component_z: typ.Optional[str] = None,
-            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
-            transform_extra: typ.Optional[kgpy.transform.rigid.TransformList] = None,
-            color_axis: int = Rays.axis.wavelength,
+            component_x: str = 'x',
+            component_y: str = 'y',
+            component_z: str = 'z',
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
+            color_axis: str = 'wavelength',
             plot_vignetted: bool = False,
-            plot_colorbar: bool = True,
+            colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
+            # plot_colorbar: bool = True,
+            **kwargs,
     ) -> typ.Tuple[typ.List[plt.Line2D], typ.Optional[matplotlib.colorbar.Colorbar]]:
 
-        if plot_kwargs is not None:
-            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
-        else:
-            plot_kwargs = self.plot_kwargs
+        kwargs = {**self.plot_kwargs, **kwargs}
 
         if transform_extra is None:
-            transform_extra = kgpy.transform.rigid.TransformList()
+            transform_extra = kgpy.transforms.TransformList()
 
         img_rays = self[~0]
 
         intercepts = transform_extra(self.intercepts)
 
-        color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
+        # color_axis = (color_axis % img_rays.axis.ndim) - img_rays.axis.ndim
 
         if plot_vignetted:
-            mask = img_rays.error_mask
+            mask = None
         else:
-            mask = img_rays.mask
-        mask = np.broadcast_to(mask, img_rays.grid_shape)
+            mask = img_rays.output.mask
 
-        mesh = img_rays.input_grid.points_from_axis(color_axis)
-        mesh = np.broadcast_to(mesh, img_rays.grid_shape, subok=True)
+        color_axis = color_axis.split('.')
+        color = img_rays.input
+        for element in color_axis:
+            color = color.coordinates[element]
 
-        with astropy.visualization.quantity_support():
-            colormap = plt.cm.viridis
-            colornorm = plt.Normalize(vmin=mesh.value.min(), vmax=mesh.value.max())
-            if mesh.value.min() == mesh.value.max():
-                color = np.broadcast_to(colormap(0.5), mesh.shape + (4, ))
-            else:
-                color = colormap(colornorm(mesh.value))
+        return intercepts.plot(
+            ax=ax,
+            axis_plot='surface',
+            where=mask,
+            color=color,
+            colormap=colormap,
+            component_x=component_x,
+            component_y=component_y,
+            component_z=component_z,
+            **kwargs
+        )
 
-            intercepts = intercepts[:, mask]
-            color = color[mask]
+        # if isinstance(coordinates_color, kgpy.uncertainty.AbstractArray):
+        #     coordinates_color = coordinates_color.distribution
 
-            lines = []
-            for i in range(intercepts.shape[~0]):
-                plot_kwargs_z = {}
-                if component_z is not None:
-                    plot_kwargs_z['zs'] = intercepts[..., i].get_component(component_z)
-                if 'color' not in plot_kwargs:
-                    kwargs_color = dict(color=color[..., i, :])
-                else:
-                    kwargs_color = dict()
-                lines_i = ax.plot(
-                    intercepts[..., i].get_component(components[0]),
-                    intercepts[..., i].get_component(components[1]),
-                    **kwargs_color,
-                    **plot_kwargs_z,
-                    **plot_kwargs,
-                )
-
-                lines = lines + lines_i
-
-            if plot_colorbar:
-                colorbar = ax.figure.colorbar(
-                    matplotlib.cm.ScalarMappable(cmap=colormap, norm=colornorm),
-                    ax=ax, fraction=0.02,
-                    label=img_rays.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
-                )
-            else:
-                colorbar = None
-
-        return lines, colorbar
+        # colormap = matplotlib.cm.ScalarMappable(
+        #     cmap=plt.cm.viridis,
+        #     norm=plt.Normalize(
+        #         vmin=coordinates_color.min().array,
+        #         vmax=coordinates_color.max().array,
+        #     )
+        # )
+        #
+        # mesh = img_rays.input_grid.points_from_axis(color_axis)
+        # mesh = np.broadcast_to(mesh, img_rays.grid_shape, subok=True)
+        #
+        # with astropy.visualization.quantity_support():
+        #     colormap = plt.cm.viridis
+        #     colornorm = plt.Normalize(vmin=mesh.value.min(), vmax=mesh.value.max())
+        #     if mesh.value.min() == mesh.value.max():
+        #         color = np.broadcast_to(colormap(0.5), mesh.shape + (4, ))
+        #     else:
+        #         color = colormap(colornorm(mesh.value))
+        #
+        #     intercepts = intercepts[:, mask]
+        #     color = color[mask]
+        #
+        #     lines = []
+        #     for i in range(intercepts.shape[~0]):
+        #         plot_kwargs_z = {}
+        #         if component_z is not None:
+        #             plot_kwargs_z['zs'] = intercepts[..., i].get_component(component_z)
+        #         if 'color' not in plot_kwargs:
+        #             kwargs_color = dict(color=color[..., i, :])
+        #         else:
+        #             kwargs_color = dict()
+        #         lines_i = ax.plot(
+        #             intercepts[..., i].get_component(components[0]),
+        #             intercepts[..., i].get_component(components[1]),
+        #             **kwargs_color,
+        #             **plot_kwargs_z,
+        #             **plot_kwargs,
+        #         )
+        #
+        #         lines = lines + lines_i
+        #
+        #     if plot_colorbar:
+        #         colorbar = ax.figure.colorbar(
+        #             matplotlib.cm.ScalarMappable(cmap=colormap, norm=colornorm),
+        #             ax=ax, fraction=0.02,
+        #             label=img_rays.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
+        #         )
+        #     else:
+        #         colorbar = None
+        #
+        # return lines, colorbar
 
     def to_dxf(self, filename: pathlib.Path, dxf_unit: u.Unit = u.imperial.inch):
 
@@ -996,7 +1153,7 @@ class RaysList(
             self: RaysListT,
             file_writer: R12FastStreamWriter,
             unit: u.Unit,
-            transform_extra: typ.Optional[kgpy.transform.rigid.Transform] = None,
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
     ) -> None:
 
         mask = np.broadcast_to(self[~1].mask, self[~0].mask.shape)

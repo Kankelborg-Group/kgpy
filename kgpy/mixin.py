@@ -12,8 +12,6 @@ import pickle
 import typing as typ
 from ezdxf.addons.r12writer import R12FastStreamWriter
 
-from kgpy import Name
-
 __all__ = [
     'AutoAxis',
     'Broadcastable',
@@ -127,12 +125,12 @@ class Copyable(abc.ABC):
 
 @dataclasses.dataclass
 class Named(Copyable, Dataframable):
-    name: Name = dataclasses.field(default_factory=lambda: Name())
+    name: str = ''
 
     @property
     def dataframe(self) -> pandas.DataFrame:
         dataframe = super().dataframe
-        dataframe['name'] = [str(self.name)]
+        dataframe['name'] = [self.name]
         return dataframe
 
 

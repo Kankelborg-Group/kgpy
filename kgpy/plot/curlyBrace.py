@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-'''
+"""
 Module Name : curlyBrace
 
 Author : 高斯羽 博士 (Dr. GAO, Siyu)
@@ -32,13 +32,7 @@ Reference
 ----------------------
 https://uk.mathworks.com/matlabcentral/fileexchange/38716-curly-brace-annotation
 
-List of functions
-----------------------
-
-* getAxSize_
-* curlyBrace_
-
-'''
+"""
 
 import matplotlib.pyplot as plt
 import numpy as np

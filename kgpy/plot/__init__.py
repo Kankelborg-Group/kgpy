@@ -13,16 +13,18 @@ from matplotlib.backend_bases import KeyEvent, MouseEvent, MouseButton
 import astropy.units as u
 import astropy.wcs
 import kgpy.format
-from kgpy import format as fmt, vector
+import kgpy.labeled
+import kgpy.uncertainty
+import kgpy.vector
 from .curlyBrace import curlyBrace
 from . import brace
 __all__ = ['calc_extent', 'curlyBrace', 'ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
 
 
 def calc_extent(
-        data_min: vector.Vector2D,
-        data_max: vector.Vector2D,
-        num_steps: vector.Vector2D,
+        data_min: kgpy.vector.Cartesian2D,
+        data_max: kgpy.vector.Cartesian2D,
+        num_steps: kgpy.vector.Cartesian2D,
 ):
     delta = (data_max - data_min) / (num_steps - 1)
 
@@ -47,9 +49,9 @@ def datetime_prep(ax: plt.Axes):
 
 def annotate_distance(
         ax: matplotlib.axes.Axes,
-        point_1: vector.Vector2D,
-        point_2: vector.Vector2D,
-        point_text: typ.Optional[vector.Vector2D] = None,
+        point_1: kgpy.vector.Cartesian2D,
+        point_2: kgpy.vector.Cartesian2D,
+        point_text: typ.Optional[kgpy.vector.Cartesian2D] = None,
         horizontal_alignment: str = 'center',
         vertical_alignment: str = 'center',
         annotation_textcoords: typ.Optional = None,
@@ -65,7 +67,7 @@ def annotate_distance(
     annotation_1 = ax.annotate(**kwargs, arrowprops=dict(arrowstyle='<->', shrinkA=0.0, shrinkB=0.0))
     annotation_2 = ax.annotate(**kwargs, arrowprops=dict(arrowstyle='|-|', shrinkA=0.0, shrinkB=0.0))
     midpoint = (point_1 + point_2) / 2
-    text_str = fmt.quantity((point_2 - point_1).length, digits_after_decimal=1)
+    text_str = kgpy.format.quantity((point_2 - point_1).length, digits_after_decimal=1)
     if point_text is None:
         text = ax.text(
             x=midpoint.x,
@@ -97,8 +99,8 @@ def annotate_distance(
 
 def annotate_component(
         ax: matplotlib.axes.Axes,
-        point_1: vector.Vector2D,
-        point_2: vector.Vector2D,
+        point_1: kgpy.vector.Cartesian2D,
+        point_2: kgpy.vector.Cartesian2D,
         component: str = 'x',
         position_orthogonal: float = 0,
         position_parallel: float = 0.5,
@@ -116,8 +118,8 @@ def annotate_component(
     if transform is None:
         transform = ax.transData
 
-    point_1c = vector.Vector2D(position_orthogonal, position_orthogonal)
-    point_2c = vector.Vector2D(position_orthogonal, position_orthogonal)
+    point_1c = kgpy.vector.Cartesian2D(position_orthogonal, position_orthogonal)
+    point_2c = kgpy.vector.Cartesian2D(position_orthogonal, position_orthogonal)
 
     c1 = point_1.get_component(component)
     c2 = point_2.get_component(component)
@@ -165,8 +167,8 @@ def annotate_component(
         )
 
 
-    text_pos = vector.Vector2D(position_orthogonal, position_orthogonal)
-    text_pos.set_component(component, (c1 + position_parallel * (c2 - c1)).value)
+    text_pos = kgpy.vector.Cartesian2D(position_orthogonal, position_orthogonal)
+    text_pos.coordinates[component] = (c1 + position_parallel * (c2 - c1)).value
 
     length = np.abs(c2 - c1)
     if as_fraction:
@@ -184,7 +186,7 @@ def annotate_component(
 
         text_str = f'{length_int}{length_frac}{length.unit}'
     else:
-        text_str = fmt.quantity(length, digits_after_decimal=digits_after_decimal)
+        text_str = kgpy.format.quantity(length, digits_after_decimal=digits_after_decimal)
 
     bbox_margin = plt.rcParams['font.size'] / 2
     if horizontal_alignment == 'left':
@@ -222,7 +224,7 @@ def annotate_component(
 
 def annotate_angle(
         ax: matplotlib.axes.Axes,
-        point_center: vector.Vector2D,
+        point_center: kgpy.vector.Cartesian2D,
         radius: u.Quantity,
         angle_1: u.Quantity,
         angle_2: u.Quantity,
@@ -237,11 +239,11 @@ def annotate_angle(
         shrink: float = 5,
         digits_after_decimal: int = 3,
 ):
-    point_1 = point_center + vector.Vector2D.from_cylindrical(1.1 * radius, angle_1)
-    point_2 = point_center + vector.Vector2D.from_cylindrical(1.1 * radius, angle_2)
-    point_inner_1 = point_center + vector.Vector2D.from_cylindrical(radius_inner, angle_1)
-    point_inner_2 = point_center + vector.Vector2D.from_cylindrical(radius_inner, angle_2)
-    point_label = point_center + vector.Vector2D.from_cylindrical(radius, angle_label)
+    point_1 = point_center + kgpy.vector.Polar(1.1 * radius, angle_1).cartesian
+    point_2 = point_center + kgpy.vector.Polar(1.1 * radius, angle_2).cartesian
+    point_inner_1 = point_center + kgpy.vector.Polar(radius_inner, angle_1).cartesian
+    point_inner_2 = point_center + kgpy.vector.Polar(radius_inner, angle_2).cartesian
+    point_label = point_center + kgpy.vector.Polar(radius, angle_label).cartesian
 
     angle_delta = angle_1 - angle_2
     rad = (1 - np.cos(angle_delta / 2)) / (2 * np.sin(angle_delta / 2))
@@ -720,25 +722,25 @@ class HypercubeSlicer:
         if self._integrate:
             self._ax_xy.set_title('Summed Z')
         else:
-            self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
+            self._ax_xy.set_title('z = ' + kgpy.format.quantity(self._z_pos))
         self._ax_xy.reset_wcs(wcs=self._wcs_xy)
         self._img_xy.set_data(self._data_xy)
         self._xy_vline.set_xdata(self._x_index_int)
         self._xy_hline.set_ydata(self._y_index_int)
 
-        self._ax_xz.set_title('y = ' + fmt.quantity(self._y_pos))
+        self._ax_xz.set_title('y = ' + kgpy.format.quantity(self._y_pos))
         self._ax_xz.reset_wcs(wcs=self._wcs_xz)
         self._img_xz.set_data(self._data_xz)
         self._xz_vline.set_xdata(self._x_index_int)
         self._xz_hline.set_ydata(self._z_index_int)
 
-        self._ax_yz.set_title('x = ' + fmt.quantity(self._x_pos))
+        self._ax_yz.set_title('x = ' + kgpy.format.quantity(self._x_pos))
         self._ax_yz.reset_wcs(wcs=self._wcs_yz)
         self._img_yz.set_data(self._data_yz)
         self._yz_vline.set_xdata(self._z_index_int)
         self._yz_hline.set_ydata(self._y_index_int)
 
-        self._ax_z.set_title('x = ' + fmt.quantity(self._x_pos) + ', y = ' + fmt.quantity(self._y_pos))
+        self._ax_z.set_title('x = ' + kgpy.format.quantity(self._x_pos) + ', y = ' + fmt.quantity(self._y_pos))
         self._ax_z.reset_wcs(wcs=self._wcs_z)
         self._plot_z[0].set_ydata(self._data_z)
         self._plot_z_med[0].set_ydata(self._data_xy_median[self.t_index])
@@ -752,9 +754,9 @@ class HypercubeSlicer:
     @x_index.setter
     def x_index(self, value: float):
         self._x_index = value
-        self._ax_yz.set_title('x = ' + fmt.quantity(self._x_pos))
-        self._ax_z.set_title('x = ' + fmt.quantity(self._x_pos) +
-                             ', y = ' + fmt.quantity(self._y_pos))
+        self._ax_yz.set_title('x = ' + kgpy.format.quantity(self._x_pos))
+        self._ax_z.set_title('x = ' + kgpy.format.quantity(self._x_pos) +
+                             ', y = ' + kgpy.format.quantity(self._y_pos))
         self._xy_vline.set_xdata(self._x_index_int)
         self._xz_vline.set_xdata(self._x_index_int)
         self._img_yz.set_data(self._data_yz)
@@ -767,9 +769,9 @@ class HypercubeSlicer:
     @y_index.setter
     def y_index(self, value: float):
         self._y_index = value
-        self._ax_xz.set_title('y = ' + fmt.quantity(self._y_pos))
-        self._ax_z.set_title('x = ' + fmt.quantity(self._x_pos) +
-                             ', y = ' + fmt.quantity(self._y_pos))
+        self._ax_xz.set_title('y = ' + kgpy.format.quantity(self._y_pos))
+        self._ax_z.set_title('x = ' + kgpy.format.quantity(self._x_pos) +
+                             ', y = ' + kgpy.format.quantity(self._y_pos))
         self._xy_hline.set_ydata(self._y_index_int)
         self._yz_hline.set_ydata(self._y_index_int)
         self._img_xz.set_data(self._data_xz)
@@ -785,7 +787,7 @@ class HypercubeSlicer:
         if self._integrate:
             self._ax_xy.set_title('Summed Z')
         else:
-            self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
+            self._ax_xy.set_title('z = ' + kgpy.format.quantity(self._z_pos))
         self._xz_hline.set_ydata(self._z_index_int)
         self._yz_vline.set_xdata(self._z_index_int)
         self._z_vline.set_xdata(self._z_index_int)
@@ -795,7 +797,7 @@ class HypercubeSlicer:
         if self._integrate:
             self._integrate = False
             self._img_xy.set_data(self._data_xy)
-            self._ax_xy.set_title('z = ' + fmt.quantity(self._z_pos))
+            self._ax_xy.set_title('z = ' + kgpy.format.quantity(self._z_pos))
             self._img_xy.set_clim(vmax=self.vmax)
         else:
             self._integrate = True

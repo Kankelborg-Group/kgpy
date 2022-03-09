@@ -17,8 +17,10 @@ __all__ = [
 
 
 AbstractMatrixT = typ.TypeVar('AbstractMatrixT', bound='AbstractMatrix')
+Cartesian1DT = typ.TypeVar('Cartesian1DT', bound='Cartesian1D')
 Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
 Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
+CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
 
 
 @dataclasses.dataclass(eq=False)
@@ -38,9 +40,27 @@ class AbstractMatrix(
         pass
 
     @property
-    @abc.abstractmethod
     def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
-        pass
+        row_prototype = next(iter(self.coordinates.values()))
+        result = type(row_prototype)().to_matrix()
+        for component_column in row_prototype.coordinates:
+            result.coordinates[component_column] = type(self)().to_vector()
+
+        for component_row in self.coordinates:
+            for component_column in self.coordinates[component_row].coordinates:
+                result.coordinates[component_column].coordinates[component_row] = self.coordinates[component_row].coordinates[component_column]
+
+        return result
+
+    def __matmul__(self: CartesianNDT, other: CartesianNDT):
+        result = CartesianND()
+        other = other.transpose
+        for self_component_row in self.coordinates:
+            result.coordinates[self_component_row] = type(other)().to_vector()
+            for other_component_row in other.coordinates:
+                element = self.coordinates[self_component_row] @ other.coordinates[other_component_row]
+                result.coordinates[self_component_row].coordinates[other_component_row] = element
+        return result
 
     def inverse_numpy(self: AbstractMatrixT) -> AbstractMatrixT:
 
@@ -48,7 +68,7 @@ class AbstractMatrix(
         for component_row in self.components:
             for component_column in self.coordinates[component_row].components:
                 unit = 1 * getattr(self.coordinates[component_row].coordinates[component_column], 'unit', 1)
-                unit_matrix.coordinates[component_row].set_coordinate(component_column, unit)
+                unit_matrix.coordinates[component_row].coordinates[component_column] = unit
 
         value_matrix = self / unit_matrix
 
@@ -64,7 +84,7 @@ class AbstractMatrix(
         for i, component_row in enumerate(inverse_matrix.components):
             coordinates_row = inverse_matrix.coordinates[component_row]
             for j, component_column in enumerate(coordinates_row.components):
-                coordinates_row.set_coordinate(component_column, arrays_inverse[dict(row=i, column=j)])
+                coordinates_row.coordinates[component_column] = arrays_inverse[dict(row=i, column=j)]
 
         inverse_matrix = inverse_matrix / unit_matrix.transpose
         return inverse_matrix
@@ -83,7 +103,34 @@ class AbstractMatrix(
         raise ValueError
 
     def __invert__(self: AbstractMatrixT) -> AbstractMatrixT:
-        return self.inverse_schulz()
+        return self.inverse_numpy()
+
+    @abc.abstractmethod
+    def to_vector(self: AbstractMatrixT) -> kgpy.vector.AbstractVector:
+        pass
+
+
+@dataclasses.dataclass(eq=False)
+class Cartesian1D(
+    kgpy.vector.Cartesian1D[kgpy.vector.Cartesian1D],
+    AbstractMatrix,
+):
+    @classmethod
+    def identity(cls: typ.Type[Cartesian1DT]) -> Cartesian1DT:
+        return cls(
+            x=kgpy.vector.Cartesian1D(x=1),
+        )
+
+    @property
+    def determinant(self: Cartesian1DT) -> kgpy.uncertainty.ArrayLike:
+        return self.x.x
+
+    @property
+    def transpose(self: Cartesian1DT) -> Cartesian1DT:
+        return self
+
+    def to_vector(self: Cartesian1DT) -> kgpy.vector.Cartesian1D:
+        return kgpy.vector.Cartesian1D(self.x)
 
 
 @dataclasses.dataclass(eq=False)
@@ -111,13 +158,6 @@ class Cartesian2D(
     @property
     def determinant(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
         return self.x.x * self.y.y - self.x.y * self.y.x
-
-    @property
-    def transpose(self: Cartesian2DT) -> Cartesian2DT:
-        return Cartesian2D(
-            x=kgpy.vector.Cartesian2D(x=self.x.x, y=self.y.x),
-            y=kgpy.vector.Cartesian2D(x=self.x.y, y=self.y.y),
-        )
 
     def __invert__(self: Cartesian2DT) -> Cartesian2DT:
         result = type(self)(
@@ -163,6 +203,9 @@ class Cartesian2D(
             )
         else:
             return NotImplemented
+
+    def to_vector(self: Cartesian2DT) -> kgpy.vector.Cartesian2D:
+        return kgpy.vector.Cartesian2D(x=self.x, y=self.y)
 
 
 @dataclasses.dataclass(eq=False)
@@ -219,14 +262,6 @@ class Cartesian3D(
         dy = self.x.y * (self.y.z * self.z.x - self.y.x * self.z.z)
         dz = self.x.z * (self.y.x * self.z.y - self.y.y * self.z.x)
         return dx + dy + dz
-
-    @property
-    def transpose(self: Cartesian3DT) -> Cartesian3DT:
-        return Cartesian3D(
-            x=kgpy.vector.Cartesian3D(self.x.x, self.y.x, self.z.x),
-            y=kgpy.vector.Cartesian3D(self.x.y, self.y.y, self.z.y),
-            z=kgpy.vector.Cartesian3D(self.x.z, self.y.z, self.z.z),
-        )
 
     def __invert__(self: Cartesian3DT) -> Cartesian3DT:
         a, b, c = self.x.tuple
@@ -287,6 +322,9 @@ class Cartesian3D(
         else:
             return NotImplemented
 
+    def to_vector(self: Cartesian3DT) -> kgpy.vector.Cartesian3D:
+        return kgpy.vector.Cartesian3D(x=self.x, y=self.y, z=self.z)
+
 
 class CartesianND(
     kgpy.vector.CartesianND[kgpy.vector.CartesianND],
@@ -300,9 +338,8 @@ class CartesianND(
     def determinant(self: AbstractMatrixT) -> kgpy.uncertainty.ArrayLike:
         raise NotImplementedError
 
-    @property
-    def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
-        raise NotImplementedError
+    def to_vector(self: CartesianNDT) -> kgpy.vector.CartesianNDT:
+        return kgpy.vector.CartesianND(self.coordinates)
 
 
 @dataclasses.dataclass

@@ -5,11 +5,9 @@ import pytest
 import cProfile
 import numpy as np
 import astropy.units as u
-import mayavi.mlab
 import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vector
-import kgpy.grid
 import kgpy.function
 
 __all__ = [
@@ -21,109 +19,51 @@ class TestArray:
 
     def test_shape(self):
         shape = dict(x=5, y=6)
-        d = kgpy.data.Array(
-            value=kgpy.labeled.Array(1, []),
-            grid=kgpy.grid.XY(
+        d = kgpy.function.Array(
+            output=kgpy.labeled.Array(1, []),
+            input=kgpy.vector.Cartesian2D(
                 x=kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['x'], axis='x'),
                 y=kgpy.labeled.LinearSpace(start=0, stop=2, num=shape['y'], axis='y'),
             ),
         )
         assert d.shape == shape
 
-    # def test_axes_separable(self):
-    #     shape = dict(x=10, y=11, z=12)
-    #     x = LabeledArray.linspace(0, 1, shape['x'], axis='x')
-    #     y = LabeledArray.linspace(-1, 1, shape['y'], axis='y')
-    #     a = DataArray(
-    #         data=LabeledArray.empty(shape),
-    #         grid=dict(
-    #             x=x * y,
-    #             y=y,
-    #         ),
-    #     )
-    #     assert a.axes_separable == ['y', 'z']
+    def test_interp_nearest_1d(self):
 
-    def test__eq__(self):
+
         shape = dict(x=10, y=11)
-        start_x = 0
-        stop_x = 1
-        start_y = 0
-        stop_y = 2
-        a = kgpy.data.Array(
-            value=kgpy.labeled.Array.ones(shape),
-            grid=kgpy.grid.XY(
-                x=kgpy.labeled.LinearSpace(start=start_x, stop=stop_x, num=shape['x'], axis='x'),
-                y=kgpy.labeled.LinearSpace(start=start_y, stop=stop_y, num=shape['y'], axis='y'),
-            ),
+
+        x = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['x'], axis='x')
+        output = np.sin(x)
+        # if width is not None:
+        #     output = kgpy.uncertainty.Normal(output, width)
+        a = kgpy.function.Array(
+            input=x,
+            output=output,
         )
+        b = a.interp_nearest(x)
 
-        b = kgpy.data.Array(
-            value=kgpy.labeled.Array.ones(shape),
-            grid=kgpy.grid.XY(
-                x=kgpy.labeled.LinearSpace(start=start_x, stop=stop_x, num=shape['x'], axis='x'),
-                y=kgpy.labeled.LinearSpace(start=start_y, stop=stop_y, num=shape['y'], axis='y'),
-            ),
-        )
+        assert np.all(a.output == b.output)
 
-        assert a == b
+        x_fine = x.copy()
+        x_fine.num = 100
+        c = a.interp_nearest(x_fine)
 
-    def test__eq__data(self):
-        shape = dict(x=10, y=11)
-        a = kgpy.data.Array(
-            value=kgpy.labeled.Array.ones(shape),
-            grid=kgpy.grid.XY(
-                x=kgpy.labeled.LinearSpace(0, 1, num=shape['x'], axis='x'),
-                y=kgpy.labeled.LinearSpace(0, 1, num=shape['y'], axis='y'),
-            ),
-        )
+        assert c.output.sum() != 0
 
-        b = kgpy.data.Array(
-            value=kgpy.labeled.Array.zeros(shape),
-            grid=kgpy.grid.XY(
-                x=kgpy.labeled.LinearSpace(0, 1, num=shape['x'], axis='x'),
-                y=kgpy.labeled.LinearSpace(0, 1, num=shape['y'], axis='y'),
-            ),
-        )
+        b.input = np.broadcast_to(b.input, b.input.shape)
+        c.input = np.broadcast_to(c.input, c.input.shape)
 
-        assert a != b
+        if isinstance(b.output, kgpy.uncertainty.AbstractArray):
+            b.output = b.output.distribution.mean('_distribution')
+        if isinstance(c.output, kgpy.uncertainty.AbstractArray):
+            c.output = c.output.distribution.mean('_distribution')
 
-    def test__eq__grid(self):
-        shape = dict(x=10, y=11)
-        a = kgpy.data.Array(
-            value=kgpy.labeled.Array.ones(shape),
-            grid=kgpy.grid.XY(
-                x=kgpy.labeled.LinearSpace(0, 1, num=shape['x'], axis='x'),
-                y=kgpy.labeled.LinearSpace(0, 1, num=shape['y'], axis='y'),
-            ),
-        )
-
-        b = kgpy.data.Array(
-            value=kgpy.labeled.Array.ones(shape),
-            grid=kgpy.grid.XY(
-                x=kgpy.labeled.LinearSpace(0, 2, num=shape['x'], axis='x'),
-                y=kgpy.labeled.LinearSpace(0, 1, num=shape['y'], axis='y'),
-            ),
-        )
-
-        assert a != b
-
-    def test__getitem__int(self):
-
-        shape = dict(x=5, y=6)
-
-        x = kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['x'], axis='x')
-        y = kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['y'], axis='y')
-
-        a = kgpy.data.Array(
-            value=x * y,
-            grid=kgpy.grid.XY(x=x, y=y),
-        )
-
-        assert np.all(a[dict(y=~0)].value == x)
-        assert np.all(a[dict(x=~0)].value == y)
-
-        assert not np.all(a[dict(y=~1)].value == x)
-        assert not np.all(a[dict(x=~1)].value == y)
+        # plt.figure()
+        # plt.scatter(a.input.array, a.output.array)
+        # plt.scatter(b.input.array, b.output.array)
+        # plt.scatter(c.input.array, c.output.array)
+        # plt.show()
 
     @pytest.mark.parametrize(
         argnames='width',
@@ -144,12 +84,11 @@ class TestArray:
             output = kgpy.uncertainty.Normal(output, width)
         a = kgpy.function.Array(
             input=position,
-            # output=output_coefficient * np.sin(x) * np.cos(y),
             output=output,
         )
         b = a.interp_nearest(position)
 
-        assert np.all(a.output == b)
+        assert np.all(a.output == b.output)
 
         position_fine = kgpy.vector.Cartesian2D(
             x=kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=100, axis='x'),
@@ -157,23 +96,23 @@ class TestArray:
         )
         c = a.interp_nearest(position_fine)
 
-        assert c.sum() != 0
+        assert c.output.sum() != 0
 
-        position = np.broadcast_to(position, position.shape)
-        position_fine = np.broadcast_to(position_fine, position_fine.shape)
+        b.input = np.broadcast_to(b.input, b.input.shape)
+        c.input = np.broadcast_to(c.input, c.input.shape)
 
-        if isinstance(b, kgpy.uncertainty.AbstractArray):
-            b = b.distribution.mean('_distribution')
-        if isinstance(c, kgpy.uncertainty.AbstractArray):
-            c = c.distribution.mean('_distribution')
+        if isinstance(b.output, kgpy.uncertainty.AbstractArray):
+            b.output = b.output.distribution.mean('_distribution')
+        if isinstance(c.output, kgpy.uncertainty.AbstractArray):
+            c.output = c.output.distribution.mean('_distribution')
 
-        plt.figure()
-        plt.scatter(position.x.array, position.y.array, c=b.array)
-
-        plt.figure()
-        plt.scatter(position_fine.x.array, position_fine.y.array, c=c.array)
-
-        plt.show()
+        # plt.figure()
+        # plt.scatter(b.input.x.array, b.input.y.array, c=b.output.array)
+        #
+        # plt.figure()
+        # plt.scatter(c.input.x.array, c.input.y.array, c=c.output.array)
+        #
+        # plt.show()
 
     def test_interp_linear_1d(self):
 
@@ -181,23 +120,24 @@ class TestArray:
 
         x = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['x'], axis='x')
         a = kgpy.function.Array(
-            data=np.sin(x),
-            grid=dict(x=x,)
+            input=x,
+            output=np.sin(x),
         )
 
-        b = a.interp_linear(x=x)
-        assert np.isclose(a.data.data, b.data.data).all()
+        b = a.interp_linear(x)
+        # assert np.isclose(a.data.data, b.data.data).all()
 
         shape_large = dict(x=100)
+        x_large = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape_large['x'], axis='x')
         c = a.interp_linear(
-            x=LabeledArray.linspace(start=0, stop=2 * np.pi, num=shape_large['x'], axis='x'),
+            x_large,
         )
         assert c.shape == shape_large
 
         # plt.figure()
-        # plt.scatter(x=a.grid_broadcasted['x'].data, y=a.data_broadcasted.data)
-        # plt.scatter(x=b.grid_broadcasted['x'].data,  y=b.data_broadcasted.data)
-        # plt.scatter(x=c.grid_broadcasted['x'].data, y=c.data_broadcasted.data)
+        # plt.scatter(x=a.input.array, y=a.output.array)
+        # plt.scatter(x=x.array,  y=b.array)
+        # plt.scatter(x=x_large.array, y=c.array)
         # plt.show()
 
     def test_interp_linear_2d(self):
@@ -237,36 +177,37 @@ class TestArray:
         position = np.broadcast_to(position, position.shape)
         position_large = np.broadcast_to(position_large, position_large.shape)
 
-        plt.figure()
-        plt.scatter(
-            x=position.x.array,
-            y=position.y.array,
-            c=a.output.array,
-            # vmin=-1,
-            # vmax=1,
-        )
-        plt.colorbar()
+        # plt.figure()
+        # plt.scatter(
+        #     x=position.x.array,
+        #     y=position.y.array,
+        #     c=a.output.array,
+        #     # vmin=-1,
+        #     # vmax=1,
+        # )
+        # plt.colorbar()
+        #
+        # plt.figure()
+        # plt.scatter(
+        #     x=position.x.array,
+        #     y=position.y.array,
+        #     c=b.array,
+        # )
+        # plt.colorbar()
+        #
+        # plt.figure()
+        # plt.scatter(
+        #     x=position_large.x.array,
+        #     y=position_large.y.array,
+        #     c=c.array,
+        #     # vmin=-1,
+        #     # vmax=1,
+        # )
+        # plt.colorbar()
+        #
+        # plt.show()
 
-        plt.figure()
-        plt.scatter(
-            x=position.x.array,
-            y=position.y.array,
-            c=b.array,
-        )
-        plt.colorbar()
-
-        plt.figure()
-        plt.scatter(
-            x=position_large.x.array,
-            y=position_large.y.array,
-            c=c.array,
-            # vmin=-1,
-            # vmax=1,
-        )
-        plt.colorbar()
-
-        plt.show()
-
+    @pytest.mark.skip
     def test_interp_barycentric_linear_1d(self):
 
         shape = dict(x=10,)
@@ -295,6 +236,7 @@ class TestArray:
         assert np.isclose(a.value.value, b.value.value).all()
         assert c.shape == shape_large
 
+    @pytest.mark.skip
     def test_interp_barycentric_linear_2d(self):
 
         shape = dict(
@@ -392,6 +334,7 @@ class TestArray:
 
         assert np.isclose(a.value_broadcasted, b.value_broadcasted).value.all()
 
+    @pytest.mark.skip
     def test_interp_barycentric_linear_3d(self, capsys):
 
         capsys.disabled()
@@ -495,3 +438,127 @@ class TestArray:
         mayavi.mlab.show()
 
         assert np.isclose(a.data_broadcasted, b.data_broadcasted).data.all()
+
+
+@pytest.mark.parametrize(
+    argnames='coefficient_constant',
+    argvalues=[
+        1,
+        kgpy.labeled.LinearSpace(0, 1, 7, axis='c'),
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='coefficient_linear',
+    argvalues=[
+        2,
+        kgpy.labeled.LinearSpace(0, 2, 7, axis='c'),
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='coefficient_quadratic',
+    argvalues=[
+        3,
+        kgpy.labeled.LinearSpace(0, 3, 7, axis='c'),
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='distribution_width',
+    argvalues=[
+        None,
+        1,
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='unit_input_x',
+    argvalues=[
+        1,
+        u.mm,
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='unit_input_y',
+    argvalues=[
+        1,
+        u.deg,
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='unit_output',
+    argvalues=[
+        1,
+        u.erg,
+    ]
+)
+class TestPolynomial:
+
+    def factory(
+            self,
+            coefficient_constant: kgpy.labeled.ArrayLike,
+            coefficient_linear: kgpy.labeled.ArrayLike,
+            coefficient_quadratic: kgpy.labeled.ArrayLike,
+            distribution_width: kgpy.labeled.ArrayLike,
+            unit_input_x: typ.Union[float, u.Unit],
+            unit_input_y: typ.Union[float, u.Unit],
+            unit_output: typ.Union[float, u.Unit],
+    ) -> typ.Tuple[kgpy.function.PolynomialArray, kgpy.uncertainty.ArrayLike, kgpy.uncertainty.ArrayLike, kgpy.uncertainty.ArrayLike]:
+        input = kgpy.vector.Cartesian2D(
+            x=kgpy.labeled.LinearSpace(0, 1, 11, axis='x') * unit_input_x,
+            y=kgpy.labeled.LinearSpace(0, 1, 5, axis='y') * unit_input_y,
+        )
+        unit_input = kgpy.vector.Cartesian2D(1 * unit_input_x, 1 * unit_input_y)
+        coefficient_constant = coefficient_constant * unit_output
+        coefficient_linear = coefficient_linear * unit_output / unit_input
+        coefficient_quadratic = coefficient_quadratic * unit_output / unit_input ** 2
+
+        if distribution_width is not None:
+            coefficient_constant = kgpy.uncertainty.Uniform(coefficient_constant, width=distribution_width * unit_output)
+
+        output = coefficient_quadratic * np.square(input) + coefficient_linear * input + coefficient_constant
+        output = np.broadcast_to(output, output.shape).copy()
+        input = np.broadcast_to(input, output.shape)
+        mask = (input.x > 0.1 * unit_input_x) & (input.y > 0.1 * unit_input_y)
+        output[~mask] = 100 * unit_output
+
+        poly = kgpy.function.PolynomialArray(
+            input=input,
+            output=output,
+            mask=mask,
+            degree=2,
+            axes_model=['x', 'y'],
+        )
+
+        return poly, coefficient_constant, coefficient_linear, coefficient_quadratic
+
+    def test__call__(
+            self,
+            coefficient_constant: kgpy.labeled.ArrayLike,
+            coefficient_linear: kgpy.labeled.ArrayLike,
+            coefficient_quadratic: kgpy.labeled.ArrayLike,
+            distribution_width: kgpy.labeled.ArrayLike,
+            unit_input_x: typ.Union[float, u.Unit],
+            unit_input_y: typ.Union[float, u.Unit],
+            unit_output: typ.Union[float, u.Unit],
+    ):
+        poly, coefficient_constant, coefficient_linear, coefficient_quadratic = self.factory(
+            coefficient_constant=coefficient_constant,
+            coefficient_linear=coefficient_linear,
+            coefficient_quadratic=coefficient_quadratic,
+            distribution_width=distribution_width,
+            unit_input_x=unit_input_x,
+            unit_input_y=unit_input_y,
+            unit_output=unit_output,
+        )
+        coefficients = poly.coefficients
+
+        assert np.all(np.isclose(coefficients.coordinates[''].x, coefficient_constant))
+        assert np.all(np.isclose(coefficients.coordinates['x'].x, coefficient_linear.x))
+        assert np.all(np.isclose(coefficients.coordinates['x,x'].x, coefficient_quadratic.x))
+
+        assert np.all(np.isclose(coefficients.coordinates[''].y, coefficient_constant))
+        assert np.all(np.isclose(coefficients.coordinates['y'].y, coefficient_linear.y))
+        assert np.all(np.isclose(coefficients.coordinates['y,y'].y, coefficient_quadratic.y))
+
+        assert np.all(np.isclose(poly(poly.input), poly.output)[poly.mask])
+
+
+

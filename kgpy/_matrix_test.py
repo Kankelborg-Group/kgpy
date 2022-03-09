@@ -116,3 +116,24 @@ class TestCartesian2D:
         assert np.all(np.isclose(a @ b, kgpy.matrix.Cartesian2D.identity()))
         assert np.all(np.isclose(c, a))
         assert np.all(np.isclose(~a.transpose, b.transpose))
+
+
+class TestCartesianND(TestCartesian2D):
+    def _calc_matrix(
+            self,
+            xy: kgpy.labeled.ArrayLike,
+            yx: kgpy.labeled.ArrayLike,
+            width_xy: kgpy.labeled.ArrayLike,
+            width_yx: kgpy.labeled.ArrayLike,
+            unit: u.Unit,
+    ):
+        if width_xy is not None:
+            xy = kgpy.uncertainty.Uniform(xy, width=width_xy)
+        if width_yx is not None:
+            yx = kgpy.uncertainty.Uniform(yx, width=width_yx)
+        a = dict(
+            x=kgpy.vector.CartesianND(dict(x=kgpy.labeled.Array(1), y=xy)),
+            y=kgpy.vector.CartesianND(dict(x=yx, y=kgpy.labeled.Array(4))),
+        )
+        a = kgpy.matrix.CartesianND(a)
+        return a * unit

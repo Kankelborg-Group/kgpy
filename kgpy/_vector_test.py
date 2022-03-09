@@ -1,3 +1,4 @@
+import matplotlib.axes
 import pytest
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,21 +8,63 @@ import kgpy.uncertainty
 import kgpy.vector
 
 
+@pytest.mark.parametrize(
+    argnames='unit',
+    argvalues=[1, u.mm]
+)
+@pytest.mark.parametrize(
+    argnames='x',
+    argvalues=[
+        2,
+        kgpy.labeled.LinearSpace(0, 10, num=10, axis='a'),
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='x_width',
+    argvalues=[None, 0.1],
+)
+@pytest.mark.parametrize(
+    argnames='y',
+    argvalues=[
+        3,
+        kgpy.labeled.LinearSpace(0, 10, num=11, axis='b'),
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='y_width',
+    argvalues=[None, 0.1],
+)
 class TestCartesian2D:
 
-    @pytest.mark.parametrize('a', [
-        kgpy.vector.Cartesian2D(2, 3),
-        kgpy.vector.Cartesian2D(2, 3) * u.mm,
-    ])
-    @pytest.mark.parametrize('b', [
-        4,
-        4 * u.mm,
-        kgpy.labeled.LinearSpace(4, 5, 11, axis='b'),
-        kgpy.labeled.LinearSpace(4, 5, 11, axis='b') * u.mm,
-        kgpy.uncertainty.Uniform(4, 2),
-        kgpy.vector.Cartesian2D(3, 4),
-    ])
-    def test__mul__(self, a, b):
+    @classmethod
+    def factory(
+            cls,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ) -> kgpy.vector.Cartesian2D:
+        if x_width is not None:
+            x = kgpy.uncertainty.Uniform(x, x_width)
+        if y_width is not None:
+            y = kgpy.uncertainty.Uniform(y, y_width)
+        return kgpy.vector.Cartesian2D(x, y) * unit
+
+    def test__mul__(
+            self,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ):
+        a = self.factory(unit, x, x_width, y, y_width)
+
+        b = a.copy()
+        b.x = 2 * a.x
+        b.y = -3 * a.y
+
         c = a * b
         d = b * a
         assert isinstance(c, kgpy.vector.Cartesian2D)
@@ -34,50 +77,61 @@ class TestCartesian2D:
             assert np.all(c.x == a.x * b.x)
             assert np.all(c.y == a.y * b.y)
 
-    @pytest.mark.parametrize(
-        argnames='x',
-        argvalues=[
-            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
-            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
-        ]
-    )
-    @pytest.mark.parametrize(
-        argnames='y',
-        argvalues=[
-            0,
-            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
-            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a') * kgpy.labeled.LinearSpace(0, 1, num=3, axis='b'),
-            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
-        ]
-    )
-    def test_broadcast_to(self, x, y):
-        a = kgpy.vector.Cartesian2D(x, y)
+    def test_broadcast_to(
+            self,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ):
+        a = self.factory(unit, x, x_width, y, y_width)
         b = np.broadcast_to(a, a.shape)
         assert b.x.shape == a.shape
         assert b.y.shape == a.shape
 
-
-    @pytest.mark.parametrize(
-        argnames='x',
-        argvalues=[
-            kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'),
-            kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1)
-        ]
-    )
-    @pytest.mark.parametrize(
-        argnames='y, color',
-        argvalues=[
-            (kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), 'black'),
-            (
-                kgpy.labeled.LinearSpace(0, 1, num=5, axis='a') * kgpy.labeled.LinearSpace(0, 1, num=3, axis='b'),
-                kgpy.labeled.Array(np.array(['black', 'blue', 'red',]), axes=['b']),
-            ),
-            (kgpy.uncertainty.Normal(kgpy.labeled.LinearSpace(0, 1, num=5, axis='a'), width=0.1), 'black'),
-        ]
-    )
-    def test_plot(self, x, y, color):
+    def _ax_factory(self) -> matplotlib.axes.Axes:
         fig, ax = plt.subplots()
-        a = kgpy.vector.Cartesian2D(x, y)
-        lines = a.plot(ax, axis_plot='a', color=color)
+        return ax
+
+    def test_plot(
+            self,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ):
+        a = self.factory(unit, x, x_width, y, y_width)
+
+        ax = self._ax_factory()
+        lines = a.plot(ax, axis_plot='a', color=a.y)
         assert lines
         # plt.show()
+        plt.close(ax.figure)
+
+
+class TestCartesian3D(TestCartesian2D):
+
+    @classmethod
+    def factory(
+            cls,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ) -> kgpy.vector.Cartesian2D:
+        result = super().factory(unit, x, x_width, y, y_width)
+        result = kgpy.vector.Cartesian3D(
+            x=result.x,
+            y=result.y,
+            z=result.x * result.x + result.y * result.y
+        )
+        if isinstance(result.z, kgpy.uncertainty.AbstractArray):
+            result.z = kgpy.uncertainty.Uniform(result.z.nominal, width=10 * unit * unit)
+        return result
+
+    def _ax_factory(self) -> matplotlib.axes.Axes:
+        fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
+        return ax

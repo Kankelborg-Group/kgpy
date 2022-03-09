@@ -37,7 +37,7 @@ class AbstractTransform(
 
     @property
     def vector(self: AbstractTransformT) -> kgpy.vector.Cartesian3D:
-        return kgpy.vector.Cartesian3D() * u.m
+        return kgpy.vector.Cartesian3D() * u.mm
 
     def __call__(
             self: AbstractTransformT,
@@ -136,7 +136,7 @@ class TransformList(
     @property
     def vector(self: TransformListT) -> kgpy.vector.Cartesian3D:
         rotation = kgpy.matrix.Cartesian3D.identity()
-        translation = kgpy.vector.Cartesian3D() * u.m
+        translation = kgpy.vector.Cartesian3D() * u.mm
 
         for transform in reversed(list(self.transforms)):
             if transform is not None:

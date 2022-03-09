@@ -18,7 +18,7 @@ def obs_test() -> AIA:
     return AIA.from_time_range(time_start, time_end, download_path, channels=channels)
 
 
-class TestAIA(__init__test.TestObs):
+class TestAIA(__init__test.TestImage):
 
     def test_from_time_range(self,  obs_test: AIA):
         # with capsys.disabled():

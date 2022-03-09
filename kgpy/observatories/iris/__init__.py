@@ -46,6 +46,7 @@ class Obs:
             )
             time_sji = astropy.time.Time(time_sji, format='unix')
             indices_time = np.digitize(time.value, bins=time_sji.value)
+            indices_time = np.minimum(indices_time, self.sji_images.shape[self.sji_images.axis.time] - 1)
 
             pix_sg = np.mgrid[:data_sg.shape[~2], 10:data_sg.shape[~1] - 10]
             pix_sg_world = wcs_sg_i.array_index_to_world_values(pix_sg[0], pix_sg[1])
@@ -81,9 +82,19 @@ class Obs:
             origin='lower',
         )
 
+        text_sji = ax.text(
+            x=0,
+            y=0,
+            s=self.sji_images.time[0, channel_index].strftime('%Y-%m-%d %H:%M:%S'),
+            ha='left',
+            va='top',
+            color='white',
+        )
+
         def func(i: int):
             img_sg.set_data(data_sg_projected[i])
             img_sji.set_data(data_sji[i])
+            text_sji.set_text(self.sji_images.time[i, channel_index].strftime('%Y-%m-%d %H:%M:%S'))
 
         return matplotlib.animation.FuncAnimation(
             fig=ax.figure,

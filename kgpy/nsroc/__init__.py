@@ -11,7 +11,9 @@ import astropy.visualization
 import astropy.modeling
 import astropy.coordinates
 import pandas
-from kgpy import mixin, Name, vector, plot
+from kgpy import mixin
+from kgpy import vector
+from kgpy import plot
 from . import sparcs
 
 __all__ = [
@@ -27,7 +29,7 @@ class Trajectory(mixin.Copyable):
     altitude: u.Quantity
     latitude: u.Quantity
     longitude: u.Quantity
-    velocity: vector.Vector3D
+    velocity: vector.Cartesian3D
 
     @classmethod
     def from_nsroc_csv(
@@ -56,7 +58,7 @@ class Trajectory(mixin.Copyable):
             altitude=(df[altitude_col].values * u.m).to(u.km),
             latitude=df[latitude_col].values * u.deg,
             longitude=df[longitude_col].values * u.deg,
-            velocity=vector.Vector3D(
+            velocity=vector.Cartesian3D(
                 x=(df[velocity_ew_col].values * (u.m / u.s)).to(u.km / u.s),
                 y=(df[velocity_ns_col].values * (u.m / u.s)).to(u.km / u.s),
                 z=(df[velocity_alt_col].values * (u.m / u.s)).to(u.km / u.s),
@@ -242,28 +244,27 @@ class Event(
 
 @dataclasses.dataclass
 class Timeline:
-    t0: Event = dataclasses.field(default_factory=lambda: Event(name=Name('t = 0'), time_mission=0 * u.s))
-    rail_release: Event = dataclasses.field(default_factory=lambda: Event(name=Name('rail release')))
-    terrier_burnout: Event = dataclasses.field(default_factory=lambda: Event(name=Name('Terrier burnout')))
-    black_brant_ignition: Event = dataclasses.field(default_factory=lambda: Event(name=Name('Black Brant ignition')))
-    canard_decouple: Event = dataclasses.field(default_factory=lambda: Event(name=Name('S-19L canard decouple')))
-    black_brant_burnout: Event = dataclasses.field(default_factory=lambda: Event(name=Name('Black Brant burnout')))
-    despin: Event = dataclasses.field(default_factory=lambda: Event(name=Name('despin to 0.25 Hz')))
-    payload_separation: Event = dataclasses.field(default_factory=lambda: Event(name=Name('payload separation')))
-    sparcs_enable: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS enable')))
-    shutter_door_open: Event = dataclasses.field(default_factory=lambda: Event(name=Name('shutter door open')))
-    nosecone_eject: Event = dataclasses.field(default_factory=lambda: Event(name=Name('nosecone eject')))
-    sparcs_fine_mode_stable: Event = dataclasses.field(
-        default_factory=lambda: Event(name=Name('SPARCS fine mode stable')))
-    sparcs_rlg_enable: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS RLG enable')))
-    sparcs_rlg_disable: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS RLG disable')))
-    shutter_door_close: Event = dataclasses.field(default_factory=lambda: Event(name=Name('shutter door close')))
-    sparcs_spin_up: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS spin-up')))
-    sparcs_vent: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS vent')))
-    ballistic_impact: Event = dataclasses.field(default_factory=lambda: Event(name=Name('ballistic impact')))
-    sparcs_disable: Event = dataclasses.field(default_factory=lambda: Event(name=Name('SPARCS disable')))
-    parachute_deploy: Event = dataclasses.field(default_factory=lambda: Event(name=Name('parachute deploy')))
-    payload_impact: Event = dataclasses.field(default_factory=lambda: Event(name=Name('payload impact on chute')))
+    t0: Event = dataclasses.field(default_factory=lambda: Event(name='t = 0', time_mission=0 * u.s))
+    rail_release: Event = dataclasses.field(default_factory=lambda: Event(name='rail release'))
+    terrier_burnout: Event = dataclasses.field(default_factory=lambda: Event(name='Terrier burnout'))
+    black_brant_ignition: Event = dataclasses.field(default_factory=lambda: Event(name='Black Brant ignition'))
+    canard_decouple: Event = dataclasses.field(default_factory=lambda: Event(name='S-19L canard decouple'))
+    black_brant_burnout: Event = dataclasses.field(default_factory=lambda: Event(name='Black Brant burnout'))
+    despin: Event = dataclasses.field(default_factory=lambda: Event(name='despin to 0.25 Hz'))
+    payload_separation: Event = dataclasses.field(default_factory=lambda: Event(name='payload separation'))
+    sparcs_enable: Event = dataclasses.field(default_factory=lambda: Event(name='SPARCS enable'))
+    shutter_door_open: Event = dataclasses.field(default_factory=lambda: Event(name='shutter door open'))
+    nosecone_eject: Event = dataclasses.field(default_factory=lambda: Event(name='nosecone eject'))
+    sparcs_fine_mode_stable: Event = dataclasses.field(default_factory=lambda: Event(name='SPARCS fine mode stable'))
+    sparcs_rlg_enable: Event = dataclasses.field(default_factory=lambda: Event(name='SPARCS RLG enable'))
+    sparcs_rlg_disable: Event = dataclasses.field(default_factory=lambda: Event(name='SPARCS RLG disable'))
+    shutter_door_close: Event = dataclasses.field(default_factory=lambda: Event(name='shutter door close'))
+    sparcs_spin_up: Event = dataclasses.field(default_factory=lambda: Event(name='SPARCS spin-up'))
+    sparcs_vent: Event = dataclasses.field(default_factory=lambda: Event(name='SPARCS vent'))
+    ballistic_impact: Event = dataclasses.field(default_factory=lambda: Event(name='ballistic impact'))
+    sparcs_disable: Event = dataclasses.field(default_factory=lambda: Event(name='SPARCS disable'))
+    parachute_deploy: Event = dataclasses.field(default_factory=lambda: Event(name='parachute deploy'))
+    payload_impact: Event = dataclasses.field(default_factory=lambda: Event(name='payload impact on chute'))
 
     def __iter__(self) -> typ.Iterator[Event]:
         yield self.t0
