@@ -153,8 +153,11 @@ class Array(
     def calc_index_lower(self: ArrayT, input_new: InputT ) -> typ.Dict:
 
         input_old = self.input
+        if isinstance(input_old, kgpy.vector.AbstractVector):
+            input_old = input_old.copy_shallow()
+        else:
+            input_old = kgpy.vector.Cartesian1D(input_old)
 
-        input_old = input_old.copy_shallow()
         for component in input_old.coordinates:
             coordinate = input_old.coordinates[component]
             coordinate = kgpy.labeled.Array(coordinate.array, coordinate.axes)
