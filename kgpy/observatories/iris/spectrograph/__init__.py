@@ -150,7 +150,7 @@ class Cube(kgpy.obs.spectral.Cube):
         intensity = intensity - intensity_background
         del intensity_background
 
-        intensity_max = np.percentile(intensity, 99, self.axis.perp_axes(self.axis.w))
+        intensity_max = np.percentile(intensity, 95, self.axis.perp_axes(self.axis.w))
         intensity_min = 0
         intensity = (intensity - intensity_min) / (intensity_max - intensity_min)
         del intensity_max
