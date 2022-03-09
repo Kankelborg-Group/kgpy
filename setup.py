@@ -19,6 +19,7 @@ setup(
         'ezdxf',
         'sphinx-autodoc-typehints',
         'astropy-sphinx-theme',
+        'jupyter-sphinx',
         'roman',
         'ipyparallel',
         'adjustText',
