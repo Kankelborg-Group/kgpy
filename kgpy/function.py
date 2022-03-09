@@ -12,6 +12,7 @@ import kgpy.mixin
 import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vector
+import kgpy.matrix
 
 __all__ = [
 
@@ -21,6 +22,7 @@ InputT = typ.TypeVar('InputT', bound=kgpy.vector.VectorLike)
 OutputT = typ.TypeVar('OutputT', bound=kgpy.vector.VectorLike)
 AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
+PolynomialArrayT = typ.TypeVar('PolynomialArrayT', bound='PolynomialArray')
 
 
 @dataclasses.dataclass(eq=False)
@@ -435,3 +437,120 @@ class Array(
             grid,
     ) -> ArrayT:
         return self.interp_barycentric_linear(grid=grid)
+
+
+@dataclasses.dataclass
+class PolynomialArray(
+    Array[InputT, OutputT]
+):
+
+    degree: int = 1
+    axes_model: typ.Optional[typ.Union[str, typ.List[str]]] = None
+
+    def __post_init__(self: PolynomialArrayT) -> None:
+        self.update()
+
+    def update(self: PolynomialArrayT) -> None:
+        self._coefficients = None
+
+    def _design_matrix_recursive(
+            self: PolynomialArrayT,
+            result: typ.Dict[str, kgpy.uncertainty.ArrayLike],
+            coordinates: typ.Dict[str, kgpy.uncertainty.ArrayLike],
+            key: str,
+            value: kgpy.uncertainty.ArrayLike,
+            degree_current: int,
+            degree: int,
+    ) -> None:
+        component = next(iter(coordinates))
+        coordinate = coordinates.pop(component)
+        for i in range(degree + 1):
+            if i > 0:
+                if key:
+                    key = f'{key},{component}'
+                else:
+                    key = component
+                value = value * coordinate
+                degree_current = degree_current + 1
+            else:
+                degree_current = degree_current
+
+            if coordinates:
+                self._design_matrix_recursive(result, coordinates.copy(), key, value, degree_current, degree)
+            elif degree_current == degree:
+                result[key] = value
+
+    def design_matrix(self: PolynomialArrayT, inp: InputT) -> kgpy.vector.CartesianND:
+        result = dict()
+        for d in range(self.degree + 1):
+            self._design_matrix_recursive(result, inp.coordinates.copy(), key='', value=1, degree_current=0, degree=d)
+        return kgpy.vector.CartesianND(result)
+
+    @property
+    def coefficients(self: PolynomialArrayT) -> kgpy.vector.AbstractVector:
+        if self._coefficients is None:
+            self._coefficients = self._calc_coefficients()
+        return self._coefficients
+
+    def _calc_coefficients(self: PolynomialArrayT) -> kgpy.vector.AbstractVector:
+        inp = self.input
+        if not isinstance(inp, kgpy.vector.AbstractVector):
+            inp = kgpy.vector.Cartesian1D(inp)
+
+        mask = self.mask
+
+        design_matrix = self.design_matrix(inp)
+        design_matrix = np.broadcast_to(design_matrix, design_matrix.shape)
+
+        gram_matrix = kgpy.matrix.CartesianND()
+        for component_row in design_matrix.coordinates:
+            gram_matrix.coordinates[component_row] = kgpy.vector.CartesianND()
+            for component_column in design_matrix.coordinates:
+                element_row = design_matrix.coordinates[component_row]
+                element_column = design_matrix.coordinates[component_column]
+                element = element_row * element_column
+                if mask is not None:
+                    element[~mask] = 0 * element[~mask]
+                element = np.sum(element, axis=self.axes_model)
+                gram_matrix.coordinates[component_row].coordinates[component_column] = element
+
+        gram_matrix_inverse = gram_matrix.inverse_numpy()
+
+        output = self.output
+        if not isinstance(output, kgpy.vector.AbstractVector):
+            output = kgpy.vector.Cartesian1D(output)
+
+        moment_matrix = kgpy.matrix.CartesianND()
+        for component_row in design_matrix.coordinates:
+            moment_matrix.coordinates[component_row] = type(output)()
+            for component_column in output.coordinates:
+                element_row = design_matrix.coordinates[component_row]
+                element_column = output.coordinates[component_column]
+                element = element_row * element_column
+                if mask is not None:
+                    element[~mask] = 0 * element[~mask]
+                element = np.sum(element, axis=self.axes_model)
+                moment_matrix.coordinates[component_row].coordinates[component_column] = element
+
+        result = gram_matrix_inverse @ moment_matrix
+
+        result = result.transpose
+
+        if not isinstance(self.output, kgpy.vector.AbstractVector):
+            result = result.x
+        else:
+            result = result.transpose
+
+        return result
+
+    def __call__(self: PolynomialArrayT, input: InputT):
+        coefficients = self.coefficients
+        design_matrix = self.design_matrix(input)
+        result = (coefficients * design_matrix).component_sum
+        return result
+
+    @property
+    def residual(self: PolynomialArrayT) -> OutputT:
+        result = self.output - self(self.input)
+        result[~self.mask] = np.nan
+        return result
