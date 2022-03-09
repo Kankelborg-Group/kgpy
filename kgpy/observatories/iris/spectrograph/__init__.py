@@ -245,7 +245,10 @@ class Cube(kgpy.obs.spectral.Cube):
             shift = np.rint(np.array([shift_y, shift_x, 0]))
             print(shift)
 
-            data[i] = np.fft.ifftn(scipy.ndimage.fourier_shift(np.fft.fftn(data[i]), -shift)).real
+            data_shifted = np.fft.ifftn(scipy.ndimage.fourier_shift(np.fft.fftn(data[i]), -shift)).real
+            data[i] = data_shifted
+            mask_shifted = np.isclose(data_shifted, 0)
+            data[i, mask_shifted] = data[i - 1, mask_shifted]
 
         data = data[..., pad:-pad, :, :]
 
