@@ -14,8 +14,8 @@ __all__ = [
 
 ]
 
-InputT = typ.TypeVar('InputT', bound=kgpy.vector.AbstractVector)
-OutputT = typ.TypeVar('OutputT', bound=kgpy.vector.AbstractVector)
+InputT = typ.TypeVar('InputT', bound=kgpy.vector.VectorLike)
+OutputT = typ.TypeVar('OutputT', bound=kgpy.vector.VectorLike)
 AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
 
