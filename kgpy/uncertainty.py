@@ -61,6 +61,11 @@ class AbstractArray(
     def distribution(self: AbstractArrayT) -> typ.Optional[DistributionT]:
         pass
 
+    @property
+    @abc.abstractmethod
+    def axis_distribution(self: AbstractArrayT) -> str:
+        return '_distribution'
+
     def to(self: AbstractArrayT, unit: u.Unit) -> ArrayT:
         return Array(
             nominal=self.nominal.to(unit),
@@ -322,6 +327,7 @@ class _DistributionMixin(
     kgpy.mixin.Copyable,
 ):
     num_samples: int = 11
+    axis_distribution: str = '_distribution'
     seed: typ.Optional[int] = None
 
     def __post_init__(self):
@@ -388,6 +394,7 @@ class Normal(Uniform):
 class Array(AbstractArray[NominalT, DistributionT]):
 
     distribution: typ.Optional[DistributionT] = None
+    axis_distribution: str = '_distribution'
 
     @property
     def normalized(self: ArrayT) -> ArrayT:
