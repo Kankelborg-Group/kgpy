@@ -74,6 +74,19 @@ class AbstractVector(
         return self.__dict__
 
     @property
+    def coordinates_flat(self: AbstractVectorT) -> typ.Dict[str, kgpy.uncertainty.ArrayLike]:
+        result = dict()
+        coordinates = self.coordinates
+        for component in coordinates:
+            if isinstance(coordinates[component], AbstractVector):
+                coordinates_component = coordinates[component].coordinates_flat
+                coordinates_component = {f'{component}.{c}': coordinates_component[c] for c in coordinates_component}
+                result = {**result, **coordinates_component}
+            else:
+                result[component] = coordinates[component]
+        return result
+
+    @property
     def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
         return tuple(field.name for field in dataclasses.fields(self))
 
