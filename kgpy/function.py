@@ -144,8 +144,11 @@ class Array(
         index = np.unravel_index(index, self.input.shape)
         return index
 
-    def interp_nearest(self: ArrayT, input_new: InputT) -> OutputT:
-        return self.output_broadcasted[self.calc_index_nearest(input_new)]
+    def interp_nearest(self: ArrayT, input_new: InputT) -> ArrayT:
+        return type(self)(
+            input=input_new,
+            output=self.output_broadcasted[self.calc_index_nearest(input_new)]
+        )
 
     def calc_index_lower(self: ArrayT, input_new: InputT ) -> typ.Dict:
 
