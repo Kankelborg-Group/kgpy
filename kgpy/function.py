@@ -222,8 +222,12 @@ class Array(
 
         input_old = self.input
         input_old = np.broadcast_to(input_old, input_old.shape)
-        x0 = input_old.coordinates[axis][index_lower]
-        x1 = input_old.coordinates[axis][index_upper]
+        if isinstance(input_old, kgpy.vector.AbstractVector):
+            x0 = input_old.coordinates[axis][index_lower]
+            x1 = input_old.coordinates[axis][index_upper]
+        else:
+            x0 = input_old[index_lower]
+            x1 = input_old[index_upper]
 
         if axis_stack:
             y0 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_lower, axis_stack=axis_stack.copy())
@@ -239,6 +243,8 @@ class Array(
         return result
 
     def interp_linear(self: ArrayT, input_new: InputT, ) -> OutputT:
+        if not isinstance(input_new, kgpy.vector.AbstractVector):
+            input_new = kgpy.vector.Cartesian1D(input_new)
         return self._interp_linear_1d_recursive(
             input_new=input_new,
             index_lower=self.calc_index_lower(input_new),
