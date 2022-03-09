@@ -5,13 +5,13 @@ import matplotlib.animation
 import astropy.units as u
 import astropy.time
 import astropy.wcs
-from .image import Obs
+from .import Image
 
-__all__ = ['TestObs']
+__all__ = ['TestImage']
 
 
 @pytest.fixture
-def obs_test() -> Obs:
+def obs_test() -> Image:
     shape = (10, 3, 128, 256)
     sh = shape[:2]
 
@@ -21,7 +21,7 @@ def obs_test() -> Obs:
     wcs_arr = np.empty(sh, dtype=astropy.wcs.WCS)
     wcs_arr[:] = wcs
 
-    return Obs(
+    return Image(
         intensity=100 * np.random.random(shape) * u.adu,
         intensity_uncertainty=10*u.adu,
         wcs=wcs_arr,
@@ -32,12 +32,12 @@ def obs_test() -> Obs:
     )
 
 
-class TestObs:
+class TestImage:
 
     def test_zeros(self):
         shape = (5, 7, 11, 13)
         sh = shape[:2]
-        obs = Obs.zeros(shape)
+        obs = Image.zeros(shape)
         assert obs.intensity.shape == shape
         assert obs.intensity_uncertainty.shape == shape
         assert obs.wcs.shape == sh
@@ -61,14 +61,16 @@ class TestObs:
     def test_channel_labels(self, obs_test):
         assert len(obs_test.channel_labels) == obs_test.num_channels
 
-    def test_plot_intensity_total_vs_time(self, obs_test):
-        ax = obs_test.plot_intensity_total_vs_time()
-        assert ax.lines
+    def test_plot_intensity_mean_vs_time(self, obs_test):
+        fig, ax = plt.subplots()
+        lines = obs_test.plot_intensity_mean_vs_time(ax)
+        assert lines
         plt.close(ax.figure)
 
     def test_plot_exposure_length(self, obs_test):
-        ax = obs_test.plot_exposure_length()
-        assert ax.lines
+        fig, ax = plt.subplots()
+        lines = obs_test.plot_exposure_length(ax)
+        assert lines
         plt.close(ax.figure)
 
     def test_plot_intensity_channel(self, obs_test):
