@@ -749,7 +749,11 @@ class Cartesian3D(
         **kwargs: typ.Any,
     ) -> typ.List[mpl_toolkits.mplot3d.art3d.Poly3DCollection]:
 
-        coordinates = self.coordinates
+        coordinates = self.coordinates.copy()
+        for component in coordinates:
+            if isinstance(coordinates[component], kgpy.uncertainty.AbstractArray):
+                coordinates[component] = coordinates[component].nominal
+
         x, y, z = coordinates[component_x], coordinates[component_y], coordinates[component_z]
 
         if not isinstance(x, kgpy.labeled.ArrayInterface):
