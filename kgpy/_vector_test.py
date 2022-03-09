@@ -108,6 +108,7 @@ class TestCartesian2D:
         lines = a.plot(ax, axis_plot='a', color=a.y)
         assert lines
         # plt.show()
+        plt.close(ax.figure)
 
 
 class TestCartesian3D(TestCartesian2D):
