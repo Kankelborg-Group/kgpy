@@ -7,7 +7,7 @@ import scipy.interpolate
 import numba
 import kgpy.mixin
 import kgpy.labeled
-import kgpy.grid
+import kgpy.uncertainty
 import kgpy.vector
 
 __all__ = [
@@ -35,6 +35,11 @@ class AbstractArray(
         pass
 
     @property
+    @abc.abstractmethod
+    def mask(self: AbstractArrayT) -> kgpy.uncertainty.ArrayLike:
+        return
+
+    @property
     def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
         return kgpy.labeled.Array.broadcast_shapes(self.input, self.output)
 
@@ -45,6 +50,7 @@ class Array(
 ):
 
     output: OutputT = None
+    mask: typ.Optional[kgpy.uncertainty.ArrayLike] = None
 
     @property
     def output_broadcasted(self: ArrayT) -> OutputT:
