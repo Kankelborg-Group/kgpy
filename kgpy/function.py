@@ -119,43 +119,6 @@ class Array(
             output = kgpy.labeled.Array(output)
         return np.broadcast_to(output, shape=self.shape)
 
-    # @property
-    # def axes_separable(self) -> typ.List[str]:
-    #     axes = []
-    #     grid = self.grid
-    #     for axis in grid.value:
-    #         if grid.value[axis].axis_names == [axis]:
-    #             axes.append(axis)
-    #     return axes
-
-    @property
-    def ndim(self: ArrayT) -> int:
-        return self.grid.ndim
-
-    @property
-    def size(self: ArrayT) -> int:
-        return self.grid.size
-
-    def __eq__(self: ArrayT, other: ArrayT):
-        if not super().__eq__(other):
-            return False
-        if not np.array_equal(self.value, other.value):
-            return False
-        if not self.grid == other.grid:
-            return False
-        return True
-
-    def __getitem__(
-            self: ArrayT,
-            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
-    ) -> ArrayT:
-        grid = self.grid.broadcasted
-        grid.value = {axis: grid.value[axis][item] for axis in grid.value}
-        return type(self)(
-            value=self.value[item],
-            grid=grid,
-        )
-
     def calc_index_nearest(self: ArrayT, input_new: InputT, ) -> typ.Dict[str, kgpy.labeled.Array]:
 
         if not isinstance(input_new, kgpy.vector.AbstractVector):
