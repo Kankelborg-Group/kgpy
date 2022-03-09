@@ -158,9 +158,15 @@ class Array(
 
     def calc_index_nearest(self: ArrayT, input_new: InputT, ) -> typ.Dict[str, kgpy.labeled.Array]:
 
-        input_old = self.input
+        if not isinstance(input_new, kgpy.vector.AbstractVector):
+            input_new = kgpy.vector.Cartesian1D(input_new)
 
-        input_old = input_old.copy_shallow()
+        input_old = self.input
+        if not isinstance(input_old, kgpy.vector.AbstractVector):
+            input_old = kgpy.vector.Cartesian1D(input_old)
+        else:
+            input_old = input_old.copy_shallow()
+
         for component in input_old.coordinates:
             coordinate = input_old.coordinates[component]
             coordinate = kgpy.labeled.Array(coordinate.array, coordinate.axes)
