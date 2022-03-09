@@ -46,6 +46,7 @@ class Obs:
             )
             time_sji = astropy.time.Time(time_sji, format='unix')
             indices_time = np.digitize(time.value, bins=time_sji.value)
+            indices_time = np.minimum(indices_time, self.sji_images.shape[self.sji_images.axis.time] - 1)
 
             pix_sg = np.mgrid[:data_sg.shape[~2], 10:data_sg.shape[~1] - 10]
             pix_sg_world = wcs_sg_i.array_index_to_world_values(pix_sg[0], pix_sg[1])
