@@ -82,9 +82,19 @@ class Obs:
             origin='lower',
         )
 
+        text_sji = ax.text(
+            x=0,
+            y=0,
+            s=self.sji_images.time[0, channel_index].strftime('%Y-%m-%d %H:%M:%S'),
+            ha='left',
+            va='top',
+            color='white',
+        )
+
         def func(i: int):
             img_sg.set_data(data_sg_projected[i])
             img_sji.set_data(data_sji[i])
+            text_sji.set_text(self.sji_images.time[i, channel_index].strftime('%Y-%m-%d %H:%M:%S'))
 
         return matplotlib.animation.FuncAnimation(
             fig=ax.figure,
