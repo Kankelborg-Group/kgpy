@@ -179,36 +179,6 @@ class Array(
 
         return index
 
-        # grid_data = self.grid_normalized
-        #
-        # shape_dummy = dict()
-        # for axis_name_data in grid_data:
-        #     axis_names = grid_data[axis_name_data].axis_names
-        #     for axis_name in grid:
-        #         if axis_name in axis_names:
-        #             axis_name_dummy = f'{axis_name}_dummy'
-        #             shape_dummy[axis_name_dummy] = self.shape[axis_name]
-        #             axis_index = axis_names.index(axis_name)
-        #             axis_names[axis_index] = axis_name_dummy
-        #
-        # distance_squared = 0
-        # for axis_name in grid:
-        #     d = grid_data[axis_name] - grid[axis_name]
-        #     d[d > 0] = -np.inf
-        #     distance_squared = distance_squared + d
-        #
-        # distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
-        # index = np.argmax(distance_squared, axis='dummy')
-        # index = np.unravel_index(index, shape_dummy)
-        #
-        # for axis in index:
-        #     index_max = shape_dummy[axis] - 2
-        #     index[axis][index[axis] > index_max] = index_max
-        #
-        # index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
-        #
-        # return index
-
     def _interp_linear_1d_recursive(
             self,
             input_new: InputT,
@@ -253,34 +223,6 @@ class Array(
             index_lower=self.calc_index_lower(input_new),
             axis_stack=list(input_new.shape.keys()),
         )
-
-    # def interp_idw(
-    #         self,
-    #         grid: typ.Dict[str, LabeledArray],
-    #         power: float = 2,
-    # ) -> 'DataArray':
-    #
-    #     grid_data = self.grid_broadcasted
-    #
-    #     index = self.calc_index_lower(**grid)
-    #
-    #     axes_kernel = []
-    #     for axis in grid:
-    #         axis_kernel = f'kernel_{axis}'
-    #         axes_kernel.append(axis_kernel)
-    #         index[axis] = index[axis] + LabeledArray.arange(stop=2, axis=axis_kernel)
-    #
-    #     distance_to_power = 0
-    #     for axis in grid:
-    #         distance_to_power = distance_to_power + np.abs(grid_data[axis][index] - grid[axis]) ** power
-    #     distance = distance_to_power ** (1 / power)
-    #
-    #     weights = 1 / distance
-    #
-    #     return DataArray(
-    #         data=np.sum(weights * self.data[index], axis=axes_kernel) / np.sum(weights, axis=axes_kernel),
-    #         grid={**self.grid, **grid},
-    #     )
 
     @staticmethod
     @numba.njit(parallel=True, )
