@@ -33,6 +33,10 @@ class AbstractArray(
     input: InputT
 
     @property
+    def input_broadcasted(self):
+        return
+
+    @property
     @abc.abstractmethod
     def output(self: AbstractArrayT) -> OutputT:
         pass
