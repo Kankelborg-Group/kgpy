@@ -1,9 +1,4 @@
-import matplotlib.pyplot as plt
-import time
-import pytest
-import cProfile
 import numpy as np
-import mayavi.mlab
 from . import rebin
 
 
