@@ -34,8 +34,6 @@ class AbstractArray(
     type_array_auxiliary: typ.ClassVar[typ.Tuple[typ.Type, ...]] = kgpy.labeled.AbstractArray.type_array
     type_array: typ.ClassVar[typ.Tuple[typ.Type, ...]] = type_array_auxiliary + (type_array_primary, )
 
-    axis_distribution: typ.ClassVar[str] = '_distribution'
-
     nominal: NominalT = 0 * u.dimensionless_unscaled
 
     @property
@@ -47,14 +45,14 @@ class AbstractArray(
 
     @property
     def array(self: AbstractArrayT) -> np.ndarray:
-        return np.concatenate(
-            arrays=[self.nominal, self.distribution],
-            axis=self.axis_distribution,
-        ).array
+        return self.array_labeled.array
 
     @property
     def array_labeled(self: AbstractArrayT) -> AbstractArrayT:
-        return self
+        return np.concatenate(
+            arrays=[self.nominal, self.distribution],
+            axis=self.axis_distribution,
+        )
 
     @property
     @abc.abstractmethod
