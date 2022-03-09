@@ -227,23 +227,23 @@ class Array(
     @staticmethod
     @numba.njit(parallel=True, )
     def _calc_index_nearest_even_numba(
-            grid: np.ndarray,
-            grid_data: np.ndarray,
-            mask_data: np.ndarray,
+            input_new: np.ndarray,
+            input_old: np.ndarray,
+            mask_input_old: np.ndarray,
     ) -> np.ndarray:
 
-        shape_grid_data = grid_data.shape
-        shape_grid = grid.shape
+        shape_grid_data = input_old.shape
+        shape_grid = input_new.shape
 
         index_nearest_even = np.empty(shape_grid[:~0], dtype=numba.int64)
 
         for i_grid in numba.prange(shape_grid[~1]):
             distance_squared_min = np.inf
             for i_grid_data in numba.prange(shape_grid_data[~1]):
-                if mask_data[i_grid_data]:
+                if mask_input_old[i_grid_data]:
                     distance_squared = 0
                     for axis in numba.prange(shape_grid[~0]):
-                        dist = grid[i_grid, axis] - grid_data[i_grid_data, axis]
+                        dist = input_new[i_grid, axis] - input_old[i_grid_data, axis]
                         distance_squared += dist * dist
 
                     if distance_squared < distance_squared_min:
@@ -269,9 +269,9 @@ class Array(
         # grid = {axis: grid[axis].combine_axes(axes=grid.keys(), axis_new='dummy') for axis in grid}
 
         index = Array._calc_index_nearest_even_numba(
-            grid=np.stack([d.value.data for d in grid.coordinates], axis=~0),
-            grid_data=np.stack([d.value.data for d in grid_data.coordinates], axis=~0),
-            mask_data=mask,
+            input_new=np.stack([d.value.data for d in grid.coordinates], axis=~0),
+            input_old=np.stack([d.value.data for d in grid_data.coordinates], axis=~0),
+            mask_input_old=mask,
         )
 
         index = np.unravel_index(index, shape=tuple(shape_grid_data.values()))
