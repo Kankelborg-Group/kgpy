@@ -3,7 +3,10 @@ import abc
 import dataclasses
 import copy
 import numpy as np
+import numpy.typing
+import matplotlib.axes
 import scipy.interpolate
+import astropy.visualization
 import numba
 import kgpy.mixin
 import kgpy.labeled
@@ -42,6 +45,63 @@ class AbstractArray(
     @property
     def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
         return kgpy.labeled.Array.broadcast_shapes(self.input, self.output)
+
+    @abc.abstractmethod
+    def __call__(self: AbstractArrayT, input_new: InputT) -> OutputT:
+        pass
+
+    def pcolormesh(
+            self: AbstractArrayT,
+            axs: numpy.typing.NDArray[matplotlib.axes.Axes],
+            input_component_x: str,
+            input_component_y: str,
+            input_component_row: typ.Optional[str] = None,
+            input_component_column: typ.Optional[str] = None,
+            output_component_color: typ.Optional[str] = None,
+            index: typ.Optional[typ.Dict[str, int]] = None,
+            **kwargs,
+    ):
+        axs = kgpy.labeled.Array(axs, ['row', 'column'])
+
+        if index is None:
+            index = dict()
+
+        with astropy.visualization.quantity_support():
+            for index_subplot in axs.ndindex():
+
+                print(index_subplot)
+
+                index_final = {
+                    **index,
+                    input_component_row: index_subplot['row'],
+                    input_component_column: index_subplot['column'],
+                }
+
+                inp = self.input.broadcasted[index_final]
+                inp_x = inp.coordinates_flat[input_component_x].array
+                inp_y = inp.coordinates_flat[input_component_y].array
+                inp_row = inp.coordinates_flat[input_component_row]
+                inp_column = inp.coordinates_flat[input_component_column]
+
+                print(inp_column)
+
+                out = self.output.broadcasted[index_final]
+                if output_component_color is not None:
+                    out = out.coordinates_flat[output_component_color]
+                out = out.array
+
+                ax = axs[index_subplot].array
+                ax.pcolormesh(
+                    inp_x,
+                    inp_y,
+                    out,
+                    **kwargs,
+                )
+
+                if index_subplot['row'] == 0:
+                    ax.set_xlabel(inp_x.unit)
+                elif index_subplot['row'] == axs.shape['row'] - 1:
+                    ax.set_xlabel(f'{inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}')
 
 
 @dataclasses.dataclass
