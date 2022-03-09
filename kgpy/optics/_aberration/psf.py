@@ -7,7 +7,6 @@ import astropy.units as u
 import kgpy
 import kgpy.mixin
 import kgpy.vector
-import kgpy.grid
 import kgpy.function
 
 __all__ = []

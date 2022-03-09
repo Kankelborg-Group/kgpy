@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.plot
 import kgpy.function
-from kgpy import mixin, vector, format as fmt, polynomial
+from kgpy import mixin, vector, format as fmt
 
 __all__ = [
     'Distortion',
@@ -24,7 +24,7 @@ class Distortion:
     mask: np.ndarray
     polynomial_degree: int = 1
 
-    def model(self, inverse: bool = False) -> polynomial.Vector2DValuedPolynomial3D:
+    def model(self, inverse: bool = False) -> 'polynomial.Vector2DValuedPolynomial3D':
         if not inverse:
             mesh_input, mesh_output = self.spatial_mesh_input, self.spatial_mesh_output
             names_input, names_output = ['x', 'y', '\\lambda', ], ['$x\'$', '$y\'$']
@@ -270,7 +270,7 @@ class Vignetting:
 
     @staticmethod
     def apply_model(
-            model: polynomial.Polynomial3D,
+            model: 'polynomial.Polynomial3D',
             cube: np.ndarray,
             wavelength: u.Quantity,
             spatial_min: vector.Vector2D,
@@ -291,7 +291,7 @@ class Vignetting:
 
         return vig * cube
 
-    def model(self, inverse: bool = False) -> polynomial.Polynomial3D:
+    def model(self, inverse: bool = False) -> 'polynomial.Polynomial3D':
         data = self.unvignetted_percent
         names_input, names_output = ['x', 'y', '\\lambda', ], '$V$'
         if inverse:
