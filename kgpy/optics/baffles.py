@@ -10,25 +10,29 @@ import astropy.units as u
 import shapely.geometry
 import shapely.ops
 import ezdxf.addons
-from kgpy import mixin, vector, transform, geometry, optics
-from . import rays, surface
+import kgpy.mixin
+import kgpy.vector
+import kgpy.transforms
+import kgpy.geometry
+from . import rays
+from . import surfaces
 
 __all__ = ['Baffle', 'BaffleList']
 
-ObscurationT = typ.TypeVar('ObscurationT', bound=surface.aperture.Polygon)
+ObscurationT = typ.TypeVar('ObscurationT', bound=surfaces.apertures.Polygon)
 
 
 @dataclasses.dataclass
 class Baffle(
-    mixin.Broadcastable,
-    mixin.Plottable,
-    transform.rigid.Transformable,
-    mixin.Named,
+    kgpy.mixin.Broadcastable,
+    kgpy.mixin.Plottable,
+    kgpy.transforms.Transformable,
+    kgpy.mixin.Named,
     typ.Generic[ObscurationT],
 ):
 
-    apertures_base: typ.List[surface.aperture.IrregularPolygon] = dataclasses.field(default_factory=lambda: [])
-    apertures_extra: typ.List[surface.aperture.Aperture] = dataclasses.field(default_factory=lambda: [])
+    apertures_base: typ.List[surfaces.apertures.IrregularPolygon] = dataclasses.field(default_factory=lambda: [])
+    apertures_extra: typ.List[surfaces.apertures.Aperture] = dataclasses.field(default_factory=lambda: [])
     obscuration_base: typ.Optional[ObscurationT] = None
     margin: u.Quantity = 1 * u.mm
     min_distance: u.Quantity = 2 * u.mm
@@ -40,14 +44,14 @@ class Baffle(
 
     def concat_apertures_from_raytrace(
             self,
-            raytrace: rays.RaysList,
-            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+            raytrace: rays.RayFunctionList,
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
             color: str = 'black',
     ) -> 'Baffle':
 
         if transform_extra is None:
-            transform_extra = transform.rigid.TransformList()
+            transform_extra = kgpy.transforms.TransformList()
 
         img_rays = raytrace[~0]
 
@@ -69,13 +73,13 @@ class Baffle(
 
     def concat_apertures_from_lofts(
             self,
-            lofts: typ.Dict[int, typ.Tuple[surface.Surface, surface.Surface]],
-            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+            lofts: typ.Dict[int, typ.Tuple[surfaces.Surface, surfaces.Surface]],
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             color: str = 'black',
     ) -> 'Baffle':
 
         if transform_extra is None:
-            transform_extra = transform.rigid.TransformList()
+            transform_extra = kgpy.transforms.TransformList()
 
         result = self
 
@@ -97,19 +101,19 @@ class Baffle(
 
     def concat_apertures_from_global_positions(
             self,
-            position_1: vector.Vector3D,
-            position_2: vector.Vector3D,
+            position_1: kgpy.vector.Cartesian3D,
+            position_2: kgpy.vector.Cartesian3D,
             mask: typ.Optional = None,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
             color: str = 'black',
     ) -> 'Baffle':
 
-        position_1 = self.transform.inverse(position_1, num_extra_dims=1)
-        position_2 = self.transform.inverse(position_2, num_extra_dims=1)
+        position_1 = self.transform.inverse(position_1)
+        position_2 = self.transform.inverse(position_2)
 
-        intercept = geometry.segment_plane_intercept(
-            plane_point=vector.Vector3D.spatial(),
-            plane_normal=vector.z_hat,
+        intercept = kgpy.geometry.segment_plane_intercept(
+            plane_point=kgpy.vector.Cartesian3D() * u.mm,
+            plane_normal=kgpy.vector.Cartesian3D.z_hat(),
             line_point_1=position_1,
             line_point_2=position_2,
         )
@@ -118,7 +122,7 @@ class Baffle(
 
     def concat_apertures_from_intercept(
             self,
-            intercept: vector.Vector3D,
+            intercept: kgpy.vector.Cartesian3D,
             mask: u.Quantity,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
             color: str = 'black',
@@ -158,13 +162,13 @@ class Baffle(
                 # poly = points.convex_hull
                 # aper = self._to_aperture(poly)
                 hull = scipy.spatial.ConvexHull(points.xy.quantity)
-                aper = optics.surface.aperture.IrregularPolygon(vertices=points[hull.vertices].copy())
+                aper = surfaces.apertures.IrregularPolygon(vertices=points[hull.vertices].copy())
                 aper.color = color
                 apertures.append(aper)
 
         return self.concat_apertures(apertures)
 
-    def concat_apertures(self, apertures: typ.List[surface.aperture.IrregularPolygon]) -> 'Baffle':
+    def concat_apertures(self, apertures: typ.List[surfaces.apertures.IrregularPolygon]) -> 'Baffle':
         # apertures = np.broadcast_to(apertures, self.shape[:~0] + apertures.shape[~0:])
         other = self.copy()
         other.apertures_base += apertures
@@ -192,7 +196,7 @@ class Baffle(
         apertures = []
         for interior in self._shapely_baffle.interiors:
             # a = optics.surface.aperture.IrregularPolygon(vertices=vector.to_3d(np.array(interior) << self.shapely_unit))
-            a = optics.surface.aperture.IrregularPolygon(
+            a = surfaces.apertures.IrregularPolygon(
                 vertices=vector.Vector2D.from_quantity(interior << self.shapely_unit).to_3d()
             )
             apertures.append(a)
@@ -202,19 +206,19 @@ class Baffle(
     def obscuration(self):
         return self._to_aperture(self._shapely_baffle)
 
-    def _to_shapely_poly(self, aperture: surface.aperture.Polygon) -> shapely.geometry.Polygon:
+    def _to_shapely_poly(self, aperture: surfaces.apertures.Polygon) -> shapely.geometry.Polygon:
         return shapely.geometry.Polygon(shell=aperture.vertices.to(self.shapely_unit).quantity.value)
 
-    def _to_shapely_multipoly(self, aperture_list: typ.List[surface.aperture.Polygon]) -> shapely.geometry.MultiPolygon:
+    def _to_shapely_multipoly(self, aperture_list: typ.List[surfaces.apertures.Polygon]) -> shapely.geometry.MultiPolygon:
         return shapely.geometry.MultiPolygon([self._to_shapely_poly(aper) for aper in aperture_list])
 
-    def _to_aperture(self, aperture: shapely.geometry.Polygon) -> surface.aperture.IrregularPolygon:
-        return optics.surface.aperture.IrregularPolygon(
+    def _to_aperture(self, aperture: shapely.geometry.Polygon) -> surfaces.apertures.IrregularPolygon:
+        return surfaces.apertures.IrregularPolygon(
             # vertices=vector.to_3d(np.array(aperture.exterior) << self.shapely_unit))
             vertices=vector.Vector2D.from_quantity(aperture.exterior << self.shapely_unit).to_3d()
         )
 
-    def _to_aperture_list(self, apertures: shapely.geometry.MultiPolygon) -> typ.List[surface.aperture.Polygon]:
+    def _to_aperture_list(self, apertures: shapely.geometry.MultiPolygon) -> typ.List[surfaces.apertures.Polygon]:
         return [self._to_aperture(aper) for aper in apertures]
 
     @property
@@ -257,39 +261,65 @@ class Baffle(
     def plot(
             self,
             ax: typ.Optional[plt.Axes] = None,
-            components: typ.Tuple[str, str] = ('x', 'y'),
-            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
-            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+            component_x: str = 'x',
+            component_y: str = 'y',
+            component_z: str = 'z',
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             to_global: bool = False,
-            plot_apertures_base: bool = False
-
+            plot_apertures_base: bool = False,
+            **kwargs,
     ) -> plt.Axes:
         if ax is None:
             fig, ax = plt.subplots()
 
-        if plot_kwargs is not None:
-            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
-        else:
-            plot_kwargs = self.plot_kwargs
+        kwargs = {**self.plot_kwargs, **kwargs}
 
         if to_global:
             if transform_extra is None:
-                transform_extra = transform.rigid.TransformList()
+                transform_extra = kgpy.transforms.TransformList()
             transform_extra = transform_extra + self.transform
 
         if self.apertures is not None:
             for aper in self.apertures:
-                aper.plot(ax=ax, components=components, transform_extra=transform_extra, plot_kwargs=plot_kwargs)
+                aper.plot(
+                    ax=ax,
+                    component_x=component_x,
+                    component_y=component_y,
+                    component_z=component_z,
+                    transform_extra=transform_extra,
+                    **kwargs,
+                )
 
         for aper in self.apertures_extra:
-            aper.plot(ax=ax, components=components, transform_extra=transform_extra, plot_kwargs=plot_kwargs)
+            aper.plot(
+                ax=ax,
+                component_x=component_x,
+                component_y=component_y,
+                component_z=component_z,
+                transform_extra=transform_extra,
+                **kwargs,
+            )
 
         if self.obscuration is not None:
-            self.obscuration.plot(ax=ax, components=components, transform_extra=transform_extra, plot_kwargs=plot_kwargs)
+            self.obscuration.plot(
+                ax=ax,
+                component_x=component_x,
+                component_y=component_y,
+                component_z=component_z,
+                transform_extra=transform_extra,
+                **kwargs,
+            )
 
         if plot_apertures_base:
             for aper in self.apertures_base:
-                aper.plot(ax=ax, components=components, transform_extra=transform_extra, plot_kwargs={})
+                aper.plot(
+                    ax=ax,
+                    component_x=component_x,
+                    component_y=component_y,
+                    component_z=component_z,
+                    transform_extra=transform_extra,
+                    **kwargs,
+                )
 
         return ax
 
@@ -302,9 +332,9 @@ class Baffle(
 
                 if self.apertures is not None:
                     for aper in self.apertures:
-                        if isinstance(aper, optics.surface.aperture.Polygon):
+                        if isinstance(aper, surfaces.apertures.Polygon):
                             dxf.add_polyline(aper.vertices.quantity.to(dxf_unit).value, closed=True)
-                        elif isinstance(aper, optics.surface.aperture.Circular):
+                        elif isinstance(aper, surfaces.apertures.Circular):
                             dxf.add_circle(
                                 (aper.descenter.x.to(dxf_unit).value, aper.decenter.y.to(dxf_unit).value),
                                 aper.radius.to(dxf_unit).value
@@ -314,9 +344,9 @@ class Baffle(
 
                 if self.apertures_extra is not None:
                     for aper in self.apertures_extra:
-                        if isinstance(aper, optics.surface.aperture.Polygon):
+                        if isinstance(aper, surfaces.apertures.Polygon):
                             dxf.add_polyline(aper.vertices.quantity.to(dxf_unit).value, closed=True)
-                        elif isinstance(aper, optics.surface.aperture.Circular):
+                        elif isinstance(aper, surfaces.apertures.Circular):
                             dxf.add_circle(
                                 (aper.decenter.x.to(dxf_unit).value, aper.decenter.y.to(dxf_unit).value),
                                 aper.radius.to(dxf_unit).value
@@ -331,8 +361,8 @@ class BaffleList(
 
     def concat_apertures_from_raytrace(
             self,
-            raytrace: rays.RaysList,
-            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+            raytrace: rays.RayFunctionList,
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
             color: str = 'black',
     ) -> 'BaffleList':
@@ -348,8 +378,8 @@ class BaffleList(
 
     def concat_apertures_from_lofts(
             self,
-            lofts: typ.Dict[int, typ.Tuple[surface.Surface, surface.Surface]],
-            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+            lofts: typ.Dict[int, typ.Tuple[surfaces.Surface, surfaces.Surface]],
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             color: str = 'black',
     ) -> 'BaffleList':
         baffle_list = []
@@ -363,8 +393,8 @@ class BaffleList(
 
     def concat_apertures_from_global_positions(
             self,
-            position_1: vector.Vector3D,
-            position_2: vector.Vector3D,
+            position_1: kgpy.vector.Cartesian3D,
+            position_2: kgpy.vector.Cartesian3D,
             mask: typ.Optional = None,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
     ) -> 'BaffleList':
@@ -383,14 +413,14 @@ class BaffleList(
             ax: typ.Optional[plt.Axes] = None,
             components: typ.Tuple[str, str] = ('x', 'y'),
             plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
-            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             plot_apertures_base: bool = False
     ) -> plt.Axes:
         if ax is None:
             _, ax = plt.subplots()
 
         if transform_extra is None:
-            transform_extra = transform.rigid.TransformList()
+            transform_extra = kgpy.transforms.TransformList()
 
         for baffle in self:
             baffle.plot(

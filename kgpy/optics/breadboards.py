@@ -3,15 +3,19 @@ import dataclasses
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-from kgpy import vector, transform, mixin
+import kgpy.mixin
+import kgpy.vector
+import kgpy.transforms
 
-__all__ = ['Breadboard']
+__all__ = [
+    'Breadboard'
+]
 
 
 @dataclasses.dataclass
 class Breadboard(
-    transform.rigid.Transformable,
-    mixin.Colorable,
+    kgpy.transforms.Transformable,
+    kgpy.mixin.Plottable,
 ):
     # num_taps: typ.Tuple[int, int] = (0, 0)
     # tap_diameter: u.Quantity = 0 * u.mm
@@ -50,25 +54,25 @@ class Breadboard(
 
     def plot(
             self,
-            ax: typ.Optional[plt.Axes] = None,
+            ax: plt.Axes,
+            component_x: str = 'x',
+            component_y: str = 'y',
+            component_z: str = 'z',
             components: typ.Tuple[str, str] = ('x', 'y'),
-            color: str = 'black',
-            transform_extra: typ.Optional[transform.rigid.TransformList] = None,
+            # color: str = 'black',
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             to_global: bool = False,
-    ) -> plt.Axes:
+            **kwargs
+    ):
 
-        if ax is None:
-            _, ax = plt.subplots()
-
-        if color is None:
-            color = self.color
+        kwargs = {**self.plot_kwargs, **kwargs}
 
         if to_global:
             if transform_extra is None:
-                transform_extra = transform.rigid.TransformList()
+                transform_extra = kgpy.transforms.TransformList()
             transform_extra = transform_extra + self.transform
 
-        top = vector.Vector3D(
+        top = kgpy.vector.Cartesian3D(
             x=u.Quantity([0 * u.mm, 0 * u.mm, self.width, self.width]),
             y=0 * u.mm,
             z=u.Quantity([0 * u.mm, self.length, self.length, 0 * u.mm]),
@@ -79,8 +83,8 @@ class Breadboard(
         points = transform_extra(points)
 
         c0, c1 = components
-        ax.fill(points.get_component(c0).T, points.get_component(c1).T, fill=False, color=color)
-        ax.plot(points.get_component(c0), points.get_component(c1), color=color)
+        ax.fill(points.get_component(c0).T, points.get_component(c1).T, fill=False, **kwargs)
+        ax.plot(points.get_component(c0), points.get_component(c1), **kwargs)
 
         return ax
 

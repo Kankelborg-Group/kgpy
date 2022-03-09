@@ -5,9 +5,9 @@ import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vector
 import kgpy.transforms
-import kgpy.optics.surface.aperture
-import kgpy.optics.surface.sag
-import kgpy.optics.surface.material
+import kgpy.optics.surfaces.apertures
+import kgpy.optics.surfaces.sags
+import kgpy.optics.surfaces.materials
 
 
 class TestMirror:
@@ -21,14 +21,14 @@ class TestMirror:
     )
     def test_plot(self, decenter_x, color):
         fig, ax = plt.subplots()
-        sag = kgpy.optics.surface.sag.Standard(radius=10000 * u.mm)
-        aperture = kgpy.optics.surface.aperture.RegularPolygon(
+        sag = kgpy.optics.surfaces.sags.Standard(radius=10000 * u.mm)
+        aperture = kgpy.optics.surfaces.apertures.RegularPolygon(
             transform=kgpy.transforms.Translation(kgpy.vector.Cartesian3D(x=decenter_x) * u.mm),
             radius=100 * u.mm,
             num_sides=8,
         )
-        material = kgpy.optics.surface.material.Mirror(thickness=10 * u.mm)
-        material.plot(
+        material = kgpy.optics.surfaces.materials.Mirror(thickness=10 * u.mm)
+        assert material.plot(
             ax=ax,
             sag=sag,
             aperture=aperture,
@@ -36,18 +36,19 @@ class TestMirror:
             component_y='x',
             color=color,
         )
-        plt.show()
+        # plt.show()
+        plt.close(fig)
 
     def test_plot_3d(self):
         fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
-        sag = kgpy.optics.surface.sag.Standard(radius=10000 * u.mm)
-        aperture = kgpy.optics.surface.aperture.RegularPolygon(
+        sag = kgpy.optics.surfaces.sags.Standard(radius=10000 * u.mm)
+        aperture = kgpy.optics.surfaces.apertures.RegularPolygon(
             transform=kgpy.transforms.Translation(kgpy.vector.Cartesian3D(x=0) * u.mm),
             radius=100 * u.mm,
             num_sides=8,
         )
-        material = kgpy.optics.surface.material.Mirror(thickness=20 * u.mm)
-        material.plot(
+        material = kgpy.optics.surfaces.materials.Mirror(thickness=20 * u.mm)
+        assert material.plot(
             ax=ax,
             sag=sag,
             aperture=aperture,
@@ -61,6 +62,7 @@ class TestMirror:
         ax.set_xlim(-100, 100)
         ax.set_ylim(-100, 100)
         ax.set_zlim(-100, 100)
-        plt.show()
+        # plt.show()
+        plt.close(fig)
 
 

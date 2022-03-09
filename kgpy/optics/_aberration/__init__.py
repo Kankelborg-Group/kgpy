@@ -5,6 +5,7 @@ import scipy.ndimage
 import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.plot
+import kgpy.function
 from kgpy import mixin, vector, format as fmt, polynomial
 
 __all__ = [

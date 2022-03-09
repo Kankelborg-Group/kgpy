@@ -8,7 +8,7 @@ import kgpy
 import kgpy.mixin
 import kgpy.vector
 import kgpy.grid
-import kgpy.data
+import kgpy.function
 
 __all__ = []
 
@@ -108,10 +108,10 @@ class PSF(abc.ABC):
 @dataclasses.dataclass
 class DiscretePSF(PSF):
 
-    data: kgpy.data.Array
+    data: kgpy.function.Array
 
     @classmethod
-    def from_pupil_function(cls, pupil_function: kgpy.data.Array):
+    def from_pupil_function(cls, pupil_function: kgpy.function.Array):
 
         psf = np.fft.fft2(pupil_function.data, axes=grid.axis.position_xy)
         psf = np.fft.fftshift(psf, axes=grid.axis.position_xy)

@@ -7,18 +7,22 @@ import matplotlib.lines
 import astropy.units as u
 import astropy.visualization
 from ezdxf.addons.r12writer import R12FastStreamWriter
-from kgpy import mixin, vector, transform as tfrm, optimization
-import kgpy.dxf
-from ..rays import Rays, RaysList
-from .sag import Sag
-from .material import Material
-from .aperture import Aperture
-from .rulings import Rulings
+import kgpy.mixin
+import kgpy.uncertainty
+import kgpy.vector
+import kgpy.transforms
+import kgpy.optimization
+import kgpy.io.dxf
+from .. import rays
+from . import sags
+from . import materials
+from . import apertures
+from . import rulings
 
 __all__ = [
-    'sag',
-    'material',
-    'aperture',
+    'sags',
+    'materials',
+    'apertures',
     'rulings',
     'SagT',
     'Surface',
@@ -27,36 +31,37 @@ __all__ = [
 
 SurfaceT = typ.TypeVar('SurfaceT', bound='Surface')
 SurfaceListT = typ.TypeVar('SurfaceListT', bound='SurfaceList')
-SagT = typ.TypeVar('SagT', bound=Sag)       #: Generic :class:`kgpy.optics.surface.sag.Sag` type
-MaterialT = typ.TypeVar('MaterialT', bound=Material)
-ApertureT = typ.TypeVar('ApertureT', bound=Aperture)
-ApertureMechT = typ.TypeVar('ApertureMechT', bound=Aperture)
-RulingsT = typ.TypeVar('RulingsT', bound=Rulings)
+SagT = typ.TypeVar('SagT', bound='sags.Sag')       #: Generic :class:`kgpy.optics.surface.sag.Sag` type
+MaterialT = typ.TypeVar('MaterialT', bound='materials.Material')
+ApertureT = typ.TypeVar('ApertureT', bound='apertures.Aperture')
+ApertureMechT = typ.TypeVar('ApertureMechT', bound='apertures.Aperture')
+RulingT = typ.TypeVar('RulingT', bound='rulings.Ruling')
 
 
 @dataclasses.dataclass(eq=False)
 class Surface(
-    kgpy.dxf.WritableMixin,
-    mixin.Broadcastable,
-    tfrm.rigid.Transformable,
-    mixin.Plottable,
-    mixin.Named,
+    kgpy.io.dxf.WritableMixin,
+    kgpy.mixin.Broadcastable,
+    kgpy.transforms.Transformable,
+    kgpy.mixin.Plottable,
+    kgpy.mixin.Named,
     abc.ABC,
-    typ.Generic[SagT, MaterialT, ApertureT, ApertureMechT, RulingsT],
+    typ.Generic[SagT, MaterialT, ApertureT, ApertureMechT, RulingT],
 ):
     """
     Interface for representing an optical surface.
     """
     plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = dataclasses.field(default_factory=lambda: dict(color='black'))
-    is_stop: bool = False
-    is_stop_test: bool = False
+    is_field_stop: bool = False
+    is_pupil_stop: bool = False
+    is_pupil_stop_test: bool = False
     is_active: bool = True  #: Flag to disable the surface
     is_visible: bool = True     #: Flag to disable plotting this surface
     sag: typ.Optional[SagT] = None      #: Sag profile of this surface
     material: typ.Optional[MaterialT] = None    #: Material type for this surface
     aperture: typ.Optional[ApertureT] = None    #: Aperture of this surface
     aperture_mechanical: typ.Optional[ApertureMechT] = None     #: Mechanical aperture of this surface
-    rulings: typ.Optional[RulingsT] = None      #: Ruling profile of this surface
+    ruling: typ.Optional[RulingT] = None      #: Ruling profile of this surface
     baffle_loft_ids: typ.List[int] = dataclasses.field(default_factory=lambda: [])
 
     def __eq__(self: SurfaceT, other: SurfaceT):
@@ -64,9 +69,11 @@ class Surface(
             return False
         if not super().__eq__(other):
             return False
-        if not self.is_stop == other.is_stop:
+        if not self.is_field_stop == other.is_field_stop:
             return False
-        if not self.is_stop_test == other.is_stop_test:
+        if not self.is_pupil_stop == other.is_pupil_stop:
+            return False
+        if not self.is_pupil_stop_test == other.is_pupil_stop_test:
             return False
         if not self.is_active == other.is_active:
             return False
@@ -88,29 +95,22 @@ class Surface(
 
     def ray_intercept(
             self,
-            rays: Rays,
-            intercept_error: u.Quantity = 0.1 * u.nm
-    ) -> vector.Vector3D:
+            ray: rays.RayVector,
+            intercept_error: u.Quantity = 0.1 * u.nm,
+    ) -> kgpy.vector.Cartesian3D:
 
-        def line(t: u.Quantity) -> vector.Vector3D:
-            return rays.position + rays.direction * t
+        def line(t: kgpy.uncertainty.ArrayLike) -> kgpy.vector.Cartesian3D:
+            return ray.position + ray.direction * t
 
-        def func(t: u.Quantity) -> u.Quantity:
+        def func(t: kgpy.uncertainty.ArrayLike) -> kgpy.uncertainty.ArrayLike:
             a = line(t)
             if self.sag is not None:
-                surf_sag = self.sag(a.x, a.y, num_extra_dims=rays.axis.ndim)
+                surf_sag = self.sag(a)
             else:
-                surf_sag = 0 * u.mm
+                surf_sag = 0 * u.m
             return a.z - surf_sag
 
-        # bracket_max = 2 * np.nanmax(np.abs(rays.position[vector.z])) + 1 * u.mm
-        # t_intercept = optimization.root_finding.scalar.false_position(
-        #     func=func,
-        #     bracket_min=-bracket_max,
-        #     bracket_max=bracket_max,
-        #     max_abs_error=intercept_error,
-        # )
-        t_intercept = optimization.root_finding.scalar.secant(
+        t_intercept = kgpy.optimization.root_finding.secant(
             func=func,
             root_guess=0 * u.mm,
             step_size=1 * u.mm,
@@ -120,115 +120,101 @@ class Surface(
 
     def propagate_rays(
             self,
-            rays: Rays,
+            ray: rays.RayVector,
             intercept_error: u.Quantity = 0.1 * u.nm
-    ) -> Rays:
+    ) -> rays.RayVector:
+
+        ray = ray.copy_shallow()
 
         if not self.is_active:
-            return rays
+            return ray
 
-        transform_total = self.transform.inverse + rays.transform
-        rays = rays.apply_transform_list(transform_total)
-        rays.transform = self.transform
+        transform_total = self.transform.inverse + ray.transform
+        ray = ray.apply_transform(transform_total)
+        ray.transform = self.transform
 
-        rays.position = self.ray_intercept(rays, intercept_error=intercept_error)
+        ray.position = self.ray_intercept(ray, intercept_error=intercept_error)
 
-        if self.rulings is not None:
-            # a = self.rulings.effective_input_direction(rays, material=self.material)
-            # n1 = self.rulings.effective_input_index(rays, material=self.material)
-            v = self.rulings.effective_input_vector(rays=rays, material=self.material)
-            a = self.rulings.effective_input_direction(v)
-            n1 = self.rulings.effective_input_index(v)
+        if self.ruling is not None:
+            v = self.ruling.effective_input_vector(ray=ray, material=self.material)
+            a = self.ruling.effective_input_direction(v)
+            n1 = self.ruling.effective_input_index(v)
         else:
-            a = rays.direction
-            n1 = rays.index_of_refraction
+            a = ray.direction
+            n1 = ray.index_refraction
 
         if self.material is not None:
-            n2 = self.material.index_of_refraction(rays)
+            n2 = self.material.index_refraction(ray)
         else:
-            n2 = np.sign(rays.index_of_refraction) << u.dimensionless_unscaled
+            n2 = np.sign(ray.index_refraction) << u.dimensionless_unscaled
 
         r = n1 / n2
-        rays.index_of_refraction = n2
+        ray.index_refraction = n2
 
         if self.sag is not None:
-            rays.surface_normal = self.sag.normal(rays.position.x, rays.position.y, num_extra_dims=rays.axis.ndim)
+            ray.surface_normal = self.sag.normal(ray.position)
         else:
-            rays.surface_normal = -vector.z_hat.copy()
+            ray.surface_normal = -kgpy.vector.Cartesian3D.z_hat()
 
-        c = -a @ rays.surface_normal
-        b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * rays.surface_normal
-        rays.direction = b.normalize()
+        c = -a @ ray.surface_normal
+        b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * ray.surface_normal
+        ray.direction = b.normalized
 
         if self.material is not None:
-            rays.intensity = self.material.transmissivity(rays) * rays.intensity
+            ray.intensity = self.material.transmissivity(ray) * ray.intensity
 
         if self.aperture is not None:
             if self.aperture.max.x.unit.is_equivalent(u.rad):
-                new_vignetted_mask = self.aperture.is_unvignetted(rays.field_angles, num_extra_dims=rays.axis.ndim)
-                rays.vignetted_mask = rays.vignetted_mask & new_vignetted_mask
+                ray.mask = ray.mask & self.aperture.is_unvignetted(ray.field_angles)
             else:
-                new_vignetted_mask = self.aperture.is_unvignetted(rays.position, num_extra_dims=rays.axis.ndim)
-                rays.vignetted_mask = rays.vignetted_mask & new_vignetted_mask
+                ray.mask = ray.mask & self.aperture.is_unvignetted(ray.position)
 
-        return rays
+        return ray
 
-    def histogram(self, rays: Rays, nbins: vector.Vector2D, weights: typ.Optional[u.Quantity] = None):
-
-        if self.aperture is not None:
-            hmin = self.aperture.min
-            hmax = self.aperture.max
-        else:
-            hmin = rays.position.min()
-            hmax = rays.position.max()
-
-        nbins = nbins.to_tuple()
-        hist = np.empty(rays.shape + nbins)
-
-        for i in range(rays.size):
-            index = np.unravel_index(i, rays.shape)
-            hist[index] = np.histogram2d(
-                x=rays.position.x,
-                y=rays.position.y,
-                bins=nbins,
-                range=[
-                    [hmin.x, hmax.x],
-                    [hmin.y, hmax.y],
-                ],
-                weights=weights,
-            )[0]
-
-        return hist
+    # def histogram(self, rays: Rays, nbins: vector.Vector2D, weights: typ.Optional[u.Quantity] = None):
+    #
+    #     if self.aperture is not None:
+    #         hmin = self.aperture.min
+    #         hmax = self.aperture.max
+    #     else:
+    #         hmin = rays.position.min()
+    #         hmax = rays.position.max()
+    #
+    #     nbins = nbins.to_tuple()
+    #     hist = np.empty(rays.shape + nbins)
+    #
+    #     for i in range(rays.size):
+    #         index = np.unravel_index(i, rays.shape)
+    #         hist[index] = np.histogram2d(
+    #             x=rays.position.x,
+    #             y=rays.position.y,
+    #             bins=nbins,
+    #             range=[
+    #                 [hmin.x, hmax.x],
+    #                 [hmin.y, hmax.y],
+    #             ],
+    #             weights=weights,
+    #         )[0]
+    #
+    #     return hist
 
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            components: typ.Tuple[str, str] = ('x', 'y'),
-            component_z: typ.Optional[str] = None,
-            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
-            # color: typ.Optional[str] = None,
-            # linewidth: typ.Optional[float] = None,
-            # linestyle: typ.Optional[str] = None,
-            transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
+            component_x: str = 'x',
+            component_y: str = 'y',
+            component_z: str = 'z',
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             to_global: bool = False,
             plot_annotations: bool = True,
             annotation_text_y: float = 1.05,
+            **kwargs,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
-        if plot_kwargs is not None:
-            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
-        else:
-            plot_kwargs = self.plot_kwargs
-
-        # if color is None:
-        #     color = self.color
-        # if linewidth is None:
-        #     linewidth = self.linewidth
-        # if linestyle is None:
-        #     linestyle = self.linestyle
+        kwargs = {**self.plot_kwargs, **kwargs}
 
         if transform_extra is None:
-            transform_extra = tfrm.rigid.TransformList()
+            transform_extra = kgpy.transforms.TransformList()
 
         if to_global:
             transform_extra = transform_extra + self.transform
@@ -239,14 +225,12 @@ class Surface(
 
             kwargs = dict(
                 ax=ax,
-                components=components,
+                component_x=component_x,
+                component_y=component_y,
                 component_z=component_z,
-                plot_kwargs=plot_kwargs,
                 transform_extra=transform_extra,
-                # color=color,
-                # linewidth=linewidth,
-                # linestyle=linestyle,
                 sag=self.sag,
+                **kwargs
             )
 
             if self.aperture is not None:
@@ -261,8 +245,7 @@ class Surface(
                     lines += self.material.plot(**kwargs, aperture=self.aperture, )
 
             if plot_annotations:
-                c_x, c_y = components
-                text_position_local = vector.Vector3D.spatial().reshape(-1)
+                text_position_local = kgpy.vector.Cartesian3D() * u.mm
                 if self.aperture_mechanical is not None:
                     if self.aperture_mechanical.max.x.unit.is_equivalent(u.mm):
                         text_position_local = self.aperture_mechanical.wire
@@ -270,15 +253,17 @@ class Surface(
                     if self.aperture.max.x.unit.is_equivalent(u.mm):
                         text_position_local = self.aperture.wire
 
-                text_position = transform_extra(text_position_local, num_extra_dims=1)
-                text_position = text_position.reshape(-1, text_position.shape[~0])
+                text_position = transform_extra(text_position_local)
+                # text_position = text_position.reshape(-1, text_position.shape[~0])
 
-                for i in range(1):
+                for text_pos in text_position.ndindex(axis_ignored='wire'):
 
-                    wire_index = np.argmax(text_position[i].get_component(c_y))
+                    wire_index = np.argmax(text_pos.coordinates[component_y], axis='wire')
 
-                    text_x = text_position[i][wire_index].get_component(c_x)
-                    text_y = text_position[i][wire_index].get_component(c_y)
+                    text_pos_max = text_pos[dict(wire=wire_index)]
+
+                    text_x = text_pos_max.coordinates[component_x]
+                    text_y = text_pos_max.coordinates[component_y]
 
                     with astropy.visualization.quantity_support():
                         ax.annotate(
@@ -307,10 +292,10 @@ class Surface(
             self: SurfaceT,
             file_writer: R12FastStreamWriter,
             unit: u.Unit,
-            transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
     ) -> None:
         if transform_extra is None:
-            transform_extra = tfrm.rigid.TransformList()
+            transform_extra = kgpy.transforms.TransformList()
 
         transform_extra = transform_extra + self.transform
 
@@ -337,11 +322,11 @@ class Surface(
 
 @dataclasses.dataclass
 class SurfaceList(
-    kgpy.dxf.WritableMixin,
+    kgpy.io.dxf.WritableMixin,
     # mixin.Colorable,
-    mixin.Plottable,
-    tfrm.rigid.Transformable,
-    mixin.DataclassList[Surface],
+    kgpy.mixin.Plottable,
+    kgpy.transforms.Transformable,
+    kgpy.mixin.DataclassList[Surface],
 ):
 
     @property
@@ -380,43 +365,37 @@ class SurfaceList(
 
     def raytrace(
             self,
-            rays: Rays,
+            ray_function: rays.RayFunction,
             surface_last: typ.Optional[Surface] = None,
             intercept_error: u.Quantity = 0.1 * u.nm
-    ) -> RaysList:
+    ) -> rays.RayFunctionList:
 
-        rays_list = RaysList()
+        ray_function_list = rays.RayFunctionList()
         for surf in self.flat_global_iter:
-            rays = surf.propagate_rays(rays, intercept_error=intercept_error)
-            rays_list.append(rays)
+            ray_function = ray_function.copy_shallow()
+            ray_function.output = surf.propagate_rays(ray_function.output, intercept_error=intercept_error)
+            ray_function_list.append(ray_function)
             if surf == surface_last:
-                return rays_list
-        return rays_list
+                return ray_function_list
+        return ray_function_list
 
     def plot(
             self,
             ax: matplotlib.axes.Axes,
-            components: typ.Tuple[str, str] = ('x', 'y'),
-            component_z: typ.Optional[str] = None,
-            plot_kwargs: typ.Optional[typ.Dict[str, typ.Any]] = None,
-            # color: typ.Optional[str] = None,
-            # linewidth: typ.Optional[float] = None,
-            # linestyle: typ.Optional[str] = None,
-            transform_extra: typ.Optional[tfrm.rigid.TransformList] = None,
+            component_x: str = 'x',
+            component_y: str = 'y',
+            component_z: str = 'z',
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
             to_global: bool = False,
             plot_annotations: bool = True,
             annotation_text_y: float = 1.05,
+            **kwargs,
     ) -> typ.List[matplotlib.lines.Line2D]:
 
-        if plot_kwargs is not None:
-            plot_kwargs = {**self.plot_kwargs, **plot_kwargs}
-        else:
-            plot_kwargs = self.plot_kwargs
-        # if color is None:
-        #     color = self.color
+        kwargs = {**self.plot_kwargs, **kwargs}
 
         if transform_extra is None:
-            transform_extra = tfrm.rigid.TransformList()
+            transform_extra = kgpy.transforms.TransformList()
 
         # if to_global:
         #     transform_extra = transform_extra + self.transform
@@ -425,16 +404,14 @@ class SurfaceList(
         for surf in self:
             lines += surf.plot(
                 ax=ax,
-                components=components,
+                component_x=component_x,
+                component_y=component_y,
                 component_z=component_z,
-                plot_kwargs=plot_kwargs,
-                # color=color,
-                # linewidth=linewidth,
-                # linestyle=linestyle,
                 transform_extra=transform_extra,
                 to_global=True,
                 plot_annotations=plot_annotations,
                 annotation_text_y=annotation_text_y,
+                **kwargs
             )
 
         return lines
@@ -443,7 +420,7 @@ class SurfaceList(
             self: SurfaceListT,
             file_writer: R12FastStreamWriter,
             unit: u.Unit,
-            transform_extra: typ.Optional[tfrm.rigid.Transform] = None,
+            transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
     ) -> None:
 
         for surf in self:
@@ -452,9 +429,3 @@ class SurfaceList(
                 unit=unit,
                 transform_extra=transform_extra,
             )
-
-
-from . import aperture
-from . import sag
-from . import material
-from . import rulings
