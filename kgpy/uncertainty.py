@@ -209,8 +209,8 @@ class AbstractArray(
             args_distribution = [arg.distribution if isinstance(arg, AbstractArray) else arg for arg in args]
             types_distribution = list(type(arg) for arg in args_distribution if getattr(arg, '__array_function__', None) is not None)
 
-            kwargs_nominal = {k: kwargs[k].nominal_normalized if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
-            kwargs_distribution = {k: kwargs[k].distribution_normalized if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
+            kwargs_nominal = {k: kwargs[k].normalized.nominal if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
+            kwargs_distribution = {k: kwargs[k].normalized.distribution if isinstance(kwargs[k], AbstractArray) else kwargs[k] for k in kwargs}
 
             if args:
                 arg_nominal = args_nominal[0]
