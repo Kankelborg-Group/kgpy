@@ -1,9 +1,11 @@
+import pytest
 import matplotlib.pyplot as plt
 import astropy.time
 from kgpy import plot
 from . import Slice, fdm
 
 
+@pytest.mark.skip
 class TestSlice:
 
     def test_from_time_range(self, capsys):
