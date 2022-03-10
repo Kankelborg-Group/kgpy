@@ -20,6 +20,7 @@ jobs:
       - name: Define HOME for chianti compatibility
         if: runner.os == 'Windows'
         run: |
+          $env:USERPROFILE
           set $env:HOME = $env:USERPROFILE
           $env:HOME
       - name: Install package
