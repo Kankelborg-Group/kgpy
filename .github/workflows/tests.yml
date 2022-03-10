@@ -21,7 +21,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           $env:USERPROFILE
-          set $env:HOME = $env:USERPROFILE
+          $env:HOME = $env:USERPROFILE
           $env:HOME
       - name: Install package
         run: |
