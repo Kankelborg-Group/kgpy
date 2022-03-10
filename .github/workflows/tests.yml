@@ -17,6 +17,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Define HOME for chianti compatibility
+        if: ${{ env.RUNNER_OS == 'Windows' }}
+        env:
+          HOME: ${{ USERPROFILE }}
       - name: Install package
         run: |
           python -m pip install --upgrade pip
