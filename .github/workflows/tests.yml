@@ -20,10 +20,7 @@ jobs:
       - name: If Windows, define HOME environment variable for chianti compatibility
         if: runner.os == 'Windows'
         run: |
-          if [[ $env:RUNNER_OS == 'Windows']]; then
-            echo "HOME=$env:USERPROFILE" >> $GITHUB_ENV
-          fi
-          $env:HOME
+          echo "HOME=$env:USERPROFILE" >> $GITHUB_ENV
       - name: Check HOME
         if: runner.os == 'Windows'
         run: |
