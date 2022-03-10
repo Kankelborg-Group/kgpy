@@ -9,7 +9,7 @@ setup(
         'numpy',
         'matplotlib',
         'scipy',
-        'astropy',
+        'astropy @ git+https://github.com/byrdie/astropy.git#egg=astropy',
         'sunpy[all]',
         'aiapy',
         'pandas',
