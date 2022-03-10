@@ -442,10 +442,12 @@ class Image(mixin.Pickleable):
 
             img = ax.imshow(
                 X=image.value,
-                vmin=np.percentile(data[:, c], thresh_min.value).value,
-                vmax=np.percentile(data[:, c], thresh_max.value).value,
                 origin='lower',
-                norm=matplotlib.colors.PowerNorm(norm_gamma)
+                norm=matplotlib.colors.PowerNorm(
+                    gamma=norm_gamma,
+                    vmin=np.percentile(data[:, c], thresh_min.value).value,
+                    vmax=np.percentile(data[:, c], thresh_max.value).value,
+                )
             )
             imgs.append(img)
             ax.set_xlabel(label_x)
