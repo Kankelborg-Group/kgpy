@@ -339,9 +339,11 @@ class Image(mixin.Pickleable):
         img = ax.imshow(
             X=images[0].value,
             cmap=colormap,
-            norm=matplotlib.colors.PowerNorm(gamma=norm_gamma),
-            vmin=vmin.value,
-            vmax=vmax.value,
+            norm=matplotlib.colors.PowerNorm(
+                gamma=norm_gamma,
+                vmin=vmin.value,
+                vmax=vmax.value,
+            ),
             origin='lower',
         )
 
