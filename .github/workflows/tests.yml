@@ -17,11 +17,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Define HOME for chianti compatibility
+      - name: If Windows, define HOME environment variable for chianti compatibility
         if: runner.os == 'Windows'
         run: |
-          $env:USERPROFILE
-          $env:HOME = $env:USERPROFILE
+          if [[ $env:RUNNER_OS == 'Windows']]; then
+            echo "HOME=$env:USERPROFILE" >> $GITHUB_ENV
+          fi
           $env:HOME
       - name: Check HOME
         if: runner.os == 'Windows'
