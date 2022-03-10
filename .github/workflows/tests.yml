@@ -18,9 +18,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Define HOME for chianti compatibility
-        if: ${{ env.RUNNER_OS == 'Windows' }}
-        env:
-          HOME: ${{ USERPROFILE }}
+        if: ${{ github.RUNNER_OS == 'Windows' }}
+        run: set HOME=%USERPROFILE%
       - name: Install package
         run: |
           python -m pip install --upgrade pip
