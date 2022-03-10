@@ -28,7 +28,6 @@ setup(
         'thermo',
         'numba',
         'pylatex',
-        'ndcube',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',
