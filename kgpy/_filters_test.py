@@ -19,3 +19,28 @@ def test_gaussian_trimmed():
     assert b.shape == shape
     assert b.sum() != 0
 
+    plt.imshow(b)
+    plt.show()
+
+
+def test_mean_trimmed():
+
+    shape = (100, 100)
+    a = np.random.normal(loc=100, scale=25, size=shape)
+
+    b = kgpy.filters.mean_trimmed(
+        array=a,
+        kernel_size=21,
+        proportion=0 * u.percent
+    )
+
+    assert b.shape == shape
+    assert b.sum() != 0
+
+    plt.figure()
+    plt.imshow(a)
+
+    plt.figure()
+    plt.imshow(b)
+    plt.show()
+

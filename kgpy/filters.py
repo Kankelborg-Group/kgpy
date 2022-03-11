@@ -91,8 +91,7 @@ def mean_trimmed(
     array_padded = np.pad(
         array=array,
         pad_width=np.stack([kernel_left, kernel_right], axis=~0),
-        mode='constant',
-        constant_values=np.nan,
+        mode='reflect',
     )
 
     array_windowed = np.lib.stride_tricks.sliding_window_view(
