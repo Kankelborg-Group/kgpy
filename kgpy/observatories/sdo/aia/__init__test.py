@@ -1,10 +1,7 @@
 import pytest
 import pathlib
-import datetime
-import matplotlib.pyplot as plt
 import astropy.units as u
 import astropy.time
-import kgpy.plot
 from kgpy.obs import __init__test
 from . import AIA
 
@@ -21,15 +18,6 @@ def obs_test() -> AIA:
 class TestAIA(__init__test.TestImage):
 
     def test_from_time_range(self,  obs_test: AIA):
-        # with capsys.disabled():
-        #     time_start = astropy.time.Time('2019-09-30T00:00:00')
-        #     time_end = time_start + 100 * u.s
-        #     download_path = path = pathlib.Path(__file__).parent / 'test_jsoc'
-        #     channels = [193, 304] * u.AA
-        #     aia = AIA.from_time_range(time_start, time_end, download_path, channels=channels)
-        #
-        # c = kgpy.plot.CubeSlicer(obs_test.intensity[:, 0].value)
-        # plt.show()
 
         assert obs_test.intensity.sum() > 0
 
