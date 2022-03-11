@@ -19,9 +19,6 @@ def test_gaussian_trimmed():
     assert b.shape == shape
     assert b.sum() != 0
 
-    plt.imshow(b)
-    plt.show()
-
 
 def test_mean_trimmed():
 
@@ -36,11 +33,4 @@ def test_mean_trimmed():
 
     assert b.shape == shape
     assert b.sum() != 0
-
-    plt.figure()
-    plt.imshow(a)
-
-    plt.figure()
-    plt.imshow(b)
-    plt.show()
 
