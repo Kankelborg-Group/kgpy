@@ -32,7 +32,7 @@ class HMI(kgpy.obs.Image):
             hmi_map = sunpy.map.Map(path_array[i])
             self.intensity[i,0] = hmi_map.data * u.adu
             self.time[i,0] = hmi_map.date
-            self.exposure_length[i,0] = hmi_map.exposure_time
+            # self.exposure_length[i,0] = hmi_map.exposure_time
             self.wcs[i,0] = hmi_map.wcs
 
         return self
