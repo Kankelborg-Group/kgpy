@@ -70,7 +70,7 @@ def gaussian_trimmed(
     for d in range(ndim):
         kernel = kernel * np.exp(-np.square(coordinates[d] / kernel_width[d]) / 2)
 
-    return np.nansum(array_windowed * kernel, axis=axes_kernel) / np.nansum(mask * kernel, axis=axes_kernel)
+    return np.sum(array_windowed * kernel, axis=axes_kernel, where=mask) / np.sum(mask * kernel, axis=axes_kernel, where=mask)
 
 
 def mean_trimmed(
