@@ -51,6 +51,32 @@ class TestCartesian2D:
             y = kgpy.uncertainty.Uniform(y, y_width)
         return kgpy.vector.Cartesian2D(x, y) * unit
 
+    def test_coordinates_flat(
+            self,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ):
+        a = self.factory(unit, x, x_width, y, y_width)
+
+        b = kgpy.vector.Cartesian2D(a, -a)
+
+        coords = b.coordinates_flat
+        assert coords
+        assert len(coords) == 4
+
+        factor = 2
+        coords = {c: factor * coords[c] for c in coords}
+
+        c = b.copy()
+        c.coordinates_flat = coords
+
+        assert np.all(c == factor * b)
+
+
+
     def test__mul__(
             self,
             unit: u.Unit,
