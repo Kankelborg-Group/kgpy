@@ -89,8 +89,6 @@ class AbstractArray(
                 inp_row = inp.coordinates_flat[input_component_row]
                 inp_column = inp.coordinates_flat[input_component_column]
 
-                print(inp_column)
-
                 out = self.output.broadcasted[index_final]
                 if output_component_color is not None:
                     out = out.coordinates_flat[output_component_color]
