@@ -61,11 +61,13 @@ class TestCartesian2D:
     ):
         a = self.factory(unit, x, x_width, y, y_width)
 
-        b = kgpy.vector.Cartesian2D(a, -a)
+        b = type(a)()
+        for i, component in enumerate(b.coordinates):
+            b.coordinates[component] = i * a
 
         coords = b.coordinates_flat
         assert coords
-        assert len(coords) == 4
+        assert len(coords) == len(a.coordinates) * len(b.coordinates)
 
         factor = 2
         coords = {c: factor * coords[c] for c in coords}
