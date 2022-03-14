@@ -15,7 +15,7 @@ from ezdxf.addons.r12writer import R12FastStreamWriter
 import kgpy.mixin
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.transforms
 import kgpy.io.dxf
 from . import sags
@@ -56,26 +56,26 @@ class Aperture(
     num_samples: int = 1000
 
     @abc.abstractmethod
-    def is_unvignetted(self: ApertureT, position: kgpy.vector.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+    def is_unvignetted(self: ApertureT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
         pass
 
     @property
     @abc.abstractmethod
-    def min(self: ApertureT) -> kgpy.vector.Cartesian3D:
+    def min(self: ApertureT) -> kgpy.vectors.Cartesian3D:
         pass
 
     @property
     @abc.abstractmethod
-    def max(self: ApertureT) -> kgpy.vector.Cartesian3D:
+    def max(self: ApertureT) -> kgpy.vectors.Cartesian3D:
         pass
 
     @property
-    def vertices(self: ApertureT) -> typ.Optional[kgpy.vector.Cartesian3D]:
+    def vertices(self: ApertureT) -> typ.Optional[kgpy.vectors.Cartesian3D]:
         return None
 
     @property
     @abc.abstractmethod
-    def wire(self: ApertureT) -> kgpy.vector.Cartesian3D:
+    def wire(self: ApertureT) -> kgpy.vectors.Cartesian3D:
         pass
 
     def plot(
@@ -223,14 +223,14 @@ class Circular(
         return out
 
     @property
-    def min(self: CircularT) -> kgpy.vector.Cartesian3D:
-        return -kgpy.vector.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius) + self.decenter.vector
+    def min(self: CircularT) -> kgpy.vectors.Cartesian3D:
+        return -kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius) + self.decenter.vector
 
     @property
-    def max(self: CircularT) -> kgpy.vector.Cartesian3D:
-        return kgpy.vector.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius) + self.decenter.vector
+    def max(self: CircularT) -> kgpy.vectors.Cartesian3D:
+        return kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius) + self.decenter.vector
 
-    def is_unvignetted(self: CircularT, position: kgpy.vector.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+    def is_unvignetted(self: CircularT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
         position = self.transform.inverse(position.to_3d())
         is_inside = position.length <= self.radius
         if not self.is_obscuration:
@@ -239,8 +239,8 @@ class Circular(
             return ~is_inside
 
     @property
-    def wire(self: CircularT) -> kgpy.vector.Cartesian3D:
-        wire = kgpy.vector.Cylindrical(
+    def wire(self: CircularT) -> kgpy.vectors.Cartesian3D:
+        wire = kgpy.vectors.Cylindrical(
             radius=self.radius[..., np.newaxis],
             azimuth=kgpy.labeled.LinearSpace(0 * u.deg, 360 * u.deg, num=self.num_samples, axis='wire'),
             z=0 * self.radius,
@@ -259,7 +259,7 @@ class Polygon(
     def shapely_poly(self: PolygonT) -> shapely.geometry.Polygon:
         return shapely.geometry.Polygon(self.vertices)
 
-    def is_unvignetted(self: PolygonT, position: kgpy.vector.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+    def is_unvignetted(self: PolygonT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
 
         # position = self.transform(position)
 
@@ -280,20 +280,20 @@ class Polygon(
             return ~result
 
     @property
-    def min(self: PolygonT) -> kgpy.vector.Cartesian3D:
+    def min(self: PolygonT) -> kgpy.vectors.Cartesian3D:
         return self.vertices.min()
 
     @property
-    def max(self: PolygonT) -> kgpy.vector.Cartesian3D:
+    def max(self: PolygonT) -> kgpy.vectors.Cartesian3D:
         return self.vertices.max()
 
     @property
     @abc.abstractmethod
-    def vertices(self: PolygonT) -> kgpy.vector.Cartesian3D:
+    def vertices(self: PolygonT) -> kgpy.vectors.Cartesian3D:
         pass
 
     @property
-    def wire(self: PolygonT) -> kgpy.vector.Cartesian3D:
+    def wire(self: PolygonT) -> kgpy.vectors.Cartesian3D:
         vertices = self.vertices
         vertices = np.broadcast_to(vertices, vertices.shape)
         left_vert = np.roll(vertices, -1, axis='vertex')
@@ -318,8 +318,8 @@ class RegularPolygon(Polygon):
         return out
 
     @property
-    def vertices(self: RegularPolygonT) -> kgpy.vector.Cartesian3D:
-        vertices = kgpy.vector.Cylindrical(
+    def vertices(self: RegularPolygonT) -> kgpy.vectors.Cartesian3D:
+        vertices = kgpy.vectors.Cylindrical(
             radius=self.radius,
             azimuth=kgpy.labeled.LinearSpace(
                 start=self.offset_angle,
@@ -361,12 +361,12 @@ class RegularPolygon(Polygon):
 
 @dataclasses.dataclass
 class IrregularPolygon(Polygon):
-    vertices: kgpy.vector.Cartesian3D = None
+    vertices: kgpy.vectors.Cartesian3D = None
 
 
 @dataclasses.dataclass
 class Rectangular(Polygon):
-    half_width: kgpy.vector.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian2D() * u.mm)
+    half_width: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian2D() * u.mm)
 
     @property
     def broadcasted(self: RectangularT):
@@ -375,7 +375,7 @@ class Rectangular(Polygon):
         # out = np.broadcast(out, self.half_width_y)
         return out
 
-    def is_unvignetted(self: RectangularT, position: kgpy.vector.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+    def is_unvignetted(self: RectangularT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
         amin = self.min
         amax = self.max
         m1 = position.x <= amax.x
@@ -399,8 +399,8 @@ class Rectangular(Polygon):
     #     return self.transform.inverse(result)
 
     @property
-    def vertices(self: RectangularT) -> kgpy.vector.Cartesian3D:
-        result = kgpy.vector.Cylindrical(
+    def vertices(self: RectangularT) -> kgpy.vectors.Cartesian3D:
+        result = kgpy.vectors.Cylindrical(
             radius=np.sqrt(2),
             azimuth=kgpy.labeled.LinearSpace(
                 start=0 * u.deg,
@@ -456,12 +456,12 @@ class IsoscelesTrapezoid(Polygon):
     wedge_half_angle: kgpy.uncertainty.ArrayLike = 0 * u.deg
 
     @property
-    def vertices(self) -> kgpy.vector.Cartesian3D:
+    def vertices(self) -> kgpy.vectors.Cartesian3D:
         m = np.tan(self.wedge_half_angle)
         zero = 0 * self.apex_offset + 0 * self.half_width_left + 0 * self.half_width_right + 0 * m
         left_x, left_y = -self.half_width_left + zero, -m * (self.apex_offset + self.half_width_left) + zero
         right_x, right_y = self.half_width_right + zero, -m * (self.apex_offset - self.half_width_right) + zero
-        vertices = kgpy.vector.Cartesian3D(
+        vertices = kgpy.vectors.Cartesian3D(
             x=np.stack([left_x, right_x, right_x, left_x], axis='vertex'),
             y=np.stack([left_y, right_y, -right_y, -left_y], axis='vertex'),
             z=zero,

@@ -11,7 +11,7 @@ import shapely.geometry
 import shapely.ops
 import ezdxf.addons
 import kgpy.mixin
-import kgpy.vector
+import kgpy.vectors
 import kgpy.transforms
 import kgpy.geometry
 from . import rays
@@ -101,8 +101,8 @@ class Baffle(
 
     def concat_apertures_from_global_positions(
             self,
-            position_1: kgpy.vector.Cartesian3D,
-            position_2: kgpy.vector.Cartesian3D,
+            position_1: kgpy.vectors.Cartesian3D,
+            position_2: kgpy.vectors.Cartesian3D,
             mask: typ.Optional = None,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
             color: str = 'black',
@@ -112,8 +112,8 @@ class Baffle(
         position_2 = self.transform.inverse(position_2)
 
         intercept = kgpy.geometry.segment_plane_intercept(
-            plane_point=kgpy.vector.Cartesian3D() * u.mm,
-            plane_normal=kgpy.vector.Cartesian3D.z_hat(),
+            plane_point=kgpy.vectors.Cartesian3D() * u.mm,
+            plane_normal=kgpy.vectors.Cartesian3D.z_hat(),
             line_point_1=position_1,
             line_point_2=position_2,
         )
@@ -122,7 +122,7 @@ class Baffle(
 
     def concat_apertures_from_intercept(
             self,
-            intercept: kgpy.vector.Cartesian3D,
+            intercept: kgpy.vectors.Cartesian3D,
             mask: u.Quantity,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
             color: str = 'black',
@@ -393,8 +393,8 @@ class BaffleList(
 
     def concat_apertures_from_global_positions(
             self,
-            position_1: kgpy.vector.Cartesian3D,
-            position_2: kgpy.vector.Cartesian3D,
+            position_1: kgpy.vectors.Cartesian3D,
+            position_2: kgpy.vectors.Cartesian3D,
             mask: typ.Optional = None,
             hull_axes: typ.Optional[typ.Sequence[int]] = None,
     ) -> 'BaffleList':

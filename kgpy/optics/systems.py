@@ -22,7 +22,7 @@ from ezdxf.addons.r12writer import R12FastStreamWriter
 # from kgpy import mixin, linspace, vector, optimization, transform, obs, grid
 from kgpy import mixin
 from kgpy import labeled
-from kgpy import vector
+import kgpy.vectors
 from kgpy import transforms
 from kgpy import optimization
 from kgpy.io import dxf
@@ -398,7 +398,7 @@ class System(
                 if surfaces_subsystem[0].sag is not None:
                     result.output.position.z = surfaces_subsystem[0].sag(result.output.position)
 
-                def position_error(angles: vector.Cartesian2D) -> vector.Cartesian2D:
+                def position_error(angles: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
                     rays_in = result.copy_shallow()
                     rays_in.output = rays_in.output.copy_shallow()
                     rays_in.output.angles = angles
@@ -408,7 +408,7 @@ class System(
                 result.output.angles = optimization.root_finding.secant(
                     func=position_error,
                     root_guess=result.output.angles,
-                    step_size=vector.Cartesian2D() + 1e-10 * u.deg,
+                    step_size=kgpy.vectors.Cartesian2D() + 1e-10 * u.deg,
                     max_abs_error=1 * u.nm,
                 )
 
@@ -419,7 +419,7 @@ class System(
                 else:
                     result.output.angles = result.input.pupil
 
-                def position_error(pos: vector.Cartesian2D) -> vector.Cartesian2D:
+                def position_error(pos: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
                     rays_in = result.copy_shallow()
                     rays_in.output = rays_in.output.copy_shallow()
                     rays_in.output.position = pos.to_3d()
@@ -431,7 +431,7 @@ class System(
                 position_final = optimization.root_finding.secant(
                     func=position_error,
                     root_guess=result.output.position.xy,
-                    step_size=vector.Cartesian2D() + 0.1 * u.mm,
+                    step_size=kgpy.vectors.Cartesian2D() + 0.1 * u.mm,
                     max_abs_error=1 * u.nm,
                 )
                 result.output.position = position_final.to_3d()
@@ -596,8 +596,8 @@ class System(
             self,
             observed_images: u.Quantity,
             target_images: u.Quantity,
-            target_images_min: vector.Cartesian2D,
-            target_images_max: vector.Cartesian2D,
+            target_images_min: kgpy.vectors.Cartesian2D,
+            target_images_max: kgpy.vectors.Cartesian2D,
             factory: typ.Callable[[typ.List[u.Quantity], 'System', int], 'System'],
             # channel_index: typ.Union[int, typ.Tuple[int, ...]] = (),
             params_guess: typ.Optional[typ.List[u.Quantity]] = None,
@@ -633,14 +633,14 @@ class System(
             test_images = other(
                 data=observed_images,
                 wavelength=other.wavelength,
-                spatial_input_min=vector.Vector2D(x=0 * u.pix, y=0 * u.pix),
-                spatial_input_max=vector.Vector2D(
+                spatial_input_min=kgpy.vectors.Vector2D(x=0 * u.pix, y=0 * u.pix),
+                spatial_input_max=kgpy.vectors.Vector2D(
                     x=observed_images.shape[x_axis],
                     y=observed_images.shape[y_axis],
                 ),
                 spatial_output_min=target_images_min,
                 spatial_output_max=target_images_max,
-                spatial_samples_output=vector.Vector2D(
+                spatial_samples_output=kgpy.vectors.Vector2D(
                     x=target_images.shape[x_axis],
                     y=target_images.shape[y_axis],
                 ),

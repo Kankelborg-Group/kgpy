@@ -5,7 +5,7 @@ import numpy as np
 import astropy.units as u
 import kgpy.mixin
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 
 __all__ = [
     'Sag',
@@ -51,11 +51,11 @@ class Sag(
 ):
 
     @abc.abstractmethod
-    def __call__(self: SagT, position: kgpy.vector.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+    def __call__(self: SagT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
         pass
 
     @abc.abstractmethod
-    def normal(self: SagT, position: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian3D:
+    def normal(self: SagT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         pass
 
 
@@ -68,7 +68,7 @@ class Standard(Sag):
     def curvature(self) -> kgpy.uncertainty.ArrayLike:
         return 1 / self.radius
 
-    def __call__(self, position: kgpy.vector.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+    def __call__(self, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
         r2 = np.square(position.x) + np.square(position.y)
         c = self.curvature
         sz = c * r2 / (1 + np.sqrt(1 - (1 + self.conic) * np.square(c) * r2))
@@ -87,7 +87,7 @@ class Standard(Sag):
             return False
         return True
 
-    def normal(self, position: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian3D:
+    def normal(self, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         x2, y2 = np.square(position.x), np.square(position.y)
         c = self.curvature
         c2 = np.square(c)
@@ -96,7 +96,7 @@ class Standard(Sag):
         mask = (x2 + y2) >= np.square(self.radius)
         dzdx[mask] = 0
         dzdy[mask] = 0
-        return kgpy.vector.Cartesian3D(
+        return kgpy.vectors.Cartesian3D(
             x=dzdx,
             y=dzdy,
             z=-1 * u.dimensionless_unscaled
@@ -114,7 +114,7 @@ class Standard(Sag):
 class Toroidal(Standard):
     radius_of_rotation: kgpy.uncertainty.ArrayLike = 0 * u.mm
 
-    def __call__(self: ToroidalT, position: kgpy.vector.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+    def __call__(self: ToroidalT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
         x2 = np.square(position.x)
         y2 = np.square(position.y)
         c = self.curvature
@@ -133,7 +133,7 @@ class Toroidal(Standard):
             return False
         return True
 
-    def normal(self: ToroidalT, position: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian3D:
+    def normal(self: ToroidalT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         x2 = np.square(position.x)
         y2 = np.square(position.y)
         c = self.curvature
@@ -149,7 +149,7 @@ class Toroidal(Standard):
         mask = np.abs(position.x) > r
         dzdx[mask] = 0
         dzdy[mask] = 0
-        return kgpy.vector.Cartesian3D(
+        return kgpy.vectors.Cartesian3D(
             x=dzdx,
             y=dzdy,
             z=-1 * u.dimensionless_unscaled

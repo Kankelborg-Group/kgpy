@@ -11,15 +11,15 @@ import numba
 import kgpy.mixin
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.matrix
 
 __all__ = [
 
 ]
 
-InputT = typ.TypeVar('InputT', bound=kgpy.vector.VectorLike)
-OutputT = typ.TypeVar('OutputT', bound=kgpy.vector.VectorLike)
+InputT = typ.TypeVar('InputT', bound=kgpy.vectors.VectorLike)
+OutputT = typ.TypeVar('OutputT', bound=kgpy.vectors.VectorLike)
 AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
 PolynomialArrayT = typ.TypeVar('PolynomialArrayT', bound='PolynomialArray')
@@ -125,12 +125,12 @@ class Array(
 
     def calc_index_nearest(self: ArrayT, input_new: InputT, ) -> typ.Dict[str, kgpy.labeled.Array]:
 
-        if not isinstance(input_new, kgpy.vector.AbstractVector):
-            input_new = kgpy.vector.Cartesian1D(input_new)
+        if not isinstance(input_new, kgpy.vectors.AbstractVector):
+            input_new = kgpy.vectors.Cartesian1D(input_new)
 
         input_old = self.input
-        if not isinstance(input_old, kgpy.vector.AbstractVector):
-            input_old = kgpy.vector.Cartesian1D(input_old)
+        if not isinstance(input_old, kgpy.vectors.AbstractVector):
+            input_old = kgpy.vectors.Cartesian1D(input_old)
         else:
             input_old = input_old.copy_shallow()
 
@@ -157,10 +157,10 @@ class Array(
     def calc_index_lower(self: ArrayT, input_new: InputT ) -> typ.Dict:
 
         input_old = self.input
-        if isinstance(input_old, kgpy.vector.AbstractVector):
+        if isinstance(input_old, kgpy.vectors.AbstractVector):
             input_old = input_old.copy_shallow()
         else:
-            input_old = kgpy.vector.Cartesian1D(input_old)
+            input_old = kgpy.vectors.Cartesian1D(input_old)
 
         for component in input_old.coordinates:
             coordinate = input_old.coordinates[component]
@@ -199,7 +199,7 @@ class Array(
 
         input_old = self.input
         input_old = np.broadcast_to(input_old, input_old.shape)
-        if isinstance(input_old, kgpy.vector.AbstractVector):
+        if isinstance(input_old, kgpy.vectors.AbstractVector):
             x0 = input_old.coordinates[axis][index_lower]
             x1 = input_old.coordinates[axis][index_upper]
         else:
@@ -220,8 +220,8 @@ class Array(
         return result
 
     def interp_linear(self: ArrayT, input_new: InputT, ) -> OutputT:
-        if not isinstance(input_new, kgpy.vector.AbstractVector):
-            input_new = kgpy.vector.Cartesian1D(input_new)
+        if not isinstance(input_new, kgpy.vectors.AbstractVector):
+            input_new = kgpy.vectors.Cartesian1D(input_new)
         return self._interp_linear_1d_recursive(
             input_new=input_new,
             index_lower=self.calc_index_lower(input_new),
@@ -478,22 +478,22 @@ class PolynomialArray(
             elif degree_current == degree:
                 result[key] = value
 
-    def design_matrix(self: PolynomialArrayT, inp: InputT) -> kgpy.vector.CartesianND:
+    def design_matrix(self: PolynomialArrayT, inp: InputT) -> kgpy.vectors.CartesianND:
         result = dict()
         for d in range(self.degree + 1):
             self._design_matrix_recursive(result, inp.coordinates.copy(), key='', value=1, degree_current=0, degree=d)
-        return kgpy.vector.CartesianND(result)
+        return kgpy.vectors.CartesianND(result)
 
     @property
-    def coefficients(self: PolynomialArrayT) -> kgpy.vector.AbstractVector:
+    def coefficients(self: PolynomialArrayT) -> kgpy.vectors.AbstractVector:
         if self._coefficients is None:
             self._coefficients = self._calc_coefficients()
         return self._coefficients
 
-    def _calc_coefficients(self: PolynomialArrayT) -> kgpy.vector.AbstractVector:
+    def _calc_coefficients(self: PolynomialArrayT) -> kgpy.vectors.AbstractVector:
         inp = self.input
-        if not isinstance(inp, kgpy.vector.AbstractVector):
-            inp = kgpy.vector.Cartesian1D(inp)
+        if not isinstance(inp, kgpy.vectors.AbstractVector):
+            inp = kgpy.vectors.Cartesian1D(inp)
 
         mask = self.mask
 
@@ -502,7 +502,7 @@ class PolynomialArray(
 
         gram_matrix = kgpy.matrix.CartesianND()
         for component_row in design_matrix.coordinates:
-            gram_matrix.coordinates[component_row] = kgpy.vector.CartesianND()
+            gram_matrix.coordinates[component_row] = kgpy.vectors.CartesianND()
             for component_column in design_matrix.coordinates:
                 element_row = design_matrix.coordinates[component_row]
                 element_column = design_matrix.coordinates[component_column]
@@ -515,8 +515,8 @@ class PolynomialArray(
         gram_matrix_inverse = gram_matrix.inverse_numpy()
 
         output = self.output
-        if not isinstance(output, kgpy.vector.AbstractVector):
-            output = kgpy.vector.Cartesian1D(output)
+        if not isinstance(output, kgpy.vectors.AbstractVector):
+            output = kgpy.vectors.Cartesian1D(output)
 
         moment_matrix = kgpy.matrix.CartesianND()
         for component_row in design_matrix.coordinates:
@@ -534,7 +534,7 @@ class PolynomialArray(
 
         result = result.transpose
 
-        if not isinstance(self.output, kgpy.vector.AbstractVector):
+        if not isinstance(self.output, kgpy.vectors.AbstractVector):
             result = result.x
         else:
             result = result.transpose

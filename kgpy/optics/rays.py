@@ -17,7 +17,7 @@ import kgpy.plot
 import kgpy.mixin
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.function
 import kgpy.transforms
 import kgpy.format
@@ -161,22 +161,22 @@ class Axis(kgpy.mixin.AutoAxis):
 @dataclasses.dataclass(eq=False)
 class RayVector(
     kgpy.transforms.Transformable,
-    kgpy.vector.AbstractVector,
+    kgpy.vectors.AbstractVector,
 ):
     intensity: kgpy.uncertainty.ArrayLike = 1 * u.dimensionless_unscaled
-    position: kgpy.vector.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian3D() * u.mm)
-    direction: kgpy.vector.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian3D.z_hat() * u.dimensionless_unscaled)
+    position: kgpy.vectors.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian3D() * u.mm)
+    direction: kgpy.vectors.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian3D.z_hat() * u.dimensionless_unscaled)
     polarization: vectors.StokesVector = dataclasses.field(default_factory=vectors.StokesVector)
     wavelength: kgpy.uncertainty.ArrayLike = 0 * u.nm
     index_refraction: kgpy.uncertainty.ArrayLike = 1 * u.dimensionless_unscaled
-    surface_normal: kgpy.vector.Cartesian3D = dataclasses.field(default_factory=lambda: -kgpy.vector.Cartesian3D.z_hat() * u.dimensionless_unscaled)
+    surface_normal: kgpy.vectors.Cartesian3D = dataclasses.field(default_factory=lambda: -kgpy.vectors.Cartesian3D.z_hat() * u.dimensionless_unscaled)
     mask: kgpy.uncertainty.ArrayLike = dataclasses.field(default_factory=lambda: kgpy.labeled.Array(True))
 
     @classmethod
     def from_field_angles(
             cls: typ.Type[RayVectorT],
             scene_vector: vectors.ObjectVector,
-            position: kgpy.vector.Cartesian3D,
+            position: kgpy.vectors.Cartesian3D,
     ):
         angle_x = -scene_vector.field.x
         angle_y = scene_vector.field.y
@@ -188,25 +188,25 @@ class RayVector(
 
         return cls(
             position=position,
-            direction=transform(kgpy.vector.Cartesian3D.z_hat()),
+            direction=transform(kgpy.vectors.Cartesian3D.z_hat()),
             wavelength=scene_vector.wavelength_doppler,
         )
 
     @property
-    def angles(self: RayVectorT) -> kgpy.vector.Cartesian2D:
+    def angles(self: RayVectorT) -> kgpy.vectors.Cartesian2D:
         direction = self.direction
-        return kgpy.vector.Cartesian2D(
+        return kgpy.vectors.Cartesian2D(
             x=-np.arctan2(direction.x, direction.z),
             y=np.arcsin(direction.y / direction.length),
         )
 
     @angles.setter
-    def angles(self: RayVectorT, value: kgpy.vector.Cartesian2D):
+    def angles(self: RayVectorT, value: kgpy.vectors.Cartesian2D):
         transform = kgpy.transforms.TransformList([
             kgpy.transforms.RotationY(-value.x),
             kgpy.transforms.RotationX(value.y),
         ])
-        self.direction = transform(kgpy.vector.Cartesian3D.z_hat(), translate=False)
+        self.direction = transform(kgpy.vectors.Cartesian3D.z_hat(), translate=False)
 
 
     # @property
@@ -244,18 +244,18 @@ class RayVector(
     def energy(self) -> kgpy.uncertainty.ArrayLike:
         return (astropy.constants.h * astropy.constants.c / self.wavelength).to(u.eV)
 
-    def _calc_average_pupil(self, a: kgpy.vector.Cartesian3D) -> kgpy.vector.Cartesian3D:
+    def _calc_average_pupil(self, a: kgpy.vectors.Cartesian3D) -> kgpy.vectors.Cartesian3D:
         return np.mean(a=a, axis=('pupil.x', 'pupil.y'), where=self.mask)
 
-    def _calc_relative_pupil(self, a: kgpy.vector.Cartesian3D) -> kgpy.vector.Cartesian3D:
+    def _calc_relative_pupil(self, a: kgpy.vectors.Cartesian3D) -> kgpy.vectors.Cartesian3D:
         return a - self._calc_average_pupil(a)
 
     @property
-    def position_average_pupil(self) -> kgpy.vector.Cartesian3D:
+    def position_average_pupil(self) -> kgpy.vectors.Cartesian3D:
         return self._calc_average_pupil(self.position)
 
     @property
-    def position_relative_pupil(self) -> kgpy.vector.Cartesian3D:
+    def position_relative_pupil(self) -> kgpy.vectors.Cartesian3D:
         return self._calc_relative_pupil(self.position)
 
     @property
@@ -506,9 +506,9 @@ class RayFunction(
             sl[self.axis.velocity_los] = velocity_los_index
 
             extent = kgpy.plot.calc_extent(
-                data_min=kgpy.vector.Vector2D(field_x.min(), field_y.min()),
-                data_max=kgpy.vector.Vector2D(field_x.max(), field_y.max()),
-                num_steps=kgpy.vector.Vector2D.from_quantity(sizes[sl].shape * u.dimensionless_unscaled),
+                data_min=kgpy.vectors.Vector2D(field_x.min(), field_y.min()),
+                data_max=kgpy.vectors.Vector2D(field_x.max(), field_y.max()),
+                num_steps=kgpy.vectors.Vector2D.from_quantity(sizes[sl].shape * u.dimensionless_unscaled),
             )
 
             img = axs[i].imshow(
@@ -533,7 +533,7 @@ class RayFunction(
 
     def psf(
             self,
-            bins: typ.Optional[kgpy.vector.Cartesian2D] = None,
+            bins: typ.Optional[kgpy.vectors.Cartesian2D] = None,
             use_vignetted: bool = False,
             use_position_relative: bool = True,
             use_position_apparent: bool = False,
@@ -553,7 +553,7 @@ class RayFunction(
             position = position - position.mean(axis=('pupil.x', 'pupil.y'), where=mask)
 
         if bins is None:
-            bins = kgpy.vector.Cartesian2D(
+            bins = kgpy.vectors.Cartesian2D(
                 x=position.shape['pupil.x'],
                 y=position.shape['pupil.y']
             )
@@ -581,7 +581,7 @@ class RayFunction(
         return aberrations.PointSpreadFunction(
             input=vectors.ImageVector(
                 field=self.input.field,
-                position=kgpy.vector.Cartesian2D(centers_x, centers_y),
+                position=kgpy.vectors.Cartesian2D(centers_x, centers_y),
                 wavelength=self.input.wavelength,
                 velocity_los=self.input.velocity_los,
             ),
@@ -592,8 +592,8 @@ class RayFunction(
     def pupil_hist2d(
             self,
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            limit_min: typ.Optional['kgpy.vector.Vector2D'] = None,
-            limit_max: typ.Optional['kgpy.vector.Vector2D'] = None,
+            limit_min: typ.Optional['kgpy.vectors.Vector2D'] = None,
+            limit_max: typ.Optional['kgpy.vectors.Vector2D'] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (False, False),
             use_position_apparent: bool = False,
@@ -614,9 +614,9 @@ class RayFunction(
             position = self.position_apparent
             position_rel = self._calc_relative_pupil(position)
 
-        if relative_to_centroid[kgpy.vector.ix]:
+        if relative_to_centroid[kgpy.vectors.ix]:
             position.x = position_rel.x
-        if relative_to_centroid[kgpy.vector.iy]:
+        if relative_to_centroid[kgpy.vectors.iy]:
             position.y = position_rel.y
 
         position_masked = position[mask]
@@ -628,18 +628,18 @@ class RayFunction(
         limits = np.stack([limit_min.quantity, limit_max.quantity], axis=~0)
 
         hist_shape = list(self.grid_shape)
-        hist_shape[self.axis.pupil_x] = bins[kgpy.vector.ix]
-        hist_shape[self.axis.pupil_y] = bins[kgpy.vector.iy]
+        hist_shape[self.axis.pupil_x] = bins[kgpy.vectors.ix]
+        hist_shape[self.axis.pupil_y] = bins[kgpy.vectors.iy]
         hist = np.empty(hist_shape)
 
         edges_x_shape = list(self.grid_shape)
-        edges_x_shape[self.axis.pupil_x] = bins[kgpy.vector.ix] + 1
+        edges_x_shape[self.axis.pupil_x] = bins[kgpy.vectors.ix] + 1
         edges_x_shape[self.axis.pupil_y] = 1
         edges_x = np.empty(edges_x_shape)
 
         edges_y_shape = list(self.grid_shape)
         edges_y_shape[self.axis.pupil_x] = 1
-        edges_y_shape[self.axis.pupil_y] = bins[kgpy.vector.iy] + 1
+        edges_y_shape[self.axis.pupil_y] = bins[kgpy.vectors.iy] + 1
         edges_y = np.empty(edges_y_shape)
 
         # base_shape = self.shape + self.grid_shape[self.axis.wavelength:self.axis.field_y + 1]
@@ -705,17 +705,17 @@ class RayFunction(
     def calc_mtf(
             cls,
             psf: u.Quantity,
-            limit_min: 'kgpy.vector.Vector2D',
-            limit_max: 'kgpy.vector.Vector2D',
+            limit_min: 'kgpy.vectors.Vector2D',
+            limit_max: 'kgpy.vectors.Vector2D',
             # frequency_min: typ.Optional[typ.Union[u.Quantity, kgpy.vector.Vector2D]] = None,
-    ) -> typ.Tuple[u.Quantity, 'kgpy.vector.Vector2D']:
+    ) -> typ.Tuple[u.Quantity, 'kgpy.vectors.Vector2D']:
 
         psf_sum_pupil = np.nansum(a=psf, axis=cls.axis.pupil_xy, keepdims=True)
         psf = np.nan_to_num(psf / psf_sum_pupil)
 
         print(psf.shape)
 
-        bins = kgpy.vector.Vector2D.from_tuple(np.array(psf.shape)[np.array(cls.axis.pupil_xy)])
+        bins = kgpy.vectors.Vector2D.from_tuple(np.array(psf.shape)[np.array(cls.axis.pupil_xy)])
 
         print('bins', bins)
 
@@ -729,7 +729,7 @@ class RayFunction(
         print(psf.shape)
         mtf = np.abs(np.fft.fft2(a=psf, axes=cls.axis.pupil_xy)) * u.dimensionless_unscaled
 
-        frequency = kgpy.vector.Vector2D(
+        frequency = kgpy.vectors.Vector2D(
             x=np.moveaxis(np.fft.fftfreq(n=bins.x, d=np.moveaxis(spacing.x, cls.axis.pupil_x, ~0)), ~0, cls.axis.pupil_x),
             y=np.moveaxis(np.fft.fftfreq(n=bins.y, d=np.moveaxis(spacing.y, cls.axis.pupil_y, ~0)), ~0, cls.axis.pupil_y),
         )
@@ -755,16 +755,16 @@ class RayFunction(
 
     def mtf(
             self,
-            bins: typ.Union[int, 'kgpy.vector.Vector2D'] = 10,
+            bins: typ.Union[int, 'kgpy.vectors.Vector2D'] = 10,
             frequency_min: typ.Optional[typ.Union[u.Quantity, 'kgpy.vector.Vector2D']] = None,
             use_vignetted: bool = False,
-    ) -> typ.Tuple[u.Quantity, 'kgpy.vector.Vector2D']:
+    ) -> typ.Tuple[u.Quantity, 'kgpy.vectors.Vector2D']:
 
-        if not isinstance(bins, kgpy.vector.Vector2D):
-            bins = kgpy.vector.Vector2D(x=bins, y=bins)
+        if not isinstance(bins, kgpy.vectors.Vector2D):
+            bins = kgpy.vectors.Vector2D(x=bins, y=bins)
 
-        if not isinstance(frequency_min, kgpy.vector.Vector2D):
-            frequency_min = kgpy.vector.Vector2D(x=frequency_min, y=frequency_min)
+        if not isinstance(frequency_min, kgpy.vectors.Vector2D):
+            frequency_min = kgpy.vectors.Vector2D(x=frequency_min, y=frequency_min)
 
         period = (1 * u.dimensionless_unscaled) / frequency_min
         limit_max = period / 2
@@ -914,8 +914,8 @@ class RayFunction(
             wavlen_index: int = 0,
             velocity_los_index: int = 0,
             bins: typ.Union[int, typ.Tuple[int, int]] = 10,
-            limit_min: typ.Optional['kgpy.vector.Vector2D'] = None,
-            limit_max: typ.Optional['kgpy.vector.Vector2D'] = None,
+            limit_min: typ.Optional['kgpy.vectors.Vector2D'] = None,
+            limit_max: typ.Optional['kgpy.vectors.Vector2D'] = None,
             use_vignetted: bool = False,
             relative_to_centroid: typ.Tuple[bool, bool] = (True, True),
             norm: typ.Optional[matplotlib.colors.Normalize] = None,
@@ -1023,7 +1023,7 @@ class RayFunctionList(
     kgpy.mixin.DataclassList[RayFunction],
 ):
     @property
-    def intercepts(self) -> kgpy.vector.Cartesian3D:
+    def intercepts(self) -> kgpy.vectors.Cartesian3D:
         intercepts = []
         for rays in self:
             intercept = rays.output.transform(rays.output.position)
@@ -1142,7 +1142,7 @@ class RayFunctionList(
 
             intercepts = self.intercepts[:, mask]
 
-            intercepts = kgpy.vector.Vector3D(x=-intercepts.z, y=-intercepts.x, z=intercepts.y)
+            intercepts = kgpy.vectors.Vector3D(x=-intercepts.z, y=-intercepts.x, z=intercepts.y)
 
             # intercepts = intercepts.reshape(intercepts.shape[0], -1)
             axis = 1

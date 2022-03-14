@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 
 
 @pytest.mark.parametrize(
@@ -44,12 +44,12 @@ class TestCartesian2D:
             x_width: kgpy.labeled.ArrayLike,
             y: kgpy.labeled.ArrayLike,
             y_width: kgpy.labeled.ArrayLike,
-    ) -> kgpy.vector.Cartesian2D:
+    ) -> kgpy.vectors.Cartesian2D:
         if x_width is not None:
             x = kgpy.uncertainty.Uniform(x, x_width)
         if y_width is not None:
             y = kgpy.uncertainty.Uniform(y, y_width)
-        return kgpy.vector.Cartesian2D(x, y) * unit
+        return kgpy.vectors.Cartesian2D(x, y) * unit
 
     def test_coordinates_flat(
             self,
@@ -95,10 +95,10 @@ class TestCartesian2D:
 
         c = a * b
         d = b * a
-        assert isinstance(c, kgpy.vector.Cartesian2D)
-        assert isinstance(d, kgpy.vector.Cartesian2D)
+        assert isinstance(c, kgpy.vectors.Cartesian2D)
+        assert isinstance(d, kgpy.vectors.Cartesian2D)
         assert np.all(c == d)
-        if not isinstance(b, kgpy.vector.Cartesian2D):
+        if not isinstance(b, kgpy.vectors.Cartesian2D):
             assert np.all(c.x == a.x * b)
             assert np.all(c.y == a.y * b)
         else:
@@ -149,9 +149,9 @@ class TestCartesian3D(TestCartesian2D):
             x_width: kgpy.labeled.ArrayLike,
             y: kgpy.labeled.ArrayLike,
             y_width: kgpy.labeled.ArrayLike,
-    ) -> kgpy.vector.Cartesian2D:
+    ) -> kgpy.vectors.Cartesian2D:
         result = super().factory(unit, x, x_width, y, y_width)
-        result = kgpy.vector.Cartesian3D(
+        result = kgpy.vectors.Cartesian3D(
             x=result.x,
             y=result.y,
             z=result.x * result.x + result.y * result.y

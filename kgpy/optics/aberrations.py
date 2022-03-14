@@ -2,7 +2,7 @@ import typing as typ
 import dataclasses
 import astropy.units as u
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.function
 from . import vectors
 
@@ -23,7 +23,7 @@ class DistortionFunction(
     kgpy.function.PolynomialArray[vectors.SpectralFieldVector, vectors.SpectralFieldVector],
 ):
     @property
-    def plate_scale(self: DistortionT) -> kgpy.vector.Cartesian2D:
+    def plate_scale(self: DistortionT) -> kgpy.vectors.Cartesian2D:
         axis = ('field_x', 'field_y')
         return self.input.field.ptp(axis=axis).length / self.output.field.ptp(axis=axis)
 

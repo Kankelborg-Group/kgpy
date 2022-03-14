@@ -1,7 +1,7 @@
 import typing as typ
 import numpy as np
 import astropy.units as u
-import kgpy.vector
+import kgpy.vectors
 
 __all__ = [
     'line_plane_intercept',
@@ -10,10 +10,10 @@ __all__ = [
 
 
 def line_plane_intercept_parameter(
-        plane_point: kgpy.vector.Cartesian3D,
-        plane_normal: kgpy.vector.Cartesian3D,
-        line_point: kgpy.vector.Cartesian3D,
-        line_direction: kgpy.vector.Cartesian3D,
+        plane_point: kgpy.vectors.Cartesian3D,
+        plane_normal: kgpy.vectors.Cartesian3D,
+        line_point: kgpy.vectors.Cartesian3D,
+        line_direction: kgpy.vectors.Cartesian3D,
 ) -> u.Quantity:
 
     a = (plane_point - line_point) @ plane_normal
@@ -23,11 +23,11 @@ def line_plane_intercept_parameter(
 
 
 def line_plane_intercept(
-        plane_point: kgpy.vector.Cartesian3D,
-        plane_normal: kgpy.vector.Cartesian3D,
-        line_point: kgpy.vector.Cartesian3D,
-        line_direction: kgpy.vector.Cartesian3D,
-) -> kgpy.vector.Cartesian3D:
+        plane_point: kgpy.vectors.Cartesian3D,
+        plane_normal: kgpy.vectors.Cartesian3D,
+        line_point: kgpy.vectors.Cartesian3D,
+        line_direction: kgpy.vectors.Cartesian3D,
+) -> kgpy.vectors.Cartesian3D:
 
     d = line_plane_intercept_parameter(plane_point, plane_normal, line_point, line_direction)
 
@@ -35,11 +35,11 @@ def line_plane_intercept(
 
 
 def segment_plane_intercept(
-        plane_point: kgpy.vector.Cartesian3D,
-        plane_normal: kgpy.vector.Cartesian3D,
-        line_point_1: kgpy.vector.Cartesian3D,
-        line_point_2: kgpy.vector.Cartesian3D,
-) -> kgpy.vector.Cartesian3D:
+        plane_point: kgpy.vectors.Cartesian3D,
+        plane_normal: kgpy.vectors.Cartesian3D,
+        line_point_1: kgpy.vectors.Cartesian3D,
+        line_point_2: kgpy.vectors.Cartesian3D,
+) -> kgpy.vectors.Cartesian3D:
 
     line_direction = line_point_2 - line_point_1
 

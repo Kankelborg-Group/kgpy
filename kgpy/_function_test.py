@@ -7,7 +7,7 @@ import numpy as np
 import astropy.units as u
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.function
 
 __all__ = [
@@ -21,7 +21,7 @@ class TestArray:
         shape = dict(x=5, y=6)
         d = kgpy.function.Array(
             output=kgpy.labeled.Array(1, []),
-            input=kgpy.vector.Cartesian2D(
+            input=kgpy.vectors.Cartesian2D(
                 x=kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['x'], axis='x'),
                 y=kgpy.labeled.LinearSpace(start=0, stop=2, num=shape['y'], axis='y'),
             ),
@@ -78,7 +78,7 @@ class TestArray:
 
         x = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['x'], axis='x')
         y = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['y'], axis='y')
-        position = kgpy.vector.Cartesian2D(x, y)
+        position = kgpy.vectors.Cartesian2D(x, y)
         output = np.sin(x) * np.cos(y)
         if width is not None:
             output = kgpy.uncertainty.Normal(output, width)
@@ -90,7 +90,7 @@ class TestArray:
 
         assert np.all(a.output == b.output)
 
-        position_fine = kgpy.vector.Cartesian2D(
+        position_fine = kgpy.vectors.Cartesian2D(
             x=kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=100, axis='x'),
             y=kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=101, axis='y'),
         )
@@ -153,7 +153,7 @@ class TestArray:
         z = kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['z'], axis='z')
         x_rotated = x * np.cos(angle) - y * np.sin(angle)
         y_rotated = x * np.sin(angle) + y * np.cos(angle)
-        position = kgpy.vector.Cartesian2D(x, y)
+        position = kgpy.vectors.Cartesian2D(x, y)
         a = kgpy.function.Array(
             input=position,
             output=np.cos(x * x) * np.cos(y * y),
@@ -169,7 +169,7 @@ class TestArray:
         )
         x_large = kgpy.labeled.LinearSpace(start=-np.pi, stop=np.pi, num=shape_large['x'], axis='x')
         y_large = kgpy.labeled.LinearSpace(start=-np.pi, stop=np.pi, num=shape_large['y'], axis='y')
-        position_large = kgpy.vector.Cartesian2D(x_large, y_large)
+        position_large = kgpy.vectors.Cartesian2D(x_large, y_large)
         c = a.interp_linear(position_large)
 
         assert c.shape == shape_large
@@ -501,11 +501,11 @@ class TestPolynomial:
             unit_input_y: typ.Union[float, u.Unit],
             unit_output: typ.Union[float, u.Unit],
     ) -> typ.Tuple[kgpy.function.PolynomialArray, kgpy.uncertainty.ArrayLike, kgpy.uncertainty.ArrayLike, kgpy.uncertainty.ArrayLike]:
-        input = kgpy.vector.Cartesian2D(
+        input = kgpy.vectors.Cartesian2D(
             x=kgpy.labeled.LinearSpace(0, 1, 11, axis='x') * unit_input_x,
             y=kgpy.labeled.LinearSpace(0, 1, 5, axis='y') * unit_input_y,
         )
-        unit_input = kgpy.vector.Cartesian2D(1 * unit_input_x, 1 * unit_input_y)
+        unit_input = kgpy.vectors.Cartesian2D(1 * unit_input_x, 1 * unit_input_y)
         coefficient_constant = coefficient_constant * unit_output
         coefficient_linear = coefficient_linear * unit_output / unit_input
         coefficient_quadratic = coefficient_quadratic * unit_output / unit_input ** 2

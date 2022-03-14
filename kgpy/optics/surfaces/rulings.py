@@ -5,7 +5,7 @@ import numpy as np
 import astropy.units as u
 import kgpy.mixin
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 from .. import rays
 from . import materials
 
@@ -29,7 +29,7 @@ class Ruling(
 ):
 
     @abc.abstractmethod
-    def normal(self: RulingT, position: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian3D:
+    def normal(self: RulingT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         pass
 
     @abc.abstractmethod
@@ -37,20 +37,20 @@ class Ruling(
             self: RulingT,
             ray: rays.RayVector,
             material: typ.Optional[materials.Material] = None,
-    ) -> kgpy.vector.Cartesian3D:
+    ) -> kgpy.vectors.Cartesian3D:
         pass
 
     @classmethod
     def effective_input_direction(
             cls: typ.Type[RulingT],
-            input_vector: kgpy.vector.Cartesian3D,
-    ) -> kgpy.vector.Cartesian3D:
+            input_vector: kgpy.vectors.Cartesian3D,
+    ) -> kgpy.vectors.Cartesian3D:
         return input_vector.normalized
 
     @classmethod
     def effective_input_index(
             cls: typ.Type[RulingT],
-            input_vector: kgpy.vector.Cartesian3D,
+            input_vector: kgpy.vectors.Cartesian3D,
     ) -> kgpy.uncertainty.ArrayLike:
         return input_vector.length
 
@@ -73,8 +73,8 @@ class ConstantDensity(Ruling):
     def ruling_spacing(self: ConstantDensityT) -> kgpy.uncertainty.ArrayLike:
         return 1 / self.ruling_density
 
-    def normal(self, position: kgpy.vector.Cartesian3D) -> kgpy.vector.Cartesian3D:
-        return kgpy.vector.Cartesian3D(
+    def normal(self, position: kgpy.vectors.Cartesian3D) -> kgpy.vectors.Cartesian3D:
+        return kgpy.vectors.Cartesian3D(
             x=0 * self.ruling_density,
             y=self.ruling_density,
             z=0 * self.ruling_density
@@ -84,7 +84,7 @@ class ConstantDensity(Ruling):
             self: ConstantDensityT,
             ray: rays.RayVector,
             material: typ.Optional[materials.Material] = None,
-    ) -> kgpy.vector.Cartesian3D:
+    ) -> kgpy.vectors.Cartesian3D:
         if material is not None:
             n2 = material.index_refraction(ray)
         else:
@@ -122,7 +122,7 @@ class CubicPolyDensity(ConstantDensity):
     ruling_density_quadratic: kgpy.uncertainty.ArrayLike = 0 / (u.mm ** 3)
     ruling_density_cubic: kgpy.uncertainty.ArrayLike = 0 / (u.mm ** 4)
 
-    def normal(self: CubicPolyDensityT, position: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian2D:
+    def normal(self: CubicPolyDensityT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
         x = position.x
         x2 = np.square(x)
         term0 = self.ruling_density
@@ -130,7 +130,7 @@ class CubicPolyDensity(ConstantDensity):
         term2 = self.ruling_density_quadratic * x2
         term3 = self.ruling_density_cubic * x * x2
         groove_density = term0 + term1 + term2 + term3
-        return kgpy.vector.Cartesian3D(x=groove_density, y=0 * groove_density, z=0 * groove_density)
+        return kgpy.vectors.Cartesian3D(x=groove_density, y=0 * groove_density, z=0 * groove_density)
 
     @property
     def broadcasted(self):
@@ -156,7 +156,7 @@ class CubicPolySpacing(ConstantDensity):
             return False
         return True
 
-    def normal(self: CubicPolySpacingT, position: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian3D:
+    def normal(self: CubicPolySpacingT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         x = position.x
         x2 = np.square(x)
         term0 = self.ruling_spacing
@@ -165,7 +165,7 @@ class CubicPolySpacing(ConstantDensity):
         term3 = self.ruling_spacing_cubic * x * x2
         ruling_spacing = term0 + term1 + term2 + term3
         groove_density = 1 / ruling_spacing
-        return kgpy.vector.Cartesian3D(x=groove_density, y=0 * groove_density, z=0 * groove_density)
+        return kgpy.vectors.Cartesian3D(x=groove_density, y=0 * groove_density, z=0 * groove_density)
 
     @property
     def broadcasted(self):

@@ -15,16 +15,16 @@ import astropy.wcs
 import kgpy.format
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 from .curlyBrace import curlyBrace
 from . import brace
 __all__ = ['calc_extent', 'curlyBrace', 'ImageSlicer', 'CubeSlicer', 'HypercubeSlicer']
 
 
 def calc_extent(
-        data_min: kgpy.vector.Cartesian2D,
-        data_max: kgpy.vector.Cartesian2D,
-        num_steps: kgpy.vector.Cartesian2D,
+        data_min: kgpy.vectors.Cartesian2D,
+        data_max: kgpy.vectors.Cartesian2D,
+        num_steps: kgpy.vectors.Cartesian2D,
 ):
     delta = (data_max - data_min) / (num_steps - 1)
 
@@ -49,9 +49,9 @@ def datetime_prep(ax: plt.Axes):
 
 def annotate_distance(
         ax: matplotlib.axes.Axes,
-        point_1: kgpy.vector.Cartesian2D,
-        point_2: kgpy.vector.Cartesian2D,
-        point_text: typ.Optional[kgpy.vector.Cartesian2D] = None,
+        point_1: kgpy.vectors.Cartesian2D,
+        point_2: kgpy.vectors.Cartesian2D,
+        point_text: typ.Optional[kgpy.vectors.Cartesian2D] = None,
         horizontal_alignment: str = 'center',
         vertical_alignment: str = 'center',
         annotation_textcoords: typ.Optional = None,
@@ -99,8 +99,8 @@ def annotate_distance(
 
 def annotate_component(
         ax: matplotlib.axes.Axes,
-        point_1: kgpy.vector.Cartesian2D,
-        point_2: kgpy.vector.Cartesian2D,
+        point_1: kgpy.vectors.Cartesian2D,
+        point_2: kgpy.vectors.Cartesian2D,
         component: str = 'x',
         position_orthogonal: float = 0,
         position_parallel: float = 0.5,
@@ -118,8 +118,8 @@ def annotate_component(
     if transform is None:
         transform = ax.transData
 
-    point_1c = kgpy.vector.Cartesian2D(position_orthogonal, position_orthogonal)
-    point_2c = kgpy.vector.Cartesian2D(position_orthogonal, position_orthogonal)
+    point_1c = kgpy.vectors.Cartesian2D(position_orthogonal, position_orthogonal)
+    point_2c = kgpy.vectors.Cartesian2D(position_orthogonal, position_orthogonal)
 
     c1 = point_1.get_component(component)
     c2 = point_2.get_component(component)
@@ -167,7 +167,7 @@ def annotate_component(
         )
 
 
-    text_pos = kgpy.vector.Cartesian2D(position_orthogonal, position_orthogonal)
+    text_pos = kgpy.vectors.Cartesian2D(position_orthogonal, position_orthogonal)
     text_pos.coordinates[component] = (c1 + position_parallel * (c2 - c1)).value
 
     length = np.abs(c2 - c1)
@@ -224,7 +224,7 @@ def annotate_component(
 
 def annotate_angle(
         ax: matplotlib.axes.Axes,
-        point_center: kgpy.vector.Cartesian2D,
+        point_center: kgpy.vectors.Cartesian2D,
         radius: u.Quantity,
         angle_1: u.Quantity,
         angle_2: u.Quantity,
@@ -239,11 +239,11 @@ def annotate_angle(
         shrink: float = 5,
         digits_after_decimal: int = 3,
 ):
-    point_1 = point_center + kgpy.vector.Polar(1.1 * radius, angle_1).cartesian
-    point_2 = point_center + kgpy.vector.Polar(1.1 * radius, angle_2).cartesian
-    point_inner_1 = point_center + kgpy.vector.Polar(radius_inner, angle_1).cartesian
-    point_inner_2 = point_center + kgpy.vector.Polar(radius_inner, angle_2).cartesian
-    point_label = point_center + kgpy.vector.Polar(radius, angle_label).cartesian
+    point_1 = point_center + kgpy.vectors.Polar(1.1 * radius, angle_1).cartesian
+    point_2 = point_center + kgpy.vectors.Polar(1.1 * radius, angle_2).cartesian
+    point_inner_1 = point_center + kgpy.vectors.Polar(radius_inner, angle_1).cartesian
+    point_inner_2 = point_center + kgpy.vectors.Polar(radius_inner, angle_2).cartesian
+    point_label = point_center + kgpy.vectors.Polar(radius, angle_label).cartesian
 
     angle_delta = angle_1 - angle_2
     rad = (1 - np.cos(angle_delta / 2)) / (2 * np.sin(angle_delta / 2))

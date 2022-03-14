@@ -3,7 +3,7 @@ import numpy as np
 import astropy.units as u
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.matrix
 
 
@@ -57,8 +57,8 @@ class TestCartesian2D:
         if width_yx is not None:
             yx = kgpy.uncertainty.Uniform(yx, width=width_yx)
         a = kgpy.matrix.Cartesian2D(
-            x=kgpy.vector.Cartesian2D(x=kgpy.labeled.Array(1), y=xy),
-            y=kgpy.vector.Cartesian2D(x=yx, y=kgpy.labeled.Array(4)),
+            x=kgpy.vectors.Cartesian2D(x=kgpy.labeled.Array(1), y=xy),
+            y=kgpy.vectors.Cartesian2D(x=yx, y=kgpy.labeled.Array(4)),
         )
         return a * unit
 
@@ -132,8 +132,8 @@ class TestCartesianND(TestCartesian2D):
         if width_yx is not None:
             yx = kgpy.uncertainty.Uniform(yx, width=width_yx)
         a = dict(
-            x=kgpy.vector.CartesianND(dict(x=kgpy.labeled.Array(1), y=xy)),
-            y=kgpy.vector.CartesianND(dict(x=yx, y=kgpy.labeled.Array(4))),
+            x=kgpy.vectors.CartesianND(dict(x=kgpy.labeled.Array(1), y=xy)),
+            y=kgpy.vectors.CartesianND(dict(x=yx, y=kgpy.labeled.Array(4))),
         )
         a = kgpy.matrix.CartesianND(a)
         return a * unit

@@ -4,7 +4,7 @@ import abc
 import astropy.units as u
 import kgpy.mixin
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.matrix
 
 __all__ = [
@@ -36,15 +36,15 @@ class AbstractTransform(
         return kgpy.matrix.Cartesian3D.identity()
 
     @property
-    def vector(self: AbstractTransformT) -> kgpy.vector.Cartesian3D:
-        return kgpy.vector.Cartesian3D() * u.mm
+    def vector(self: AbstractTransformT) -> kgpy.vectors.Cartesian3D:
+        return kgpy.vectors.Cartesian3D() * u.mm
 
     def __call__(
             self: AbstractTransformT,
-            value: kgpy.vector.Cartesian3D,
+            value: kgpy.vectors.Cartesian3D,
             rotate: bool = True,
             translate: bool = True,
-    ) -> kgpy.vector.Cartesian3D:
+    ) -> kgpy.vectors.Cartesian3D:
         if rotate:
             value = self.matrix @ value
         if translate:
@@ -62,11 +62,11 @@ class AbstractTransform(
 
 @dataclasses.dataclass
 class Translation(AbstractTransform):
-    vector: kgpy.vector.Cartesian3D = None
+    vector: kgpy.vectors.Cartesian3D = None
 
     def __post_init__(self: TranslationT) -> None:
         if self.vector is None:
-            self.vector = kgpy.vector.Cartesian3D() * u.mm
+            self.vector = kgpy.vectors.Cartesian3D() * u.mm
 
     def __invert__(self: TranslationT) -> TranslationT:
         return type(self)(vector=-self.vector)
@@ -134,9 +134,9 @@ class TransformList(
         return rotation
 
     @property
-    def vector(self: TransformListT) -> kgpy.vector.Cartesian3D:
+    def vector(self: TransformListT) -> kgpy.vectors.Cartesian3D:
         rotation = kgpy.matrix.Cartesian3D.identity()
-        translation = kgpy.vector.Cartesian3D() * u.mm
+        translation = kgpy.vectors.Cartesian3D() * u.mm
 
         for transform in reversed(list(self.transforms)):
             if transform is not None:
