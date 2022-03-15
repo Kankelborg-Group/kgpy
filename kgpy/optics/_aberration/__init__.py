@@ -56,9 +56,9 @@ class Distortion:
         # dy = model(output_max.to_3d(self.wavelength)) - model(output_min.to_3d(self.wavelength))
         # dx = output_max - output_min
         # return dx / dy
-        center_fov = vector.Vector3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
+        center_fov = vectors.Vector3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
         # return 1 / model.dx(center_fov)
-        return vector.Vector2D(
+        return vectors.Vector2D(
             x=1 / model.dx(center_fov).length,
             y=1 / model.dy(center_fov).length,
         )
@@ -95,7 +95,7 @@ class Distortion:
             spatial_input_max: vectors.Vector2D,
             spatial_output_min: vectors.Vector2D,
             spatial_output_max: vectors.Vector2D,
-            spatial_samples_output: typ.Union[int, vector.Vector2D],
+            spatial_samples_output: typ.Union[int, vectors.Vector2D],
             inverse: bool = False,
             # channel_index: typ.Optional[int] = None,
             interp_order: int = 1,
@@ -469,11 +469,11 @@ class Aberration:
             # spatial_domain_input: u.Quantity,
             # spatial_domain_output: u.Quantity,
             # spatial_samples_output: typ.Union[int, typ.Tuple[int, int]],
-            spatial_input_min: vector.Vector2D,
-            spatial_input_max: vector.Vector2D,
-            spatial_output_min: vector.Vector2D,
-            spatial_output_max: vector.Vector2D,
-            spatial_samples_output: typ.Union[int, vector.Vector2D],
+            spatial_input_min: vectors.Vector2D,
+            spatial_input_max: vectors.Vector2D,
+            spatial_output_min: vectors.Vector2D,
+            spatial_output_max: vectors.Vector2D,
+            spatial_samples_output: typ.Union[int, vectors.Vector2D],
             inverse: bool = False,
     ) -> u.Quantity:
         if not inverse:
