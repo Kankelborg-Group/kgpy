@@ -579,7 +579,7 @@ class RayFunction(
         centers_y = (edges_y[{'pupil.y': slice(1, None)}] + edges_y[{'pupil.y': slice(None, ~0)}]) / 2
 
         return aberrations.PointSpreadFunction(
-            input=vectors.ImageVector(
+            input=vectors.SpotVector(
                 field=self.input.field,
                 position=kgpy.vectors.Cartesian2D(centers_x, centers_y),
                 wavelength=self.input.wavelength,

@@ -10,7 +10,7 @@ __all__ = [
     'SpectralVector',
     'SpectralFieldVector',
     'ObjectVector',
-    'ImageVector',
+    'SpotVector',
 ]
 
 StokesVectorT = typ.TypeVar('StokesVectorT', bound='StokesVector')
@@ -72,7 +72,7 @@ class ObjectVector(
 
 
 @dataclasses.dataclass(eq=False)
-class ImageVector(
+class SpotVector(
     SpectralVector,
     PositionComponents,
     FieldComponents,

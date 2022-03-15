@@ -12,9 +12,9 @@ DistortionT = typ.TypeVar('DistortionT', bound='Distortion')
 
 @dataclasses.dataclass(eq=False)
 class PointSpreadFunction(
-    kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike]
+    kgpy.function.Array[vectors.SpotVector, kgpy.uncertainty.ArrayLike]
 ):
-    input: vectors.ImageVector = dataclasses.field(default_factory=vectors.ImageVector)
+    input: vectors.SpotVector = dataclasses.field(default_factory=vectors.SpotVector)
     output: kgpy.uncertainty.ArrayLike = 0 * u.dimensionless_unscaled
 
 
