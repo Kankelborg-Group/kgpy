@@ -531,7 +531,7 @@ class RayFunction(
 
         return axs
 
-    def psf(
+    def point_spread(
             self,
             bins: typ.Optional[kgpy.vectors.Cartesian2D] = None,
             use_vignetted: bool = False,
@@ -578,14 +578,16 @@ class RayFunction(
         centers_x = (edges_x[{'pupil.x': slice(1, None)}] + edges_x[{'pupil.x': slice(None, ~0)}]) / 2
         centers_y = (edges_y[{'pupil.y': slice(1, None)}] + edges_y[{'pupil.y': slice(None, ~0)}]) / 2
 
-        return aberrations.PointSpreadFunction(
-            input=vectors.SpotVector(
-                field=self.input.field,
-                position=kgpy.vectors.Cartesian2D(centers_x, centers_y),
-                wavelength=self.input.wavelength,
-                velocity_los=self.input.velocity_los,
-            ),
-            output=hist,
+        return aberrations.PointSpread(
+            function=kgpy.function.Array(
+                input=vectors.SpotVector(
+                    field=self.input.field,
+                    position=kgpy.vectors.Cartesian2D(centers_x, centers_y),
+                    wavelength=self.input.wavelength,
+                    velocity_los=self.input.velocity_los,
+                ),
+                output=hist,
+            )
         )
 
 

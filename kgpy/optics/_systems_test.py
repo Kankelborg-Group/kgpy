@@ -95,8 +95,8 @@ class TestSystem:
                 squeeze=False,
                 constrained_layout=True,
             )
-            psf = rays.psf()
-            psf.pcolormesh(
+            point_spread = rays.point_spread()
+            point_spread.function.pcolormesh(
                 axs=ax_psf,
                 input_component_x='position.x',
                 input_component_y='position.y',
@@ -105,8 +105,8 @@ class TestSystem:
                 # index={'field.x': 2, 'field.y': 2},
                 norm=matplotlib.colors.PowerNorm(
                     gamma=1 / 2,
-                    vmin=psf.output.min().array,
-                    vmax=psf.output.max().array,
+                    vmin=point_spread.function.output.min().array,
+                    vmax=point_spread.function.output.max().array,
                 ),
             )
 

@@ -561,7 +561,7 @@ class System(
     #         return self._calc_rays_input_direction(rays_input=rays_input)
 
     @property
-    def psf_diffraction(self) -> aberrations.PointSpreadFunction:
+    def psf_diffraction(self) -> aberrations.PointSpread:
         rays_output = self.rays_output_resample_entrance
         intensity = rays_output.intensity.copy()
         intensity[~rays_output.mask] = 0
