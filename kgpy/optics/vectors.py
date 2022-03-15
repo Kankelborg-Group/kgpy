@@ -63,6 +63,14 @@ class SpectralFieldVector(
 
 
 @dataclasses.dataclass(eq=False)
+class ImageVector(
+    SpectralVector,
+    PositionComponents,
+):
+    pass
+
+
+@dataclasses.dataclass(eq=False)
 class ObjectVector(
     SpectralVector,
     PupilComponents,
