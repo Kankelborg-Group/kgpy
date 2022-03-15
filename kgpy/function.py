@@ -436,8 +436,30 @@ class Array(
 
 
 @dataclasses.dataclass
+class AbstractPolynomial(
+    AbstractArray,
+):
+    @property
+    @abc.abstractmethod
+    def coefficients(self: PolynomialArrayT) -> kgpy.vectors.AbstractVector:
+        pass
+
+
+@dataclasses.dataclass
+class Polynomial(
+    AbstractPolynomial,
+):
+    coefficients: kgpy.vectors.AbstractVector
+
+    @property
+    def output(self):
+        return
+
+
+@dataclasses.dataclass
 class PolynomialArray(
-    Array[InputT, OutputT]
+    AbstractPolynomial,
+    Array[InputT, OutputT],
 ):
 
     degree: int = 1
