@@ -20,7 +20,7 @@ class PointSpreadFunction(
 
 @dataclasses.dataclass
 class DistortionFunction(
-    kgpy.function.PolynomialArray[vectors.SpectralFieldVector, vectors.SpectralFieldVector],
+    kgpy.function.PolynomialArray[vectors.FieldVector, vectors.FieldVector],
 ):
     @property
     def plate_scale(self: DistortionT) -> kgpy.vectors.Cartesian2D:

@@ -8,7 +8,7 @@ import kgpy.vectors
 __all__ = [
     'StokesVector',
     'SpectralVector',
-    'SpectralFieldVector',
+    'FieldVector',
     'ObjectVector',
     'SpotVector',
 ]
@@ -55,7 +55,7 @@ class PositionComponents:
 
 
 @dataclasses.dataclass(eq=False)
-class SpectralFieldVector(
+class FieldVector(
     SpectralVector,
     FieldComponents,
 ):
