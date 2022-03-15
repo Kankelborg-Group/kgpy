@@ -687,9 +687,6 @@ class AbstractArray(
             edges_x = Array.empty(shape_edges_x) * x.unit
             edges_y = Array.empty(shape_edges_y) * y.unit
 
-            print(edges_x)
-
-
             for index in x.ndindex(axis_ignored=(key_x, key_y)):
                 if range is not None:
                     range_index = [[elem.array.value for elem in range[component]] for component in range]
