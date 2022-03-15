@@ -30,4 +30,11 @@ class DistortionFunction(
     @property
     def dispersion(self):
         axis = ('wavelength', 'velocity_los')
-        return self.input.wavelength.ptp(axis=axis) / self.output.field.ptp(axis=axis)
+        return self.input.wavelength.ptp(axis=axis) / self.output.position.ptp(axis=axis)
+
+
+@dataclasses.dataclass(eq=False)
+class VignettingFunction(
+    kgpy.function.PolynomialArray[vectors.FieldVector, kgpy.uncertainty.ArrayLike]
+):
+    pass
