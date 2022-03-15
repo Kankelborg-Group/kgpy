@@ -75,8 +75,6 @@ class AbstractArray(
         with astropy.visualization.quantity_support():
             for index_subplot in axs.ndindex():
 
-                print(index_subplot)
-
                 index_final = {
                     **index,
                     input_component_row: index_subplot['row'],
