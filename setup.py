@@ -28,6 +28,7 @@ setup(
         'thermo',
         'numba',
         'pylatex',
+        'tensorflow',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',
