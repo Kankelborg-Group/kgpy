@@ -56,6 +56,13 @@ class AbstractArray(
     def __call__(self: AbstractArrayT, input_new: InputT) -> OutputT:
         pass
 
+    @property
+    def inverse(self) -> ArrayT:
+        return Array(
+            input=self.output,
+            output=self.input,
+        )
+
     def pcolormesh(
             self: AbstractArrayT,
             axs: numpy.typing.NDArray[matplotlib.axes.Axes],
