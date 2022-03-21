@@ -395,6 +395,13 @@ class AbstractVector(
     def normalized(self: AbstractVectorT) -> AbstractVectorT:
         return self / self.length
 
+    def add_axes(self: AbstractVectorT, axes: typ.List) -> AbstractVectorT:
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component].add_axes(axes=axes)
+        return type(self)(**coordinates_new)
+
     def combine_axes(
             self: AbstractVectorT,
             axes: typ.Sequence[str],
