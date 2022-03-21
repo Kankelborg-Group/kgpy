@@ -810,7 +810,7 @@ class AbstractArray(
                     axes=axes_new,
                 )
         else:
-            raise ValueError('Unsupported function')
+            raise ValueError(f'{func} not supported')
 
     def __bool__(self: AbstractArrayT) -> bool:
         return self.array.__bool__()
