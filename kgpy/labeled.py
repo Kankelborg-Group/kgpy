@@ -568,6 +568,23 @@ class AbstractArray(
                 array=np.broadcast_to(array.array_aligned(shape), tuple(shape.values()), subok=True),
                 axes=list(shape.keys()),
             )
+        elif func is np.reshape:
+            args = list(args)
+            if 'a' in kwargs:
+                array = kwargs.pop('a')
+            else:
+                array = args.pop(0)
+
+            if 'newshape' in kwargs:
+                shape = kwargs.pop('newshape')
+            else:
+                shape = args.pop(0)
+
+            return Array(
+                array=np.reshape(array.array, tuple(shape.values())),
+                axes=list(shape.keys()),
+            )
+
         elif func is np.result_type:
             return type(self)
         elif func is np.unravel_index:
