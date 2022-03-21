@@ -107,10 +107,12 @@ class AbstractVector(
         for component in coordinates_start:
 
             if axis is not None:
-                axis_component = axis[component]
+                axis_component = axis.coordinates[component]
             else:
                 axis_component = component
 
+            if shape_extra is None:
+                shape_extra = dict()
             shape_extra_component = {**shape_extra, **coordinates_num}
             shape_extra_component.pop(component)
 
