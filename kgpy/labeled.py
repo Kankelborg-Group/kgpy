@@ -135,6 +135,12 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.broadcast_to(self, shape=shape)
 
+    def reshape(
+            self: NDArrayMethodsMixinT,
+            shape: typ.Dict[str, int],
+    ) -> NDArrayMethodsMixinT:
+        return np.reshape(self, newshape=shape)
+
     def min(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
