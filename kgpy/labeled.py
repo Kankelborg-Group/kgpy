@@ -255,6 +255,10 @@ class ArrayInterface(
             yield dict(zip(shape.keys(), index))
 
     @abc.abstractmethod
+    def add_axes(self: ArrayInterfaceT, axes: typ.List) -> ArrayInterfaceT:
+        pass
+
+    @abc.abstractmethod
     def combine_axes(
             self: ArrayInterfaceT,
             axes: typ.Sequence[str],
