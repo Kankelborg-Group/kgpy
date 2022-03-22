@@ -92,11 +92,17 @@ class Aberration:
             scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
     ) -> kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike]:
 
-        raise NotImplementedError
+        result = self.vignetting(scene)
+        result = self.distortion(result)
+
+        return result
 
     def inverse(
             self: AberrationT,
             image: kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike],
     ) -> kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike]:
 
-        raise NotImplementedError
+        result = self.distortion.inverse(image)
+        result = self.vignetting.inverse(result)
+
+        return result
