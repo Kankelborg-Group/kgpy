@@ -565,32 +565,12 @@ class AbstractPolynomial(
     def coefficients(self: PolynomialArrayT) -> kgpy.vectors.AbstractVector:
         pass
 
-
-@dataclasses.dataclass
-class Polynomial(
-    AbstractPolynomial,
-):
-    coefficients: kgpy.vectors.AbstractVector
-
     @property
-    def output(self):
-        return
-
-
-@dataclasses.dataclass
-class PolynomialArray(
-    AbstractPolynomial,
-    Array[InputT, OutputT],
-):
-
-    degree: int = 1
-    axes_model: typ.Optional[typ.Union[str, typ.List[str]]] = None
-
-    def __post_init__(self: PolynomialArrayT) -> None:
-        self.update()
-
-    def update(self: PolynomialArrayT) -> None:
-        self._coefficients = None
+    def inverse(self) -> ArrayT:
+        return PolynomialArray(
+            input=self.output,
+            output=self.input,
+        )
 
     def _design_matrix_recursive(
             self: PolynomialArrayT,
@@ -624,6 +604,39 @@ class PolynomialArray(
         for d in range(self.degree + 1):
             self._design_matrix_recursive(result, inp.coordinates.copy(), key='', value=1, degree_current=0, degree=d)
         return kgpy.vectors.CartesianND(result)
+
+    def __call__(self: PolynomialArrayT, input: InputT):
+        coefficients = self.coefficients
+        design_matrix = self.design_matrix(input)
+        result = (coefficients * design_matrix).component_sum
+        return result
+
+
+@dataclasses.dataclass
+class Polynomial(
+    AbstractPolynomial,
+):
+    coefficients: kgpy.vectors.AbstractVector
+
+    @property
+    def output(self):
+        return
+
+
+@dataclasses.dataclass
+class PolynomialArray(
+    AbstractPolynomial,
+    Array[InputT, OutputT],
+):
+
+    degree: int = 1
+    axes_model: typ.Optional[typ.Union[str, typ.List[str]]] = None
+
+    def __post_init__(self: PolynomialArrayT) -> None:
+        self.update()
+
+    def update(self: PolynomialArrayT) -> None:
+        self._coefficients = None
 
     @property
     def coefficients(self: PolynomialArrayT) -> kgpy.vectors.AbstractVector:
@@ -680,12 +693,6 @@ class PolynomialArray(
         else:
             result = result.transpose
 
-        return result
-
-    def __call__(self: PolynomialArrayT, input: InputT):
-        coefficients = self.coefficients
-        design_matrix = self.design_matrix(input)
-        result = (coefficients * design_matrix).component_sum
         return result
 
     @property
