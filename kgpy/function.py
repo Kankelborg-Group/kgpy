@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing
 import matplotlib.axes
 import scipy.interpolate
+import astropy.units as u
 import astropy.visualization
 import numba
 import kgpy.mixin
@@ -91,8 +92,6 @@ class AbstractArray(
                 inp = self.input.broadcasted[index_final]
                 inp_x = inp.coordinates_flat[input_component_x].array
                 inp_y = inp.coordinates_flat[input_component_y].array
-                inp_row = inp.coordinates_flat[input_component_row]
-                inp_column = inp.coordinates_flat[input_component_column]
 
                 out = self.output.broadcasted[index_final]
                 if output_component_color is not None:
@@ -108,10 +107,46 @@ class AbstractArray(
                     **kwargs,
                 )
 
-                if index_subplot['row'] == 0:
-                    ax.set_xlabel(inp_x.unit)
-                elif index_subplot['row'] == axs.shape['row'] - 1:
-                    ax.set_xlabel(f'{inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}')
+                if index_subplot['row'] == axs.shape['row'] - 1:
+                    if isinstance(inp_x, u.Quantity):
+                        ax.set_xlabel(f'{input_component_x} ({inp_x.unit})')
+                    else:
+                        ax.set_xlabel(f'{input_component_x}')
+                else:
+                    ax.set_xlabel(None)
+
+                if index_subplot['column'] == 0:
+                    if isinstance(inp_y, u.Quantity):
+                        ax.set_ylabel(f'{input_component_y} ({inp_y.unit})')
+                    else:
+                        ax.set_ylabel(f'{input_component_y}')
+                else:
+                    ax.set_ylabel(None)
+
+                if input_component_row is not None:
+                    if index_subplot['row'] == 0:
+                        inp_column = inp.coordinates_flat[input_component_column]
+                        ax.text(
+                            x=0.5,
+                            y=1.01,
+                            s=f'{input_component_column} = {inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}',
+                            transform=ax.transAxes,
+                            ha='center',
+                            va='bottom'
+                        )
+
+                if input_component_column is not None:
+                    if index_subplot['column'] == axs.shape['column'] - 1:
+                        inp_row = inp.coordinates_flat[input_component_row]
+                        ax.text(
+                            x=1.01,
+                            y=0.5,
+                            s=f'{input_component_row} = {inp_row.mean().array.value:0.03f} {inp_row.unit:latex_inline}',
+                            transform=ax.transAxes,
+                            va='center',
+                            ha='left',
+                            rotation=-90,
+                        )
 
 
 @dataclasses.dataclass
