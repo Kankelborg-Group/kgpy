@@ -82,11 +82,11 @@ class AbstractArray(
         with astropy.visualization.quantity_support():
             for index_subplot in axs.ndindex():
 
-                index_final = {
-                    **index,
-                    input_component_row: index_subplot['row'],
-                    input_component_column: index_subplot['column'],
-                }
+                index_final = index.copy()
+                if input_component_row is not None:
+                    index_final[input_component_row] = index_subplot['row']
+                if input_component_column is not None:
+                    index_final[input_component_column] = index_subplot['column']
 
                 inp = self.input.broadcasted[index_final]
                 inp_x = inp.coordinates_flat[input_component_x].array
