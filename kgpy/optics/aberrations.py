@@ -8,7 +8,7 @@ from . import vectors
 
 PointSpreadT = typ.TypeVar('PointSpreadT', bound='PointSpread')
 DistortionT = typ.TypeVar('DistortionT', bound='Distortion')
-VignettingT = typ.TypeVar('Vignetting', bound='Vignetting')
+VignettingT = typ.TypeVar('VignettingT', bound='Vignetting')
 AberrationT = typ.TypeVar('AberrationT', bound='Aberration')
 
 
@@ -58,6 +58,26 @@ class Distortion:
 @dataclasses.dataclass(eq=False)
 class Vignetting:
     function: kgpy.function.AbstractArray[vectors.FieldVector, kgpy.uncertainty.ArrayLike]
+
+    def __call__(
+            self: VignettingT,
+            scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike]:
+
+        return kgpy.function.Array(
+            input=scene.input,
+            output=scene.output * self.function(scene.input),
+        )
+
+    def inverse(
+            self: VignettingT,
+            scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike]:
+
+        return kgpy.function.Array(
+            input=scene.input,
+            output=scene.output / self.function(scene.input),
+        )
 
 
 @dataclasses.dataclass(eq=False)
