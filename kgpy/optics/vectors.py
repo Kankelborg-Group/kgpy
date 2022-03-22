@@ -63,7 +63,7 @@ class FieldVector(
 
 
 @dataclasses.dataclass(eq=False)
-class ImageVector(
+class PositionVector(
     SpectralVector,
     PositionComponents,
 ):

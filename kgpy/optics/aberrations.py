@@ -20,12 +20,12 @@ class PointSpread(
 
 @dataclasses.dataclass(eq=False)
 class Distortion:
-    function: kgpy.function.AbstractArray[vectors.FieldVector, vectors.ImageVector]
+    function: kgpy.function.AbstractArray[vectors.FieldVector, vectors.PositionVector]
 
     def __call__(
             self: DistortionT,
             scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
-    ) -> kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike]:
+    ) -> kgpy.function.Array[vectors.PositionVector, kgpy.uncertainty.ArrayLike]:
 
         result = kgpy.function.Array(
             input=self.function(scene.input),
@@ -36,7 +36,7 @@ class Distortion:
 
     def inverse(
             self: DistortionT,
-            image: kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike]
+            image: kgpy.function.Array[vectors.PositionVector, kgpy.uncertainty.ArrayLike]
     ) -> kgpy.function:
 
         return kgpy.function.Array(
@@ -90,7 +90,7 @@ class Aberration:
     def __call__(
             self: AberrationT,
             scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
-    ) -> kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike]:
+    ) -> kgpy.function.Array[vectors.PositionVector, kgpy.uncertainty.ArrayLike]:
 
         result = self.vignetting(scene)
         result = self.distortion(result)
@@ -99,7 +99,7 @@ class Aberration:
 
     def inverse(
             self: AberrationT,
-            image: kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike],
+            image: kgpy.function.Array[vectors.PositionVector, kgpy.uncertainty.ArrayLike],
     ) -> kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike]:
 
         result = self.distortion.inverse(image)
