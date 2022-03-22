@@ -347,158 +347,167 @@ class Array(
             mask_input_old: np.ndarray,
     ) -> np.ndarray:
 
-        shape_grid_data = input_old.shape
-        shape_grid = input_new.shape
+        shape_input_old = input_old.shape
+        shape_input_new = input_new.shape
 
-        index_nearest_even = np.empty(shape_grid[:~0], dtype=numba.int64)
+        index_nearest_even = np.empty(shape_input_new[1:], dtype=numba.int64)
 
-        for i_grid in numba.prange(shape_grid[~1]):
+        for index_input_new in numba.prange(shape_input_new[~0]):
             distance_squared_min = np.inf
-            for i_grid_data in numba.prange(shape_grid_data[~1]):
-                if mask_input_old[i_grid_data]:
+            for index_input_old in numba.prange(shape_input_old[~0]):
+                if mask_input_old[index_input_old]:
                     distance_squared = 0
-                    for axis in numba.prange(shape_grid[~0]):
-                        dist = input_new[i_grid, axis] - input_old[i_grid_data, axis]
+                    for component in numba.prange(shape_input_new[0]):
+                        dist = input_new[component, index_input_new] - input_old[component, index_input_old]
                         distance_squared += dist * dist
 
                     if distance_squared < distance_squared_min:
-                        index_nearest_even[i_grid] = i_grid_data
+                        index_nearest_even[index_input_new] = index_input_old
                         distance_squared_min = distance_squared
 
         return index_nearest_even
 
-    def _calc_index_nearest_even(self, grid):
+    def _calc_index_nearest_even(
+            self: ArrayT,
+            input_new: InputT,
+    ) -> typ.Dict[str, kgpy.uncertainty.ArrayLike]:
 
-        grid_data = self.grid.subspace(grid)
-        shape_grid_data = grid_data.shape
-        # grid_data = {axis: np.broadcast_to(grid_data[axis], shape=shape_grid_data, subok=True) for axis in grid_data}
-        # grid_data = {axis: grid_data[axis].combine_axes(axes=grid.keys(), axis_new='dummy') for axis in grid_data}
-        grid_data = grid_data.flatten(axis_new='dummy')
-        mask = np.indices(shape_grid_data.values()).sum(0) % 2 == 0
+        input = self.input
+
+        shape_input = input.shape
+        input = input.reshape(dict(dummy=-1))
+
+        mask = np.indices(shape_input.values()).sum(0) % 2 == 0
         mask = mask.reshape(-1)
 
-        # grid = grid.broadcasted
-        shape_grid = grid.shape
-        grid = grid.flatten(axis_new='dummy')
-        # grid = {axis: np.broadcast_to(grid[axis], shape=shape_grid, subok=True) for axis in grid}
-        # grid = {axis: grid[axis].combine_axes(axes=grid.keys(), axis_new='dummy') for axis in grid}
+        shape_input_new = input_new.shape
+        input_new = input_new.broadcasted.reshape(dict(dummy=-1))
 
         index = Array._calc_index_nearest_even_numba(
-            input_new=np.stack([d.value.data for d in grid.coordinates], axis=~0),
-            input_old=np.stack([d.value.data for d in grid_data.coordinates], axis=~0),
+            input_new=input_new.array,
+            input_old=input.array,
             mask_input_old=mask,
         )
 
-        index = np.unravel_index(index, shape=tuple(shape_grid_data.values()))
+        index = kgpy.labeled.Array(index, axes=['dummy'])
+        index = index.reshape(shape_input_new)
+        index = np.unravel_index(index, shape=shape_input)
 
-        grid_nearest = type(grid)()
-        for c, component in enumerate(grid_nearest):
-            grid_nearest[component] = kgpy.labeled.Array(
-                value=index[c].reshape(tuple(shape_grid.values())),
-                axes=list(shape_grid.keys()),
-            )
-
-        return grid_nearest
-
-        # return {axis: LabeledArray(i.reshape(tuple(shape_grid.values())), list(shape_grid.keys())) for axis, i in zip(shape_grid, index)}
-
-    # def _calc_index_nearest_even_argmin(self, **grid: LabeledArray, ) -> typ.Dict[str, LabeledArray]:
-    #
-    #     grid_data = self.grid_broadcasted
-    #
-    #     shape_dummy = dict()
-    #     for axis_name_data in grid_data:
-    #         axis_names = grid_data[axis_name_data].axis_names
-    #         for axis_name in grid:
-    #
-    #             if axis_name in axis_names:
-    #                 axis_name_dummy = f'{axis_name}_dummy'
-    #                 shape_dummy[axis_name_dummy] = self.shape[axis_name]
-    #                 axis_index = axis_names.index(axis_name)
-    #                 axis_names[axis_index] = axis_name_dummy
-    #
-    #     distance_squared = 0
-    #     for axis_name in grid:
-    #         distance_squared_axis = np.square(grid[axis_name] - grid_data[axis_name])
-    #         distance_squared = distance_squared + distance_squared_axis
-    #
-    #     mask = LabeledArray(
-    #         data=np.indices(shape_dummy.values()).sum(0) % 2 == 0,
-    #         axis_names=list(shape_dummy.keys()),
-    #     )
-    #     mask = np.broadcast_to(mask, shape=distance_squared.shape, subok=True)
-    #     distance_squared[~mask] = np.inf
-    #
-    #     distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
-    #     index = np.argmin(distance_squared, axis='dummy')
-    #     index = np.unravel_index(index, shape_dummy)
-    #
-    #     index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
-    #
-    #     return index
+        return index
 
     def interp_barycentric_linear(
             self: ArrayT,
-            grid,
+            input_new: InputT,
     ) -> ArrayT:
+        """
+        Interpolate this function using barycentric interpolation.
 
-        grid_data = self.grid.subspace(grid)
-        # todo: fix this!!!
-        # for component in grid_data:
-        #     for axis_other in grid_data[component].axis_names:
-        #         if axis_other not in grid_data:
-        #             raise ValueError('Attempting to broadcast interpolation along non-separable axis.')
-        shape_grid_data = grid_data.shape
-        grid_data = grid_data.broadcasted
+        Examples
+        --------
 
-        index_nearest = self._calc_index_nearest_even(grid)
-        # index_nearest = self._calc_index_nearest_even_argmin(**grid)
+        .. jupyter-execute::
 
-        num_vertices = len(grid) + 1
-        index = type(index_nearest)()
+            import numpy as np
+            import matplotlib.pyplot as plt
+            import astropy.units as u
+            import kgpy.labeled
+            import kgpy.vectors
+            import kgpy.matrix
+            import kgpy.function
+
+            input = kgpy.vectors.Cartesian2D(
+                x=kgpy.labeled.LinearSpace(-np.pi, np.pi, num=14, axis='x'),
+                y=kgpy.labeled.LinearSpace(-np.pi, np.pi, num=14, axis='y'),
+            )
+
+            input_rotated = kgpy.matrix.Cartesian2D.rotation(30 * u.deg) @ input
+
+            f = kgpy.function.Array(
+                input=input_rotated,
+                output=np.cos(input.x * input.x * u.rad) * np.cos(input.y * input.y * u.rad),
+            )
+
+            fig, axs = plt.subplots(squeeze=False)
+            f.pcolormesh(
+                axs=axs,
+                input_component_x='x',
+                input_component_y='y',
+            )
+
+        .. jupyter-execute::
+
+            input_large = kgpy.vectors.Cartesian2D(
+                x=kgpy.labeled.LinearSpace(-2 * np.pi, 2 * np.pi, num=201, axis='x'),
+                y=kgpy.labeled.LinearSpace(-2 * np.pi, 2 * np.pi, num=201, axis='y'),
+            )
+
+            g = f.interp_barycentric_linear(input_large)
+
+            fig_large, axs_large = plt.subplots(squeeze=False)
+            g.pcolormesh(
+                axs=axs_large,
+                input_component_x='x',
+                input_component_y='y',
+            )
+            axs_large[0, 0].set_xlim(axs[0, 0].get_xlim());
+            axs_large[0, 0].set_ylim(axs[0, 0].get_ylim());
+
+
+        Parameters
+        ----------
+        input_new
+
+        Returns
+        -------
+        A new instance of class:`kgpy.function.Array` evaluated at the coordinates `input_new`.
+        """
+
+        index_nearest = self._calc_index_nearest_even(input_new)
+
+        num_vertices = len(input_new.coordinates) + 1
+        index = dict()
         axes_simplex = []
-        for a, axis in enumerate(grid):
-            axis_simplex = f'simplex_{axis}'
+        for c, component in enumerate(input_new.coordinates):
+            axis_simplex = f'simplex_{component}'
             axes_simplex.append(axis_simplex)
             simplex_axis = kgpy.labeled.Array.zeros(shape={axis_simplex: 2, 'vertices': num_vertices}, dtype=int)
-            simplex_axis[dict(vertices=a+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
-            index[axis] = index_nearest[axis] + simplex_axis
+            simplex_axis[dict(vertices=c+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
+            index[component] = index_nearest[component] + simplex_axis
 
-        shape_index = index.shape
+        shape_index = kgpy.labeled.Array.broadcast_shapes(*index.values())
         barycentric_transform_shape = shape_index.copy()
-        barycentric_transform_shape['vertices'] = len(grid)
-        barycentric_transform_shape['axis'] = len(grid)
+        barycentric_transform_shape['vertices'] = len(input_new.coordinates)
+        barycentric_transform_shape['component'] = len(input_new.coordinates)
         barycentric_transform = kgpy.labeled.Array.empty(barycentric_transform_shape)
 
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
-        index_1 = {k: index[k][dict(vertices=slice(1, None))] % shape_grid_data[k] for k in index}
+        index_1 = {k: index[k][dict(vertices=slice(1, None))] % self.input.shape[k] for k in index}
 
-        for a, axis in enumerate(grid):
-            x0 = grid_data[axis][index_0]
-            x1 = grid_data[axis][index_1]
-            barycentric_transform[dict(axis=a)] = x1 - x0
+        for c, component in enumerate(self.input.coordinates):
+            x0 = self.input.coordinates[component][index_0]
+            x1 = self.input.coordinates[component][index_1]
+            barycentric_transform[dict(component=c)] = x1 - x0
 
         barycentric_transform = barycentric_transform.matrix_inverse(
-            axis_rows='axis',
+            axis_rows='component',
             axis_columns='vertices',
         )
 
-        barycentric_coordinates = np.stack(
-            arrays=[grid[axis] - grid_data[axis][index_nearest] for axis in grid],
-            axis='axis',
-        ).add_axes(axes_simplex + ['vertices'])
+        barycentric_coordinates = input_new - self.input[index_nearest]
+        barycentric_coordinates = barycentric_coordinates.array_labeled
+        barycentric_coordinates = barycentric_coordinates.add_axes(axes_simplex + ['vertices'])
 
         barycentric_coordinates = barycentric_transform.matrix_multiply(
             barycentric_coordinates,
-            axis_rows='axis',
+            axis_rows='component',
             axis_columns='vertices',
-        ).combine_axes(['vertices', 'axis'], axis_new='vertices')
+        ).combine_axes(['vertices', 'component'], axis_new='vertices')
 
         epsilon = 1e-15
         mask_inside = (-epsilon <= barycentric_coordinates) & (barycentric_coordinates <= 1 + epsilon)
         for axis in index:
             mask_inside = mask_inside & (index[axis][dict(vertices=slice(1, None))] >= 0)
-            mask_inside = mask_inside & (index[axis][dict(vertices=slice(1, None))] < shape_grid_data[axis])
+            mask_inside = mask_inside & (index[axis][dict(vertices=slice(1, None))] < self.input.shape[axis])
         mask_inside = np.all(mask_inside, axis='vertices')
 
         shape_weights = shape_index
@@ -506,15 +515,14 @@ class Array(
         weights[dict(vertices=0)] = 1 - np.sum(barycentric_coordinates, axis='vertices')
         weights[dict(vertices=slice(1, None))] = barycentric_coordinates
 
-        value = weights * self.value_broadcasted[{k: index[k] % shape_grid_data[k] for k in index}]
-        value = np.nansum(value, axis='vertices')
+        output_new = weights * self.output_broadcasted[{k: index[k] % self.input.shape[k] for k in index}]
+        output_new = np.nansum(output_new, axis='vertices')
 
-        mask_inside = np.broadcast_to(mask_inside, shape=value.shape, subok=True)
-        value[~mask_inside] = np.nan
+        mask_inside = np.broadcast_to(mask_inside, shape=output_new.shape, subok=True)
 
         return Array(
-            value=np.nanmean(value, axis=axes_simplex),
-            grid=self.grid.from_dict({**self.grid.value, **grid.value}),
+            input=input_new,
+            output=np.mean(output_new, axis=axes_simplex, where=mask_inside),
         )
 
     def interp_barycentric_linear_scipy(self: ArrayT, grid):
