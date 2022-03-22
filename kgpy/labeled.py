@@ -191,6 +191,13 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.any(self, axis=axis, where=where)
 
+    def rms(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.sqrt(np.mean(np.square(self), axis=axis, where=where))
+
 
 @dataclasses.dataclass(eq=False)
 class ArrayInterface(
