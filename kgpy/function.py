@@ -75,6 +75,76 @@ class AbstractArray(
             index: typ.Optional[typ.Dict[str, int]] = None,
             **kwargs,
     ):
+        """
+        Plot this function using :class:`matplotlib.pyplot.pcolormesh`.
+
+        Examples
+        --------
+
+        .. jupyter-execute::
+
+            import numpy as np
+            import matplotlib.pyplot as plt
+            import astropy.units as u
+            import kgpy.labeled
+            import kgpy.vectors
+            import kgpy.matrix
+            import kgpy.function
+
+            a = kgpy.labeled.LinearSpace(0 * u.rad, np.pi * u.rad, num=2, axis='a')
+            b = kgpy.labeled.LinearSpace(0 * u.rad, np.pi * u.rad, num=2, axis='b')
+            x = kgpy.labeled.LinearSpace(0 * u.rad, 2 * np.pi * u.rad, num=11, axis='x')
+            y = kgpy.labeled.LinearSpace(0 * u.rad, 1 * np.pi * u.rad, num=11, axis='y')
+
+            x2 = 2 * x + y / 4
+            y2 = x / 5 + y
+
+            inputs = kgpy.vectors.CartesianND(dict(
+                a=a,
+                b=b,
+                x=x2,
+                y=y2,
+            ))
+
+            f = kgpy.function.Array(
+                input=inputs,
+                output=np.cos(a) * np.cos(b) * np.cos(x2) * np.cos(y2),
+            )
+
+            fig, axs = plt.subplots(
+                nrows=a.num,
+                ncols=b.num,
+                sharex=True,
+                sharey=True,
+                squeeze=False,
+                figsize=(12, 12),
+                constrained_layout=True,
+            )
+
+            f.pcolormesh(
+                axs=axs,
+                input_component_x='x',
+                input_component_y='y',
+                input_component_row='a',
+                input_component_column='b',
+            )
+
+        Parameters
+        ----------
+        axs: Array of axes that the function will be plotted on
+        input_component_x
+        input_component_y
+        input_component_row
+        input_component_column
+        output_component_color
+        index
+        kwargs
+
+        Returns
+        -------
+
+        """
+
         axs = kgpy.labeled.Array(axs, ['row', 'column'])
 
         if index is None:
