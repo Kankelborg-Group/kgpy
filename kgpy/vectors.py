@@ -359,14 +359,14 @@ class AbstractVector(
             item: typ.Union[typ.Dict[str, typ.Union[int, slice, ItemArrayT]], ItemArrayT],
     ):
         if isinstance(item, AbstractVector):
-            coordinates = {c: getattr(self, c).__getitem__(getattr(item, c)) for c in self.components}
+            coordinates = {c: self.coordinates[c][item.coordinates[c]] for c in self.coordinates}
         elif isinstance(item, (kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray)):
-            coordinates = {c: getattr(self, c).__getitem__(item) for c in self.components}
+            coordinates = {c: self.coordinates[c][item] for c in self.coordinates}
         elif isinstance(item, dict):
             coordinates = dict()
-            for component in self.components:
+            for component in self.coordinates:
                 item_component = {k: getattr(item[k], component, item[k]) for k in item}
-                coordinates[component] = getattr(self, component).__getitem__(item_component)
+                coordinates[component] = self.coordinates[component][item_component]
         else:
             raise TypeError
         return type(self).from_coordinates(coordinates)
