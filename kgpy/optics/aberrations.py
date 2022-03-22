@@ -22,6 +22,28 @@ class PointSpread(
 class Distortion:
     function: kgpy.function.AbstractArray[vectors.FieldVector, vectors.ImageVector]
 
+    def __call__(
+            self: DistortionT,
+            scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike]:
+
+        result = kgpy.function.Array(
+            input=self.function(scene.input),
+            output=scene.output,
+        )
+
+        return result
+
+    def inverse(
+            self: DistortionT,
+            image: kgpy.function.Array[vectors.ImageVector, kgpy.uncertainty.ArrayLike]
+    ) -> kgpy.function:
+
+        return kgpy.function.Array(
+            input=self.function.inverse(image.input),
+            output=image.output,
+        )
+
     @property
     def plate_scale(self: DistortionT) -> kgpy.vectors.Cartesian2D:
         axis = ('field_x', 'field_y')
