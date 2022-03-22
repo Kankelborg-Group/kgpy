@@ -35,8 +35,8 @@ class AbstractArray(
     input: InputT
 
     @property
-    def input_broadcasted(self):
-        return
+    def input_broadcasted(self: InputT) -> InputT:
+        return np.broadcast_to(self.input, self.shape)
 
     @property
     @abc.abstractmethod
