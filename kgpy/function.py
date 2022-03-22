@@ -104,6 +104,7 @@ class AbstractArray(
                     inp_x,
                     inp_y,
                     out,
+                    shading='nearest',
                     **kwargs,
                 )
 
