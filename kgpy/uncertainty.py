@@ -305,6 +305,15 @@ class AbstractArray(
             distribution=self.distribution.combine_axes(axes=axes, axis_new=axis_new),
         )
 
+    def add_axes(
+            self: AbstractArrayT,
+            axes: typ.List[str],
+    ) -> AbstractArrayT:
+        return Array(
+            nominal=self.nominal.add_axes(axes=axes),
+            distribution=self.distribution.add_Axes(axes=axes),
+        )
+
     def matrix_inverse(self, axis_rows: str, axis_columns: str):
         inverse_nominal = self.nominal.matrix_inverse(axis_rows=axis_rows, axis_columns=axis_columns)
         if self.distribution is not None:
