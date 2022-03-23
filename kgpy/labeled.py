@@ -1182,6 +1182,10 @@ class StratifiedRandomSpace(
     shape_extra: typ.Dict[str, int] = dataclasses.field(default_factory=dict)
 
     @property
+    def shape(self: StratifiedRandomSpaceT) -> typ.Dict[str, int]:
+        return {**super().shape, **self.shape_extra}
+
+    @property
     def array(self: StratifiedRandomSpaceT) -> kgpy.units.QuantityLike:
         result = super().array
 
