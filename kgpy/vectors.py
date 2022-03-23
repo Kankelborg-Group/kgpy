@@ -623,11 +623,11 @@ class Cartesian2D(
                 if where[index]:
                     coordinates_index = {c: coordinates[c][index].array for c in coordinates}
                     kwargs_index = {k: kwargs[k][index].array for k in kwargs}
-                    lines += func(
+                    lines += [func(
                         *coordinates_index.values(),
                         color=color[index].array,
                         **kwargs_index
-                    )
+                    )]
 
         return lines, colormap
 
@@ -738,6 +738,26 @@ class Cartesian2D(
             func=ax.fill,
             coordinates=coordinates,
             axis_plot=axis_plot,
+            **kwargs,
+        )
+
+    def scatter(
+            self: Cartesian2DT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            where: typ.Optional[kgpy.uncertainty.ArrayLike] = None,
+            color: typ.Optional[kgpy.labeled.ArrayLike] = None,
+            colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
+            **kwargs: typ.Any,
+    ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.cm.ScalarMappable]]:
+
+        return self._plot_func_uncertainty(
+            func=ax.scatter,
+            coordinates=self.coordinates,
+            axis_plot=axis_plot,
+            where=where,
+            color=color,
+            colormap=colormap,
             **kwargs,
         )
 
