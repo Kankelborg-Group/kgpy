@@ -581,6 +581,38 @@ class AbstractArray(
                 array=np.broadcast_to(array.array_aligned(shape), tuple(shape.values()), subok=True),
                 axes=list(shape.keys()),
             )
+
+        elif func is np.moveaxis:
+
+            args = list(args)
+
+            if args:
+                a = args.pop(0)
+            else:
+                a = kwargs.pop('a')
+            a = a.copy_shallow()
+
+            if args:
+                source = args.pop(0)
+            else:
+                source = kwargs.pop('source')
+
+            if args:
+                destination = args.pop(0)
+            else:
+                destination = kwargs.pop('destination')
+
+            types_sequence = (list, tuple,)
+            if not isinstance(source, types_sequence):
+                source = (source, )
+            if not isinstance(destination, types_sequence):
+                destination = (destination, )
+
+            for src, dest in zip(source, destination):
+                a.axes[a.axes.index(src)] = dest
+
+            return a
+
         elif func is np.reshape:
             args = list(args)
             if 'a' in kwargs:
