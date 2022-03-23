@@ -480,7 +480,7 @@ class Array(
         barycentric_transform_shape['component'] = len(input_new.coordinates)
         barycentric_transform = kgpy.labeled.Array.empty(barycentric_transform_shape)
         if isinstance(input_new.unit, u.UnitBase):
-            barycentric_transform << input_new.unit
+            barycentric_transform = barycentric_transform << input_new.unit
 
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
         index_1 = {k: index[k][dict(vertices=slice(1, None))] % self.input.shape[k] for k in index}
