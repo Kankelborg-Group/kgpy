@@ -22,6 +22,9 @@ AbstractAberrationInstrumentT = typ.TypeVar('AbstractAberrationInstrumentT', bou
 class AbstractInstrument(
     abc.ABC,
 ):
+    """
+    Interface describing the forward model of a CT imaging spectrograph.
+    """
 
     @abc.abstractmethod
     def __call__(self: AbstractInstrumentT, scene: SceneT) -> ImageT:
