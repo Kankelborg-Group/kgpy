@@ -467,12 +467,12 @@ class Array(
         num_vertices = len(input_new.coordinates) + 1
         index = dict()
         axes_simplex = []
-        for c, component in enumerate(input_new.coordinates):
-            axis_simplex = f'simplex_{component}'
+        for a, axis in enumerate(index_nearest.keys()):
+            axis_simplex = f'simplex_{axis}'
             axes_simplex.append(axis_simplex)
             simplex_axis = kgpy.labeled.Array.zeros(shape={axis_simplex: 2, 'vertices': num_vertices}, dtype=int)
-            simplex_axis[dict(vertices=c+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
-            index[component] = index_nearest[component] + simplex_axis
+            simplex_axis[dict(vertices=a+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
+            index[axis] = index_nearest[axis] + simplex_axis
 
         shape_index = kgpy.labeled.Array.broadcast_shapes(*index.values())
         barycentric_transform_shape = shape_index.copy()
