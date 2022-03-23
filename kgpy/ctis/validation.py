@@ -24,10 +24,16 @@ def simple_emission_line() -> kgpy.function.Array[kgpy.optics.vectors.FieldVecto
         start=kgpy.vectors.Cartesian2D(inp.field.x.start, inp.field.y.start),
         stop=kgpy.vectors.Cartesian2D(inp.field.x.stop, inp.field.y.stop),
         num=kgpy.vectors.Cartesian2D(11, 11),
-        axis=kgpy.vectors.Cartesian2D('points_x', 'points_y'),
+        axis=kgpy.vectors.Cartesian2D('field_x', 'field_y'),
     )
     print(points)
     # points = points.broadcasted.combine_axes(axes=['points_x', 'points_y'], axis_new='points')
+
+    points = kgpy.vectors.Cartesian2D(
+        x=kgpy.labeled.LinearSpace(-10 * u.arcmin, 10 * u.arcmin, num=11, axis='field_x'),
+        y=kgpy.labeled.LinearSpace(-10 * u.arcmin, 10 * u.arcmin, num=11, axis='field_y'),
+    )
+    points = points.broadcasted
 
     intensity = kgpy.function.Array(
         input=points,
@@ -38,14 +44,23 @@ def simple_emission_line() -> kgpy.function.Array[kgpy.optics.vectors.FieldVecto
         if sum(index.values()) % 2 != 0:
             intensity.output[index] = -intensity.output[index]
 
-    intensity = intensity.interp_barycentric_linear(input_new=inp.field)
-
     fig, axs = plt.subplots(squeeze=False)
     intensity.pcolormesh(
         axs=axs,
         input_component_x='x',
         input_component_y='y',
     )
+
+    intensity = intensity.interp_barycentric_linear(input_new=inp.field)
+
+    fig2, axs2 = plt.subplots(squeeze=False)
+    intensity.pcolormesh(
+        axs=axs2,
+        input_component_x='x',
+        input_component_y='y',
+    )
+    axs2[0, 0].set_xlim(axs[0, 0].get_xlim())
+    axs2[0, 0].set_ylim(axs[0, 0].get_ylim())
     # points.scatter(
     #     ax=ax,
     #     axis_plot='points',

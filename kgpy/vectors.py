@@ -96,8 +96,8 @@ class AbstractVector(
             start: AbstractVectorT,
             stop: AbstractVectorT,
             num: AbstractVectorT,
+            axis: AbstractVectorT,
             endpoint: bool = True,
-            axis: typ.Optional[AbstractVectorT] = None,
             shape_extra: typ.Optional[typ.Dict[str, int]] = None
     ) -> AbstractVectorT:
         coordinates_start = start.coordinates_flat
@@ -106,22 +106,18 @@ class AbstractVector(
         coordinates_flat = dict()
         for component in coordinates_start:
 
-            if axis is not None:
-                axis_component = axis.coordinates[component]
-            else:
-                axis_component = component
-
             if shape_extra is None:
                 shape_extra = dict()
-            shape_extra_component = {**shape_extra, **coordinates_num}
-            shape_extra_component.pop(component)
+            shape = {axis.coordinates_flat[c]: coordinates_num[c] for c in coordinates_num}
+            shape_extra_component = {**shape_extra, **shape}
+            shape_extra_component.pop(axis.coordinates_flat[component])
 
             coordinates_flat[component] = kgpy.labeled.StratifiedRandomSpace(
                 start=coordinates_start[component],
                 stop=coordinates_stop[component],
                 num=coordinates_num[component],
                 endpoint=endpoint,
-                axis=axis_component,
+                axis=axis.coordinates_flat[component],
                 shape_extra=shape_extra_component,
             )
 
