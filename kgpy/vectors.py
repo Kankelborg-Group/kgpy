@@ -214,7 +214,10 @@ class AbstractVector(
             for inp in inputs_component:
                 if not hasattr(inp, '__array_ufunc__'):
                     inp = np.array(inp)
-                result = inp.__array_ufunc__(function, method, *inputs_component, **kwargs)
+                try:
+                    result = inp.__array_ufunc__(function, method, *inputs_component, **kwargs)
+                except ValueError:
+                    result = NotImplemented
                 if result is not NotImplemented:
                     components_result[component] = result
                     break
