@@ -320,14 +320,12 @@ class AbstractVector(
 
             return type(self).from_coordinates(coordinates_new)
 
-        elif func is np.reshape:
+        elif func in [np.reshape, np.moveaxis]:
             args = list(args)
             if args:
-                array = args[0]
-                args.pop(0)
+                array = args.pop(0)
             else:
-                array = kwargs['a']
-                kwargs.pop('a')
+                array = kwargs.pop('a')
 
             coordinates = array.coordinates
             coordinates_new = dict()
@@ -335,7 +333,7 @@ class AbstractVector(
                 coordinate = coordinates[component]
                 if not isinstance(coordinate, kgpy.labeled.ArrayInterface):
                     coordinate = kgpy.labeled.Array(coordinate)
-                coordinates_new[component] = np.reshape(coordinate, *args, **kwargs)
+                coordinates_new[component] = func(coordinate, *args, **kwargs)
 
             return type(self).from_coordinates(coordinates_new)
 
