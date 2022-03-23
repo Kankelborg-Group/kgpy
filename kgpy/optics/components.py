@@ -98,7 +98,7 @@ class TranslationComponent(Component[SurfaceT]):
 
 @dataclasses.dataclass
 class CylindricalComponent(TranslationComponent[SurfaceT]):
-    translation_cylindrical: kgpy.vectors.Cylindrical = dataclasses.field(default_factory=kgpy.vectors.Cylindrical)
+    translation_cylindrical: kgpy.vectors.Cylindrical = dataclasses.field(default_factory=lambda: kgpy.vectors.Cylindrical(radius=0 * u.mm, z=0 * u.mm))
     # cylindrical_radius: u.Quantity = 0 * u.mm
     # cylindrical_radius_error: u.Quantity = 0 * u.mm
     # cylindrical_azimuth: u.Quantity = 0 * u.deg
