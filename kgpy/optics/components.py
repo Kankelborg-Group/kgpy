@@ -71,7 +71,7 @@ class PistonComponent(Component[SurfaceT]):
     @property
     def transform(self) -> kgpy.transforms.TransformList:
         return super().transform + kgpy.transforms.TransformList([
-            kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(z=-self.piston))
+            kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(x=0 * u.mm, y=0 * u.mm, z=-self.piston))
         ])
 
     @property
