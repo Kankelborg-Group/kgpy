@@ -108,8 +108,9 @@ class AbstractVector(
 
             if shape_extra is None:
                 shape_extra = dict()
-            shape_extra_component = {**shape_extra, **coordinates_num}
-            shape_extra_component.pop(component)
+            shape = {axis.coordinates_flat[c]: coordinates_num[c] for c in coordinates_num}
+            shape_extra_component = {**shape_extra, **shape}
+            shape_extra_component.pop(axis.coordinates_flat[component])
 
             coordinates_flat[component] = kgpy.labeled.StratifiedRandomSpace(
                 start=coordinates_start[component],
