@@ -47,6 +47,12 @@ class AbstractArray(
     def array(self: AbstractArrayT) -> np.ndarray:
         return self.array_labeled.array
 
+    def aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> AbstractArrayT:
+        return Array(
+            nominal=self.nominal.aligned(shape),
+            distribution=self.distribution.aligned(shape),
+        )
+
     @property
     def array_labeled(self: AbstractArrayT) -> AbstractArrayT:
         return np.concatenate(

@@ -279,6 +279,10 @@ class ArrayInterface(
     ) -> ArrayInterfaceT:
         pass
 
+    @abc.abstractmethod
+    def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]):
+        pass
+
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
@@ -342,6 +346,9 @@ class AbstractArray(
             destination.append(list(shape.keys()).index(axis_name))
         value = np.moveaxis(a=value, source=source, destination=destination)
         return value
+
+    def aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ArrayT:
+        return Array(array=self.array_aligned(shape), axes=list(shape.keys()))
 
     def add_axes(self: AbstractArrayT, axes: typ.List) -> AbstractArrayT:
         shape_new = {axis: 1 for axis in axes}

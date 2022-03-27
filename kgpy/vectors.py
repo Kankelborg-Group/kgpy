@@ -429,6 +429,13 @@ class AbstractVector(
             coordinates_new[component] = coordinates[component].combine_axes(axes=axes, axis_new=axis_new)
         return type(self)(**coordinates_new)
 
+    def aligned(self: AbstractVectorT, shape: typ.Dict[str, int]):
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component].aligned(shape)
+        return type(self)(**coordinates_new)
+
     def outer(self: AbstractVectorT, other: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
         raise NotImplementedError
 
