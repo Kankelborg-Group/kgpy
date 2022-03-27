@@ -463,7 +463,10 @@ class AbstractArray(
         if shape[axis_rows] != shape[axis_columns]:
             raise ValueError('Matrix must be square')
 
-        if shape[axis_rows] == 2:
+        if shape[axis_rows] == 1:
+            return 1 / self
+
+        elif shape[axis_rows] == 2:
             result = Array(array=self.array.copy(), axes=self.axes.copy())
             result[{axis_rows: 0, axis_columns: 0}] = self[{axis_rows: 1, axis_columns: 1}]
             result[{axis_rows: 1, axis_columns: 1}] = self[{axis_rows: 0, axis_columns: 0}]
