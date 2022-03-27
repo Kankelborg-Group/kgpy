@@ -170,6 +170,10 @@ class AbstractVector(
         return other
 
     @property
+    def centers(self: AbstractVectorT) -> AbstractVectorT:
+        return self.from_coordinates({c: self.coordinates[c].centers for c in self.coordinates})
+
+    @property
     def array_labeled(self: AbstractVectorT) -> kgpy.labeled.ArrayInterface:
         coordinates = self.broadcasted.coordinates
         return np.stack(list(coordinates.values()), axis='component')
