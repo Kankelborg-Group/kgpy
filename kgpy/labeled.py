@@ -1194,7 +1194,7 @@ class StratifiedRandomSpace(
 
     @property
     def shape(self: StratifiedRandomSpaceT) -> typ.Dict[str, int]:
-        return {**super().shape, **self.shape_extra}
+        return {**self.shape_extra, **super().shape}
 
     @property
     def array(self: StratifiedRandomSpaceT) -> kgpy.units.QuantityLike:
