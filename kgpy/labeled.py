@@ -805,6 +805,7 @@ class AbstractArray(
             np.array_equal,
             np.isclose,
             np.roll,
+            np.clip,
         ]:
 
             labeled_arrays = [arg for arg in args if isinstance(arg, AbstractArray)]
@@ -817,7 +818,7 @@ class AbstractArray(
             types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
 
             axes_new = axes.copy()
-            if func not in [np.isclose, np.roll]:
+            if func not in [np.isclose, np.roll, np.clip]:
                 if 'keepdims' not in kwargs:
                     if 'axis' in kwargs:
                         if kwargs['axis'] is None:
