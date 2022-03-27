@@ -1291,3 +1291,9 @@ class NormalRandomSpace(
 
         return value
 
+
+def indices(shape: typ.Dict[str, int]) -> Array:
+    return kgpy.labeled.Array(
+        array=np.indices(shape.values()),
+        axes=['axis'] + list(shape.keys()),
+    )
