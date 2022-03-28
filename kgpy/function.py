@@ -374,8 +374,6 @@ class Array(
 
         input = self.input.centers.broadcasted
 
-        print('input', input.array_labeled)
-
         shape_input = input.shape
         input = input.reshape(dict(dummy=-1))
 
@@ -394,7 +392,6 @@ class Array(
 
         index = kgpy.labeled.Array(index, axes=['dummy'])
         index = index.reshape(shape_input_new)
-        print('index', index)
         index = np.unravel_index(index, shape=shape_input)
 
         return index
