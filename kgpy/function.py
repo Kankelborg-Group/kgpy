@@ -160,19 +160,18 @@ class AbstractArray(
                     index_final[input_component_column] = index_subplot['column']
 
                 inp = self.input.broadcasted[index_final]
-                inp_x = inp.coordinates_flat[input_component_x].array
-                inp_y = inp.coordinates_flat[input_component_y].array
+                inp_x = inp.coordinates_flat[input_component_x]
+                inp_y = inp.coordinates_flat[input_component_y]
 
                 out = self.output.broadcasted[index_final]
                 if output_component_color is not None:
                     out = out.coordinates_flat[output_component_color]
-                out = out.array
 
                 ax = axs[index_subplot].array
                 ax.pcolormesh(
-                    inp_x,
-                    inp_y,
-                    out,
+                    inp_x.array_aligned(out.shape),
+                    inp_y.array_aligned(out.shape),
+                    out.array,
                     shading='nearest',
                     **kwargs,
                 )
@@ -336,12 +335,12 @@ class Array(
         return self._interp_linear_1d_recursive(
             input_new=input_new,
             index_lower=self.calc_index_lower(input_new),
-            axis_stack=list(input_new.shape.keys()),
+            axis_stack=list(input_new.components),
         )
 
     @staticmethod
     @numba.njit(parallel=True, )
-    def _calc_index_nearest_even_numba(
+    def _calc_index_nearest_numba(
             input_new: np.ndarray,
             input_old: np.ndarray,
             mask_input_old: np.ndarray,
@@ -367,23 +366,27 @@ class Array(
 
         return index_nearest_even
 
-    def _calc_index_nearest_even(
+    def _calc_index_nearest(
             self: ArrayT,
             input_new: InputT,
+            stride: int = 1
     ) -> typ.Dict[str, kgpy.uncertainty.ArrayLike]:
 
-        input = self.input
+        input = self.input.centers.broadcasted
+
+        print('input', input.array_labeled)
 
         shape_input = input.shape
         input = input.reshape(dict(dummy=-1))
 
-        mask = np.indices(shape_input.values()).sum(0) % 2 == 0
+        mask = np.indices(shape_input.values()).sum(0) % stride == 0
         mask = mask.reshape(-1)
 
+        input_new = input_new.broadcasted.aligned(shape_input)
         shape_input_new = input_new.shape
-        input_new = input_new.broadcasted.reshape(dict(dummy=-1))
+        input_new = input_new.reshape(dict(dummy=-1))
 
-        index = Array._calc_index_nearest_even_numba(
+        index = Array._calc_index_nearest_numba(
             input_new=input_new.array,
             input_old=input.array,
             mask_input_old=mask,
@@ -391,6 +394,7 @@ class Array(
 
         index = kgpy.labeled.Array(index, axes=['dummy'])
         index = index.reshape(shape_input_new)
+        print('index', index)
         index = np.unravel_index(index, shape=shape_input)
 
         return index
@@ -462,19 +466,50 @@ class Array(
         A new instance of class:`kgpy.function.Array` evaluated at the coordinates `input_new`.
         """
 
-        index_nearest = self._calc_index_nearest_even(input_new)
+        index_nearest = self._calc_index_nearest(input_new)
+
+        sum_index_nearest = 0
+        for axis in index_nearest:
+            sum_index_nearest = sum_index_nearest + index_nearest[axis]
+        where_even = sum_index_nearest % 2 == 0
 
         num_vertices = len(input_new.coordinates) + 1
         index = dict()
-        axes_simplex = []
+        axes_simplex = [
+            'apex'
+        ]
         for a, axis in enumerate(index_nearest.keys()):
             axis_simplex = f'simplex_{axis}'
             axes_simplex.append(axis_simplex)
-            simplex_axis = kgpy.labeled.Array.zeros(shape={axis_simplex: 2, 'vertices': num_vertices}, dtype=int)
+            shape_axis = {
+                axis_simplex: 2,
+                'vertices': num_vertices,
+                'apex': 2
+            }
+            simplex_axis = kgpy.labeled.Array.zeros(shape=shape_axis, dtype=int)
             simplex_axis[dict(vertices=a+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
+            simplex_axis[dict(vertices=0, apex=1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
             index[axis] = index_nearest[axis] + simplex_axis
 
         shape_index = kgpy.labeled.Array.broadcast_shapes(*index.values())
+
+        closed_vertices = dict(vertices=kgpy.labeled.Array(array=np.array([0, 1, 2, 0]), axes=['vertices']))
+
+        axis_shifted = next(iter(index_nearest))
+        axis_shifted_simplex = f'simplex_{axis_shifted}'
+        shape_where_odd = shape_index.copy()
+        shape_where_odd.pop(axis_shifted_simplex)
+        where_even = np.broadcast_to(where_even, shape_where_odd)
+        index[axis_shifted] = np.broadcast_to(index[axis_shifted], shape_index).copy()
+        index[axis_shifted][{axis_shifted_simplex: 0}][where_even] = index[axis_shifted][{axis_shifted_simplex: 0}][where_even] + 1
+        index[axis_shifted][{axis_shifted_simplex: 1}][where_even] = index[axis_shifted][{axis_shifted_simplex: 1}][where_even] - 1
+
+        for axis in index:
+            index[axis] = np.broadcast_to(index[axis], shape_index).copy()
+            where_even = where_even.broadcast_to(shape_index)
+
+        index = {k: np.clip(index[k], 0, self.input.shape[k] - 1) for k in index}
+
         barycentric_transform_shape = shape_index.copy()
         barycentric_transform_shape['vertices'] = len(input_new.coordinates)
         barycentric_transform_shape['component'] = len(input_new.coordinates)
@@ -483,7 +518,7 @@ class Array(
             barycentric_transform = barycentric_transform << input_new.unit
 
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
-        index_1 = {k: index[k][dict(vertices=slice(1, None))] % self.input.shape[k] for k in index}
+        index_1 = {k: index[k][dict(vertices=slice(1, None))] for k in index}
 
         for c, component in enumerate(self.input.coordinates):
             x0 = self.input.coordinates[component][index_0]
@@ -495,7 +530,7 @@ class Array(
             axis_columns='vertices',
         )
 
-        barycentric_coordinates = input_new - self.input[index_nearest]
+        barycentric_coordinates = input_new - self.input[{axis: index[axis][dict(vertices=0)] for axis in index}]
         barycentric_coordinates = barycentric_coordinates.array_labeled
         barycentric_coordinates = barycentric_coordinates.add_axes(axes_simplex + ['vertices'])
 
@@ -505,26 +540,30 @@ class Array(
             axis_columns='vertices',
         ).combine_axes(['vertices', 'component'], axis_new='vertices')
 
-        epsilon = 1e-15
-        mask_inside = (-epsilon <= barycentric_coordinates) & (barycentric_coordinates <= 1 + epsilon)
-        for axis in index:
-            mask_inside = mask_inside & (index[axis][dict(vertices=slice(1, None))] >= 0)
-            mask_inside = mask_inside & (index[axis][dict(vertices=slice(1, None))] < self.input.shape[axis])
-        mask_inside = np.all(mask_inside, axis='vertices')
-
         shape_weights = shape_index
         weights = kgpy.labeled.Array.empty(shape_weights)
         weights[dict(vertices=0)] = 1 - np.sum(barycentric_coordinates, axis='vertices')
         weights[dict(vertices=slice(1, None))] = barycentric_coordinates
 
-        output_new = weights * self.output_broadcasted[{k: index[k] % self.input.shape[k] for k in index}]
+        epsilon = 1e-15
+        mask_inside = (-epsilon <= weights) & (weights <= 1 + epsilon)
+        for axis in index:
+            mask_inside = mask_inside & (index[axis] >= 0)
+            mask_inside = mask_inside & (index[axis] < self.input.shape[axis])
+        mask_inside = np.all(mask_inside, axis='vertices')
+
+        output_new = weights * self.output_broadcasted[index]
         output_new = np.nansum(output_new, axis='vertices')
 
         mask_inside = np.broadcast_to(mask_inside, shape=output_new.shape, subok=True)
 
         return Array(
             input=input_new,
-            output=np.mean(output_new, axis=axes_simplex, where=mask_inside),
+            output=np.mean(
+                output_new,
+                axis=axes_simplex,
+                where=mask_inside,
+            ),
         )
 
     def interp_barycentric_linear_scipy(self: ArrayT, grid):
