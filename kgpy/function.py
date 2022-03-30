@@ -268,21 +268,27 @@ class Array(
 
         input_old = self.input
         if isinstance(input_old, kgpy.vectors.AbstractVector):
-            input_old = input_old.copy_shallow()
+            input_old = input_old.copy()
         else:
-            input_old = kgpy.vectors.Cartesian1D(input_old)
+            input_old = kgpy.vectors.Cartesian1D(input_old.copy())
 
-        for component in input_old.coordinates:
-            coordinate = input_old.coordinates[component]
-            coordinate = kgpy.labeled.Array(coordinate.array, coordinate.axes)
+        coordinates_old = input_old.coordinates_flat
+        coordinates_dummy = dict()
+        for component in coordinates_old:
+            coordinate = coordinates_old[component]
+            if not isinstance(coordinate, kgpy.labeled.ArrayInterface):
+                continue
+            coordinate = coordinate.array_labeled
             coordinate.axes = [f'{ax}_dummy' for ax in coordinate.axes]
-            setattr(input_old, component, coordinate)
+            coordinates_dummy[component] = coordinate
+        input_old.coordinates_flat = coordinates_dummy
         shape_dummy = input_old.shape
 
         distance = input_old - input_new
         distance[distance > 0] = -np.inf
         distance = distance.component_sum
-        distance = distance.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+
+        distance = distance.broadcasted.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
 
         index = np.argmax(distance, axis='dummy')
         index = np.unravel_index(index, self.input.shape)
@@ -297,28 +303,31 @@ class Array(
             self,
             input_new: InputT,
             index_lower: typ.Dict[str, kgpy.labeled.AbstractArray],
-            axis_stack: typ.List[str],
+            components: typ.List[str],
     ) -> kgpy.labeled.AbstractArray:
 
-        axis = axis_stack.pop(0)
+        component = components.pop(0)
+
+        x = input_new.coordinates[component]
+        # if len(x.shape) > 1:
+        #     raise ValueError('Linear interpolation over non-separable axis')
 
         index_upper = copy.deepcopy(index_lower)
-        index_upper[axis] = index_upper[axis] + 1
-
-        x = input_new.coordinates[axis]
+        for axis in x.shape:
+            index_upper[axis] = index_upper[axis] + 1
 
         input_old = self.input
         input_old = np.broadcast_to(input_old, input_old.shape)
         if isinstance(input_old, kgpy.vectors.AbstractVector):
-            x0 = input_old.coordinates[axis][index_lower]
-            x1 = input_old.coordinates[axis][index_upper]
+            x0 = input_old.coordinates[component][index_lower]
+            x1 = input_old.coordinates[component][index_upper]
         else:
             x0 = input_old[index_lower]
             x1 = input_old[index_upper]
 
-        if axis_stack:
-            y0 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_lower, axis_stack=axis_stack.copy())
-            y1 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_upper, axis_stack=axis_stack.copy())
+        if components:
+            y0 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_lower, components=components.copy())
+            y1 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_upper, components=components.copy())
 
         else:
             output = self.output_broadcasted
@@ -335,7 +344,7 @@ class Array(
         return self._interp_linear_1d_recursive(
             input_new=input_new,
             index_lower=self.calc_index_lower(input_new),
-            axis_stack=list(input_new.components),
+            components=list(input_new.components),
         )
 
     @staticmethod
