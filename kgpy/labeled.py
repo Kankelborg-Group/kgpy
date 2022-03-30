@@ -1124,6 +1124,12 @@ class Range(AbstractArray[np.ndarray]):
     def axes(self: RangeT) -> typ.List[str]:
         return super().axes + [self.axis]
 
+    def index_nearest(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+        return {self.axis: np.rint((value - self.start) / self.step).astype(int)}
+
+    def index_below(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+        return {self.axis: (value - self.start) // self.step}
+
 
 @dataclasses.dataclass(eq=False)
 class _SpaceMixin(
@@ -1197,6 +1203,11 @@ class LinearSpace(
             endpoint=self.endpoint,
         )
 
+    def index_nearest(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+        return {self.axis: np.rint((value - self.start) / self.step).astype(int)}
+
+    def index_below(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+        return {self.axis: (value - self.start) // self.step}
 
 @dataclasses.dataclass(eq=False)
 class _RandomSpaceMixin(_SpaceMixin):
