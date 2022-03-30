@@ -176,3 +176,14 @@ class TestArray:
         result_expected = [{'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 1, 'y': 0}, {'x': 1, 'y': 1}]
         a = kgpy.labeled.Array.empty(shape)
         assert list(a.ndindex()) == result_expected
+
+    def test_index_nearest_secant(self):
+
+        x = kgpy.labeled.LinearSpace(0, 1, num=5, axis='x')
+        y = kgpy.labeled.LinearSpace(0, 1, num=5, axis='y')
+        a = x + y
+        b = kgpy.labeled.Array(array=a.array, axes=a.axes)
+
+        # print(x.index_nearest_secant(x))
+        print(b.index_nearest_secant(x, axis_search='x'))
+
