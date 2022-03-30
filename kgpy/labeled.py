@@ -960,6 +960,40 @@ class AbstractArray(
         # else:
         #     raise ValueError('Invalid index type')
 
+    @property
+    def indices(self) -> typ.Dict[str, ArrayT]:
+        result = np.indices(self.shape.values())
+        axes = list(self.shape.keys())
+        result = {axis: Array(r, axes=axes) for axis, r in zip(self.shape, result)}
+        return result
+
+    def index_nearest_secant(
+            self: AbstractArrayT,
+            value: AbstractArrayT,
+            axis_search: str,
+    ) -> typ.Dict[str, AbstractArrayT]:
+        import kgpy.optimization
+
+        def indices_factory(index: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+            index = np.rint(index).astype(int)
+            index = np.clip(index, a_min=0, a_max=self.shape[axis_search] - 1)
+            indices = self[{axis_search: 0}].indices
+            indices[axis_search] = index
+            return indices
+
+        def get_index(index: AbstractArrayT) -> AbstractArrayT:
+            diff = self[indices_factory(index)] - value
+            return diff
+
+        result = kgpy.optimization.root_finding.secant(
+            func=get_index,
+            root_guess=np.array(self.shape[axis_search] // 2),
+            step_size=1,
+            max_abs_error=1e-9,
+        )
+
+        return indices_factory(result)
+
 
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
 
