@@ -307,6 +307,25 @@ class AbstractArray(
     def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
         return dict()
 
+    def astype(
+            self: ArrayInterfaceT,
+            dtype: numpy.typing.DTypeLike,
+            order: str = 'K',
+            casting='unsafe',
+            subok: bool = True,
+            copy: bool = True,
+    ) -> ArrayT:
+        return Array(
+            array=self.array.astype(
+                dtype=dtype,
+                order=order,
+                casting=casting,
+                subok=subok,
+                copy=copy,
+            ),
+            axes=self.axes,
+        )
+
     def to(self: AbstractArrayT, unit: u.Unit) -> ArrayT:
         array = self.array
         if not isinstance(array, u.Quantity):
