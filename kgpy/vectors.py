@@ -364,10 +364,13 @@ class AbstractVector(
         elif isinstance(item, (kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray)):
             coordinates = {c: self.coordinates[c][item] for c in self.coordinates}
         elif isinstance(item, dict):
-            coordinates = dict()
-            for component in self.coordinates:
-                item_component = {k: getattr(item[k], component, item[k]) for k in item}
-                coordinates[component] = self.coordinates[component][item_component]
+            if item:
+                coordinates = dict()
+                for component in self.coordinates:
+                    item_component = {k: getattr(item[k], component, item[k]) for k in item}
+                    coordinates[component] = self.coordinates[component][item_component]
+            else:
+                return self
         else:
             raise TypeError
         return type(self).from_coordinates(coordinates)
