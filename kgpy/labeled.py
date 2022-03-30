@@ -1191,6 +1191,13 @@ class LinearSpace(
 ):
 
     @property
+    def step(self: LinearSpaceT) -> typ.Union[StartArrayT, StopArrayT]:
+        if self.endpoint:
+            return self.range / (self.num - 1)
+        else:
+            return self.range / self.num
+
+    @property
     def array(self: LinearSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
         shape.pop(self.axis)
@@ -1273,7 +1280,7 @@ class StratifiedRandomSpace(
         shape = norm.shape
         shape[norm.axis] = norm.num
         shape = {**shape, **self.shape_extra}
-        step_size = norm.range / (norm.num - 1)
+        step_size = norm.step
         step_size = step_size.broadcast_to(shape).array
 
         if isinstance(step_size, u.Quantity):
