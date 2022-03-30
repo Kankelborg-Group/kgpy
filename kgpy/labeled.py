@@ -249,6 +249,11 @@ class ArrayInterface(
     def centers(self: ArrayInterfaceT) -> ArrayInterfaceT:
         return self
 
+    @property
+    @abc.abstractmethod
+    def indices(self):
+        pass
+
     def ndindex(
             self: typ.Type[ArrayInterfaceT],
             axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
