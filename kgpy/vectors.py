@@ -443,6 +443,37 @@ class AbstractVector(
             coordinates_new[component] = coordinates[component].aligned(shape)
         return type(self)(**coordinates_new)
 
+    def index_nearest_secant(
+            self: AbstractVectorT,
+            value: AbstractVectorT,
+            axis_search: typ.Dict[str, str],
+    ) -> typ.Dict[str, kgpy.labeled.Array]:
+
+        import kgpy.optimization
+
+        shape = self.shape
+        shape_search = kgpy.vectors.CartesianND({axis: shape[axis] for axis in axis_search})
+        indices = self[{axis: 0 for axis in axis_search.values()}].indices
+
+        def indices_factory(index: AbstractVectorT) -> typ.Dict[str, kgpy.labeled.Array]:
+            index = np.rint(index).astype(int)
+            index = np.clip(index, a_min=0, a_max=shape_search - 1)
+            indices = {**indices, **index.coordinates}
+            return indices
+
+        def get_index(index: AbstractVectorT) -> AbstractVectorT:
+            return self[indices_factory(index)] - value
+
+        result = kgpy.optimization.root_finding.secant(
+            func=get_index,
+            root_guess=shape_search,
+            step_size=kgpy.vectors.CartesianND({axis: 1 for axis in axis_search}),
+            max_abs_error=1e-9,
+        )
+
+        return indices_factory(result)
+
+
     def outer(self: AbstractVectorT, other: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
         raise NotImplementedError
 
