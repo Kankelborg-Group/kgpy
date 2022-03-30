@@ -250,9 +250,11 @@ class ArrayInterface(
         return self
 
     @property
-    @abc.abstractmethod
-    def indices(self):
-        pass
+    def indices(self) -> typ.Dict[str, ArrayT]:
+        result = np.indices(self.shape.values())
+        axes = list(self.shape.keys())
+        result = {axis: Array(r, axes=axes) for axis, r in zip(self.shape, result)}
+        return result
 
     def ndindex(
             self: typ.Type[ArrayInterfaceT],
@@ -959,13 +961,6 @@ class AbstractArray(
             )
         # else:
         #     raise ValueError('Invalid index type')
-
-    @property
-    def indices(self) -> typ.Dict[str, ArrayT]:
-        result = np.indices(self.shape.values())
-        axes = list(self.shape.keys())
-        result = {axis: Array(r, axes=axes) for axis, r in zip(self.shape, result)}
-        return result
 
     def index_nearest_secant(
             self: AbstractArrayT,
