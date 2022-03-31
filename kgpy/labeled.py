@@ -645,7 +645,8 @@ class AbstractArray(
                 destination = (destination, )
 
             for src, dest in zip(source, destination):
-                a.axes[a.axes.index(src)] = dest
+                if src in a.axes:
+                    a.axes[a.axes.index(src)] = dest
 
             return a
 
