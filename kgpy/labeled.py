@@ -626,7 +626,7 @@ class AbstractArray(
                 a = args.pop(0)
             else:
                 a = kwargs.pop('a')
-            a = a.copy_shallow()
+            a = Array(a.array, axes=a.axes.copy())
 
             if args:
                 source = args.pop(0)
