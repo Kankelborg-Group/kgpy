@@ -983,8 +983,7 @@ class AbstractArray(
         index_nearest = np.argmin(distance, axis='dummy')
         index = index_nearest.indices
         index_nearest = np.unravel_index(index_nearest, {ax: self.shape[ax] for ax in self.shape if ax in axis})
-        for ax in index_nearest:
-            index[ax] = index_nearest[ax]
+        index = {**index, **index_nearest}
 
         return index
 
