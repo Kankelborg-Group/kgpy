@@ -183,8 +183,25 @@ class AbstractArray(
                 distribution=np.broadcast_to(array.distribution, shape_distribution),
             )
 
+        elif func is np.unravel_index:
+            args = list(args)
+            if args:
+                array = args.pop(0)
+            else:
+                array = kwargs['array']
+            result_nominal = func(array.nominal, *args, **kwargs)
+            result_distribution = func(array.distribution, *args, **kwargs)
+
+            result = dict()
+            for axis in result_nominal:
+                result[axis] = Array(
+                    nominal=result_nominal[axis],
+                    distribution=result_distribution[axis],
+                )
+
+            return result
+
         elif func in [
-            np.unravel_index,
             np.ndim,
             np.argmin,
             np.nanargmin,
