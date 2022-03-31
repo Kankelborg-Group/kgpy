@@ -207,6 +207,7 @@ class AbstractArray(
             np.array_equal,
             np.isclose,
             np.roll,
+            np.moveaxis,
         ]:
             args_nominal = [arg.normalized.nominal if isinstance(arg, AbstractArray) else arg for arg in args]
             types_nominal = list(type(arg) for arg in args_nominal if getattr(arg, '__array_function__', None) is not None)
