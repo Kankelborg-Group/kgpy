@@ -962,6 +962,24 @@ class AbstractArray(
         # else:
         #     raise ValueError('Invalid index type')
 
+    def index_nearest_brute(
+            self: AbstractArrayT,
+            value: AbstractArrayT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]],
+    ) -> typ.Dict[str, AbstractArrayT]:
+
+        if axis is None:
+            axis = self.axes
+        elif isinstance(axis, str):
+            axis = (axis, )
+
+        input_old = self.input.array_labeled
+        for ax in axis:
+            pass
+
+
+
+
     def index_nearest_secant(
             self: AbstractArrayT,
             value: AbstractArrayT,
