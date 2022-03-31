@@ -965,20 +965,27 @@ class AbstractArray(
     def index_nearest_brute(
             self: AbstractArrayT,
             value: AbstractArrayT,
-            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]],
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
     ) -> typ.Dict[str, AbstractArrayT]:
 
         if axis is None:
             axis = self.axes
         elif isinstance(axis, str):
-            axis = (axis, )
+            axis = [axis, ]
 
-        input_old = self.input.array_labeled
-        for ax in axis:
-            pass
+        other = self.copy_shallow()
+        other.axes = [f'{ax}_dummy' if ax in axis else ax for ax in other.axes]
 
+        distance = np.abs(value - other)
+        distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in axis], axis_new='dummy')
 
+        index_nearest = np.argmin(distance, axis='dummy')
+        index = index_nearest.indices
+        index_nearest = np.unravel_index(index_nearest, {ax: self.shape[ax] for ax in self.shape if ax in axis})
+        for ax in index_nearest:
+            index[ax] = index_nearest[ax]
 
+        return index
 
     def index_nearest_secant(
             self: AbstractArrayT,
