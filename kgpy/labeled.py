@@ -305,9 +305,10 @@ class ArrayInterface(
     def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]):
         pass
 
-    def index_nearest_brute(
-            self: AbstractArrayT,
-            value: AbstractArrayT,
+    def _index_arbitrary_brute(
+            self: ArrayInterfaceT,
+            func: typ.Callable[[ArrayInterfaceT], ArrayInterfaceT],
+            value: ArrayInterfaceT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
     ) -> typ.Dict[str, AbstractArrayT]:
 
@@ -325,7 +326,7 @@ class ArrayInterface(
             destination=[f'{ax}_dummy' for ax in axis],
         )
 
-        distance = (value - other).length
+        distance = func(value - other)
         distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in axis], axis_new='dummy')
 
         index_nearest = np.argmin(distance, axis='dummy')
@@ -336,6 +337,17 @@ class ArrayInterface(
         index = {**index_base, **index_nearest}
 
         return index
+
+    def index_nearest_brute(
+            self: ArrayInterfaceT,
+            value: ArrayInterfaceT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, ArrayInterfaceT]:
+        return self._index_arbitrary_brute(
+            func=lambda x: x.length,
+            value=value,
+            axis=axis,
+        )
 
 
 @dataclasses.dataclass(eq=False)
