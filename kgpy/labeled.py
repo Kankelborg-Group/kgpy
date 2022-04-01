@@ -349,6 +349,29 @@ class ArrayInterface(
             axis=axis,
         )
 
+    def index_below_brute(
+            self: ArrayInterfaceT,
+            value: ArrayInterfaceT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, ArrayInterfaceT]:
+
+        if axis is None:
+            axis = list(self.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
+
+        def func_distance(val: ArrayInterfaceT):
+            val[val < 0] = np.inf
+            return val.length
+
+        other = self[{ax: slice(None, ~0) for ax in axis}]
+
+        return other._index_arbitrary_brute(
+            func=func_distance,
+            value=value,
+            axis=axis,
+        )
+
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
