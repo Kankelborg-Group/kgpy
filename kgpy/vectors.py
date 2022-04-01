@@ -196,6 +196,24 @@ class AbstractVector(
     def shape(self: AbstractVectorT) -> typ.Dict[str, int]:
         return kgpy.labeled.Array.broadcast_shapes(*self.coordinates.values())
 
+    def astype(
+            self: AbstractVectorT,
+            dtype: numpy.typing.DTypeLike,
+            order: str = 'K',
+            casting='unsafe',
+            subok: bool = True,
+            copy: bool = True,
+    ) -> AbstractVectorT:
+        kwargs = dict(
+            dtype=dtype,
+            order=order,
+            casting=casting,
+            subok=subok,
+            copy=copy,
+        )
+        coordinates = self.coordinates
+        return type(self).from_coordinates({c: coordinates[c].astype(**kwargs) for c in coordinates})
+
     def __array_ufunc__(self, function, method, *inputs, **kwargs):
 
         components_result = dict()

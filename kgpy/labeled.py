@@ -232,6 +232,17 @@ class ArrayInterface(
     def dtype(self: ArrayInterfaceT):
         return self.array.dtype
 
+    @abc.abstractmethod
+    def astype(
+            self: ArrayInterfaceT,
+            dtype: numpy.typing.DTypeLike,
+            order: str = 'K',
+            casting='unsafe',
+            subok: bool = True,
+            copy: bool = True,
+    ) -> ArrayInterfaceT:
+        pass
+
     @property
     @abc.abstractmethod
     def unit(self) -> typ.Union[float, u.Unit]:
