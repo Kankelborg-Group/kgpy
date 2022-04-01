@@ -461,38 +461,6 @@ class AbstractVector(
             coordinates_new[component] = coordinates[component].aligned(shape)
         return type(self)(**coordinates_new)
 
-    def index_nearest_brute(
-            self: AbstractVectorT,
-            value: AbstractVectorT,
-            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
-    ) -> typ.Dict[str, kgpy.labeled.Array]:
-
-        if not self.shape:
-            raise ValueError('Zero-dimensional arrays are not supported')
-
-        if axis is None:
-            axis = list(self.shape.keys())
-        elif isinstance(axis, str):
-            axis = [axis, ]
-
-        other = np.moveaxis(
-            a=self,
-            source=axis,
-            destination=[f'{ax}_dummy' for ax in axis],
-        )
-
-        distance = (value - other).length
-        distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in distance.shape if ax in axis], axis_new='dummy')
-
-        index_nearest = np.argmin(distance, axis='dummy')
-        index = index_nearest.indices
-
-        shape_index_nearest = {ax: self.shape[ax] for ax in self.shape if ax in axis}
-        index_nearest = np.unravel_index(index_nearest, shape_index_nearest)
-        index = {**index, **index_nearest}
-
-        return index
-
     def index_nearest_secant(
             self: AbstractVectorT,
             value: AbstractVectorT,

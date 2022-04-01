@@ -305,6 +305,38 @@ class ArrayInterface(
     def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]):
         pass
 
+    def index_nearest_brute(
+            self: AbstractArrayT,
+            value: AbstractArrayT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, AbstractArrayT]:
+
+        if not self.shape:
+            return dict()
+
+        if axis is None:
+            axis = list(self.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
+
+        other = np.moveaxis(
+            a=self,
+            source=axis,
+            destination=[f'{ax}_dummy' for ax in axis],
+        )
+
+        distance = (value - other).length
+        distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in axis], axis_new='dummy')
+
+        index_nearest = np.argmin(distance, axis='dummy')
+        index_base = index_nearest.indices
+
+        shape_nearest = {ax: self.shape[ax] for ax in self.shape if ax in axis}
+        index_nearest = np.unravel_index(index_nearest, shape_nearest)
+        index = {**index_base, **index_nearest}
+
+        return index
+
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
@@ -977,30 +1009,6 @@ class AbstractArray(
             )
         # else:
         #     raise ValueError('Invalid index type')
-
-    def index_nearest_brute(
-            self: AbstractArrayT,
-            value: AbstractArrayT,
-            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
-    ) -> typ.Dict[str, AbstractArrayT]:
-
-        if axis is None:
-            axis = self.axes
-        elif isinstance(axis, str):
-            axis = [axis, ]
-
-        other = self.copy_shallow()
-        other.axes = [f'{ax}_dummy' if ax in axis else ax for ax in other.axes]
-
-        distance = np.abs(value - other)
-        distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in axis], axis_new='dummy')
-
-        index_nearest = np.argmin(distance, axis='dummy')
-        index = index_nearest.indices
-        index_nearest = np.unravel_index(index_nearest, {ax: self.shape[ax] for ax in self.shape if ax in axis})
-        index = {**index, **index_nearest}
-
-        return index
 
     def index_nearest_secant(
             self: AbstractArrayT,
