@@ -233,35 +233,34 @@ class Array(
             output = kgpy.labeled.Array(output)
         return np.broadcast_to(output, shape=self.shape)
 
-    def calc_index_nearest(self: ArrayT, input_new: InputT, ) -> typ.Dict[str, kgpy.labeled.Array]:
-
-        if not isinstance(input_new, kgpy.vectors.AbstractVector):
-            input_new = kgpy.vectors.Cartesian1D(input_new)
+    def interp_nearest(
+            self: ArrayT,
+            input_new: InputT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None
+    ) -> ArrayT:
 
         input_old = self.input
         if not isinstance(input_old, kgpy.vectors.AbstractVector):
             input_old = kgpy.vectors.Cartesian1D(input_old)
-        else:
-            input_old = input_old.copy_shallow()
 
-        for component in input_old.coordinates:
-            coordinate = input_old.coordinates[component]
-            coordinate = kgpy.labeled.Array(coordinate.array, coordinate.axes)
-            coordinate.axes = [f'{ax}_dummy' for ax in coordinate.axes]
-            setattr(input_old, component, coordinate)
-        shape_dummy = input_old.shape
+        if not isinstance(input_new, kgpy.vectors.AbstractVector):
+            input_new = kgpy.vectors.Cartesian1D(input_new)
 
-        distance = (input_new - input_old).length
-        distance = distance.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+        input_old_interp = input_old.copy_shallow()
+        input_new_final = input_new.copy_shallow()
+        for component in input_new.coordinates:
+            if input_new.coordinates[component] is None:
+                input_old_interp.coordinates[component] = None
+                input_new_final.coordinates[component] = input_old.coordinates[component]
 
-        index = np.argmin(distance, axis='dummy')
-        index = np.unravel_index(index, self.input.shape)
-        return index
+        if axis is None:
+            axis = list(input_old_interp.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
 
-    def interp_nearest(self: ArrayT, input_new: InputT) -> ArrayT:
         return type(self)(
-            input=input_new,
-            output=self.output_broadcasted[self.calc_index_nearest(input_new)]
+            input=input_new_final,
+            output=self.output_broadcasted[self.input.index_nearest_brute(input_new_final, axis=axis)],
         )
 
     def calc_index_lower(self: ArrayT, input_new: InputT ) -> typ.Dict:
