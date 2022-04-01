@@ -138,6 +138,29 @@ class TestCartesian2D:
         # plt.show()
         plt.close(ax.figure)
 
+    def test_index_nearest_brute(
+            self,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ):
+        a = self.factory(unit, x, x_width, y, y_width)
+
+        if not a.shape:
+            with pytest.raises(ValueError):
+                index_nearest = a.index_nearest_brute(a)
+
+        else:
+
+            index_nearest = a.index_nearest_brute(a)
+            indices = a.indices
+
+            for ax in indices:
+                assert np.all(index_nearest[ax] == indices[ax])
+
+
 
 class TestCartesian3D(TestCartesian2D):
 
