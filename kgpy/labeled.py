@@ -261,6 +261,10 @@ class ArrayInterface(
         return self
 
     @property
+    def length(self: ArrayInterfaceT) -> AbstractArrayT:
+        return np.abs(self)
+
+    @property
     def indices(self) -> typ.Dict[str, ArrayT]:
         result = np.indices(self.shape.values())
         axes = list(self.shape.keys())
