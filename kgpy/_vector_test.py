@@ -148,11 +148,11 @@ class TestCartesian2D:
     ):
         a = self.factory(unit, x, x_width, y, y_width)
 
-        if not a.shape:
-            with pytest.raises(ValueError):
-                index_nearest = a.index_nearest_brute(a)
+        index_nearest = a.index_nearest_brute(a)
+        indices = a.indices
 
-        else:
+        for ax in indices:
+            assert np.all(index_nearest[ax] == indices[ax])
 
             index_nearest = a.index_nearest_brute(a)
             indices = a.indices

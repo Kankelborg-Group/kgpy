@@ -182,8 +182,8 @@ class TestArray:
         x = kgpy.labeled.LinearSpace(0, 1, num=5, axis='x')
         y = kgpy.labeled.LinearSpace(0, 1, num=5, axis='y')
         z = kgpy.labeled.LinearSpace(0, 1, num=5, axis='z')
-        a = x + y + z
-        index_nearest = a.index_nearest_brute(a, axis='x')
+        a = x + 10 * y + 100 * z
+        index_nearest = a.index_nearest_brute(a, axis=('x', 'y'))
         indices = a.indices
 
         for ax in indices:
