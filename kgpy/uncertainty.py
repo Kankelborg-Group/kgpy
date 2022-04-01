@@ -3,6 +3,7 @@ import typing as typ
 import dataclasses
 import random
 import numpy as np
+import numpy.typing
 import astropy.units as u
 import kgpy.mixin
 import kgpy.labeled
@@ -69,6 +70,26 @@ class AbstractArray(
     @abc.abstractmethod
     def axis_distribution(self: AbstractArrayT) -> str:
         return '_distribution'
+
+    def astype(
+            self: AbstractArrayT,
+            dtype: numpy.typing.DTypeLike,
+            order: str = 'K',
+            casting='unsafe',
+            subok: bool = True,
+            copy: bool = True,
+    ) -> ArrayT:
+        kwargs = dict(
+            dtype=dtype,
+            order=order,
+            casting=casting,
+            subok=subok,
+            copy=copy,
+        )
+        return Array(
+            nominal=self.nominal.astype(**kwargs),
+            distribution=self.distribution.astype(**kwargs)
+        )
 
     def to(self: AbstractArrayT, unit: u.Unit) -> ArrayT:
         return Array(
