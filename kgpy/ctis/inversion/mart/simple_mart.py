@@ -6,9 +6,7 @@ import matplotlib.pyplot as plt
 import time
 from . import Result, antialias, forward
 
-
 __all__ = ['SimpleMART']
-
 
 
 @dataclasses.dataclass
@@ -32,13 +30,11 @@ class SimpleMART:
     def chisq(goodness_of_fit: np.ndarray) -> float:
         return np.nanmean(goodness_of_fit[goodness_of_fit != 0])
 
-
     @staticmethod
     def channel_is_not_converged(goodness_of_fit: np.ndarray) -> bool:
         chisq = SimpleMART.chisq(goodness_of_fit)
         return chisq > 1
         # return np.percentile(goodness_of_fit,99.9) > 1
-
 
     @staticmethod
     def correction_exponent(goodness_of_fit: np.ndarray) -> np.ndarray:
@@ -89,24 +85,24 @@ class SimpleMART:
         n_channels = projections.shape[m_axis] * projections.shape[a_axis]
         r = results
 
-
-
         projections_azimuth, spectral_order = np.broadcast_arrays(projections_azimuth, spectral_order, subok=True)
 
         if self.verbose:
             print('Starting MART Iterations')
         for multiplicative_iter in range(max_multiplicative_iteration):
+            print(multiplicative_iter)
             n_converged = n_channels
             corrections = np.ones_like(r.cube)
             for m in range(projections.shape[m_axis]):
                 for a in range(projections.shape[a_axis]):
 
-
-
                     sl = [slice(None)] * projections.ndim
                     sl[m_axis] = slice(m, m + 1)
                     sl[a_axis] = slice(a, a + 1)
                     projection = projections[tuple(sl)]  # type: np.ndarray[float]
+
+                    # fig, ax = plt.subplots()
+                    # ax.imshow(np.sum(r.cube, -1))
 
                     test_projection = forward.model(
                         cube=r.cube,
@@ -120,20 +116,25 @@ class SimpleMART:
                         w_axis=w_axis,
                         rotation_kwargs=self.rotation_kwargs
                     )
+
+                    # fig, ax = plt.subplots(2)
+                    # ax[0].imshow(test_projection[0, 0, ..., 0])
+                    # ax[1].imshow(projection[0, 0, ..., 0])
+
                     test_projection[test_projection <= 0] = 0
 
                     if self.anti_aliasing == 'post':
                         test_projection = antialias.apply(test_projection, x_axis_index=x_axis, y_axis_index=y_axis)
 
-                    goodness_of_fit = np.square(test_projection - projection) / (np.square(photon_read_noise) + test_projection)
+                    goodness_of_fit = np.square(test_projection - projection) / (
+                                np.square(photon_read_noise) + test_projection)
                     chisq = SimpleMART.chisq(goodness_of_fit)
 
                     ### Useful if MART is going not converging.  Allows direct inspection of residuals.
-                    # print(chisq)
+                    print(chisq)
                     # fig, ax = plt.subplots()
-                    # im = ax.imshow(goodness_of_fit[0,0,:,:,0])
+                    # im = ax.imshow(goodness_of_fit[0, 0, :, :, 0])
                     # fig.colorbar(im)
-                    # plt.show()
 
                     # print(chisq,np.max(goodness_of_fit),goodness_of_fit[goodness_of_fit>1].size)
 
@@ -165,6 +166,10 @@ class SimpleMART:
                             rotation_kwargs=self.rotation_kwargs
                         )
                         deprojection[deprojection <= 0] = 0
+
+                        # fig, ax = plt.subplots()
+                        # ax.imshow(np.sum(deprojection, -1))
+                        # plt.show()
 
                         # r.cube *= deprojection
                         corrections = corrections * deprojection
