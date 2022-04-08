@@ -1,10 +1,10 @@
 import typing as typ
 import numpy as np
 import kgpy.labeled
-import kgpy.vector
+import kgpy.vectors
 
-InputT = typ.TypeVar('InputT', bound=kgpy.vector.VectorLike)
-OutputT = typ.TypeVar('OutputT', bound=kgpy.vector.VectorLike)
+InputT = typ.TypeVar('InputT', bound=kgpy.vectors.VectorLike)
+OutputT = typ.TypeVar('OutputT', bound=kgpy.vectors.VectorLike)
 
 
 def secant(
@@ -22,7 +22,7 @@ def secant(
 
         f1 = func(x1)
 
-        if isinstance(f1, kgpy.vector.AbstractVector):
+        if isinstance(f1, kgpy.vectors.AbstractVector):
             root_error = f1.length
         else:
             root_error = np.abs(f1)
@@ -31,12 +31,12 @@ def secant(
             return x1
 
         dx = x1 - x0
-        if isinstance(dx, kgpy.vector.AbstractVector):
+        if isinstance(dx, kgpy.vectors.AbstractVector):
             mask = dx.length != 0
         else:
             mask = dx != 0
 
-        if isinstance(f1, kgpy.vector.AbstractVector) and isinstance(x1, kgpy.vector.AbstractVector):
+        if isinstance(f1, kgpy.vectors.AbstractVector) and isinstance(x1, kgpy.vectors.AbstractVector):
 
             jacobian = type(f1)()
             for component_f in jacobian.coordinates:

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.transforms
 import kgpy.optics
 
@@ -19,14 +19,14 @@ class TestSystem:
             system = kgpy.optics.systems.System(
                 object_surface=kgpy.optics.surfaces.Surface(
                     name='sky',
-                    transform=kgpy.transforms.TransformList([kgpy.transforms.Translation(kgpy.vector.Cartesian3D(z=-100) * u.mm)]),
+                    transform=kgpy.transforms.TransformList([kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(z=-100) * u.mm)]),
                 ),
                 surfaces=kgpy.optics.surfaces.SurfaceList([
                     kgpy.optics.surfaces.Surface(
                         name='primary',
                         transform=kgpy.transforms.TransformList([
                             # kgpy.transforms.RotationY(30 * u.deg),
-                            kgpy.transforms.Translation(kgpy.vector.Cartesian3D(
+                            kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(
                                 # x=kgpy.uncertainty.Uniform(0 * u.mm, width=10 * u.mm),
                                 # y=kgpy.uncertainty.Uniform(0 * u.mm, width=10 * u.mm),
                                 x=0 * u.mm,
@@ -40,20 +40,20 @@ class TestSystem:
                         is_pupil_stop=True,
                         sag=kgpy.optics.surfaces.sags.Standard(radius=-2 * focal_length),
                         material=kgpy.optics.surfaces.materials.Mirror(thickness=-10 * u.mm),
-                        aperture=kgpy.optics.surfaces.apertures.Rectangular(half_width=kgpy.vector.Cartesian2D() + 50 * u.mm)
+                        aperture=kgpy.optics.surfaces.apertures.Rectangular(half_width=kgpy.vectors.Cartesian2D() + 50 * u.mm)
                     ),
                     kgpy.optics.surfaces.Surface(
                         name='image',
                         is_field_stop=True,
-                        aperture=kgpy.optics.surfaces.apertures.Rectangular(half_width=kgpy.vector.Cartesian2D() + 5 * u.mm),
+                        aperture=kgpy.optics.surfaces.apertures.Rectangular(half_width=kgpy.vectors.Cartesian2D() + 5 * u.mm),
                     )
                 ]),
                 object_grid_normalized=kgpy.optics.vectors.ObjectVector(
-                    field=kgpy.vector.Cartesian2D(
+                    field=kgpy.vectors.Cartesian2D(
                         x=kgpy.labeled.LinearSpace(-1, 1, 5, axis='field.x'),
                         y=kgpy.labeled.LinearSpace(-1, 1, 5, axis='field.y'),
                     ),
-                    pupil=kgpy.vector.Cartesian2D(
+                    pupil=kgpy.vectors.Cartesian2D(
                         x=kgpy.labeled.LinearSpace(-1, 1, 101, axis='pupil.x'),
                         y=kgpy.labeled.LinearSpace(-1, 1, 101, axis='pupil.y'),
                     ),
@@ -95,8 +95,8 @@ class TestSystem:
                 squeeze=False,
                 constrained_layout=True,
             )
-            psf = rays.psf()
-            psf.pcolormesh(
+            point_spread = rays.point_spread()
+            point_spread.function.pcolormesh(
                 axs=ax_psf,
                 input_component_x='position.x',
                 input_component_y='position.y',
@@ -105,8 +105,8 @@ class TestSystem:
                 # index={'field.x': 2, 'field.y': 2},
                 norm=matplotlib.colors.PowerNorm(
                     gamma=1 / 2,
-                    vmin=psf.output.min().array,
-                    vmax=psf.output.max().array,
+                    vmin=point_spread.function.output.min().array,
+                    vmax=point_spread.function.output.max().array,
                 ),
             )
 

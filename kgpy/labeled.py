@@ -135,6 +135,12 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.broadcast_to(self, shape=shape)
 
+    def reshape(
+            self: NDArrayMethodsMixinT,
+            shape: typ.Dict[str, int],
+    ) -> NDArrayMethodsMixinT:
+        return np.reshape(self, newshape=shape)
+
     def min(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
@@ -184,6 +190,13 @@ class NDArrayMethodsMixin:
             where: NDArrayMethodsMixinT = np._NoValue,
     ) -> NDArrayMethodsMixinT:
         return np.any(self, axis=axis, where=where)
+
+    def rms(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.sqrt(np.mean(np.square(self), axis=axis, where=where))
 
 
 @dataclasses.dataclass(eq=False)
@@ -236,6 +249,13 @@ class ArrayInterface(
     def centers(self: ArrayInterfaceT) -> ArrayInterfaceT:
         return self
 
+    @property
+    def indices(self) -> typ.Dict[str, ArrayT]:
+        result = np.indices(self.shape.values())
+        axes = list(self.shape.keys())
+        result = {axis: Array(r, axes=axes) for axis, r in zip(self.shape, result)}
+        return result
+
     def ndindex(
             self: typ.Type[ArrayInterfaceT],
             axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
@@ -255,11 +275,19 @@ class ArrayInterface(
             yield dict(zip(shape.keys(), index))
 
     @abc.abstractmethod
+    def add_axes(self: ArrayInterfaceT, axes: typ.List) -> ArrayInterfaceT:
+        pass
+
+    @abc.abstractmethod
     def combine_axes(
             self: ArrayInterfaceT,
             axes: typ.Sequence[str],
             axis_new: typ.Optional[str] = None,
     ) -> ArrayInterfaceT:
+        pass
+
+    @abc.abstractmethod
+    def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]):
         pass
 
 
@@ -285,6 +313,25 @@ class AbstractArray(
     @abc.abstractmethod
     def shape(self: AbstractArrayT) -> typ.Dict[str, int]:
         return dict()
+
+    def astype(
+            self: ArrayInterfaceT,
+            dtype: numpy.typing.DTypeLike,
+            order: str = 'K',
+            casting='unsafe',
+            subok: bool = True,
+            copy: bool = True,
+    ) -> ArrayT:
+        return Array(
+            array=self.array.astype(
+                dtype=dtype,
+                order=order,
+                casting=casting,
+                subok=subok,
+                copy=copy,
+            ),
+            axes=self.axes,
+        )
 
     def to(self: AbstractArrayT, unit: u.Unit) -> ArrayT:
         array = self.array
@@ -325,6 +372,9 @@ class AbstractArray(
             destination.append(list(shape.keys()).index(axis_name))
         value = np.moveaxis(a=value, source=source, destination=destination)
         return value
+
+    def aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ArrayT:
+        return Array(array=self.array_aligned(shape), axes=list(shape.keys()))
 
     def add_axes(self: AbstractArrayT, axes: typ.List) -> AbstractArrayT:
         shape_new = {axis: 1 for axis in axes}
@@ -439,7 +489,10 @@ class AbstractArray(
         if shape[axis_rows] != shape[axis_columns]:
             raise ValueError('Matrix must be square')
 
-        if shape[axis_rows] == 2:
+        if shape[axis_rows] == 1:
+            return 1 / self
+
+        elif shape[axis_rows] == 2:
             result = Array(array=self.array.copy(), axes=self.axes.copy())
             result[{axis_rows: 0, axis_columns: 0}] = self[{axis_rows: 1, axis_columns: 1}]
             result[{axis_rows: 1, axis_columns: 1}] = self[{axis_rows: 0, axis_columns: 0}]
@@ -564,6 +617,55 @@ class AbstractArray(
                 array=np.broadcast_to(array.array_aligned(shape), tuple(shape.values()), subok=True),
                 axes=list(shape.keys()),
             )
+
+        elif func is np.moveaxis:
+
+            args = list(args)
+
+            if args:
+                a = args.pop(0)
+            else:
+                a = kwargs.pop('a')
+            a = a.copy_shallow()
+
+            if args:
+                source = args.pop(0)
+            else:
+                source = kwargs.pop('source')
+
+            if args:
+                destination = args.pop(0)
+            else:
+                destination = kwargs.pop('destination')
+
+            types_sequence = (list, tuple,)
+            if not isinstance(source, types_sequence):
+                source = (source, )
+            if not isinstance(destination, types_sequence):
+                destination = (destination, )
+
+            for src, dest in zip(source, destination):
+                a.axes[a.axes.index(src)] = dest
+
+            return a
+
+        elif func is np.reshape:
+            args = list(args)
+            if 'a' in kwargs:
+                array = kwargs.pop('a')
+            else:
+                array = args.pop(0)
+
+            if 'newshape' in kwargs:
+                shape = kwargs.pop('newshape')
+            else:
+                shape = args.pop(0)
+
+            return Array(
+                array=np.reshape(array.array, tuple(shape.values())),
+                axes=list(shape.keys()),
+            )
+
         elif func is np.result_type:
             return type(self)
         elif func is np.unravel_index:
@@ -687,9 +789,6 @@ class AbstractArray(
             edges_x = Array.empty(shape_edges_x) * x.unit
             edges_y = Array.empty(shape_edges_y) * y.unit
 
-            print(edges_x)
-
-
             for index in x.ndindex(axis_ignored=(key_x, key_y)):
                 if range is not None:
                     range_index = [[elem.array.value for elem in range[component]] for component in range]
@@ -735,6 +834,7 @@ class AbstractArray(
             np.array_equal,
             np.isclose,
             np.roll,
+            np.clip,
         ]:
 
             labeled_arrays = [arg for arg in args if isinstance(arg, AbstractArray)]
@@ -747,7 +847,7 @@ class AbstractArray(
             types = tuple(type(arg) for arg in args if getattr(arg, '__array_function__', None) is not None)
 
             axes_new = axes.copy()
-            if func not in [np.isclose, np.roll]:
+            if func not in [np.isclose, np.roll, np.clip]:
                 if 'keepdims' not in kwargs:
                     if 'axis' in kwargs:
                         if kwargs['axis'] is None:
@@ -786,7 +886,7 @@ class AbstractArray(
                     axes=axes_new,
                 )
         else:
-            raise ValueError('Unsupported function')
+            raise ValueError(f'{func} not supported')
 
     def __bool__(self: AbstractArrayT) -> bool:
         return self.array.__bool__()
@@ -861,6 +961,51 @@ class AbstractArray(
             )
         # else:
         #     raise ValueError('Invalid index type')
+
+    def index_nearest_brute(
+            self: AbstractArrayT,
+            value: AbstractArrayT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]],
+    ) -> typ.Dict[str, AbstractArrayT]:
+
+        if axis is None:
+            axis = self.axes
+        elif isinstance(axis, str):
+            axis = (axis, )
+
+        input_old = self.input.array_labeled
+        for ax in axis:
+            pass
+
+
+
+
+    def index_nearest_secant(
+            self: AbstractArrayT,
+            value: AbstractArrayT,
+            axis_search: str,
+    ) -> typ.Dict[str, AbstractArrayT]:
+        import kgpy.optimization
+
+        def indices_factory(index: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+            index = np.rint(index).astype(int)
+            index = np.clip(index, a_min=0, a_max=self.shape[axis_search] - 1)
+            indices = self[{axis_search: 0}].indices
+            indices[axis_search] = index
+            return indices
+
+        def get_index(index: AbstractArrayT) -> AbstractArrayT:
+            diff = self[indices_factory(index)] - value
+            return diff
+
+        result = kgpy.optimization.root_finding.secant(
+            func=get_index,
+            root_guess=np.array(self.shape[axis_search] // 2),
+            step_size=1,
+            max_abs_error=1e-9,
+        )
+
+        return indices_factory(result)
 
 
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
@@ -992,6 +1137,12 @@ class Range(AbstractArray[np.ndarray]):
     def axes(self: RangeT) -> typ.List[str]:
         return super().axes + [self.axis]
 
+    def index_nearest(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+        return {self.axis: np.rint((value - self.start) / self.step).astype(int)}
+
+    def index_below(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+        return {self.axis: (value - self.start) // self.step}
+
 
 @dataclasses.dataclass(eq=False)
 class _SpaceMixin(
@@ -1053,6 +1204,13 @@ class LinearSpace(
 ):
 
     @property
+    def step(self: LinearSpaceT) -> typ.Union[StartArrayT, StopArrayT]:
+        if self.endpoint:
+            return self.range / (self.num - 1)
+        else:
+            return self.range / self.num
+
+    @property
     def array(self: LinearSpaceT) -> kgpy.units.QuantityLike:
         shape = self.shape
         shape.pop(self.axis)
@@ -1065,6 +1223,11 @@ class LinearSpace(
             endpoint=self.endpoint,
         )
 
+    def index_nearest(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+        return {self.axis: np.rint((value - self.start) / self.step).astype(int)}
+
+    def index_below(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
+        return {self.axis: (value - self.start) // self.step}
 
 @dataclasses.dataclass(eq=False)
 class _RandomSpaceMixin(_SpaceMixin):
@@ -1119,6 +1282,10 @@ class StratifiedRandomSpace(
     shape_extra: typ.Dict[str, int] = dataclasses.field(default_factory=dict)
 
     @property
+    def shape(self: StratifiedRandomSpaceT) -> typ.Dict[str, int]:
+        return {**self.shape_extra, **super().shape}
+
+    @property
     def array(self: StratifiedRandomSpaceT) -> kgpy.units.QuantityLike:
         result = super().array
 
@@ -1126,7 +1293,7 @@ class StratifiedRandomSpace(
         shape = norm.shape
         shape[norm.axis] = norm.num
         shape = {**shape, **self.shape_extra}
-        step_size = norm.range / (norm.num - 1)
+        step_size = norm.step
         step_size = step_size.broadcast_to(shape).array
 
         if isinstance(step_size, u.Quantity):
@@ -1217,3 +1384,9 @@ class NormalRandomSpace(
 
         return value
 
+
+def indices(shape: typ.Dict[str, int]) -> Array:
+    return kgpy.labeled.Array(
+        array=np.indices(shape.values()),
+        axes=['axis'] + list(shape.keys()),
+    )

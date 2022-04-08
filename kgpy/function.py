@@ -6,20 +6,21 @@ import numpy as np
 import numpy.typing
 import matplotlib.axes
 import scipy.interpolate
+import astropy.units as u
 import astropy.visualization
 import numba
 import kgpy.mixin
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.matrix
 
 __all__ = [
 
 ]
 
-InputT = typ.TypeVar('InputT', bound=kgpy.vector.VectorLike)
-OutputT = typ.TypeVar('OutputT', bound=kgpy.vector.VectorLike)
+InputT = typ.TypeVar('InputT', bound=kgpy.vectors.VectorLike)
+OutputT = typ.TypeVar('OutputT', bound=kgpy.vectors.VectorLike)
 AbstractArrayT = typ.TypeVar('AbstractArrayT', bound='AbstractArray')
 ArrayT = typ.TypeVar('ArrayT', bound='Array')
 PolynomialArrayT = typ.TypeVar('PolynomialArrayT', bound='PolynomialArray')
@@ -35,8 +36,8 @@ class AbstractArray(
     input: InputT
 
     @property
-    def input_broadcasted(self):
-        return
+    def input_broadcasted(self: InputT) -> InputT:
+        return np.broadcast_to(self.input, self.shape)
 
     @property
     @abc.abstractmethod
@@ -56,6 +57,13 @@ class AbstractArray(
     def __call__(self: AbstractArrayT, input_new: InputT) -> OutputT:
         pass
 
+    @property
+    def inverse(self) -> ArrayT:
+        return Array(
+            input=self.output,
+            output=self.input,
+        )
+
     def pcolormesh(
             self: AbstractArrayT,
             axs: numpy.typing.NDArray[matplotlib.axes.Axes],
@@ -67,6 +75,76 @@ class AbstractArray(
             index: typ.Optional[typ.Dict[str, int]] = None,
             **kwargs,
     ):
+        """
+        Plot this function using :class:`matplotlib.pyplot.pcolormesh`.
+
+        Examples
+        --------
+
+        .. jupyter-execute::
+
+            import numpy as np
+            import matplotlib.pyplot as plt
+            import astropy.units as u
+            import kgpy.labeled
+            import kgpy.vectors
+            import kgpy.matrix
+            import kgpy.function
+
+            a = kgpy.labeled.LinearSpace(0 * u.rad, np.pi * u.rad, num=2, axis='a')
+            b = kgpy.labeled.LinearSpace(0 * u.rad, np.pi * u.rad, num=2, axis='b')
+            x = kgpy.labeled.LinearSpace(0 * u.rad, 2 * np.pi * u.rad, num=11, axis='x')
+            y = kgpy.labeled.LinearSpace(0 * u.rad, 1 * np.pi * u.rad, num=11, axis='y')
+
+            x2 = 2 * x + y / 4
+            y2 = x / 5 + y
+
+            inputs = kgpy.vectors.CartesianND(dict(
+                a=a,
+                b=b,
+                x=x2,
+                y=y2,
+            ))
+
+            f = kgpy.function.Array(
+                input=inputs,
+                output=np.cos(a) * np.cos(b) * np.cos(x2) * np.cos(y2),
+            )
+
+            fig, axs = plt.subplots(
+                nrows=a.num,
+                ncols=b.num,
+                sharex=True,
+                sharey=True,
+                squeeze=False,
+                figsize=(12, 12),
+                constrained_layout=True,
+            )
+
+            f.pcolormesh(
+                axs=axs,
+                input_component_x='x',
+                input_component_y='y',
+                input_component_row='a',
+                input_component_column='b',
+            )
+
+        Parameters
+        ----------
+        axs: Array of axes that the function will be plotted on
+        input_component_x
+        input_component_y
+        input_component_row
+        input_component_column
+        output_component_color
+        index
+        kwargs
+
+        Returns
+        -------
+
+        """
+
         axs = kgpy.labeled.Array(axs, ['row', 'column'])
 
         if index is None:
@@ -75,39 +153,69 @@ class AbstractArray(
         with astropy.visualization.quantity_support():
             for index_subplot in axs.ndindex():
 
-                print(index_subplot)
-
-                index_final = {
-                    **index,
-                    input_component_row: index_subplot['row'],
-                    input_component_column: index_subplot['column'],
-                }
+                index_final = index.copy()
+                if input_component_row is not None:
+                    index_final[input_component_row] = index_subplot['row']
+                if input_component_column is not None:
+                    index_final[input_component_column] = index_subplot['column']
 
                 inp = self.input.broadcasted[index_final]
-                inp_x = inp.coordinates_flat[input_component_x].array
-                inp_y = inp.coordinates_flat[input_component_y].array
-                inp_row = inp.coordinates_flat[input_component_row]
-                inp_column = inp.coordinates_flat[input_component_column]
-
-                print(inp_column)
+                inp_x = inp.coordinates_flat[input_component_x]
+                inp_y = inp.coordinates_flat[input_component_y]
 
                 out = self.output.broadcasted[index_final]
                 if output_component_color is not None:
                     out = out.coordinates_flat[output_component_color]
-                out = out.array
 
                 ax = axs[index_subplot].array
                 ax.pcolormesh(
-                    inp_x,
-                    inp_y,
-                    out,
+                    inp_x.array_aligned(out.shape),
+                    inp_y.array_aligned(out.shape),
+                    out.array,
+                    shading='nearest',
                     **kwargs,
                 )
 
-                if index_subplot['row'] == 0:
-                    ax.set_xlabel(inp_x.unit)
-                elif index_subplot['row'] == axs.shape['row'] - 1:
-                    ax.set_xlabel(f'{inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}')
+                if index_subplot['row'] == axs.shape['row'] - 1:
+                    if isinstance(inp_x, u.Quantity):
+                        ax.set_xlabel(f'{input_component_x} ({inp_x.unit})')
+                    else:
+                        ax.set_xlabel(f'{input_component_x}')
+                else:
+                    ax.set_xlabel(None)
+
+                if index_subplot['column'] == 0:
+                    if isinstance(inp_y, u.Quantity):
+                        ax.set_ylabel(f'{input_component_y} ({inp_y.unit})')
+                    else:
+                        ax.set_ylabel(f'{input_component_y}')
+                else:
+                    ax.set_ylabel(None)
+
+                if input_component_row is not None:
+                    if index_subplot['row'] == 0:
+                        inp_column = inp.coordinates_flat[input_component_column]
+                        ax.text(
+                            x=0.5,
+                            y=1.01,
+                            s=f'{input_component_column} = {inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}',
+                            transform=ax.transAxes,
+                            ha='center',
+                            va='bottom'
+                        )
+
+                if input_component_column is not None:
+                    if index_subplot['column'] == axs.shape['column'] - 1:
+                        inp_row = inp.coordinates_flat[input_component_row]
+                        ax.text(
+                            x=1.01,
+                            y=0.5,
+                            s=f'{input_component_row} = {inp_row.mean().array.value:0.03f} {inp_row.unit:latex_inline}',
+                            transform=ax.transAxes,
+                            va='center',
+                            ha='left',
+                            rotation=-90,
+                        )
 
 
 @dataclasses.dataclass
@@ -127,12 +235,12 @@ class Array(
 
     def calc_index_nearest(self: ArrayT, input_new: InputT, ) -> typ.Dict[str, kgpy.labeled.Array]:
 
-        if not isinstance(input_new, kgpy.vector.AbstractVector):
-            input_new = kgpy.vector.Cartesian1D(input_new)
+        if not isinstance(input_new, kgpy.vectors.AbstractVector):
+            input_new = kgpy.vectors.Cartesian1D(input_new)
 
         input_old = self.input
-        if not isinstance(input_old, kgpy.vector.AbstractVector):
-            input_old = kgpy.vector.Cartesian1D(input_old)
+        if not isinstance(input_old, kgpy.vectors.AbstractVector):
+            input_old = kgpy.vectors.Cartesian1D(input_old)
         else:
             input_old = input_old.copy_shallow()
 
@@ -159,22 +267,28 @@ class Array(
     def calc_index_lower(self: ArrayT, input_new: InputT ) -> typ.Dict:
 
         input_old = self.input
-        if isinstance(input_old, kgpy.vector.AbstractVector):
-            input_old = input_old.copy_shallow()
+        if isinstance(input_old, kgpy.vectors.AbstractVector):
+            input_old = input_old.copy()
         else:
-            input_old = kgpy.vector.Cartesian1D(input_old)
+            input_old = kgpy.vectors.Cartesian1D(input_old.copy())
 
-        for component in input_old.coordinates:
-            coordinate = input_old.coordinates[component]
-            coordinate = kgpy.labeled.Array(coordinate.array, coordinate.axes)
+        coordinates_old = input_old.coordinates_flat
+        coordinates_dummy = dict()
+        for component in coordinates_old:
+            coordinate = coordinates_old[component]
+            if not isinstance(coordinate, kgpy.labeled.ArrayInterface):
+                continue
+            coordinate = coordinate.array_labeled
             coordinate.axes = [f'{ax}_dummy' for ax in coordinate.axes]
-            setattr(input_old, component, coordinate)
+            coordinates_dummy[component] = coordinate
+        input_old.coordinates_flat = coordinates_dummy
         shape_dummy = input_old.shape
 
         distance = input_old - input_new
         distance[distance > 0] = -np.inf
         distance = distance.component_sum
-        distance = distance.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+
+        distance = distance.broadcasted.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
 
         index = np.argmax(distance, axis='dummy')
         index = np.unravel_index(index, self.input.shape)
@@ -189,28 +303,31 @@ class Array(
             self,
             input_new: InputT,
             index_lower: typ.Dict[str, kgpy.labeled.AbstractArray],
-            axis_stack: typ.List[str],
+            components: typ.List[str],
     ) -> kgpy.labeled.AbstractArray:
 
-        axis = axis_stack.pop(0)
+        component = components.pop(0)
+
+        x = input_new.coordinates[component]
+        # if len(x.shape) > 1:
+        #     raise ValueError('Linear interpolation over non-separable axis')
 
         index_upper = copy.deepcopy(index_lower)
-        index_upper[axis] = index_upper[axis] + 1
-
-        x = input_new.coordinates[axis]
+        for axis in x.shape:
+            index_upper[axis] = index_upper[axis] + 1
 
         input_old = self.input
         input_old = np.broadcast_to(input_old, input_old.shape)
-        if isinstance(input_old, kgpy.vector.AbstractVector):
-            x0 = input_old.coordinates[axis][index_lower]
-            x1 = input_old.coordinates[axis][index_upper]
+        if isinstance(input_old, kgpy.vectors.AbstractVector):
+            x0 = input_old.coordinates[component][index_lower]
+            x1 = input_old.coordinates[component][index_upper]
         else:
             x0 = input_old[index_lower]
             x1 = input_old[index_upper]
 
-        if axis_stack:
-            y0 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_lower, axis_stack=axis_stack.copy())
-            y1 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_upper, axis_stack=axis_stack.copy())
+        if components:
+            y0 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_lower, components=components.copy())
+            y1 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_upper, components=components.copy())
 
         else:
             output = self.output_broadcasted
@@ -222,190 +339,237 @@ class Array(
         return result
 
     def interp_linear(self: ArrayT, input_new: InputT, ) -> OutputT:
-        if not isinstance(input_new, kgpy.vector.AbstractVector):
-            input_new = kgpy.vector.Cartesian1D(input_new)
+        if not isinstance(input_new, kgpy.vectors.AbstractVector):
+            input_new = kgpy.vectors.Cartesian1D(input_new)
         return self._interp_linear_1d_recursive(
             input_new=input_new,
             index_lower=self.calc_index_lower(input_new),
-            axis_stack=list(input_new.shape.keys()),
+            components=list(input_new.components),
         )
 
     @staticmethod
     @numba.njit(parallel=True, )
-    def _calc_index_nearest_even_numba(
+    def _calc_index_nearest_numba(
             input_new: np.ndarray,
             input_old: np.ndarray,
             mask_input_old: np.ndarray,
     ) -> np.ndarray:
 
-        shape_grid_data = input_old.shape
-        shape_grid = input_new.shape
+        shape_input_old = input_old.shape
+        shape_input_new = input_new.shape
 
-        index_nearest_even = np.empty(shape_grid[:~0], dtype=numba.int64)
+        index_nearest_even = np.empty(shape_input_new[1:], dtype=numba.int64)
 
-        for i_grid in numba.prange(shape_grid[~1]):
+        for index_input_new in numba.prange(shape_input_new[~0]):
             distance_squared_min = np.inf
-            for i_grid_data in numba.prange(shape_grid_data[~1]):
-                if mask_input_old[i_grid_data]:
+            for index_input_old in numba.prange(shape_input_old[~0]):
+                if mask_input_old[index_input_old]:
                     distance_squared = 0
-                    for axis in numba.prange(shape_grid[~0]):
-                        dist = input_new[i_grid, axis] - input_old[i_grid_data, axis]
+                    for component in numba.prange(shape_input_new[0]):
+                        dist = input_new[component, index_input_new] - input_old[component, index_input_old]
                         distance_squared += dist * dist
 
                     if distance_squared < distance_squared_min:
-                        index_nearest_even[i_grid] = i_grid_data
+                        index_nearest_even[index_input_new] = index_input_old
                         distance_squared_min = distance_squared
 
         return index_nearest_even
 
-    def _calc_index_nearest_even(self, grid):
+    def _calc_index_nearest(
+            self: ArrayT,
+            input_new: InputT,
+            stride: int = 1
+    ) -> typ.Dict[str, kgpy.uncertainty.ArrayLike]:
 
-        grid_data = self.grid.subspace(grid)
-        shape_grid_data = grid_data.shape
-        # grid_data = {axis: np.broadcast_to(grid_data[axis], shape=shape_grid_data, subok=True) for axis in grid_data}
-        # grid_data = {axis: grid_data[axis].combine_axes(axes=grid.keys(), axis_new='dummy') for axis in grid_data}
-        grid_data = grid_data.flatten(axis_new='dummy')
-        mask = np.indices(shape_grid_data.values()).sum(0) % 2 == 0
+        input = self.input.centers.broadcasted
+
+        shape_input = input.shape
+        input = input.reshape(dict(dummy=-1))
+
+        mask = np.indices(shape_input.values()).sum(0) % stride == 0
         mask = mask.reshape(-1)
 
-        # grid = grid.broadcasted
-        shape_grid = grid.shape
-        grid = grid.flatten(axis_new='dummy')
-        # grid = {axis: np.broadcast_to(grid[axis], shape=shape_grid, subok=True) for axis in grid}
-        # grid = {axis: grid[axis].combine_axes(axes=grid.keys(), axis_new='dummy') for axis in grid}
+        input_new = input_new.broadcasted.aligned(shape_input)
+        shape_input_new = input_new.shape
+        input_new = input_new.reshape(dict(dummy=-1))
 
-        index = Array._calc_index_nearest_even_numba(
-            input_new=np.stack([d.value.data for d in grid.coordinates], axis=~0),
-            input_old=np.stack([d.value.data for d in grid_data.coordinates], axis=~0),
+        index = Array._calc_index_nearest_numba(
+            input_new=input_new.array,
+            input_old=input.array,
             mask_input_old=mask,
         )
 
-        index = np.unravel_index(index, shape=tuple(shape_grid_data.values()))
+        index = kgpy.labeled.Array(index, axes=['dummy'])
+        index = index.reshape(shape_input_new)
+        index = np.unravel_index(index, shape=shape_input)
 
-        grid_nearest = type(grid)()
-        for c, component in enumerate(grid_nearest):
-            grid_nearest[component] = kgpy.labeled.Array(
-                value=index[c].reshape(tuple(shape_grid.values())),
-                axes=list(shape_grid.keys()),
-            )
-
-        return grid_nearest
-
-        # return {axis: LabeledArray(i.reshape(tuple(shape_grid.values())), list(shape_grid.keys())) for axis, i in zip(shape_grid, index)}
-
-    # def _calc_index_nearest_even_argmin(self, **grid: LabeledArray, ) -> typ.Dict[str, LabeledArray]:
-    #
-    #     grid_data = self.grid_broadcasted
-    #
-    #     shape_dummy = dict()
-    #     for axis_name_data in grid_data:
-    #         axis_names = grid_data[axis_name_data].axis_names
-    #         for axis_name in grid:
-    #
-    #             if axis_name in axis_names:
-    #                 axis_name_dummy = f'{axis_name}_dummy'
-    #                 shape_dummy[axis_name_dummy] = self.shape[axis_name]
-    #                 axis_index = axis_names.index(axis_name)
-    #                 axis_names[axis_index] = axis_name_dummy
-    #
-    #     distance_squared = 0
-    #     for axis_name in grid:
-    #         distance_squared_axis = np.square(grid[axis_name] - grid_data[axis_name])
-    #         distance_squared = distance_squared + distance_squared_axis
-    #
-    #     mask = LabeledArray(
-    #         data=np.indices(shape_dummy.values()).sum(0) % 2 == 0,
-    #         axis_names=list(shape_dummy.keys()),
-    #     )
-    #     mask = np.broadcast_to(mask, shape=distance_squared.shape, subok=True)
-    #     distance_squared[~mask] = np.inf
-    #
-    #     distance_squared = distance_squared.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
-    #     index = np.argmin(distance_squared, axis='dummy')
-    #     index = np.unravel_index(index, shape_dummy)
-    #
-    #     index = {k[:~(len('_dummy') - 1)]: index[k] for k in index}
-    #
-    #     return index
+        return index
 
     def interp_barycentric_linear(
             self: ArrayT,
-            grid,
+            input_new: InputT,
     ) -> ArrayT:
+        """
+        Interpolate this function using barycentric interpolation.
 
-        grid_data = self.grid.subspace(grid)
-        # todo: fix this!!!
-        # for component in grid_data:
-        #     for axis_other in grid_data[component].axis_names:
-        #         if axis_other not in grid_data:
-        #             raise ValueError('Attempting to broadcast interpolation along non-separable axis.')
-        shape_grid_data = grid_data.shape
-        grid_data = grid_data.broadcasted
+        Examples
+        --------
 
-        index_nearest = self._calc_index_nearest_even(grid)
-        # index_nearest = self._calc_index_nearest_even_argmin(**grid)
+        .. jupyter-execute::
 
-        num_vertices = len(grid) + 1
-        index = type(index_nearest)()
-        axes_simplex = []
-        for a, axis in enumerate(grid):
+            import numpy as np
+            import matplotlib.pyplot as plt
+            import astropy.units as u
+            import kgpy.labeled
+            import kgpy.vectors
+            import kgpy.matrix
+            import kgpy.function
+
+            input = kgpy.vectors.Cartesian2D(
+                x=kgpy.labeled.LinearSpace(-np.pi, np.pi, num=14, axis='x'),
+                y=kgpy.labeled.LinearSpace(-np.pi, np.pi, num=14, axis='y'),
+            )
+
+            input_rotated = kgpy.matrix.Cartesian2D.rotation(30 * u.deg) @ input
+
+            f = kgpy.function.Array(
+                input=input_rotated,
+                output=np.cos(input.x * input.x * u.rad) * np.cos(input.y * input.y * u.rad),
+            )
+
+            fig, axs = plt.subplots(squeeze=False)
+            f.pcolormesh(
+                axs=axs,
+                input_component_x='x',
+                input_component_y='y',
+            )
+
+        .. jupyter-execute::
+
+            input_large = kgpy.vectors.Cartesian2D(
+                x=kgpy.labeled.LinearSpace(-2 * np.pi, 2 * np.pi, num=201, axis='x'),
+                y=kgpy.labeled.LinearSpace(-2 * np.pi, 2 * np.pi, num=201, axis='y'),
+            )
+
+            g = f.interp_barycentric_linear(input_large)
+
+            fig_large, axs_large = plt.subplots(squeeze=False)
+            g.pcolormesh(
+                axs=axs_large,
+                input_component_x='x',
+                input_component_y='y',
+            )
+            axs_large[0, 0].set_xlim(axs[0, 0].get_xlim());
+            axs_large[0, 0].set_ylim(axs[0, 0].get_ylim());
+
+
+        Parameters
+        ----------
+        input_new
+
+        Returns
+        -------
+        A new instance of class:`kgpy.function.Array` evaluated at the coordinates `input_new`.
+        """
+
+        index_nearest = self._calc_index_nearest(input_new)
+
+        sum_index_nearest = 0
+        for axis in index_nearest:
+            sum_index_nearest = sum_index_nearest + index_nearest[axis]
+        where_even = sum_index_nearest % 2 == 0
+
+        num_vertices = len(input_new.coordinates) + 1
+        index = dict()
+        axes_simplex = [
+            'apex'
+        ]
+        for a, axis in enumerate(index_nearest.keys()):
             axis_simplex = f'simplex_{axis}'
             axes_simplex.append(axis_simplex)
-            simplex_axis = kgpy.labeled.Array.zeros(shape={axis_simplex: 2, 'vertices': num_vertices}, dtype=int)
+            shape_axis = {
+                axis_simplex: 2,
+                'vertices': num_vertices,
+                'apex': 2
+            }
+            simplex_axis = kgpy.labeled.Array.zeros(shape=shape_axis, dtype=int)
             simplex_axis[dict(vertices=a+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
+            simplex_axis[dict(vertices=0, apex=1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
             index[axis] = index_nearest[axis] + simplex_axis
 
-        shape_index = index.shape
+        shape_index = kgpy.labeled.Array.broadcast_shapes(*index.values())
+
+        closed_vertices = dict(vertices=kgpy.labeled.Array(array=np.array([0, 1, 2, 0]), axes=['vertices']))
+
+        axis_shifted = next(iter(index_nearest))
+        axis_shifted_simplex = f'simplex_{axis_shifted}'
+        shape_where_odd = shape_index.copy()
+        shape_where_odd.pop(axis_shifted_simplex)
+        where_even = np.broadcast_to(where_even, shape_where_odd)
+        index[axis_shifted] = np.broadcast_to(index[axis_shifted], shape_index).copy()
+        index[axis_shifted][{axis_shifted_simplex: 0}][where_even] = index[axis_shifted][{axis_shifted_simplex: 0}][where_even] + 1
+        index[axis_shifted][{axis_shifted_simplex: 1}][where_even] = index[axis_shifted][{axis_shifted_simplex: 1}][where_even] - 1
+
+        for axis in index:
+            index[axis] = np.broadcast_to(index[axis], shape_index).copy()
+            where_even = where_even.broadcast_to(shape_index)
+
+        index = {k: np.clip(index[k], 0, self.input.shape[k] - 1) for k in index}
+
         barycentric_transform_shape = shape_index.copy()
-        barycentric_transform_shape['vertices'] = len(grid)
-        barycentric_transform_shape['axis'] = len(grid)
+        barycentric_transform_shape['vertices'] = len(input_new.coordinates)
+        barycentric_transform_shape['component'] = len(input_new.coordinates)
         barycentric_transform = kgpy.labeled.Array.empty(barycentric_transform_shape)
+        if isinstance(input_new.unit, u.UnitBase):
+            barycentric_transform = barycentric_transform << input_new.unit
 
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
-        index_1 = {k: index[k][dict(vertices=slice(1, None))] % shape_grid_data[k] for k in index}
+        index_1 = {k: index[k][dict(vertices=slice(1, None))] for k in index}
 
-        for a, axis in enumerate(grid):
-            x0 = grid_data[axis][index_0]
-            x1 = grid_data[axis][index_1]
-            barycentric_transform[dict(axis=a)] = x1 - x0
+        for c, component in enumerate(self.input.coordinates):
+            x0 = self.input.coordinates[component][index_0]
+            x1 = self.input.coordinates[component][index_1]
+            barycentric_transform[dict(component=c)] = x1 - x0
 
         barycentric_transform = barycentric_transform.matrix_inverse(
-            axis_rows='axis',
+            axis_rows='component',
             axis_columns='vertices',
         )
 
-        barycentric_coordinates = np.stack(
-            arrays=[grid[axis] - grid_data[axis][index_nearest] for axis in grid],
-            axis='axis',
-        ).add_axes(axes_simplex + ['vertices'])
+        barycentric_coordinates = input_new - self.input[{axis: index[axis][dict(vertices=0)] for axis in index}]
+        barycentric_coordinates = barycentric_coordinates.array_labeled
+        barycentric_coordinates = barycentric_coordinates.add_axes(axes_simplex + ['vertices'])
 
         barycentric_coordinates = barycentric_transform.matrix_multiply(
             barycentric_coordinates,
-            axis_rows='axis',
+            axis_rows='component',
             axis_columns='vertices',
-        ).combine_axes(['vertices', 'axis'], axis_new='vertices')
-
-        epsilon = 1e-15
-        mask_inside = (-epsilon <= barycentric_coordinates) & (barycentric_coordinates <= 1 + epsilon)
-        for axis in index:
-            mask_inside = mask_inside & (index[axis][dict(vertices=slice(1, None))] >= 0)
-            mask_inside = mask_inside & (index[axis][dict(vertices=slice(1, None))] < shape_grid_data[axis])
-        mask_inside = np.all(mask_inside, axis='vertices')
+        ).combine_axes(['vertices', 'component'], axis_new='vertices')
 
         shape_weights = shape_index
         weights = kgpy.labeled.Array.empty(shape_weights)
         weights[dict(vertices=0)] = 1 - np.sum(barycentric_coordinates, axis='vertices')
         weights[dict(vertices=slice(1, None))] = barycentric_coordinates
 
-        value = weights * self.value_broadcasted[{k: index[k] % shape_grid_data[k] for k in index}]
-        value = np.nansum(value, axis='vertices')
+        epsilon = 1e-15
+        mask_inside = (-epsilon <= weights) & (weights <= 1 + epsilon)
+        for axis in index:
+            mask_inside = mask_inside & (index[axis] >= 0)
+            mask_inside = mask_inside & (index[axis] < self.input.shape[axis])
+        mask_inside = np.all(mask_inside, axis='vertices')
 
-        mask_inside = np.broadcast_to(mask_inside, shape=value.shape, subok=True)
-        value[~mask_inside] = np.nan
+        output_new = weights * self.output_broadcasted[index]
+        output_new = np.nansum(output_new, axis='vertices')
+
+        mask_inside = np.broadcast_to(mask_inside, shape=output_new.shape, subok=True)
 
         return Array(
-            value=np.nanmean(value, axis=axes_simplex),
-            grid=self.grid.from_dict({**self.grid.value, **grid.value}),
+            input=input_new,
+            output=np.mean(
+                output_new,
+                axis=axes_simplex,
+                where=mask_inside,
+            ),
         )
 
     def interp_barycentric_linear_scipy(self: ArrayT, grid):
@@ -440,18 +604,20 @@ class Array(
 
 
 @dataclasses.dataclass
-class PolynomialArray(
-    Array[InputT, OutputT]
+class AbstractPolynomial(
+    AbstractArray,
 ):
+    @property
+    @abc.abstractmethod
+    def coefficients(self: PolynomialArrayT) -> kgpy.vectors.AbstractVector:
+        pass
 
-    degree: int = 1
-    axes_model: typ.Optional[typ.Union[str, typ.List[str]]] = None
-
-    def __post_init__(self: PolynomialArrayT) -> None:
-        self.update()
-
-    def update(self: PolynomialArrayT) -> None:
-        self._coefficients = None
+    @property
+    def inverse(self) -> ArrayT:
+        return PolynomialArray(
+            input=self.output,
+            output=self.input,
+        )
 
     def _design_matrix_recursive(
             self: PolynomialArrayT,
@@ -480,22 +646,55 @@ class PolynomialArray(
             elif degree_current == degree:
                 result[key] = value
 
-    def design_matrix(self: PolynomialArrayT, inp: InputT) -> kgpy.vector.CartesianND:
+    def design_matrix(self: PolynomialArrayT, inp: InputT) -> kgpy.vectors.CartesianND:
         result = dict()
         for d in range(self.degree + 1):
             self._design_matrix_recursive(result, inp.coordinates.copy(), key='', value=1, degree_current=0, degree=d)
-        return kgpy.vector.CartesianND(result)
+        return kgpy.vectors.CartesianND(result)
+
+    def __call__(self: PolynomialArrayT, input: InputT):
+        coefficients = self.coefficients
+        design_matrix = self.design_matrix(input)
+        result = (coefficients * design_matrix).component_sum
+        return result
+
+
+@dataclasses.dataclass
+class Polynomial(
+    AbstractPolynomial,
+):
+    coefficients: kgpy.vectors.AbstractVector
 
     @property
-    def coefficients(self: PolynomialArrayT) -> kgpy.vector.AbstractVector:
+    def output(self):
+        return
+
+
+@dataclasses.dataclass
+class PolynomialArray(
+    AbstractPolynomial,
+    Array[InputT, OutputT],
+):
+
+    degree: int = 1
+    axes_model: typ.Optional[typ.Union[str, typ.List[str]]] = None
+
+    def __post_init__(self: PolynomialArrayT) -> None:
+        self.update()
+
+    def update(self: PolynomialArrayT) -> None:
+        self._coefficients = None
+
+    @property
+    def coefficients(self: PolynomialArrayT) -> kgpy.vectors.AbstractVector:
         if self._coefficients is None:
             self._coefficients = self._calc_coefficients()
         return self._coefficients
 
-    def _calc_coefficients(self: PolynomialArrayT) -> kgpy.vector.AbstractVector:
+    def _calc_coefficients(self: PolynomialArrayT) -> kgpy.vectors.AbstractVector:
         inp = self.input
-        if not isinstance(inp, kgpy.vector.AbstractVector):
-            inp = kgpy.vector.Cartesian1D(inp)
+        if not isinstance(inp, kgpy.vectors.AbstractVector):
+            inp = kgpy.vectors.Cartesian1D(inp)
 
         mask = self.mask
 
@@ -504,7 +703,7 @@ class PolynomialArray(
 
         gram_matrix = kgpy.matrix.CartesianND()
         for component_row in design_matrix.coordinates:
-            gram_matrix.coordinates[component_row] = kgpy.vector.CartesianND()
+            gram_matrix.coordinates[component_row] = kgpy.vectors.CartesianND()
             for component_column in design_matrix.coordinates:
                 element_row = design_matrix.coordinates[component_row]
                 element_column = design_matrix.coordinates[component_column]
@@ -517,8 +716,8 @@ class PolynomialArray(
         gram_matrix_inverse = gram_matrix.inverse_numpy()
 
         output = self.output
-        if not isinstance(output, kgpy.vector.AbstractVector):
-            output = kgpy.vector.Cartesian1D(output)
+        if not isinstance(output, kgpy.vectors.AbstractVector):
+            output = kgpy.vectors.Cartesian1D(output)
 
         moment_matrix = kgpy.matrix.CartesianND()
         for component_row in design_matrix.coordinates:
@@ -536,17 +735,11 @@ class PolynomialArray(
 
         result = result.transpose
 
-        if not isinstance(self.output, kgpy.vector.AbstractVector):
+        if not isinstance(self.output, kgpy.vectors.AbstractVector):
             result = result.x
         else:
             result = result.transpose
 
-        return result
-
-    def __call__(self: PolynomialArrayT, input: InputT):
-        coefficients = self.coefficients
-        design_matrix = self.design_matrix(input)
-        result = (coefficients * design_matrix).component_sum
         return result
 
     @property

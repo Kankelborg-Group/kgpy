@@ -47,6 +47,12 @@ class AbstractArray(
     def array(self: AbstractArrayT) -> np.ndarray:
         return self.array_labeled.array
 
+    def aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> AbstractArrayT:
+        return Array(
+            nominal=self.nominal.aligned(shape),
+            distribution=self.distribution.aligned(shape),
+        )
+
     @property
     def array_labeled(self: AbstractArrayT) -> AbstractArrayT:
         return np.concatenate(
@@ -303,6 +309,15 @@ class AbstractArray(
         return Array(
             nominal=self.nominal.combine_axes(axes=axes, axis_new=axis_new),
             distribution=self.distribution.combine_axes(axes=axes, axis_new=axis_new),
+        )
+
+    def add_axes(
+            self: AbstractArrayT,
+            axes: typ.List[str],
+    ) -> AbstractArrayT:
+        return Array(
+            nominal=self.nominal.add_axes(axes=axes),
+            distribution=self.distribution.add_Axes(axes=axes),
         )
 
     def matrix_inverse(self, axis_rows: str, axis_columns: str):

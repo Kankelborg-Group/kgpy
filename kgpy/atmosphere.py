@@ -6,7 +6,7 @@ import scipy.special
 import scipy.integrate
 import astropy.units as u
 import astropy.constants
-from kgpy import vector, mixin
+from kgpy import vectors, mixin
 
 __all__ = ['Transmission']
 

@@ -6,7 +6,7 @@ import astropy.units as u
 
 __all__ = ['TolQuantity']
 
-QuantityLike = typ.Union[numpy.typing.ArrayLike, u.Quantity]
+QuantityLike = typ.Union[int, float, np.ndarray, u.Quantity]
 
 mAA = u.def_unit(
     s=['milliAngstrom', 'mAA', 'milliangstrom'],

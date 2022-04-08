@@ -9,7 +9,7 @@ import astropy.visualization
 from ezdxf.addons.r12writer import R12FastStreamWriter
 import kgpy.mixin
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.transforms
 import kgpy.optimization
 import kgpy.io.dxf
@@ -97,9 +97,9 @@ class Surface(
             self,
             ray: rays.RayVector,
             intercept_error: u.Quantity = 0.1 * u.nm,
-    ) -> kgpy.vector.Cartesian3D:
+    ) -> kgpy.vectors.Cartesian3D:
 
-        def line(t: kgpy.uncertainty.ArrayLike) -> kgpy.vector.Cartesian3D:
+        def line(t: kgpy.uncertainty.ArrayLike) -> kgpy.vectors.Cartesian3D:
             return ray.position + ray.direction * t
 
         def func(t: kgpy.uncertainty.ArrayLike) -> kgpy.uncertainty.ArrayLike:
@@ -154,7 +154,7 @@ class Surface(
         if self.sag is not None:
             ray.surface_normal = self.sag.normal(ray.position)
         else:
-            ray.surface_normal = -kgpy.vector.Cartesian3D.z_hat()
+            ray.surface_normal = -kgpy.vectors.Cartesian3D.z_hat()
 
         c = -a @ ray.surface_normal
         b = r * a + (r * c - np.sqrt(1 - np.square(r) * (1 - np.square(c)))) * ray.surface_normal
@@ -245,7 +245,7 @@ class Surface(
                     lines += self.material.plot(**kwargs, aperture=self.aperture, )
 
             if plot_annotations:
-                text_position_local = kgpy.vector.Cartesian3D() * u.mm
+                text_position_local = kgpy.vectors.Cartesian3D() * u.mm
                 if self.aperture_mechanical is not None:
                     if self.aperture_mechanical.max.x.unit.is_equivalent(u.mm):
                         text_position_local = self.aperture_mechanical.wire

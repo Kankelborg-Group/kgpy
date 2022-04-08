@@ -65,6 +65,66 @@ class AbstractVector(
     def from_coordinates(cls: typ.Type[AbstractVectorT], coordinates: typ.Dict[str, VectorLike]) -> AbstractVectorT:
         return cls(**coordinates)
 
+    @classmethod
+    def linear_space(
+            cls: typ.Type[AbstractVectorT],
+            start: AbstractVectorT,
+            stop: AbstractVectorT,
+            num: AbstractVectorT,
+            endpoint: bool = True,
+    ) -> AbstractVectorT:
+        coordinates_start = start.coordinates_flat
+        coordinates_stop = stop.coordinates_flat
+        coordinates_num = num.coordinates_flat
+        coordinates_flat = dict()
+        for component in coordinates_start:
+            coordinates_flat[component] = kgpy.labeled.LinearSpace(
+                start=coordinates_start[component],
+                stop=coordinates_stop[component],
+                num=coordinates_num[component],
+                endpoint=endpoint,
+                axis=component,
+            )
+
+        result = cls()
+        result.coordinates_flat = coordinates_flat
+        return result
+
+    @classmethod
+    def stratified_random_space(
+            cls: typ.Type[AbstractVectorT],
+            start: AbstractVectorT,
+            stop: AbstractVectorT,
+            num: AbstractVectorT,
+            axis: AbstractVectorT,
+            endpoint: bool = True,
+            shape_extra: typ.Optional[typ.Dict[str, int]] = None
+    ) -> AbstractVectorT:
+        coordinates_start = start.coordinates_flat
+        coordinates_stop = stop.coordinates_flat
+        coordinates_num = num.coordinates_flat
+        coordinates_flat = dict()
+        for component in coordinates_start:
+
+            if shape_extra is None:
+                shape_extra = dict()
+            shape = {axis.coordinates_flat[c]: coordinates_num[c] for c in coordinates_num}
+            shape_extra_component = {**shape_extra, **shape}
+            shape_extra_component.pop(axis.coordinates_flat[component])
+
+            coordinates_flat[component] = kgpy.labeled.StratifiedRandomSpace(
+                start=coordinates_start[component],
+                stop=coordinates_stop[component],
+                num=coordinates_num[component],
+                endpoint=endpoint,
+                axis=axis.coordinates_flat[component],
+                shape_extra=shape_extra_component,
+            )
+
+        result = cls()
+        result.coordinates_flat = coordinates_flat
+        return result
+
     @property
     def unit(self):
         return getattr(self.coordinates[self.components[0]], 'unit', 1)
@@ -110,6 +170,10 @@ class AbstractVector(
         return other
 
     @property
+    def centers(self: AbstractVectorT) -> AbstractVectorT:
+        return self.from_coordinates({c: self.coordinates[c].centers for c in self.coordinates})
+
+    @property
     def array_labeled(self: AbstractVectorT) -> kgpy.labeled.ArrayInterface:
         coordinates = self.broadcasted.coordinates
         return np.stack(list(coordinates.values()), axis='component')
@@ -150,7 +214,10 @@ class AbstractVector(
             for inp in inputs_component:
                 if not hasattr(inp, '__array_ufunc__'):
                     inp = np.array(inp)
-                result = inp.__array_ufunc__(function, method, *inputs_component, **kwargs)
+                try:
+                    result = inp.__array_ufunc__(function, method, *inputs_component, **kwargs)
+                except ValueError:
+                    result = NotImplemented
                 if result is not NotImplemented:
                     components_result[component] = result
                     break
@@ -256,6 +323,23 @@ class AbstractVector(
 
             return type(self).from_coordinates(coordinates_new)
 
+        elif func in [np.reshape, np.moveaxis]:
+            args = list(args)
+            if args:
+                array = args.pop(0)
+            else:
+                array = kwargs.pop('a')
+
+            coordinates = array.coordinates
+            coordinates_new = dict()
+            for component in coordinates:
+                coordinate = coordinates[component]
+                if not isinstance(coordinate, kgpy.labeled.ArrayInterface):
+                    coordinate = kgpy.labeled.Array(coordinate)
+                coordinates_new[component] = func(coordinate, *args, **kwargs)
+
+            return type(self).from_coordinates(coordinates_new)
+
         elif func in [np.stack, np.concatenate]:
             if args:
                 arrays = args[0]
@@ -276,14 +360,17 @@ class AbstractVector(
             item: typ.Union[typ.Dict[str, typ.Union[int, slice, ItemArrayT]], ItemArrayT],
     ):
         if isinstance(item, AbstractVector):
-            coordinates = {c: getattr(self, c).__getitem__(getattr(item, c)) for c in self.components}
+            coordinates = {c: self.coordinates[c][item.coordinates[c]] for c in self.coordinates}
         elif isinstance(item, (kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray)):
-            coordinates = {c: getattr(self, c).__getitem__(item) for c in self.components}
+            coordinates = {c: self.coordinates[c][item] for c in self.coordinates}
         elif isinstance(item, dict):
-            coordinates = dict()
-            for component in self.components:
-                item_component = {k: getattr(item[k], component, item[k]) for k in item}
-                coordinates[component] = getattr(self, component).__getitem__(item_component)
+            if item:
+                coordinates = dict()
+                for component in self.coordinates:
+                    item_component = {k: getattr(item[k], component, item[k]) for k in item}
+                    coordinates[component] = self.coordinates[component][item_component]
+            else:
+                return self
         else:
             raise TypeError
         return type(self).from_coordinates(coordinates)
@@ -331,6 +418,13 @@ class AbstractVector(
     def normalized(self: AbstractVectorT) -> AbstractVectorT:
         return self / self.length
 
+    def add_axes(self: AbstractVectorT, axes: typ.List) -> AbstractVectorT:
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component].add_axes(axes=axes)
+        return type(self)(**coordinates_new)
+
     def combine_axes(
             self: AbstractVectorT,
             axes: typ.Sequence[str],
@@ -341,6 +435,44 @@ class AbstractVector(
         for component in coordinates:
             coordinates_new[component] = coordinates[component].combine_axes(axes=axes, axis_new=axis_new)
         return type(self)(**coordinates_new)
+
+    def aligned(self: AbstractVectorT, shape: typ.Dict[str, int]):
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component].aligned(shape)
+        return type(self)(**coordinates_new)
+
+    def index_nearest_secant(
+            self: AbstractVectorT,
+            value: AbstractVectorT,
+            axis_search: typ.Dict[str, str],
+    ) -> typ.Dict[str, kgpy.labeled.Array]:
+
+        import kgpy.optimization
+
+        shape = self.shape
+        shape_search = kgpy.vectors.CartesianND({axis: shape[axis] for axis in axis_search})
+        indices = self[{axis: 0 for axis in axis_search.values()}].indices
+
+        def indices_factory(index: AbstractVectorT) -> typ.Dict[str, kgpy.labeled.Array]:
+            index = np.rint(index).astype(int)
+            index = np.clip(index, a_min=0, a_max=shape_search - 1)
+            indices = {**indices, **index.coordinates}
+            return indices
+
+        def get_index(index: AbstractVectorT) -> AbstractVectorT:
+            return self[indices_factory(index)] - value
+
+        result = kgpy.optimization.root_finding.secant(
+            func=get_index,
+            root_guess=shape_search,
+            step_size=kgpy.vectors.CartesianND({axis: 1 for axis in axis_search}),
+            max_abs_error=1e-9,
+        )
+
+        return indices_factory(result)
+
 
     def outer(self: AbstractVectorT, other: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
         raise NotImplementedError
@@ -532,11 +664,11 @@ class Cartesian2D(
                 if where[index]:
                     coordinates_index = {c: coordinates[c][index].array for c in coordinates}
                     kwargs_index = {k: kwargs[k][index].array for k in kwargs}
-                    lines += func(
+                    lines += [func(
                         *coordinates_index.values(),
                         color=color[index].array,
                         **kwargs_index
-                    )
+                    )]
 
         return lines, colormap
 
@@ -647,6 +779,26 @@ class Cartesian2D(
             func=ax.fill,
             coordinates=coordinates,
             axis_plot=axis_plot,
+            **kwargs,
+        )
+
+    def scatter(
+            self: Cartesian2DT,
+            ax: matplotlib.axes.Axes,
+            axis_plot: str,
+            where: typ.Optional[kgpy.uncertainty.ArrayLike] = None,
+            color: typ.Optional[kgpy.labeled.ArrayLike] = None,
+            colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
+            **kwargs: typ.Any,
+    ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.cm.ScalarMappable]]:
+
+        return self._plot_func_uncertainty(
+            func=ax.scatter,
+            coordinates=self.coordinates,
+            axis_plot=axis_plot,
+            where=where,
+            color=color,
+            colormap=colormap,
             **kwargs,
         )
 

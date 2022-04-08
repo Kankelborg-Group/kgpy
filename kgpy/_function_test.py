@@ -7,7 +7,7 @@ import numpy as np
 import astropy.units as u
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.function
 
 __all__ = [
@@ -21,7 +21,7 @@ class TestArray:
         shape = dict(x=5, y=6)
         d = kgpy.function.Array(
             output=kgpy.labeled.Array(1, []),
-            input=kgpy.vector.Cartesian2D(
+            input=kgpy.vectors.Cartesian2D(
                 x=kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['x'], axis='x'),
                 y=kgpy.labeled.LinearSpace(start=0, stop=2, num=shape['y'], axis='y'),
             ),
@@ -78,7 +78,7 @@ class TestArray:
 
         x = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['x'], axis='x')
         y = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['y'], axis='y')
-        position = kgpy.vector.Cartesian2D(x, y)
+        position = kgpy.vectors.Cartesian2D(x, y)
         output = np.sin(x) * np.cos(y)
         if width is not None:
             output = kgpy.uncertainty.Normal(output, width)
@@ -90,7 +90,7 @@ class TestArray:
 
         assert np.all(a.output == b.output)
 
-        position_fine = kgpy.vector.Cartesian2D(
+        position_fine = kgpy.vectors.Cartesian2D(
             x=kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=100, axis='x'),
             y=kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=101, axis='y'),
         )
@@ -153,7 +153,7 @@ class TestArray:
         z = kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['z'], axis='z')
         x_rotated = x * np.cos(angle) - y * np.sin(angle)
         y_rotated = x * np.sin(angle) + y * np.cos(angle)
-        position = kgpy.vector.Cartesian2D(x, y)
+        position = kgpy.vectors.Cartesian2D(x, y)
         a = kgpy.function.Array(
             input=position,
             output=np.cos(x * x) * np.cos(y * y),
@@ -169,7 +169,7 @@ class TestArray:
         )
         x_large = kgpy.labeled.LinearSpace(start=-np.pi, stop=np.pi, num=shape_large['x'], axis='x')
         y_large = kgpy.labeled.LinearSpace(start=-np.pi, stop=np.pi, num=shape_large['y'], axis='y')
-        position_large = kgpy.vector.Cartesian2D(x_large, y_large)
+        position_large = kgpy.vectors.Cartesian2D(x_large, y_large)
         c = a.interp_linear(position_large)
 
         assert c.shape == shape_large
@@ -207,132 +207,76 @@ class TestArray:
         #
         # plt.show()
 
-    @pytest.mark.skip
     def test_interp_barycentric_linear_1d(self):
 
         shape = dict(x=10,)
 
         x = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['x'], axis='x')
-        a = kgpy.data.Array(
-            value=np.sin(x),
-            grid=kgpy.grid.X(x=x),
+        a = kgpy.function.Array(
+            input=kgpy.vectors.Cartesian1D(x),
+            output=np.sin(x),
         )
 
-        b = a.interp_barycentric_linear(grid=kgpy.grid.X(x))
+        b = a.interp_barycentric_linear(input_new=kgpy.vectors.Cartesian1D(x))
 
         shape_large = dict(x=100)
-        c = a.interp_barycentric_linear(
-            grid=kgpy.grid.X(
-                x=kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape_large['x'], axis='x'),
-            ),
-        )
+        x_large = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape_large['x'], axis='x')
+        c = a.interp_barycentric_linear(input_new=kgpy.vectors.Cartesian1D(x_large))
 
-        plt.figure()
-        plt.scatter(x=c.grid.broadcasted.x.value, y=c.value_broadcasted.value)
-        plt.scatter(x=b.grid.broadcasted.x.value,  y=b.value_broadcasted.value)
-        plt.scatter(x=a.grid.broadcasted.x.value, y=a.value_broadcasted.value)
-        plt.show()
+        # fig, ax = plt.subplots()
+        #
+        # kgpy.vectors.Cartesian2D(a.input, a.output).scatter(ax, axis_plot='x', zorder=2)
+        # kgpy.vectors.Cartesian2D(b.input, b.output).scatter(ax, axis_plot='x', zorder=1)
+        # kgpy.vectors.Cartesian2D(c.input, c.output).scatter(ax, axis_plot='x', zorder=0)
+        #
+        # plt.show()
 
-        assert np.isclose(a.value.value, b.value.value).all()
+        assert np.isclose(a.output, b.output).all()
+
         assert c.shape == shape_large
+        assert c.output.rms() > 0
 
-    @pytest.mark.skip
     def test_interp_barycentric_linear_2d(self):
 
         shape = dict(
             x=14,
             y=14,
-            z=12,
+            # z=12,
         )
         angle = 0.3
         limit = np.pi
         x = kgpy.labeled.LinearSpace(start=-limit, stop=limit, num=shape['x'], axis='x')
         y = kgpy.labeled.LinearSpace(start=-limit, stop=limit, num=shape['y'], axis='y')
-        z = kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['z'], axis='z')
+        # z = kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['z'], axis='z')
         x_rotated = x * np.cos(angle) - y * np.sin(angle)
         y_rotated = x * np.sin(angle) + y * np.cos(angle)
-        a = kgpy.data.Array(
-            value=np.cos(x * x) * np.cos(y * y),
-            grid=kgpy.grid.XYZ(
+        a = kgpy.function.Array(
+            output=np.cos(x * x) * np.cos(y * y),
+            input=kgpy.vectors.Cartesian2D(
                 x=x_rotated,
                 y=y_rotated,
-                z=z,
+                # z=z,
             )
         )
 
-        b = a.interp_barycentric_linear(grid=kgpy.grid.XY(
+        b = a.interp_barycentric_linear(input_new=kgpy.vectors.Cartesian2D(
             x=x_rotated,
             y=y_rotated,
+            # z=z,
         ))
 
         shape_large = dict(
             x=50,
             y=50,
-            z=shape['z'],
+            # z=shape['z'],
         )
         x_large = kgpy.labeled.LinearSpace(start=-limit, stop=limit, num=shape_large['x'], axis='x')
         y_large = kgpy.labeled.LinearSpace(start=-limit, stop=limit, num=shape_large['y'], axis='y')
-        profiler = cProfile.Profile()
-        c = profiler.runcall(
-            a.interp_barycentric_linear,
-            grid=kgpy.grid.XY(
-                x=x_large,
-                y=y_large,
-            ),
-        )
-        profiler.print_stats(sort='cumtime')
 
-        plt.figure()
-        plt.scatter(
-            x=a.grid.broadcasted.x.value,
-            y=a.grid.broadcasted.y.value,
-            c=a.value_broadcasted.value,
-            vmin=-1,
-            vmax=1,
-        )
-        plt.xlim([-limit, limit])
-        plt.ylim([-limit, limit])
-        plt.colorbar()
+        c = a.interp_barycentric_linear(kgpy.vectors.Cartesian2D(x_large, y_large))
 
-        plt.figure()
-        plt.scatter(
-            x=b.grid.broadcasted.x.value,
-            y=b.grid.broadcasted.y.value,
-            c=b.value_broadcasted.value,
-            vmin=-1,
-            vmax=1,
-        )
-        plt.xlim([-limit, limit])
-        plt.ylim([-limit, limit])
-        plt.colorbar()
-
-        plt.figure()
-        plt.scatter(
-            x=b.grid.broadcasted.x.value,
-            y=b.grid.broadcasted.y.value,
-            c=(b.value - a.value).value,
-            # vmin=-1,
-            # vmax=1,
-        )
-        plt.xlim([-limit, limit])
-        plt.ylim([-limit, limit])
-        plt.colorbar()
-
-        plt.figure()
-        plt.scatter(
-            x=c.grid.broadcasted.x.value,
-            y=c.grid.broadcasted.y.value,
-            c=c.value_broadcasted.value,
-            vmin=-1,
-            vmax=1,
-        )
-        plt.xlim([-limit, limit])
-        plt.ylim([-limit, limit])
-        plt.colorbar()
-
-        plt.show()
-
-        assert np.isclose(a.value_broadcasted, b.value_broadcasted).value.all()
+        assert np.isclose(a.output, b.output).all()
+        assert c.output.rms(where=np.isfinite(c.output)) > 0
 
     @pytest.mark.skip
     def test_interp_barycentric_linear_3d(self, capsys):
@@ -501,11 +445,11 @@ class TestPolynomial:
             unit_input_y: typ.Union[float, u.Unit],
             unit_output: typ.Union[float, u.Unit],
     ) -> typ.Tuple[kgpy.function.PolynomialArray, kgpy.uncertainty.ArrayLike, kgpy.uncertainty.ArrayLike, kgpy.uncertainty.ArrayLike]:
-        input = kgpy.vector.Cartesian2D(
+        input = kgpy.vectors.Cartesian2D(
             x=kgpy.labeled.LinearSpace(0, 1, 11, axis='x') * unit_input_x,
             y=kgpy.labeled.LinearSpace(0, 1, 5, axis='y') * unit_input_y,
         )
-        unit_input = kgpy.vector.Cartesian2D(1 * unit_input_x, 1 * unit_input_y)
+        unit_input = kgpy.vectors.Cartesian2D(1 * unit_input_x, 1 * unit_input_y)
         coefficient_constant = coefficient_constant * unit_output
         coefficient_linear = coefficient_linear * unit_output / unit_input
         coefficient_quadratic = coefficient_quadratic * unit_output / unit_input ** 2

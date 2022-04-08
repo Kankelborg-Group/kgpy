@@ -3,7 +3,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.transforms
 import kgpy.optics.surfaces.apertures
 import kgpy.optics.surfaces.sags
@@ -14,18 +14,18 @@ class TestRectangular:
     @pytest.mark.parametrize(
         argnames='half_width',
         argvalues=[
-            kgpy.vector.Cartesian2D(20, 10) * u.mm
+            kgpy.vectors.Cartesian2D(20, 10) * u.mm
         ],
     )
-    def test_vertices(self, half_width: kgpy.vector.Cartesian2D):
+    def test_vertices(self, half_width: kgpy.vectors.Cartesian2D):
         aper = kgpy.optics.surfaces.apertures.Rectangular(half_width=half_width)
-        assert isinstance(aper.vertices, kgpy.vector.Cartesian3D)
+        assert isinstance(aper.vertices, kgpy.vectors.Cartesian3D)
 
     @pytest.mark.parametrize(
         argnames='half_width',
         argvalues=[
-            kgpy.vector.Cartesian2D(20, 10) * u.mm,
-            kgpy.vector.Cartesian2D(kgpy.labeled.LinearSpace(20, 30, num=3, axis='chan'), 10) * u.mm,
+            kgpy.vectors.Cartesian2D(20, 10) * u.mm,
+            kgpy.vectors.Cartesian2D(kgpy.labeled.LinearSpace(20, 30, num=3, axis='chan'), 10) * u.mm,
         ],
     )
     @pytest.mark.parametrize(
@@ -36,10 +36,10 @@ class TestRectangular:
             kgpy.uncertainty.Uniform(5 * u.mm, width=1 * u.mm)
         ],
     )
-    def test_plot(self, decenter_x: kgpy.uncertainty.ArrayLike, half_width: kgpy.vector.Cartesian2D):
+    def test_plot(self, decenter_x: kgpy.uncertainty.ArrayLike, half_width: kgpy.vectors.Cartesian2D):
         fig, ax = plt.subplots()
         aperture = kgpy.optics.surfaces.apertures.Rectangular(
-            transform=kgpy.transforms.Translation(kgpy.vector.Cartesian3D(decenter_x, 0 * u.mm, 0 * u.mm)),
+            transform=kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(decenter_x, 0 * u.mm, 0 * u.mm)),
             # transform=kgpy.transforms.TransformList([
             #     kgpy.transforms.Translation(kgpy.vector.Cartesian3D(decenter_x, 0 * u.mm, 0 * u.mm)),
             # ]),
@@ -62,11 +62,11 @@ class TestRectangular:
         ax = fig.add_subplot(projection='3d')
         sag = kgpy.optics.surfaces.sags.Standard(radius=1000 * u.mm)
         aperture = kgpy.optics.surfaces.apertures.Rectangular(
-            transform=kgpy.transforms.Translation(kgpy.vector.Cartesian3D(decenter_x, 0 * u.mm, 0 * u.mm)),
+            transform=kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(decenter_x, 0 * u.mm, 0 * u.mm)),
             # transform=kgpy.transforms.TransformList([
             #     kgpy.transforms.Translation(kgpy.vector.Cartesian3D(decenter_x, 0 * u.mm, 0 * u.mm)),
             # ]),
-            half_width=kgpy.vector.Cartesian2D(10 * u.mm, 20 * u.mm),
+            half_width=kgpy.vectors.Cartesian2D(10 * u.mm, 20 * u.mm),
         )
         assert aperture.plot(
             ax=ax,

@@ -7,7 +7,7 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 
 __all__ = [
     'AbstractMatrix',
@@ -25,7 +25,7 @@ CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
 
 @dataclasses.dataclass(eq=False)
 class AbstractMatrix(
-    kgpy.vector.AbstractVector,
+    kgpy.vectors.AbstractVector,
     abc.ABC,
 ):
 
@@ -106,19 +106,19 @@ class AbstractMatrix(
         return self.inverse_numpy()
 
     @abc.abstractmethod
-    def to_vector(self: AbstractMatrixT) -> kgpy.vector.AbstractVector:
+    def to_vector(self: AbstractMatrixT) -> kgpy.vectors.AbstractVector:
         pass
 
 
 @dataclasses.dataclass(eq=False)
 class Cartesian1D(
-    kgpy.vector.Cartesian1D[kgpy.vector.Cartesian1D],
+    kgpy.vectors.Cartesian1D[kgpy.vectors.Cartesian1D],
     AbstractMatrix,
 ):
     @classmethod
     def identity(cls: typ.Type[Cartesian1DT]) -> Cartesian1DT:
         return cls(
-            x=kgpy.vector.Cartesian1D(x=1),
+            x=kgpy.vectors.Cartesian1D(x=1),
         )
 
     @property
@@ -129,21 +129,21 @@ class Cartesian1D(
     def transpose(self: Cartesian1DT) -> Cartesian1DT:
         return self
 
-    def to_vector(self: Cartesian1DT) -> kgpy.vector.Cartesian1D:
-        return kgpy.vector.Cartesian1D(self.x)
+    def to_vector(self: Cartesian1DT) -> kgpy.vectors.Cartesian1D:
+        return kgpy.vectors.Cartesian1D(self.x)
 
 
 @dataclasses.dataclass(eq=False)
 class Cartesian2D(
-    kgpy.vector.Cartesian2D[kgpy.vector.Cartesian2D, kgpy.vector.Cartesian2D],
+    kgpy.vectors.Cartesian2D[kgpy.vectors.Cartesian2D, kgpy.vectors.Cartesian2D],
     AbstractMatrix
 ):
 
     @classmethod
     def identity(cls: typ.Type[Cartesian2DT]) -> Cartesian2DT:
         return cls(
-            x=kgpy.vector.Cartesian2D(x=1, y=0),
-            y=kgpy.vector.Cartesian2D(x=0, y=1),
+            x=kgpy.vectors.Cartesian2D(x=1, y=0),
+            y=kgpy.vectors.Cartesian2D(x=0, y=1),
         )
 
     @classmethod
@@ -151,8 +151,8 @@ class Cartesian2D(
         cos_a = np.cos(angle)
         sin_a = np.sin(angle)
         return cls(
-            x=kgpy.vector.Cartesian2D(x=cos_a, y=-sin_a),
-            y=kgpy.vector.Cartesian2D(x=sin_a, y=cos_a),
+            x=kgpy.vectors.Cartesian2D(x=cos_a, y=-sin_a),
+            y=kgpy.vectors.Cartesian2D(x=sin_a, y=cos_a),
         )
 
     @property
@@ -161,14 +161,14 @@ class Cartesian2D(
 
     def __invert__(self: Cartesian2DT) -> Cartesian2DT:
         result = type(self)(
-            x=kgpy.vector.Cartesian2D(x=self.y.y, y=-self.x.y),
-            y=kgpy.vector.Cartesian2D(x=-self.y.x, y=self.x.x),
+            x=kgpy.vectors.Cartesian2D(x=self.y.y, y=-self.x.y),
+            y=kgpy.vectors.Cartesian2D(x=-self.y.x, y=self.x.x),
         )
         result = result / self.determinant
         return result
 
     @typ.overload
-    def __matmul__(self: Cartesian2DT, other: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian2D:
+    def __matmul__(self: Cartesian2DT, other: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
         ...
 
     @typ.overload
@@ -178,42 +178,42 @@ class Cartesian2D(
     def __matmul__(self, other):
         if isinstance(other, type(self)):
             return type(self)(
-                x=kgpy.vector.Cartesian2D(
+                x=kgpy.vectors.Cartesian2D(
                     x=self.x.x * other.x.x + self.x.y * other.y.x,
                     y=self.x.x * other.x.y + self.x.y * other.y.y,
                 ),
-                y=kgpy.vector.Cartesian2D(
+                y=kgpy.vectors.Cartesian2D(
                     x=self.y.x * other.x.x + self.y.y * other.y.x,
                     y=self.y.x * other.x.y + self.y.y * other.y.y,
                 ),
             )
-        elif isinstance(other, kgpy.vector.Cartesian2D):
-            return kgpy.vector.Cartesian2D(
+        elif isinstance(other, kgpy.vectors.Cartesian2D):
+            return kgpy.vectors.Cartesian2D(
                 x=self.x.x * other.x + self.x.y * other.y,
                 y=self.y.x * other.x + self.y.y * other.y,
             )
         else:
             return NotImplemented
 
-    def __rmatmul__(self: Cartesian2DT, other: kgpy.vector.Cartesian2D) -> kgpy.vector.Cartesian2D:
-        if isinstance(other, kgpy.vector.Cartesian2D):
-            return kgpy.vector.Cartesian2D(
+    def __rmatmul__(self: Cartesian2DT, other: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
+        if isinstance(other, kgpy.vectors.Cartesian2D):
+            return kgpy.vectors.Cartesian2D(
                 x=other.x * self.x.x + other.y * self.y.x,
                 y=other.x * self.x.y + other.y * self.y.y,
             )
         else:
             return NotImplemented
 
-    def to_vector(self: Cartesian2DT) -> kgpy.vector.Cartesian2D:
-        return kgpy.vector.Cartesian2D(x=self.x, y=self.y)
+    def to_vector(self: Cartesian2DT) -> kgpy.vectors.Cartesian2D:
+        return kgpy.vectors.Cartesian2D(x=self.x, y=self.y)
 
 
 @dataclasses.dataclass(eq=False)
 class Cartesian3D(
-    kgpy.vector.Cartesian3D[
-        kgpy.vector.Cartesian3D,
-        kgpy.vector.Cartesian3D,
-        kgpy.vector.Cartesian3D,
+    kgpy.vectors.Cartesian3D[
+        kgpy.vectors.Cartesian3D,
+        kgpy.vectors.Cartesian3D,
+        kgpy.vectors.Cartesian3D,
     ],
     AbstractMatrix,
 ):
@@ -221,9 +221,9 @@ class Cartesian3D(
     @classmethod
     def identity(cls: typ.Type[Cartesian3DT]) -> Cartesian3DT:
         return cls(
-            x=kgpy.vector.Cartesian3D(x=1, y=0, z=0),
-            y=kgpy.vector.Cartesian3D(x=0, y=1, z=0),
-            z=kgpy.vector.Cartesian3D(x=0, y=0, z=1),
+            x=kgpy.vectors.Cartesian3D(x=1, y=0, z=0),
+            y=kgpy.vectors.Cartesian3D(x=0, y=1, z=0),
+            z=kgpy.vectors.Cartesian3D(x=0, y=0, z=1),
         )
 
     @classmethod
@@ -231,9 +231,9 @@ class Cartesian3D(
         cos_a = np.cos(angle)
         sin_a = np.sin(angle)
         return cls(
-            x=kgpy.vector.Cartesian3D(x=1, y=0, z=0),
-            y=kgpy.vector.Cartesian3D(x=0, y=cos_a, z=-sin_a),
-            z=kgpy.vector.Cartesian3D(x=0, y=sin_a, z=cos_a),
+            x=kgpy.vectors.Cartesian3D(x=1, y=0, z=0),
+            y=kgpy.vectors.Cartesian3D(x=0, y=cos_a, z=-sin_a),
+            z=kgpy.vectors.Cartesian3D(x=0, y=sin_a, z=cos_a),
         )
 
     @classmethod
@@ -241,9 +241,9 @@ class Cartesian3D(
         cos_a = np.cos(angle)
         sin_a = np.sin(angle)
         return cls(
-            x=kgpy.vector.Cartesian3D(x=cos_a, y=0, z=sin_a),
-            y=kgpy.vector.Cartesian3D(x=0, y=1, z=0),
-            z=kgpy.vector.Cartesian3D(x=-sin_a, y=0, z=cos_a),
+            x=kgpy.vectors.Cartesian3D(x=cos_a, y=0, z=sin_a),
+            y=kgpy.vectors.Cartesian3D(x=0, y=1, z=0),
+            z=kgpy.vectors.Cartesian3D(x=-sin_a, y=0, z=cos_a),
         )
 
     @classmethod
@@ -251,9 +251,9 @@ class Cartesian3D(
         cos_a = np.cos(angle)
         sin_a = np.sin(angle)
         return cls(
-            x=kgpy.vector.Cartesian3D(x=cos_a, y=-sin_a, z=0),
-            y=kgpy.vector.Cartesian3D(x=sin_a, y=cos_a, z=0),
-            z=kgpy.vector.Cartesian3D(x=0, y=0, z=1),
+            x=kgpy.vectors.Cartesian3D(x=cos_a, y=-sin_a, z=0),
+            y=kgpy.vectors.Cartesian3D(x=sin_a, y=cos_a, z=0),
+            z=kgpy.vectors.Cartesian3D(x=0, y=0, z=1),
         )
 
     @property
@@ -268,15 +268,15 @@ class Cartesian3D(
         d, e, f = self.y.tuple
         g, h, i = self.z.tuple
         result = type(self)(
-            x=kgpy.vector.Cartesian3D(x=+(e * i - f * h), y=-(b * i - c * h), z=+(b * f - c * e)),
-            y=kgpy.vector.Cartesian3D(x=-(d * i - f * g), y=+(a * i - c * g), z=-(a * f - c * d)),
-            z=kgpy.vector.Cartesian3D(x=+(d * h - e * g), y=-(a * h - b * g), z=+(a * e - b * d)),
+            x=kgpy.vectors.Cartesian3D(x=+(e * i - f * h), y=-(b * i - c * h), z=+(b * f - c * e)),
+            y=kgpy.vectors.Cartesian3D(x=-(d * i - f * g), y=+(a * i - c * g), z=-(a * f - c * d)),
+            z=kgpy.vectors.Cartesian3D(x=+(d * h - e * g), y=-(a * h - b * g), z=+(a * e - b * d)),
         )
         determinant = a * result.x.x + b * result.y.x + c * result.z.x
         return result / determinant
 
     @typ.overload
-    def __matmul__(self: Cartesian3DT, other: kgpy.vector.Cartesian3D) -> kgpy.vector.Cartesian3D:
+    def __matmul__(self: Cartesian3DT, other: kgpy.vectors.Cartesian3D) -> kgpy.vectors.Cartesian3D:
         ...
 
     @typ.overload
@@ -287,24 +287,24 @@ class Cartesian3D(
         if isinstance(other, type(self)):
             cls = type(self)
             return cls(
-                x=kgpy.vector.Cartesian3D(
+                x=kgpy.vectors.Cartesian3D(
                     x=self.x.x * other.x.x + self.x.y * other.y.x + self.x.z * other.z.x,
                     y=self.x.x * other.x.y + self.x.y * other.y.y + self.x.z * other.z.y,
                     z=self.x.x * other.x.z + self.x.y * other.y.z + self.x.z * other.z.z,
                 ),
-                y=kgpy.vector.Cartesian3D(
+                y=kgpy.vectors.Cartesian3D(
                     x=self.y.x * other.x.x + self.y.y * other.y.x + self.y.z * other.z.x,
                     y=self.y.x * other.x.y + self.y.y * other.y.y + self.y.z * other.z.y,
                     z=self.y.x * other.x.z + self.y.y * other.y.z + self.y.z * other.z.z,
                 ),
-                z=kgpy.vector.Cartesian3D(
+                z=kgpy.vectors.Cartesian3D(
                     x=self.z.x * other.x.x + self.z.y * other.y.x + self.z.z * other.z.x,
                     y=self.z.x * other.x.y + self.z.y * other.y.y + self.z.z * other.z.y,
                     z=self.z.x * other.x.z + self.z.y * other.y.z + self.z.z * other.z.z,
                 ),
             )
-        elif isinstance(other, kgpy.vector.Cartesian3D):
-            return kgpy.vector.Cartesian3D(
+        elif isinstance(other, kgpy.vectors.Cartesian3D):
+            return kgpy.vectors.Cartesian3D(
                 x=self.x.x * other.x + self.x.y * other.y + self.x.z * other.z,
                 y=self.y.x * other.x + self.y.y * other.y + self.y.z * other.z,
                 z=self.z.x * other.x + self.z.y * other.y + self.z.z * other.z,
@@ -312,9 +312,9 @@ class Cartesian3D(
         else:
             return NotImplemented
 
-    def __rmatmul__(self: Cartesian3DT, other: kgpy.vector.Cartesian3D):
-        if isinstance(other, kgpy.vector.Cartesian3D):
-            return kgpy.vector.Cartesian3D(
+    def __rmatmul__(self: Cartesian3DT, other: kgpy.vectors.Cartesian3D):
+        if isinstance(other, kgpy.vectors.Cartesian3D):
+            return kgpy.vectors.Cartesian3D(
                 x=other.x * self.x.x + other.y * self.y.x + other.z * self.z.x,
                 y=other.x * self.x.y + other.y * self.y.y + other.z * self.z.y,
                 z=other.x * self.x.z + other.y * self.y.z + other.z * self.z.z,
@@ -322,12 +322,12 @@ class Cartesian3D(
         else:
             return NotImplemented
 
-    def to_vector(self: Cartesian3DT) -> kgpy.vector.Cartesian3D:
-        return kgpy.vector.Cartesian3D(x=self.x, y=self.y, z=self.z)
+    def to_vector(self: Cartesian3DT) -> kgpy.vectors.Cartesian3D:
+        return kgpy.vectors.Cartesian3D(x=self.x, y=self.y, z=self.z)
 
 
 class CartesianND(
-    kgpy.vector.CartesianND[kgpy.vector.CartesianND],
+    kgpy.vectors.CartesianND[kgpy.vectors.CartesianND],
     AbstractMatrix,
 ):
     @classmethod
@@ -338,8 +338,8 @@ class CartesianND(
     def determinant(self: AbstractMatrixT) -> kgpy.uncertainty.ArrayLike:
         raise NotImplementedError
 
-    def to_vector(self: CartesianNDT) -> kgpy.vector.CartesianNDT:
-        return kgpy.vector.CartesianND(self.coordinates)
+    def to_vector(self: CartesianNDT) -> kgpy.vectors.CartesianNDT:
+        return kgpy.vectors.CartesianND(self.coordinates)
 
 
 @dataclasses.dataclass

@@ -3,7 +3,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.transforms
 import kgpy.optics.surfaces.apertures
 import kgpy.optics.surfaces.sags
@@ -23,7 +23,7 @@ class TestMirror:
         fig, ax = plt.subplots()
         sag = kgpy.optics.surfaces.sags.Standard(radius=10000 * u.mm)
         aperture = kgpy.optics.surfaces.apertures.RegularPolygon(
-            transform=kgpy.transforms.Translation(kgpy.vector.Cartesian3D(x=decenter_x) * u.mm),
+            transform=kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(x=decenter_x) * u.mm),
             radius=100 * u.mm,
             num_sides=8,
         )
@@ -43,7 +43,7 @@ class TestMirror:
         fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
         sag = kgpy.optics.surfaces.sags.Standard(radius=10000 * u.mm)
         aperture = kgpy.optics.surfaces.apertures.RegularPolygon(
-            transform=kgpy.transforms.Translation(kgpy.vector.Cartesian3D(x=0) * u.mm),
+            transform=kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(x=0) * u.mm),
             radius=100 * u.mm,
             num_sides=8,
         )

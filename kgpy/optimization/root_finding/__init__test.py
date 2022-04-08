@@ -3,7 +3,7 @@ import numpy as np
 import astropy.units as u
 import kgpy.labeled
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 from . import secant
 
 
@@ -51,7 +51,7 @@ def test_secant(
     if root_y is None:
         root_1 = root_x
     else:
-        root_1 = kgpy.vector.Cartesian2D(root_x, root_y)
+        root_1 = kgpy.vectors.Cartesian2D(root_x, root_y)
     root_1 = root_1 * unit
     root_2 = 20 * unit
 

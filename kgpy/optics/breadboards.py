@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 import kgpy.mixin
-import kgpy.vector
+import kgpy.vectors
 import kgpy.transforms
 
 __all__ = [
@@ -72,7 +72,7 @@ class Breadboard(
                 transform_extra = kgpy.transforms.TransformList()
             transform_extra = transform_extra + self.transform
 
-        top = kgpy.vector.Cartesian3D(
+        top = kgpy.vectors.Cartesian3D(
             x=u.Quantity([0 * u.mm, 0 * u.mm, self.width, self.width]),
             y=0 * u.mm,
             z=u.Quantity([0 * u.mm, self.length, self.length, 0 * u.mm]),

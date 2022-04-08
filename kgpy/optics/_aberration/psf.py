@@ -6,7 +6,7 @@ import scipy.interpolate
 import astropy.units as u
 import kgpy
 import kgpy.mixin
-import kgpy.vector
+import kgpy.vectors
 import kgpy.function
 
 __all__ = []
@@ -118,7 +118,7 @@ class DiscretePSF(PSF):
         psf = psf.real
         psf = psf / psf.sum(axis=grid.axis.position_xy, keepdims=True)
 
-        frequency = kgpy.vector.Vector2D(
+        frequency = kgpy.vectors.Vector2D(
             x=np.fft.fftfreq(n=psf.shape[cls.axis.position_x], d=grid.position.step_size.x),
             y=np.fft.fftfreq(n=psf.shape[cls.axis.position_y], d=grid.position.step_size.y),
         )
@@ -183,8 +183,8 @@ class DiscretePSF(PSF):
 
     def __call__(
             self,
-            field: kgpy.vector.Vector2D,
-            position: kgpy.vector.Vector2D,
+            field: kgpy.vectors.Vector2D,
+            position: kgpy.vectors.Vector2D,
             wavelength: u.Quantity,
     ):
         if not self.shape:

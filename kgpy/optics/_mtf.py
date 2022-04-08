@@ -5,7 +5,7 @@ import numpy as np
 import scipy.interpolate
 import astropy.units as u
 import kgpy.mixin
-import kgpy.vector
+import kgpy.vectors
 
 __all__ = ['MTF']
 
@@ -54,8 +54,8 @@ class MTF:
     unit_wavelength: typ.ClassVar[u.Unit] = u.AA
     unit_velocity_los: typ.ClassVar[u.Unit] = u.km / u.s
 
-    data_field: kgpy.vector.Vector2D
-    data_frequency: kgpy.vector.Vector2D
+    data_field: kgpy.vectors.Vector2D
+    data_frequency: kgpy.vectors.Vector2D
     data_wavelength: u.Quantity
     data_velocity_los: u.Quantity
     data_mtf: u.Quantity
@@ -73,11 +73,11 @@ class MTF:
         ).shape
 
     @property
-    def data_final_field(self) -> kgpy.vector.Vector2D:
+    def data_final_field(self) -> kgpy.vectors.Vector2D:
         return np.broadcast_to(self.data_field, shape=self.grid_shape, subok=True)
 
     @property
-    def data_final_frequency(self) -> kgpy.vector.Vector2D:
+    def data_final_frequency(self) -> kgpy.vectors.Vector2D:
         return np.broadcast_to(self.data_frequency, shape=self.grid_shape, subok=True)
 
     @property
@@ -119,8 +119,8 @@ class MTF:
 
     def __call__(
             self,
-            field: kgpy.vector.Vector2D,
-            frequency: kgpy.vector.Vector2D,
+            field: kgpy.vectors.Vector2D,
+            frequency: kgpy.vectors.Vector2D,
             wavelength: u.Quantity,
             velocity_los: u.Quantity = 0 * u.km / u.s,
     ):

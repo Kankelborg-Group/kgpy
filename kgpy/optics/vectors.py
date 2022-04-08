@@ -3,14 +3,14 @@ import dataclasses
 import astropy.units as u
 import astropy.constants
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 
 __all__ = [
     'StokesVector',
     'SpectralVector',
-    'SpectralFieldVector',
+    'FieldVector',
     'ObjectVector',
-    'ImageVector',
+    'SpotVector',
 ]
 
 StokesVectorT = typ.TypeVar('StokesVectorT', bound='StokesVector')
@@ -19,7 +19,7 @@ SpectralVectorT = typ.TypeVar('SpectralVectorT', bound='SpectralVector')
 
 @dataclasses.dataclass(eq=False)
 class StokesVector(
-    kgpy.vector.AbstractVector,
+    kgpy.vectors.AbstractVector,
 ):
     import astropy.units
 
@@ -30,7 +30,7 @@ class StokesVector(
 
 
 @dataclasses.dataclass(eq=False)
-class SpectralVector(kgpy.vector.AbstractVector):
+class SpectralVector(kgpy.vectors.AbstractVector):
     wavelength: kgpy.uncertainty.ArrayLike = 0 * u.nm
     velocity_los: kgpy.uncertainty.ArrayLike = 0 * u.km / u.s
 
@@ -41,23 +41,31 @@ class SpectralVector(kgpy.vector.AbstractVector):
 
 @dataclasses.dataclass(eq=False)
 class FieldComponents:
-    field: kgpy.vector.Cartesian2D = dataclasses.field(default_factory=kgpy.vector.Cartesian2D)
+    field: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=kgpy.vectors.Cartesian2D)
 
 
 @dataclasses.dataclass(eq=False)
 class PupilComponents:
-    pupil: kgpy.vector.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian2D() * u.mm)
+    pupil: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian2D() * u.mm)
 
 
 @dataclasses.dataclass(eq=False)
 class PositionComponents:
-    position: kgpy.vector.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian2D() * u.mm)
+    position: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian2D() * u.mm)
 
 
 @dataclasses.dataclass(eq=False)
-class SpectralFieldVector(
+class FieldVector(
     SpectralVector,
     FieldComponents,
+):
+    pass
+
+
+@dataclasses.dataclass(eq=False)
+class PositionVector(
+    SpectralVector,
+    PositionComponents,
 ):
     pass
 
@@ -72,7 +80,7 @@ class ObjectVector(
 
 
 @dataclasses.dataclass(eq=False)
-class ImageVector(
+class SpotVector(
     SpectralVector,
     PositionComponents,
     FieldComponents,

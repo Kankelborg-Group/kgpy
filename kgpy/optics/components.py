@@ -8,7 +8,7 @@ import pandas
 import kgpy.mixin
 import kgpy.format
 import kgpy.uncertainty
-import kgpy.vector
+import kgpy.vectors
 import kgpy.transforms
 from .surfaces import Surface
 
@@ -71,7 +71,7 @@ class PistonComponent(Component[SurfaceT]):
     @property
     def transform(self) -> kgpy.transforms.TransformList:
         return super().transform + kgpy.transforms.TransformList([
-            kgpy.transforms.Translation(kgpy.vector.Cartesian3D(z=-self.piston))
+            kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(x=0 * u.mm, y=0 * u.mm, z=-self.piston))
         ])
 
     @property
@@ -83,7 +83,7 @@ class PistonComponent(Component[SurfaceT]):
 
 @dataclasses.dataclass
 class TranslationComponent(Component[SurfaceT]):
-    translation: kgpy.vector.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vector.Cartesian3D() * u.mm)
+    translation: kgpy.vectors.Cartesian3D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian3D() * u.mm)
 
     @property
     def transform(self) -> kgpy.transforms.TransformList:
@@ -98,7 +98,7 @@ class TranslationComponent(Component[SurfaceT]):
 
 @dataclasses.dataclass
 class CylindricalComponent(TranslationComponent[SurfaceT]):
-    translation_cylindrical: kgpy.vector.Cylindrical = dataclasses.field(default_factory=kgpy.vector.Cylindrical)
+    translation_cylindrical: kgpy.vectors.Cylindrical = dataclasses.field(default_factory=lambda: kgpy.vectors.Cylindrical(radius=0 * u.mm, z=0 * u.mm))
     # cylindrical_radius: u.Quantity = 0 * u.mm
     # cylindrical_radius_error: u.Quantity = 0 * u.mm
     # cylindrical_azimuth: u.Quantity = 0 * u.deg
