@@ -919,6 +919,7 @@ class AbstractArray(
             np.roll,
             np.clip,
             np.ptp,
+            np.trapz,
         ]:
 
             labeled_arrays = [arg for arg in args if isinstance(arg, AbstractArray)]
