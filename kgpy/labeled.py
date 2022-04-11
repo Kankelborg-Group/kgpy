@@ -832,6 +832,22 @@ class AbstractArray(
                 axes=axes,
             )
 
+        elif func is np.argsort:
+            args = list(args)
+            if args:
+                a = args.pop(0)
+            else:
+                a = kwargs.pop('a')
+
+            if args:
+                axis = args.pop(0)
+            else:
+                axis = kwargs.pop('axis')
+
+            result = func(a.array, *args, axis=a.axes.index(axis), **kwargs)
+            result = {axis: kgpy.labeled.Array(result, axes=a.axes)}
+            return result
+
         elif func is np.histogram2d:
             args = list(args)
             if args:
