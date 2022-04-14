@@ -326,7 +326,7 @@ class ArrayInterface(
             destination=[f'{ax}_dummy' for ax in axis],
         )
 
-        distance = func(value - other)
+        distance = func((value - other) / other.mean())
         distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in axis], axis_new='dummy')
 
         index_nearest = np.argmin(distance, axis='dummy')
@@ -364,7 +364,7 @@ class ArrayInterface(
             val[val < 0] = np.inf
             return val.length
 
-        other = self[{ax: slice(None, ~0) for ax in axis}]
+        other = self.broadcasted[{ax: slice(None, ~0) for ax in axis}]
 
         return other._index_arbitrary_brute(
             func=func_distance,
