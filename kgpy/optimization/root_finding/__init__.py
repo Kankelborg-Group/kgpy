@@ -32,9 +32,13 @@ def secant(
 
         dx = x1 - x0
         if isinstance(dx, kgpy.vectors.AbstractVector):
-            mask = dx.length != 0
-        else:
-            mask = dx != 0
+            dx = dx.length
+
+        mask = dx != 0
+        mask = mask & np.isfinite(dx)
+
+        if np.all(x1 == x0):
+            return x1
 
         if isinstance(f1, kgpy.vectors.AbstractVector) and isinstance(x1, kgpy.vectors.AbstractVector):
 
