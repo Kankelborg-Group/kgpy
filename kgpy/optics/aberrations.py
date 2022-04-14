@@ -20,12 +20,12 @@ class PointSpread(
 
 @dataclasses.dataclass(eq=False)
 class Distortion:
-    function: kgpy.function.AbstractArray[vectors.FieldVector, vectors.PositionVector]
+    function: kgpy.function.AbstractArray[vectors.SpectralFieldVector, vectors.SpectralPositionVector]
 
     def __call__(
             self: DistortionT,
-            scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
-    ) -> kgpy.function.Array[vectors.PositionVector, kgpy.uncertainty.ArrayLike]:
+            scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]:
 
         result = kgpy.function.Array(
             input=self.function(scene.input),
@@ -36,7 +36,7 @@ class Distortion:
 
     def inverse(
             self: DistortionT,
-            image: kgpy.function.Array[vectors.PositionVector, kgpy.uncertainty.ArrayLike]
+            image: kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]
     ) -> kgpy.function:
 
         return kgpy.function.Array(
@@ -47,22 +47,22 @@ class Distortion:
     @property
     def plate_scale(self: DistortionT) -> kgpy.vectors.Cartesian2D:
         axis = ('field_x', 'field_y')
-        return self.function.input.field.ptp(axis=axis).length / self.function.output.position.ptp(axis=axis)
+        return self.function.input.field_xy.ptp(axis=axis).length / self.function.output.position_xy.ptp(axis=axis)
 
     @property
     def dispersion(self):
-        axis = ('wavelength', 'velocity_los')
-        return self.function.input.wavelength.ptp(axis=axis) / self.function.output.position.ptp(axis=axis)
+        axis = ('field_x', 'field_y', 'wavelength', 'velocity_los')
+        return self.function.input.wavelength.ptp(axis=axis) / self.function.output.position_xy.ptp(axis=axis).length
 
 
 @dataclasses.dataclass(eq=False)
 class Vignetting:
-    function: kgpy.function.AbstractArray[vectors.FieldVector, kgpy.uncertainty.ArrayLike]
+    function: kgpy.function.AbstractArray[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]
 
     def __call__(
             self: VignettingT,
-            scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
-    ) -> kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike]:
+            scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
 
         return kgpy.function.Array(
             input=scene.input,
@@ -71,8 +71,8 @@ class Vignetting:
 
     def inverse(
             self: VignettingT,
-            scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
-    ) -> kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike]:
+            scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
 
         return kgpy.function.Array(
             input=scene.input,
@@ -81,26 +81,32 @@ class Vignetting:
 
 
 @dataclasses.dataclass(eq=False)
+class EffectiveArea:
+    pass
+
+
+@dataclasses.dataclass(eq=False)
 class Aberration:
 
-    point_spread: PointSpread
+    # point_spread: PointSpread
     distortion: Distortion
-    vignetting: Vignetting
+    # vignetting: Vignetting
+    # effective_area: EffectiveArea
 
     def __call__(
             self: AberrationT,
-            scene: kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike],
-    ) -> kgpy.function.Array[vectors.PositionVector, kgpy.uncertainty.ArrayLike]:
+            scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]:
 
-        result = self.vignetting(scene)
-        result = self.distortion(result)
+        # result = self.vignetting(scene)
+        result = self.distortion(scene)
 
         return result
 
     def inverse(
             self: AberrationT,
-            image: kgpy.function.Array[vectors.PositionVector, kgpy.uncertainty.ArrayLike],
-    ) -> kgpy.function.Array[vectors.FieldVector, kgpy.uncertainty.ArrayLike]:
+            image: kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
 
         result = self.distortion.inverse(image)
         result = self.vignetting.inverse(result)
