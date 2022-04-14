@@ -55,6 +55,12 @@ VectorLike = typ.Union[kgpy.uncertainty.ArrayLike, 'AbstractVector']
 ItemArrayT = typ.Union[kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray, AbstractVectorT]
 
 
+@dataclasses.dataclass
+class ComponentAxis:
+    component: str
+    axis: str
+
+
 @dataclasses.dataclass(eq=False)
 class AbstractVector(
     kgpy.labeled.ArrayInterface,
