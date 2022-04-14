@@ -177,13 +177,27 @@ class TestArray:
         a = kgpy.labeled.Array.empty(shape)
         assert list(a.ndindex()) == result_expected
 
+    def test_index_nearest_brute(self):
+
+        x = kgpy.labeled.LinearSpace(0, 1, num=5, axis='x')
+        y = kgpy.labeled.LinearSpace(0, 1, num=5, axis='y')
+        z = kgpy.labeled.LinearSpace(0, 1, num=5, axis='z')
+        a = x + 10 * y + 100 * z
+        index_nearest = a.index_nearest_brute(a, axis=('x', 'y'))
+        indices = a.indices
+
+        for ax in indices:
+            assert np.all(index_nearest[ax] == indices[ax])
+
     def test_index_nearest_secant(self):
 
         x = kgpy.labeled.LinearSpace(0, 1, num=5, axis='x')
         y = kgpy.labeled.LinearSpace(0, 1, num=5, axis='y')
-        a = x + y
-        b = kgpy.labeled.Array(array=a.array, axes=a.axes)
+        z = kgpy.labeled.LinearSpace(0, 1, num=5, axis='z')
+        a = x + 10*y + 100*z
+        index_nearest = a.index_nearest_secant(a, axis=('x', 'y'))
+        indices = a.indices
 
-        # print(x.index_nearest_secant(x))
-        print(b.index_nearest_secant(x, axis_search='x'))
+        for ax in indices:
+            assert np.all(index_nearest[ax] == indices[ax])
 

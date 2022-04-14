@@ -30,24 +30,24 @@ class TestArray:
 
     def test_interp_nearest_1d(self):
 
-
         shape = dict(x=10, y=11)
 
-        x = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['x'], axis='x')
-        output = np.sin(x)
+        x = kgpy.labeled.LinearSpace(start=0, stop=2 * np.pi, num=shape['x'], axis='xx')
+        y = kgpy.labeled.LinearSpace(start=0, stop=np.pi, num=shape['y'], axis='yy')
+        output = np.sin(x + y)
         # if width is not None:
         #     output = kgpy.uncertainty.Normal(output, width)
         a = kgpy.function.Array(
-            input=x,
+            input=kgpy.vectors.Cartesian2D(x, y),
             output=output,
         )
-        b = a.interp_nearest(x)
+        b = a.interp_nearest(kgpy.vectors.Cartesian2D(x, None))
 
         assert np.all(a.output == b.output)
 
         x_fine = x.copy()
         x_fine.num = 100
-        c = a.interp_nearest(x_fine)
+        c = a.interp_nearest(kgpy.vectors.Cartesian2D(x, None))
 
         assert c.output.sum() != 0
 
@@ -60,9 +60,9 @@ class TestArray:
             c.output = c.output.distribution.mean('_distribution')
 
         # plt.figure()
-        # plt.scatter(a.input.array, a.output.array)
-        # plt.scatter(b.input.array, b.output.array)
-        # plt.scatter(c.input.array, c.output.array)
+        # plt.scatter(a.input_broadcasted.array, a.output.array)
+        # plt.scatter(b.input_broadcasted.array, b.output.array)
+        # plt.scatter(c.input_broadcasted.array, c.output.array)
         # plt.show()
 
     @pytest.mark.parametrize(

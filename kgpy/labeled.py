@@ -232,6 +232,17 @@ class ArrayInterface(
     def dtype(self: ArrayInterfaceT):
         return self.array.dtype
 
+    @abc.abstractmethod
+    def astype(
+            self: ArrayInterfaceT,
+            dtype: numpy.typing.DTypeLike,
+            order: str = 'K',
+            casting='unsafe',
+            subok: bool = True,
+            copy: bool = True,
+    ) -> ArrayInterfaceT:
+        pass
+
     @property
     @abc.abstractmethod
     def unit(self) -> typ.Union[float, u.Unit]:
@@ -248,6 +259,10 @@ class ArrayInterface(
     @property
     def centers(self: ArrayInterfaceT) -> ArrayInterfaceT:
         return self
+
+    @property
+    def length(self: ArrayInterfaceT) -> AbstractArrayT:
+        return np.abs(self)
 
     @property
     def indices(self) -> typ.Dict[str, ArrayT]:
@@ -290,6 +305,73 @@ class ArrayInterface(
     def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]):
         pass
 
+    def _index_arbitrary_brute(
+            self: ArrayInterfaceT,
+            func: typ.Callable[[ArrayInterfaceT], ArrayInterfaceT],
+            value: ArrayInterfaceT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, AbstractArrayT]:
+
+        if not self.shape:
+            return dict()
+
+        if axis is None:
+            axis = list(self.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
+
+        other = np.moveaxis(
+            a=self,
+            source=axis,
+            destination=[f'{ax}_dummy' for ax in axis],
+        )
+
+        distance = func((value - other) / other.mean())
+        distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in axis], axis_new='dummy')
+
+        index_nearest = np.argmin(distance, axis='dummy')
+        index_base = index_nearest.indices
+
+        shape_nearest = {ax: self.shape[ax] for ax in self.shape if ax in axis}
+        index_nearest = np.unravel_index(index_nearest, shape_nearest)
+        index = {**index_base, **index_nearest}
+
+        return index
+
+    def index_nearest_brute(
+            self: ArrayInterfaceT,
+            value: ArrayInterfaceT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, ArrayInterfaceT]:
+        return self._index_arbitrary_brute(
+            func=lambda x: x.length,
+            value=value,
+            axis=axis,
+        )
+
+    def index_below_brute(
+            self: ArrayInterfaceT,
+            value: ArrayInterfaceT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, ArrayInterfaceT]:
+
+        if axis is None:
+            axis = list(self.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
+
+        def func_distance(val: ArrayInterfaceT):
+            val[val < 0] = np.inf
+            return val.length
+
+        other = self.broadcasted[{ax: slice(None, ~0) for ax in axis}]
+
+        return other._index_arbitrary_brute(
+            func=func_distance,
+            value=value,
+            axis=axis,
+        )
+
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
@@ -297,7 +379,7 @@ class AbstractArray(
 ):
 
     type_array_primary: typ.ClassVar[typ.Type] = np.ndarray
-    type_array_auxiliary: typ.ClassVar[typ.Tuple[typ.Type, ...]] = (bool, int, float, complex, np.generic)
+    type_array_auxiliary: typ.ClassVar[typ.Tuple[typ.Type, ...]] = (str, bool, int, float, complex, np.generic)
     type_array: typ.ClassVar[typ.Tuple[typ.Type, ...]] = type_array_auxiliary + (type_array_primary, )
 
     @property
@@ -626,7 +708,7 @@ class AbstractArray(
                 a = args.pop(0)
             else:
                 a = kwargs.pop('a')
-            a = a.copy_shallow()
+            a = Array(a.array, axes=a.axes.copy())
 
             if args:
                 source = args.pop(0)
@@ -645,7 +727,8 @@ class AbstractArray(
                 destination = (destination, )
 
             for src, dest in zip(source, destination):
-                a.axes[a.axes.index(src)] = dest
+                if src in a.axes:
+                    a.axes[a.axes.index(src)] = dest
 
             return a
 
@@ -749,6 +832,32 @@ class AbstractArray(
                 axes=axes,
             )
 
+        elif func is np.argsort:
+            args = list(args)
+            if args:
+                a = args.pop(0)
+            else:
+                a = kwargs.pop('a')
+
+            if args:
+                axis = args.pop(0)
+            else:
+                axis = kwargs.pop('axis')
+
+            result = func(a.array, *args, axis=a.axes.index(axis), **kwargs)
+            result = {axis: kgpy.labeled.Array(result, axes=a.axes)}
+            return result
+
+        elif func is np.nonzero:
+            args = list(args)
+            if args:
+                a = args.pop(0)
+            else:
+                a = kwargs.pop('a')
+            result = func(a.array, *args, **kwargs)
+
+            return {a.axes[r]: Array(result[r], axes=['nonzero']) for r, _ in enumerate(result)}
+
         elif func is np.histogram2d:
             args = list(args)
             if args:
@@ -835,6 +944,8 @@ class AbstractArray(
             np.isclose,
             np.roll,
             np.clip,
+            np.ptp,
+            np.trapz,
         ]:
 
             labeled_arrays = [arg for arg in args if isinstance(arg, AbstractArray)]
@@ -962,46 +1073,39 @@ class AbstractArray(
         # else:
         #     raise ValueError('Invalid index type')
 
-    def index_nearest_brute(
+    def index_nearest_secant(
             self: AbstractArrayT,
             value: AbstractArrayT,
-            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]],
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
     ) -> typ.Dict[str, AbstractArrayT]:
+
+        import kgpy.vectors
+        import kgpy.optimization
 
         if axis is None:
             axis = self.axes
         elif isinstance(axis, str):
-            axis = (axis, )
+            axis = [axis, ]
 
-        input_old = self.input.array_labeled
-        for ax in axis:
-            pass
+        shape = self.shape
+        shape_nearest = kgpy.vectors.CartesianND({ax: shape[ax] for ax in axis})
+        index_base = self[{ax: 0 for ax in axis}].indices
 
+        def indices_factory(index_nearest: kgpy.vectors.CartesianND) -> typ.Dict[str, AbstractArrayT]:
+            print('index_nearest', index_nearest)
+            index_nearest = np.rint(index_nearest).astype(int)
+            index_nearest = np.clip(index_nearest, a_min=0, a_max=shape_nearest - 1)
+            index = {**index_base, **index_nearest.coordinates}
+            return index
 
-
-
-    def index_nearest_secant(
-            self: AbstractArrayT,
-            value: AbstractArrayT,
-            axis_search: str,
-    ) -> typ.Dict[str, AbstractArrayT]:
-        import kgpy.optimization
-
-        def indices_factory(index: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
-            index = np.rint(index).astype(int)
-            index = np.clip(index, a_min=0, a_max=self.shape[axis_search] - 1)
-            indices = self[{axis_search: 0}].indices
-            indices[axis_search] = index
-            return indices
-
-        def get_index(index: AbstractArrayT) -> AbstractArrayT:
+        def get_index(index: kgpy.vectors.CartesianND) -> AbstractArrayT:
             diff = self[indices_factory(index)] - value
             return diff
 
         result = kgpy.optimization.root_finding.secant(
             func=get_index,
-            root_guess=np.array(self.shape[axis_search] // 2),
-            step_size=1,
+            root_guess=shape_nearest // 2,
+            step_size=kgpy.vectors.CartesianND({ax: 1 for ax in axis}),
             max_abs_error=1e-9,
         )
 

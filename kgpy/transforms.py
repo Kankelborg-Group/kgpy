@@ -136,7 +136,7 @@ class TransformList(
     @property
     def vector(self: TransformListT) -> kgpy.vectors.Cartesian3D:
         rotation = kgpy.matrix.Cartesian3D.identity()
-        translation = kgpy.vectors.Cartesian3D() * u.mm
+        translation = 0
 
         for transform in reversed(list(self.transforms)):
             if transform is not None:

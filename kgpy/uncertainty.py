@@ -3,6 +3,7 @@ import typing as typ
 import dataclasses
 import random
 import numpy as np
+import numpy.typing
 import astropy.units as u
 import kgpy.mixin
 import kgpy.labeled
@@ -69,6 +70,26 @@ class AbstractArray(
     @abc.abstractmethod
     def axis_distribution(self: AbstractArrayT) -> str:
         return '_distribution'
+
+    def astype(
+            self: AbstractArrayT,
+            dtype: numpy.typing.DTypeLike,
+            order: str = 'K',
+            casting='unsafe',
+            subok: bool = True,
+            copy: bool = True,
+    ) -> ArrayT:
+        kwargs = dict(
+            dtype=dtype,
+            order=order,
+            casting=casting,
+            subok=subok,
+            copy=copy,
+        )
+        return Array(
+            nominal=self.nominal.astype(**kwargs),
+            distribution=self.distribution.astype(**kwargs)
+        )
 
     def to(self: AbstractArrayT, unit: u.Unit) -> ArrayT:
         return Array(
@@ -183,8 +204,25 @@ class AbstractArray(
                 distribution=np.broadcast_to(array.distribution, shape_distribution),
             )
 
+        elif func is np.unravel_index:
+            args = list(args)
+            if args:
+                array = args.pop(0)
+            else:
+                array = kwargs['array']
+            result_nominal = func(array.nominal, *args, **kwargs)
+            result_distribution = func(array.distribution, *args, **kwargs)
+
+            result = dict()
+            for axis in result_nominal:
+                result[axis] = Array(
+                    nominal=result_nominal[axis],
+                    distribution=result_distribution[axis],
+                )
+
+            return result
+
         elif func in [
-            np.unravel_index,
             np.ndim,
             np.argmin,
             np.nanargmin,
@@ -207,6 +245,7 @@ class AbstractArray(
             np.array_equal,
             np.isclose,
             np.roll,
+            np.moveaxis,
         ]:
             args_nominal = [arg.normalized.nominal if isinstance(arg, AbstractArray) else arg for arg in args]
             types_nominal = list(type(arg) for arg in args_nominal if getattr(arg, '__array_function__', None) is not None)

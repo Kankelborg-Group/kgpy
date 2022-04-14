@@ -67,11 +67,11 @@ class AbstractArray(
     def pcolormesh(
             self: AbstractArrayT,
             axs: numpy.typing.NDArray[matplotlib.axes.Axes],
-            input_component_x: str,
-            input_component_y: str,
-            input_component_row: typ.Optional[str] = None,
-            input_component_column: typ.Optional[str] = None,
-            output_component_color: typ.Optional[str] = None,
+            input_component_x: typ.Union[str, kgpy.vectors.ComponentAxis],
+            input_component_y: typ.Union[str, kgpy.vectors.ComponentAxis],
+            input_component_row: typ.Optional[typ.Union[str, kgpy.vectors.ComponentAxis]] = None,
+            input_component_column: typ.Optional[typ.Union[str, kgpy.vectors.ComponentAxis]] = None,
+            output_component_color: typ.Optional[typ.Union[str, kgpy.vectors.ComponentAxis]] = None,
             index: typ.Optional[typ.Dict[str, int]] = None,
             **kwargs,
     ):
@@ -163,7 +163,7 @@ class AbstractArray(
                 inp_x = inp.coordinates_flat[input_component_x]
                 inp_y = inp.coordinates_flat[input_component_y]
 
-                out = self.output.broadcasted[index_final]
+                out = self.output_broadcasted[index_final]
                 if output_component_color is not None:
                     out = out.coordinates_flat[output_component_color]
 
@@ -192,25 +192,25 @@ class AbstractArray(
                 else:
                     ax.set_ylabel(None)
 
-                if input_component_row is not None:
+                if input_component_column is not None:
                     if index_subplot['row'] == 0:
                         inp_column = inp.coordinates_flat[input_component_column]
                         ax.text(
                             x=0.5,
                             y=1.01,
-                            s=f'{input_component_column} = {inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}',
+                            s=f'{inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}',
                             transform=ax.transAxes,
                             ha='center',
                             va='bottom'
                         )
 
-                if input_component_column is not None:
+                if input_component_row is not None:
                     if index_subplot['column'] == axs.shape['column'] - 1:
                         inp_row = inp.coordinates_flat[input_component_row]
                         ax.text(
                             x=1.01,
                             y=0.5,
-                            s=f'{input_component_row} = {inp_row.mean().array.value:0.03f} {inp_row.unit:latex_inline}',
+                            s=f'{inp_row.mean().array.value:0.03f} {inp_row.unit:latex_inline}',
                             transform=ax.transAxes,
                             va='center',
                             ha='left',
@@ -233,35 +233,34 @@ class Array(
             output = kgpy.labeled.Array(output)
         return np.broadcast_to(output, shape=self.shape)
 
-    def calc_index_nearest(self: ArrayT, input_new: InputT, ) -> typ.Dict[str, kgpy.labeled.Array]:
-
-        if not isinstance(input_new, kgpy.vectors.AbstractVector):
-            input_new = kgpy.vectors.Cartesian1D(input_new)
+    def interp_nearest(
+            self: ArrayT,
+            input_new: InputT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None
+    ) -> ArrayT:
 
         input_old = self.input
         if not isinstance(input_old, kgpy.vectors.AbstractVector):
             input_old = kgpy.vectors.Cartesian1D(input_old)
-        else:
-            input_old = input_old.copy_shallow()
 
-        for component in input_old.coordinates:
-            coordinate = input_old.coordinates[component]
-            coordinate = kgpy.labeled.Array(coordinate.array, coordinate.axes)
-            coordinate.axes = [f'{ax}_dummy' for ax in coordinate.axes]
-            setattr(input_old, component, coordinate)
-        shape_dummy = input_old.shape
+        if not isinstance(input_new, kgpy.vectors.AbstractVector):
+            input_new = kgpy.vectors.Cartesian1D(input_new)
 
-        distance = (input_new - input_old).length
-        distance = distance.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
+        input_old_interp = input_old.copy_shallow()
+        input_new_final = input_new.copy_shallow()
+        for component in input_new.coordinates:
+            if input_new.coordinates[component] is None:
+                input_old_interp.coordinates[component] = None
+                input_new_final.coordinates[component] = input_old.coordinates[component]
 
-        index = np.argmin(distance, axis='dummy')
-        index = np.unravel_index(index, self.input.shape)
-        return index
+        if axis is None:
+            axis = list(input_old_interp.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
 
-    def interp_nearest(self: ArrayT, input_new: InputT) -> ArrayT:
         return type(self)(
-            input=input_new,
-            output=self.output_broadcasted[self.calc_index_nearest(input_new)]
+            input=input_new_final,
+            output=self.output_broadcasted[self.input.index_nearest_brute(input_new_final, axis=axis)],
         )
 
     def calc_index_lower(self: ArrayT, input_new: InputT ) -> typ.Dict:
@@ -663,7 +662,22 @@ class AbstractPolynomial(
 class Polynomial(
     AbstractPolynomial,
 ):
-    coefficients: kgpy.vectors.AbstractVector
+    coefficients: kgpy.vectors.AbstractVector = None
+    mask: kgpy.uncertainty.ArrayLike = None
+
+    def design_matrix(self, inp: InputT) -> kgpy.vectors.CartesianND:
+
+        result = kgpy.vectors.CartesianND()
+
+        for components in self.coefficients.coordinates:
+            new_row = 1
+            for component in components.split(','):
+                new_row = new_row * inp.coordinates[component]
+
+            result.coordinates[components] = new_row
+
+        return result
+
 
     @property
     def output(self):

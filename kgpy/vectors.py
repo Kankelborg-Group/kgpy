@@ -55,6 +55,12 @@ VectorLike = typ.Union[kgpy.uncertainty.ArrayLike, 'AbstractVector']
 ItemArrayT = typ.Union[kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray, AbstractVectorT]
 
 
+@dataclasses.dataclass
+class ComponentAxis:
+    component: str
+    axis: str
+
+
 @dataclasses.dataclass(eq=False)
 class AbstractVector(
     kgpy.labeled.ArrayInterface,
@@ -196,6 +202,24 @@ class AbstractVector(
     def shape(self: AbstractVectorT) -> typ.Dict[str, int]:
         return kgpy.labeled.Array.broadcast_shapes(*self.coordinates.values())
 
+    def astype(
+            self: AbstractVectorT,
+            dtype: numpy.typing.DTypeLike,
+            order: str = 'K',
+            casting='unsafe',
+            subok: bool = True,
+            copy: bool = True,
+    ) -> AbstractVectorT:
+        kwargs = dict(
+            dtype=dtype,
+            order=order,
+            casting=casting,
+            subok=subok,
+            copy=copy,
+        )
+        coordinates = self.coordinates
+        return type(self).from_coordinates({c: coordinates[c].astype(**kwargs) for c in coordinates})
+
     def __array_ufunc__(self, function, method, *inputs, **kwargs):
 
         components_result = dict()
@@ -296,6 +320,8 @@ class AbstractVector(
             np.array_equal,
             np.isclose,
             np.roll,
+            np.clip,
+            np.ptp,
         ]:
             coordinates = dict()
             for component in self.components:
@@ -453,7 +479,7 @@ class AbstractVector(
 
         shape = self.shape
         shape_search = kgpy.vectors.CartesianND({axis: shape[axis] for axis in axis_search})
-        indices = self[{axis: 0 for axis in axis_search.values()}].indices
+        indices = self[{ax: 0 for ax in axis_search.values()}].indices
 
         def indices_factory(index: AbstractVectorT) -> typ.Dict[str, kgpy.labeled.Array]:
             index = np.rint(index).astype(int)
@@ -467,7 +493,7 @@ class AbstractVector(
         result = kgpy.optimization.root_finding.secant(
             func=get_index,
             root_guess=shape_search,
-            step_size=kgpy.vectors.CartesianND({axis: 1 for axis in axis_search}),
+            step_size=kgpy.vectors.CartesianND({ax: 1 for ax in axis_search}),
             max_abs_error=1e-9,
         )
 
