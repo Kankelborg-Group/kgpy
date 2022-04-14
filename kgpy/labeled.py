@@ -379,7 +379,7 @@ class AbstractArray(
 ):
 
     type_array_primary: typ.ClassVar[typ.Type] = np.ndarray
-    type_array_auxiliary: typ.ClassVar[typ.Tuple[typ.Type, ...]] = (bool, int, float, complex, np.generic)
+    type_array_auxiliary: typ.ClassVar[typ.Tuple[typ.Type, ...]] = (str, bool, int, float, complex, np.generic)
     type_array: typ.ClassVar[typ.Tuple[typ.Type, ...]] = type_array_auxiliary + (type_array_primary, )
 
     @property
