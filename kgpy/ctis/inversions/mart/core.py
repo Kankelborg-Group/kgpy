@@ -23,7 +23,7 @@ class MART_Inversion(
     def __call__(
             self: MART_InversionT,
             image: kgpy.function.Array[vectors.PixelVector, kgpy.uncertainty.ArrayLike]
-    ) -> kgpy.function.Array[kgpy.optics.vectors.FieldVector, kgpy.uncertainty.ArrayLike]:
+    ) -> kgpy.function.Array[kgpy.optics.vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
         pass
 
 

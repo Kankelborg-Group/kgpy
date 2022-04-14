@@ -26,6 +26,6 @@ class AbstractInversion(
             instrument: instruments.AbstractInstrument,
             image: kgpy.function.Array[vectors.PixelVector, kgpy.labeled.Array],
 
-    ) -> kgpy.function.Array[kgpy.optics.vectors.FieldVector, kgpy.labeled.Array]:
+    ) -> kgpy.function.Array[kgpy.optics.vectors.SpectralFieldVector, kgpy.labeled.Array]:
 
         pass

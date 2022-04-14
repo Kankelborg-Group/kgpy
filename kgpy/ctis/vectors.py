@@ -14,7 +14,7 @@ class ChannelComponents(kgpy.vectors.AbstractVector):
 
 @dataclasses.dataclass(eq=False)
 class PixelVector(
-    kgpy.optics.vectors.PositionComponents,
+    kgpy.optics.vectors.PositionVector,
     ChannelComponents,
 ):
     pass

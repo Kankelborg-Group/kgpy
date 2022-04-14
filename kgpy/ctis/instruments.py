@@ -12,7 +12,7 @@ __all__ = [
     'AberrationInstrument',
 ]
 
-SceneT = kgpy.function.AbstractArray[kgpy.optics.vectors.FieldVector, kgpy.uncertainty.ArrayLike]
+SceneT = kgpy.function.AbstractArray[kgpy.optics.vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]
 ImageT = kgpy.function.AbstractArray[vectors.PixelVector, kgpy.uncertainty.ArrayLike]
 AbstractInstrumentT = typ.TypeVar('AbstractInstrumentT', bound='AbstractInstrument')
 AbstractAberrationInstrumentT = typ.TypeVar('AbstractAberrationInstrumentT', bound='AbstractAberrationInstrument')
@@ -57,4 +57,4 @@ class AberrationInstrument(
     AbstractAberrationInstrument
 ):
 
-    aberration: kgpy.optics.aberrations.Aberration
+    aberration: kgpy.optics.aberrations.Aberration = None
