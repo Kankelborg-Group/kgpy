@@ -848,6 +848,16 @@ class AbstractArray(
             result = {axis: kgpy.labeled.Array(result, axes=a.axes)}
             return result
 
+        elif func is np.nonzero:
+            args = list(args)
+            if args:
+                a = args.pop(0)
+            else:
+                a = kwargs.pop('a')
+            result = func(a.array, *args, **kwargs)
+
+            return {a.axes[r]: Array(result[r], axes=['nonzero']) for r, _ in enumerate(result)}
+
         elif func is np.histogram2d:
             args = list(args)
             if args:
