@@ -662,7 +662,22 @@ class AbstractPolynomial(
 class Polynomial(
     AbstractPolynomial,
 ):
-    coefficients: kgpy.vectors.AbstractVector
+    coefficients: kgpy.vectors.AbstractVector = None
+    mask: kgpy.uncertainty.ArrayLike = None
+
+    def design_matrix(self, inp: InputT) -> kgpy.vectors.CartesianND:
+
+        result = kgpy.vectors.CartesianND()
+
+        for components in self.coefficients.coordinates:
+            new_row = 1
+            for component in components.split(','):
+                new_row = new_row * inp.coordinates[component]
+
+            result.coordinates[components] = new_row
+
+        return result
+
 
     @property
     def output(self):
