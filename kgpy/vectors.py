@@ -315,6 +315,7 @@ class AbstractVector(
             np.isclose,
             np.roll,
             np.clip,
+            np.ptp,
         ]:
             coordinates = dict()
             for component in self.components:
