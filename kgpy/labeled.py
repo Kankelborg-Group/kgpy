@@ -1076,25 +1076,36 @@ class AbstractArray(
     def index_nearest_secant(
             self: AbstractArrayT,
             value: AbstractArrayT,
-            axis_search: str,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
     ) -> typ.Dict[str, AbstractArrayT]:
+
+        import kgpy.vectors
         import kgpy.optimization
 
-        def indices_factory(index: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
-            index = np.rint(index).astype(int)
-            index = np.clip(index, a_min=0, a_max=self.shape[axis_search] - 1)
-            indices = self[{axis_search: 0}].indices
-            indices[axis_search] = index
-            return indices
+        if axis is None:
+            axis = self.axes
+        elif isinstance(axis, str):
+            axis = [axis, ]
 
-        def get_index(index: AbstractArrayT) -> AbstractArrayT:
+        shape = self.shape
+        shape_nearest = kgpy.vectors.CartesianND({ax: shape[ax] for ax in axis})
+        index_base = self[{ax: 0 for ax in axis}].indices
+
+        def indices_factory(index_nearest: kgpy.vectors.CartesianND) -> typ.Dict[str, AbstractArrayT]:
+            print('index_nearest', index_nearest)
+            index_nearest = np.rint(index_nearest).astype(int)
+            index_nearest = np.clip(index_nearest, a_min=0, a_max=shape_nearest - 1)
+            index = {**index_base, **index_nearest.coordinates}
+            return index
+
+        def get_index(index: kgpy.vectors.CartesianND) -> AbstractArrayT:
             diff = self[indices_factory(index)] - value
             return diff
 
         result = kgpy.optimization.root_finding.secant(
             func=get_index,
-            root_guess=np.array(self.shape[axis_search] // 2),
-            step_size=1,
+            root_guess=shape_nearest // 2,
+            step_size=kgpy.vectors.CartesianND({ax: 1 for ax in axis}),
             max_abs_error=1e-9,
         )
 
