@@ -163,7 +163,7 @@ class AbstractArray(
                 inp_x = inp.coordinates_flat[input_component_x]
                 inp_y = inp.coordinates_flat[input_component_y]
 
-                out = self.output.broadcasted[index_final]
+                out = self.output_broadcasted[index_final]
                 if output_component_color is not None:
                     out = out.coordinates_flat[output_component_color]
 
@@ -192,25 +192,25 @@ class AbstractArray(
                 else:
                     ax.set_ylabel(None)
 
-                if input_component_row is not None:
+                if input_component_column is not None:
                     if index_subplot['row'] == 0:
                         inp_column = inp.coordinates_flat[input_component_column]
                         ax.text(
                             x=0.5,
                             y=1.01,
-                            s=f'{input_component_column} = {inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}',
+                            s=f'{inp_column.mean().array.value:0.03f} {inp_column.unit:latex_inline}',
                             transform=ax.transAxes,
                             ha='center',
                             va='bottom'
                         )
 
-                if input_component_column is not None:
+                if input_component_row is not None:
                     if index_subplot['column'] == axs.shape['column'] - 1:
                         inp_row = inp.coordinates_flat[input_component_row]
                         ax.text(
                             x=1.01,
                             y=0.5,
-                            s=f'{input_component_row} = {inp_row.mean().array.value:0.03f} {inp_row.unit:latex_inline}',
+                            s=f'{inp_row.mean().array.value:0.03f} {inp_row.unit:latex_inline}',
                             transform=ax.transAxes,
                             va='center',
                             ha='left',
