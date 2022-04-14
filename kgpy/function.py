@@ -67,11 +67,11 @@ class AbstractArray(
     def pcolormesh(
             self: AbstractArrayT,
             axs: numpy.typing.NDArray[matplotlib.axes.Axes],
-            input_component_x: str,
-            input_component_y: str,
-            input_component_row: typ.Optional[str] = None,
-            input_component_column: typ.Optional[str] = None,
-            output_component_color: typ.Optional[str] = None,
+            input_component_x: typ.Union[str, kgpy.vectors.ComponentAxis],
+            input_component_y: typ.Union[str, kgpy.vectors.ComponentAxis],
+            input_component_row: typ.Optional[typ.Union[str, kgpy.vectors.ComponentAxis]] = None,
+            input_component_column: typ.Optional[typ.Union[str, kgpy.vectors.ComponentAxis]] = None,
+            output_component_color: typ.Optional[typ.Union[str, kgpy.vectors.ComponentAxis]] = None,
             index: typ.Optional[typ.Dict[str, int]] = None,
             **kwargs,
     ):
