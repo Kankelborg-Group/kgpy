@@ -4,17 +4,35 @@ import astropy.units as u
 import astropy.constants
 import kgpy.uncertainty
 import kgpy.vectors
+import kgpy.transforms
 
 __all__ = [
     'StokesVector',
     'SpectralVector',
-    'FieldVector',
+    'SpectralFieldVector',
     'ObjectVector',
     'SpotVector',
 ]
 
+SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
 StokesVectorT = typ.TypeVar('StokesVectorT', bound='StokesVector')
 SpectralVectorT = typ.TypeVar('SpectralVectorT', bound='SpectralVector')
+
+
+@dataclasses.dataclass(eq=False)
+class Spherical(
+    kgpy.vectors.AbstractVector,
+):
+    x: kgpy.uncertainty.ArrayLike = 0 * u.deg
+    y: kgpy.uncertainty.ArrayLike= 0 * u.deg
+
+    @property
+    def cartesian(self: SphericalT) -> kgpy.vectors.Cartesian3D:
+        transform = kgpy.transforms.TransformList([
+            kgpy.transforms.RotationY(-self.x),
+            kgpy.transforms.RotationX(self.y),
+        ])
+        return transform(kgpy.vectors.Cartesian3D.z_hat(), translate=False)
 
 
 @dataclasses.dataclass(eq=False)
@@ -32,57 +50,91 @@ class StokesVector(
 @dataclasses.dataclass(eq=False)
 class SpectralVector(kgpy.vectors.AbstractVector):
     wavelength: kgpy.uncertainty.ArrayLike = 0 * u.nm
+
+
+@dataclasses.dataclass(eq=False)
+class DopplerVector(kgpy.vectors.AbstractVector):
+    wavelength_rest: kgpy.uncertainty.ArrayLike = 0 * u.nm
     velocity_los: kgpy.uncertainty.ArrayLike = 0 * u.km / u.s
 
     @property
-    def wavelength_doppler(self: SpectralVectorT) -> kgpy.uncertainty.ArrayLike:
-        return self.wavelength * (1 + self.velocity_los / astropy.constants.c)
+    def wavelength(self: SpectralVectorT) -> kgpy.uncertainty.ArrayLike:
+        return self.wavelength_rest * (1 + self.velocity_los / astropy.constants.c)
 
 
 @dataclasses.dataclass(eq=False)
-class FieldComponents:
-    field: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=kgpy.vectors.Cartesian2D)
+class FieldVector:
+    field_x: kgpy.uncertainty.ArrayLike = 0 * u.deg
+    field_y: kgpy.uncertainty.ArrayLike = 0 * u.deg
+
+    @property
+    def field_xy(self) -> kgpy.vectors.Cartesian2D:
+        return kgpy.vectors.Cartesian2D(self.field_x, self.field_y)
 
 
 @dataclasses.dataclass(eq=False)
-class PupilComponents:
-    pupil: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian2D() * u.mm)
+class PupilVector:
+    pupil_x: kgpy.uncertainty.ArrayLike = 0 * u.mm
+    pupil_y: kgpy.uncertainty.ArrayLike = 0 * u.mm
+
+    @property
+    def pupil_xy(self) -> kgpy.vectors.Cartesian2D:
+        return kgpy.vectors.Cartesian2D(self.pupil_x, self.pupil_y)
 
 
 @dataclasses.dataclass(eq=False)
-class PositionComponents:
-    position: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian2D() * u.mm)
+class PositionVector:
+    position_x: kgpy.uncertainty.ArrayLike = 0 * u.mm
+    position_y: kgpy.uncertainty.ArrayLike = 0 * u.mm
+
+    @property
+    def position_xy(self):
+        return kgpy.vectors.Cartesian2D(self.position_x, self.position_y)
 
 
 @dataclasses.dataclass(eq=False)
-class FieldVector(
+class SpectralFieldVector(
     SpectralVector,
-    FieldComponents,
+    FieldVector,
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
-class PositionVector(
+class SpectralPositionVector(
     SpectralVector,
-    PositionComponents,
+    PositionVector,
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class ObjectVector(
-    SpectralVector,
-    PupilComponents,
-    FieldComponents,
+    DopplerVector,
+    PupilVector,
+    FieldVector,
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class SpotVector(
-    SpectralVector,
-    PositionComponents,
-    FieldComponents,
+    DopplerVector,
+    PositionVector,
+    FieldVector,
 ):
     pass
+
+
+@dataclasses.dataclass(eq=False)
+class InputAngleVector(
+    SpectralVector,
+):
+    angle_input: Spherical = dataclasses.field(default_factory=Spherical)
+
+
+@dataclasses.dataclass(eq=False)
+class InputOutputAngleVector(
+    InputAngleVector,
+):
+    angle_output: Spherical = dataclasses.field(default_factory=Spherical)
