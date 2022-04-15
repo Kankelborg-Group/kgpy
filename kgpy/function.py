@@ -671,8 +671,9 @@ class Polynomial(
 
         for components in self.coefficients.coordinates:
             new_row = 1
-            for component in components.split(','):
-                new_row = new_row * inp.coordinates[component]
+            if components:
+                for component in components.split(','):
+                    new_row = new_row * inp.coordinates[component]
 
             result.coordinates[components] = new_row
 
