@@ -138,6 +138,47 @@ class TestCartesian2D:
         # plt.show()
         plt.close(ax.figure)
 
+@pytest.mark.parametrize(
+    argnames='unit',
+    argvalues=[1, u.mm]
+)
+@pytest.mark.parametrize(
+    argnames='x',
+    argvalues=[
+        kgpy.labeled.LinearSpace(0, 10, num=10, axis='xx'),
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='x_width',
+    argvalues=[None, 0.1],
+)
+@pytest.mark.parametrize(
+    argnames='y',
+    argvalues=[
+        kgpy.labeled.LinearSpace(0, 10, num=11, axis='yy'),
+    ]
+)
+@pytest.mark.parametrize(
+    argnames='y_width',
+    argvalues=[None, 0.1],
+)
+class TestCartesian2DIndexNearest:
+
+    @classmethod
+    def factory(
+            cls,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ) -> kgpy.vectors.Cartesian2D:
+        if x_width is not None:
+            x = kgpy.uncertainty.Uniform(x, x_width)
+        if y_width is not None:
+            y = kgpy.uncertainty.Uniform(y, y_width)
+        return kgpy.vectors.Cartesian2D(x, y) * unit
+
     def test_index_nearest_brute(
             self,
             unit: u.Unit,
@@ -154,12 +195,21 @@ class TestCartesian2D:
         for ax in indices:
             assert np.all(index_nearest[ax] == indices[ax])
 
-            index_nearest = a.index_nearest_brute(a)
-            indices = a.indices
+    def test_index_nearest_secant(
+            self,
+            unit: u.Unit,
+            x: kgpy.labeled.ArrayLike,
+            x_width: kgpy.labeled.ArrayLike,
+            y: kgpy.labeled.ArrayLike,
+            y_width: kgpy.labeled.ArrayLike,
+    ):
+        a = self.factory(unit, x, x_width, y, y_width)
 
-            for ax in indices:
-                assert np.all(index_nearest[ax] == indices[ax])
+        index_nearest = a.index_nearest_secant(a)
+        indices = a.indices
 
+        for ax in indices:
+            assert np.all(index_nearest[ax] == indices[ax])
 
 
 class TestCartesian3D(TestCartesian2D):
