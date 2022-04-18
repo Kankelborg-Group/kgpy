@@ -31,11 +31,11 @@ def secant(
             return x1
 
         dx = x1 - x0
-        if isinstance(dx, kgpy.vectors.AbstractVector):
-            dx = dx.length
+        mask = dx.length != 0
+        mask = mask & np.isfinite(dx.length)
 
-        mask = dx != 0
-        mask = mask & np.isfinite(dx)
+        if np.all(np.abs(dx) < step_size):
+            return x1
 
         if np.all(x1 == x0):
             return x1
@@ -72,6 +72,7 @@ def secant(
 
         else:
             df = f1 - func(x0)
+            mask = mask & (df != 0)
             jacobian = df / dx
             correction = 0.9999 * f1 / jacobian
 
