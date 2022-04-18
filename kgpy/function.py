@@ -574,28 +574,25 @@ class Array(
             ),
         )
 
-    def interp_barycentric_linear_scipy(self: ArrayT, grid):
-
-        axes_uninterpolated = self.grid.keys() - grid.keys()
-        print('axes_uninterpolated', axes_uninterpolated)
-
-        # shape_grid = kgpy.labeled.Array.broadcast_shapes(*grid.values())
-        grid = grid.broadcasted
+    def interp_barycentric_linear_scipy(
+            self: ArrayT,
+            input_new: InputT
+    ) -> ArrayT:
 
         value_interp = scipy.interpolate.griddata(
-            points=tuple(val.data.reshape(-1) for val in self.grid.broadcasted.coordinates),
-            values=self.value_broadcasted.data.reshape(-1),
-            xi=tuple(val.data.reshape(-1) for val in grid.values()),
+            points=tuple(val.array.reshape(-1) for val in self.input.broadcasted.coordinates.values()),
+            values=self.output_broadcasted.array.reshape(-1),
+            xi=tuple(val.array.reshape(-1) for val in input_new.broadcasted.coordinates.values()),
         )
 
         value_interp = kgpy.labeled.Array(
-            value=value_interp.reshape(tuple(grid.shape.values())),
-            axes=list(grid.keys()),
+            array=value_interp.reshape(tuple(input_new.shape.values())),
+            axes=list(input_new.shape.keys()),
         )
 
         return Array(
-            value=value_interp,
-            grid=grid,
+            input=input_new,
+            output=value_interp,
         )
 
     def __call__(
