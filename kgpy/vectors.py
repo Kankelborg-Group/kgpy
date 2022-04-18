@@ -1015,6 +1015,9 @@ class CartesianND(
         import kgpy.matrix
         return kgpy.matrix.CartesianND(coordinates=self.coordinates)
 
+    def copy_shallow(self: CartesianNDT) -> CartesianNDT:
+        return type(self)(self.coordinates.copy())
+
     def plot(
             self: AbstractVectorT,
             ax: matplotlib.axes.Axes,
