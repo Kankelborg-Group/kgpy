@@ -2,6 +2,7 @@ import typing as typ
 import numpy as np
 import kgpy.labeled
 import kgpy.vectors
+import kgpy.matrix
 
 InputT = typ.TypeVar('InputT', bound=kgpy.vectors.VectorLike)
 OutputT = typ.TypeVar('OutputT', bound=kgpy.vectors.VectorLike)
@@ -40,23 +41,23 @@ def secant(
         if np.all(x1 == x0):
             return x1
 
-        if isinstance(f1, kgpy.vectors.AbstractVector) and isinstance(x1, kgpy.vectors.AbstractVector):
+        if isinstance(x1, kgpy.vectors.AbstractVector):
 
-            jacobian = type(f1)()
-            for component_f in jacobian.coordinates:
-                jacobian.coordinates[component_f] = type(x1)()
+            if isinstance(f1, kgpy.vectors.AbstractVector):
 
-            for component in x1.coordinates:
-                x0_component = x1.copy_shallow()
-                x0_component.coordinates[component] = x0_component.coordinates[component] - step_size.coordinates[component]
-                f0_component = func(x0_component)
-                df_component = f1 - f0_component
-                for c in jacobian.coordinates:
-                    jacobian.coordinates[c].coordinates[component] = df_component.coordinates[c] / step_size.coordinates[component]
+                jacobian = kgpy.matrix.CartesianND()
+                for component_f in f1.coordinates:
+                    jacobian.coordinates[component_f] = type(x1)()
 
-            jacobian = jacobian.to_matrix()
+                for component in x1.coordinates:
+                    x0_component = x1.copy_shallow()
+                    x0_component.coordinates[component] = x0_component.coordinates[component] - step_size.coordinates[component]
+                    f0_component = func(x0_component)
+                    df_component = f1 - f0_component
+                    for c in jacobian.coordinates:
+                        jacobian.coordinates[c].coordinates[component] = df_component.coordinates[c] / step_size.coordinates[component]
 
-            correction = 0.9999 * ~jacobian @ f1
+                correction = 0.9999 * ~jacobian @ f1
 
             else:
                 jacobian = type(x1)()
