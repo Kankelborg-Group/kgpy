@@ -50,7 +50,7 @@ class AbstractMatrix(
             for component_column in self.coordinates[component_row].coordinates:
                 result.coordinates[component_column].coordinates[component_row] = self.coordinates[component_row].coordinates[component_column]
 
-        return result
+        return result.to_matrix()
 
     def __matmul__(self: CartesianNDT, other: CartesianNDT):
         result = CartesianND()
