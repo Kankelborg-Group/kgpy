@@ -85,7 +85,7 @@ class AbstractMatrix(
 
         arrays = []
         for component_row in value_matrix.components:
-            array = np.stack(list(value_matrix.coordinates[component_row].coordinates.values()), axis='column')
+            array = kgpy.uncertainty.stack(list(value_matrix.coordinates[component_row].coordinates.values()), axis='column')
             arrays.append(array)
         arrays = np.stack(arrays, axis='row')
 
