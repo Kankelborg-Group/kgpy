@@ -527,9 +527,10 @@ class Array(
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
         index_1 = {k: index[k][dict(vertices=slice(1, None))] for k in index}
 
-        for c, component in enumerate(self.input.coordinates):
-            x0 = self.input.coordinates[component][index_0]
-            x1 = self.input.coordinates[component][index_1]
+        input_old = self.input_broadcasted
+        for c, component in enumerate(input_old.coordinates):
+            x0 = input_old.coordinates[component][index_0]
+            x1 = input_old.coordinates[component][index_1]
             barycentric_transform[dict(component=c)] = x1 - x0
 
         barycentric_transform = barycentric_transform.matrix_inverse(
@@ -537,7 +538,7 @@ class Array(
             axis_columns='vertices',
         )
 
-        barycentric_coordinates = input_new - self.input[{axis: index[axis][dict(vertices=0)] for axis in index}]
+        barycentric_coordinates = input_new - input_old[{axis: index[axis][dict(vertices=0)] for axis in index}]
         barycentric_coordinates = barycentric_coordinates.array_labeled
         barycentric_coordinates = barycentric_coordinates.add_axes(axes_simplex + ['vertices'])
 
