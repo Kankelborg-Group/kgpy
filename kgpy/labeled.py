@@ -1493,3 +1493,12 @@ def indices(shape: typ.Dict[str, int]) -> Array:
         array=np.indices(shape.values()),
         axes=['axis'] + list(shape.keys()),
     )
+
+
+def stack(arrays: typ.List[ArrayLike], axis: str):
+
+    if any([isinstance(a, AbstractArray) for a in arrays]):
+        return np.stack(arrays=arrays, axis=axis)
+
+    else:
+        return Array(np.stack(arrays), axes=[axis])
