@@ -471,7 +471,9 @@ class Array(
         A new instance of class:`kgpy.function.Array` evaluated at the coordinates `input_new`.
         """
 
-        index_nearest = self._calc_index_nearest(input_new)
+        # index_nearest = self._calc_index_nearest(input_new)
+        index_nearest = self.input.index_nearest_secant(input_new)
+        # index_nearest = self.input.index_nearest_brute(input_new)
 
         sum_index_nearest = 0
         for axis in index_nearest:
