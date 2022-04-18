@@ -17,6 +17,7 @@ __all__ = [
 
 
 AbstractMatrixT = typ.TypeVar('AbstractMatrixT', bound='AbstractMatrix')
+OtherAbstractMatrixT = typ.TypeVar('OtherAbstractMatrixT', bound='AbstractMatrix')
 Cartesian1DT = typ.TypeVar('Cartesian1DT', bound='Cartesian1D')
 Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
 Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
@@ -52,14 +53,24 @@ class AbstractMatrix(
 
         return result.to_matrix()
 
-    def __matmul__(self: CartesianNDT, other: CartesianNDT):
-        result = CartesianND()
-        other = other.transpose
-        for self_component_row in self.coordinates:
-            result.coordinates[self_component_row] = type(other)().to_vector()
-            for other_component_row in other.coordinates:
-                element = self.coordinates[self_component_row] @ other.coordinates[other_component_row]
-                result.coordinates[self_component_row].coordinates[other_component_row] = element
+    def __matmul__(self: AbstractMatrixT, other: OtherAbstractMatrixT) -> AbstractMatrixT:
+        if isinstance(other, AbstractMatrix):
+            result = type(self)()
+            other = other.transpose
+            for self_component_row in self.coordinates:
+                result.coordinates[self_component_row] = type(other)().to_vector()
+                for other_component_row in other.coordinates:
+                    element = self.coordinates[self_component_row] @ other.coordinates[other_component_row]
+                    result.coordinates[self_component_row].coordinates[other_component_row] = element
+
+        elif isinstance(other, kgpy.vectors.AbstractVector):
+            result = type(self)().to_vector()
+            for self_component_row in self.coordinates:
+                result.coordinates[self_component_row] = self.coordinates[self_component_row] @ other
+
+        else:
+            result = self * other
+
         return result
 
     def inverse_numpy(self: AbstractMatrixT) -> AbstractMatrixT:
