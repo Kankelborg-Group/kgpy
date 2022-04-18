@@ -11,7 +11,7 @@ from . import secant
     argnames='root_x',
     argvalues=[
         4,
-        kgpy.labeled.LinearSpace(4, 6, 3, axis='x'),
+        kgpy.labeled.LinearSpace(4, 6, 3, axis='xx'),
     ]
 )
 @pytest.mark.parametrize(
@@ -19,7 +19,7 @@ from . import secant
     argvalues=[
         None,
         7,
-        kgpy.labeled.LinearSpace(7, 9, 3, axis='y'),
+        kgpy.labeled.LinearSpace(7, 9, 3, axis='yy'),
     ]
 )
 @pytest.mark.parametrize(
