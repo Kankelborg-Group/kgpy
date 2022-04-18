@@ -58,6 +58,18 @@ def secant(
 
             correction = 0.9999 * ~jacobian @ f1
 
+            else:
+                jacobian = type(x1)()
+
+                for component in x1.coordinates:
+                    x0_component = x1.copy_shallow()
+                    x0_component.coordinates[component] = x0_component.coordinates[component] - step_size.coordinates[component]
+                    f0_component = func(x0_component)
+                    df_component = f1 - f0_component
+                    jacobian.coordinates[component] = df_component / step_size.coordinates[component]
+
+                correction = 0.9999 * f1 / jacobian
+
         else:
             df = f1 - func(x0)
             jacobian = df / dx
