@@ -91,7 +91,7 @@ class AbstractMatrix(
 
         arrays_inverse = arrays.matrix_inverse(axis_rows='row', axis_columns='column')
 
-        inverse_matrix = self.copy()
+        inverse_matrix = self.transpose
         for i, component_row in enumerate(inverse_matrix.components):
             coordinates_row = inverse_matrix.coordinates[component_row]
             for j, component_column in enumerate(coordinates_row.components):
