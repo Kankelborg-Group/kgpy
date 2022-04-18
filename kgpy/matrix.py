@@ -6,6 +6,7 @@ import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
+import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vectors
 
@@ -177,43 +178,6 @@ class Cartesian2D(
         )
         result = result / self.determinant
         return result
-
-    @typ.overload
-    def __matmul__(self: Cartesian2DT, other: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
-        ...
-
-    @typ.overload
-    def __matmul__(self: Cartesian2DT, other: Cartesian2DT) -> Cartesian2DT:
-        ...
-
-    def __matmul__(self, other):
-        if isinstance(other, type(self)):
-            return type(self)(
-                x=kgpy.vectors.Cartesian2D(
-                    x=self.x.x * other.x.x + self.x.y * other.y.x,
-                    y=self.x.x * other.x.y + self.x.y * other.y.y,
-                ),
-                y=kgpy.vectors.Cartesian2D(
-                    x=self.y.x * other.x.x + self.y.y * other.y.x,
-                    y=self.y.x * other.x.y + self.y.y * other.y.y,
-                ),
-            )
-        elif isinstance(other, kgpy.vectors.Cartesian2D):
-            return kgpy.vectors.Cartesian2D(
-                x=self.x.x * other.x + self.x.y * other.y,
-                y=self.y.x * other.x + self.y.y * other.y,
-            )
-        else:
-            return NotImplemented
-
-    def __rmatmul__(self: Cartesian2DT, other: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
-        if isinstance(other, kgpy.vectors.Cartesian2D):
-            return kgpy.vectors.Cartesian2D(
-                x=other.x * self.x.x + other.y * self.y.x,
-                y=other.x * self.x.y + other.y * self.y.y,
-            )
-        else:
-            return NotImplemented
 
     def to_vector(self: Cartesian2DT) -> kgpy.vectors.Cartesian2D:
         return kgpy.vectors.Cartesian2D(x=self.x, y=self.y)
