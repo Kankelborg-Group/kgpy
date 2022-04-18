@@ -472,29 +472,35 @@ class AbstractVector(
     def index_nearest_secant(
             self: AbstractVectorT,
             value: AbstractVectorT,
-            axis_search: typ.Dict[str, str],
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
     ) -> typ.Dict[str, kgpy.labeled.Array]:
 
         import kgpy.optimization
 
-        shape = self.shape
-        shape_search = kgpy.vectors.CartesianND({axis: shape[axis] for axis in axis_search})
-        indices = self[{ax: 0 for ax in axis_search.values()}].indices
+        if axis is None:
+            axis = list(self.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
 
-        def indices_factory(index: AbstractVectorT) -> typ.Dict[str, kgpy.labeled.Array]:
-            index = np.rint(index).astype(int)
-            index = np.clip(index, a_min=0, a_max=shape_search - 1)
-            indices = {**indices, **index.coordinates}
+        shape = self.shape
+        shape_nearest = kgpy.vectors.CartesianND({ax: shape[ax] for ax in axis})
+        index_base = self.broadcasted[{ax: 0 for ax in axis}].indices
+
+        def indices_factory(index_nearest: AbstractVectorT) -> typ.Dict[str, kgpy.labeled.Array]:
+            index_nearest = np.rint(index_nearest).astype(int)
+            index_nearest = np.clip(index_nearest, a_min=0, a_max=shape_nearest - 1)
+            # print('index_nearest', index_nearest)
+            indices = {**index_base, **index_nearest.coordinates}
             return indices
 
         def get_index(index: AbstractVectorT) -> AbstractVectorT:
-            return self[indices_factory(index)] - value
+            return self.broadcasted[indices_factory(index)] - value
 
         result = kgpy.optimization.root_finding.secant(
             func=get_index,
-            root_guess=shape_search,
-            step_size=kgpy.vectors.CartesianND({ax: 1 for ax in axis_search}),
-            max_abs_error=1e-9,
+            root_guess=shape_nearest // 2,
+            step_size=kgpy.vectors.CartesianND({ax: 1 for ax in axis}),
+            max_abs_error=1e-9 * value.unit,
         )
 
         return indices_factory(result)
