@@ -83,7 +83,7 @@ class PupilVector:
 
 
 @dataclasses.dataclass(eq=False)
-class PositionVector:
+class PositionVector(kgpy.vectors.AbstractVector):
     position_x: kgpy.uncertainty.ArrayLike = 0 * u.mm
     position_y: kgpy.uncertainty.ArrayLike = 0 * u.mm
 

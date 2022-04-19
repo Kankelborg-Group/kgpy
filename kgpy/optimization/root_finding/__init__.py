@@ -13,7 +13,7 @@ def secant(
         root_guess: InputT,
         step_size: InputT,
         max_abs_error: OutputT,
-        max_iterations: int = 100,
+        max_iterations: int = 2,
 ) -> InputT:
 
     x0 = root_guess - step_size
@@ -23,11 +23,11 @@ def secant(
 
         f1 = func(x1)
 
-        if isinstance(f1, kgpy.vectors.AbstractVector):
-            root_error = f1.length
-        else:
-            root_error = np.abs(f1)
-
+        # if isinstance(f1, kgpy.vectors.AbstractVector):
+        #     root_error = f1.length
+        # else:
+        #     root_error = np.abs(f1)
+        root_error = np.abs(f1)
         if np.all(root_error < max_abs_error):
             return x1
 

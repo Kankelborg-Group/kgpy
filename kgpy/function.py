@@ -430,6 +430,7 @@ class Array(
     def interp_barycentric_linear(
             self: ArrayT,
             input_new: InputT,
+            axis,
     ) -> ArrayT:
         """
         Interpolate this function using barycentric interpolation.
@@ -495,7 +496,7 @@ class Array(
         """
 
         # index_nearest = self._calc_index_nearest(input_new)
-        index_nearest = self.input.index_nearest_secant(input_new)
+        index_nearest = self.input.index_nearest_secant(input_new, axis)
         # index_nearest = self.input.index_nearest_brute(input_new)
 
         sum_index_nearest = 0
