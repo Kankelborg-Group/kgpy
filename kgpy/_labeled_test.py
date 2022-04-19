@@ -193,9 +193,9 @@ class TestArray:
 
         x = kgpy.labeled.LinearSpace(0, 1, num=5, axis='x')
         y = kgpy.labeled.LinearSpace(0, 1, num=5, axis='y')
-        z = kgpy.labeled.LinearSpace(0, 1, num=5, axis='z')
-        a = x + 10*y + 100*z
-        index_nearest = a.index_nearest_secant(a, axis=('x', 'y'))
+        # z = kgpy.labeled.LinearSpace(0, 1, num=5, axis='z')
+        a = x + 10*y
+        index_nearest = a.index_nearest_secant(a, axis='x')
         indices = a.indices
 
         for ax in indices:

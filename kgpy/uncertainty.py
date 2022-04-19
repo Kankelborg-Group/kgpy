@@ -246,6 +246,7 @@ class AbstractArray(
             np.isclose,
             np.roll,
             np.moveaxis,
+            np.clip,
         ]:
             args_nominal = [arg.normalized.nominal if isinstance(arg, AbstractArray) else arg for arg in args]
             types_nominal = list(type(arg) for arg in args_nominal if getattr(arg, '__array_function__', None) is not None)
@@ -479,3 +480,11 @@ class Array(AbstractArray[NominalT, DistributionT]):
         self.nominal[key_nominal] = value_nominal
         if self.distribution is not None:
             self.distribution[key_distribution] = value_distribution
+
+
+def stack(arrays: typ.List[ArrayLike], axis: str):
+    if any([isinstance(a, AbstractArray) for a in arrays]):
+        return np.stack(arrays=arrays, axis=axis)
+
+    else:
+        return kgpy.labeled.stack(arrays, axis=axis)

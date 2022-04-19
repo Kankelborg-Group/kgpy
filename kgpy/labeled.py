@@ -1092,7 +1092,6 @@ class AbstractArray(
         index_base = self[{ax: 0 for ax in axis}].indices
 
         def indices_factory(index_nearest: kgpy.vectors.CartesianND) -> typ.Dict[str, AbstractArrayT]:
-            print('index_nearest', index_nearest)
             index_nearest = np.rint(index_nearest).astype(int)
             index_nearest = np.clip(index_nearest, a_min=0, a_max=shape_nearest - 1)
             index = {**index_base, **index_nearest.coordinates}
@@ -1494,3 +1493,12 @@ def indices(shape: typ.Dict[str, int]) -> Array:
         array=np.indices(shape.values()),
         axes=['axis'] + list(shape.keys()),
     )
+
+
+def stack(arrays: typ.List[ArrayLike], axis: str):
+
+    if any([isinstance(a, AbstractArray) for a in arrays]):
+        return np.stack(arrays=arrays, axis=axis)
+
+    else:
+        return Array(np.stack(arrays), axes=[axis])

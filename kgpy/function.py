@@ -263,87 +263,110 @@ class Array(
             output=self.output_broadcasted[self.input.index_nearest_brute(input_new_final, axis=axis)],
         )
 
-    def calc_index_lower(self: ArrayT, input_new: InputT ) -> typ.Dict:
-
-        input_old = self.input
-        if isinstance(input_old, kgpy.vectors.AbstractVector):
-            input_old = input_old.copy()
-        else:
-            input_old = kgpy.vectors.Cartesian1D(input_old.copy())
-
-        coordinates_old = input_old.coordinates_flat
-        coordinates_dummy = dict()
-        for component in coordinates_old:
-            coordinate = coordinates_old[component]
-            if not isinstance(coordinate, kgpy.labeled.ArrayInterface):
-                continue
-            coordinate = coordinate.array_labeled
-            coordinate.axes = [f'{ax}_dummy' for ax in coordinate.axes]
-            coordinates_dummy[component] = coordinate
-        input_old.coordinates_flat = coordinates_dummy
-        shape_dummy = input_old.shape
-
-        distance = input_old - input_new
-        distance[distance > 0] = -np.inf
-        distance = distance.component_sum
-
-        distance = distance.broadcasted.combine_axes(axes=shape_dummy.keys(), axis_new='dummy')
-
-        index = np.argmax(distance, axis='dummy')
-        index = np.unravel_index(index, self.input.shape)
-
-        for axis in index:
-            index_max = self.input.shape[axis] - 2
-            index[axis][index[axis] > index_max] = index_max
-
-        return index
-
     def _interp_linear_1d_recursive(
             self,
-            input_new: InputT,
-            index_lower: typ.Dict[str, kgpy.labeled.AbstractArray],
+            input_old: kgpy.vectors.AbstractVector,
+            input_new: kgpy.vectors.AbstractVector,
+            index_below: typ.Dict[str, kgpy.labeled.AbstractArray],
             components: typ.List[str],
+            axis: typ.List[str],
     ) -> kgpy.labeled.AbstractArray:
 
         component = components.pop(0)
+        ax = []
 
         x = input_new.coordinates[component]
-        # if len(x.shape) > 1:
-        #     raise ValueError('Linear interpolation over non-separable axis')
 
-        index_upper = copy.deepcopy(index_lower)
-        for axis in x.shape:
-            index_upper[axis] = index_upper[axis] + 1
+        ax = [a for a in x.shape if a in axis]
+        if len(ax) == 0:
+            raise ValueError(f'component {component} does not depend on interpolated axes {axis}')
+        elif len(ax) > 1:
+            raise ValueError(f'component {component} depends on more than one interpolated axes {axis}')
+        ax = ax[0]
+        axis.remove(ax)
 
-        input_old = self.input
-        input_old = np.broadcast_to(input_old, input_old.shape)
-        if isinstance(input_old, kgpy.vectors.AbstractVector):
-            x0 = input_old.coordinates[component][index_lower]
-            x1 = input_old.coordinates[component][index_upper]
-        else:
-            x0 = input_old[index_lower]
-            x1 = input_old[index_upper]
+
+        index_above = copy.deepcopy(index_below)
+        index_above[ax] = index_above[ax] + 1
+
+        # input_old = self.input
+        # input_old = np.broadcast_to(input_old, input_old.shape)
+        # if isinstance(input_old, kgpy.vectors.AbstractVector):
+        x0 = input_old.broadcasted.coordinates[component][index_below]
+        x1 = input_old.broadcasted.coordinates[component][index_above]
+        # else:
+        #     x0 = input_old[index_below]
+        #     x1 = input_old[index_above]
 
         if components:
-            y0 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_lower, components=components.copy())
-            y1 = self._interp_linear_1d_recursive(input_new=input_new, index_lower=index_upper, components=components.copy())
+            y0 = self._interp_linear_1d_recursive(
+                input_old=input_old,
+                input_new=input_new,
+                index_below=index_below,
+                components=components.copy(),
+                axis=axis.copy(),
+            )
+            y1 = self._interp_linear_1d_recursive(
+                input_old=input_old,
+                input_new=input_new,
+                index_below=index_above,
+                components=components.copy(),
+                axis=axis.copy(),
+            )
 
         else:
             output = self.output_broadcasted
-            y0 = output[index_lower]
-            y1 = output[index_upper]
+            y0 = output[index_below]
+            y1 = output[index_above]
 
         result = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
 
         return result
 
-    def interp_linear(self: ArrayT, input_new: InputT, ) -> OutputT:
+    def interp_linear(
+            self: ArrayT,
+            input_new: InputT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> OutputT:
+
+        input_old = self.input
+        if not isinstance(input_old, kgpy.vectors.AbstractVector):
+            input_old = kgpy.vectors.Cartesian1D(input_old)
+
         if not isinstance(input_new, kgpy.vectors.AbstractVector):
             input_new = kgpy.vectors.Cartesian1D(input_new)
-        return self._interp_linear_1d_recursive(
-            input_new=input_new,
-            index_lower=self.calc_index_lower(input_new),
-            components=list(input_new.components),
+
+        input_old_interp = input_old.copy_shallow()
+        input_new_final = input_new.copy_shallow()
+        components = []
+        for component in input_new.coordinates:
+            if input_new.coordinates[component] is None:
+                input_old_interp.coordinates[component] = None
+                input_new_final.coordinates[component] = input_old.coordinates[component]
+            else:
+                components.append(component)
+
+        if axis is None:
+            axis = list(input_old_interp.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
+        else:
+            axis = axis.copy()
+
+        if len(components) != len(axis):
+            raise ValueError('Separable system must have as many axes as components')
+
+        output_new = self._interp_linear_1d_recursive(
+            input_old=input_old,
+            input_new=input_new_final,
+            index_below=self.input.index_below_brute(input_new_final, axis=axis),
+            components=components,
+            axis=axis,
+        )
+
+        return Array(
+            input=input_new_final,
+            output=output_new,
         )
 
     @staticmethod
@@ -471,7 +494,9 @@ class Array(
         A new instance of class:`kgpy.function.Array` evaluated at the coordinates `input_new`.
         """
 
-        index_nearest = self._calc_index_nearest(input_new)
+        # index_nearest = self._calc_index_nearest(input_new)
+        index_nearest = self.input.index_nearest_secant(input_new)
+        # index_nearest = self.input.index_nearest_brute(input_new)
 
         sum_index_nearest = 0
         for axis in index_nearest:
@@ -525,9 +550,10 @@ class Array(
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
         index_1 = {k: index[k][dict(vertices=slice(1, None))] for k in index}
 
-        for c, component in enumerate(self.input.coordinates):
-            x0 = self.input.coordinates[component][index_0]
-            x1 = self.input.coordinates[component][index_1]
+        input_old = self.input_broadcasted
+        for c, component in enumerate(input_old.coordinates):
+            x0 = input_old.coordinates[component][index_0]
+            x1 = input_old.coordinates[component][index_1]
             barycentric_transform[dict(component=c)] = x1 - x0
 
         barycentric_transform = barycentric_transform.matrix_inverse(
@@ -535,7 +561,7 @@ class Array(
             axis_columns='vertices',
         )
 
-        barycentric_coordinates = input_new - self.input[{axis: index[axis][dict(vertices=0)] for axis in index}]
+        barycentric_coordinates = input_new - input_old[{axis: index[axis][dict(vertices=0)] for axis in index}]
         barycentric_coordinates = barycentric_coordinates.array_labeled
         barycentric_coordinates = barycentric_coordinates.add_axes(axes_simplex + ['vertices'])
 
@@ -571,28 +597,25 @@ class Array(
             ),
         )
 
-    def interp_barycentric_linear_scipy(self: ArrayT, grid):
-
-        axes_uninterpolated = self.grid.keys() - grid.keys()
-        print('axes_uninterpolated', axes_uninterpolated)
-
-        # shape_grid = kgpy.labeled.Array.broadcast_shapes(*grid.values())
-        grid = grid.broadcasted
+    def interp_barycentric_linear_scipy(
+            self: ArrayT,
+            input_new: InputT
+    ) -> ArrayT:
 
         value_interp = scipy.interpolate.griddata(
-            points=tuple(val.data.reshape(-1) for val in self.grid.broadcasted.coordinates),
-            values=self.value_broadcasted.data.reshape(-1),
-            xi=tuple(val.data.reshape(-1) for val in grid.values()),
+            points=tuple(val.array.reshape(-1) for val in self.input.broadcasted.coordinates.values()),
+            values=self.output_broadcasted.array.reshape(-1),
+            xi=tuple(val.array.reshape(-1) for val in input_new.broadcasted.coordinates.values()),
         )
 
         value_interp = kgpy.labeled.Array(
-            value=value_interp.reshape(tuple(grid.shape.values())),
-            axes=list(grid.keys()),
+            array=value_interp.reshape(tuple(input_new.shape.values())),
+            axes=list(input_new.shape.keys()),
         )
 
         return Array(
-            value=value_interp,
-            grid=grid,
+            input=input_new,
+            output=value_interp,
         )
 
     def __call__(

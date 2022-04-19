@@ -6,6 +6,7 @@ import typing as typ
 import dataclasses
 import numpy as np
 import astropy.units as u
+import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vectors
 
@@ -17,6 +18,7 @@ __all__ = [
 
 
 AbstractMatrixT = typ.TypeVar('AbstractMatrixT', bound='AbstractMatrix')
+OtherAbstractMatrixT = typ.TypeVar('OtherAbstractMatrixT', bound='AbstractMatrix')
 Cartesian1DT = typ.TypeVar('Cartesian1DT', bound='Cartesian1D')
 Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
 Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
@@ -50,16 +52,26 @@ class AbstractMatrix(
             for component_column in self.coordinates[component_row].coordinates:
                 result.coordinates[component_column].coordinates[component_row] = self.coordinates[component_row].coordinates[component_column]
 
-        return result
+        return result.to_matrix()
 
-    def __matmul__(self: CartesianNDT, other: CartesianNDT):
-        result = CartesianND()
-        other = other.transpose
-        for self_component_row in self.coordinates:
-            result.coordinates[self_component_row] = type(other)().to_vector()
-            for other_component_row in other.coordinates:
-                element = self.coordinates[self_component_row] @ other.coordinates[other_component_row]
-                result.coordinates[self_component_row].coordinates[other_component_row] = element
+    def __matmul__(self: AbstractMatrixT, other: OtherAbstractMatrixT) -> AbstractMatrixT:
+        if isinstance(other, AbstractMatrix):
+            result = type(self)()
+            other = other.transpose
+            for self_component_row in self.coordinates:
+                result.coordinates[self_component_row] = type(other)().to_vector()
+                for other_component_row in other.coordinates:
+                    element = self.coordinates[self_component_row] @ other.coordinates[other_component_row]
+                    result.coordinates[self_component_row].coordinates[other_component_row] = element
+
+        elif isinstance(other, kgpy.vectors.AbstractVector):
+            result = type(self)().to_vector()
+            for self_component_row in self.coordinates:
+                result.coordinates[self_component_row] = self.coordinates[self_component_row] @ other
+
+        else:
+            result = self * other
+
         return result
 
     def inverse_numpy(self: AbstractMatrixT) -> AbstractMatrixT:
@@ -74,13 +86,13 @@ class AbstractMatrix(
 
         arrays = []
         for component_row in value_matrix.components:
-            array = np.stack(list(value_matrix.coordinates[component_row].coordinates.values()), axis='column')
+            array = kgpy.uncertainty.stack(list(value_matrix.coordinates[component_row].coordinates.values()), axis='column')
             arrays.append(array)
         arrays = np.stack(arrays, axis='row')
 
         arrays_inverse = arrays.matrix_inverse(axis_rows='row', axis_columns='column')
 
-        inverse_matrix = self.copy()
+        inverse_matrix = self.transpose
         for i, component_row in enumerate(inverse_matrix.components):
             coordinates_row = inverse_matrix.coordinates[component_row]
             for j, component_column in enumerate(coordinates_row.components):
@@ -167,43 +179,6 @@ class Cartesian2D(
         result = result / self.determinant
         return result
 
-    @typ.overload
-    def __matmul__(self: Cartesian2DT, other: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
-        ...
-
-    @typ.overload
-    def __matmul__(self: Cartesian2DT, other: Cartesian2DT) -> Cartesian2DT:
-        ...
-
-    def __matmul__(self, other):
-        if isinstance(other, type(self)):
-            return type(self)(
-                x=kgpy.vectors.Cartesian2D(
-                    x=self.x.x * other.x.x + self.x.y * other.y.x,
-                    y=self.x.x * other.x.y + self.x.y * other.y.y,
-                ),
-                y=kgpy.vectors.Cartesian2D(
-                    x=self.y.x * other.x.x + self.y.y * other.y.x,
-                    y=self.y.x * other.x.y + self.y.y * other.y.y,
-                ),
-            )
-        elif isinstance(other, kgpy.vectors.Cartesian2D):
-            return kgpy.vectors.Cartesian2D(
-                x=self.x.x * other.x + self.x.y * other.y,
-                y=self.y.x * other.x + self.y.y * other.y,
-            )
-        else:
-            return NotImplemented
-
-    def __rmatmul__(self: Cartesian2DT, other: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
-        if isinstance(other, kgpy.vectors.Cartesian2D):
-            return kgpy.vectors.Cartesian2D(
-                x=other.x * self.x.x + other.y * self.y.x,
-                y=other.x * self.x.y + other.y * self.y.y,
-            )
-        else:
-            return NotImplemented
-
     def to_vector(self: Cartesian2DT) -> kgpy.vectors.Cartesian2D:
         return kgpy.vectors.Cartesian2D(x=self.x, y=self.y)
 
@@ -274,53 +249,6 @@ class Cartesian3D(
         )
         determinant = a * result.x.x + b * result.y.x + c * result.z.x
         return result / determinant
-
-    @typ.overload
-    def __matmul__(self: Cartesian3DT, other: kgpy.vectors.Cartesian3D) -> kgpy.vectors.Cartesian3D:
-        ...
-
-    @typ.overload
-    def __matmul__(self: Cartesian3DT, other: Cartesian3DT) -> Cartesian3DT:
-        ...
-
-    def __matmul__(self, other):
-        if isinstance(other, type(self)):
-            cls = type(self)
-            return cls(
-                x=kgpy.vectors.Cartesian3D(
-                    x=self.x.x * other.x.x + self.x.y * other.y.x + self.x.z * other.z.x,
-                    y=self.x.x * other.x.y + self.x.y * other.y.y + self.x.z * other.z.y,
-                    z=self.x.x * other.x.z + self.x.y * other.y.z + self.x.z * other.z.z,
-                ),
-                y=kgpy.vectors.Cartesian3D(
-                    x=self.y.x * other.x.x + self.y.y * other.y.x + self.y.z * other.z.x,
-                    y=self.y.x * other.x.y + self.y.y * other.y.y + self.y.z * other.z.y,
-                    z=self.y.x * other.x.z + self.y.y * other.y.z + self.y.z * other.z.z,
-                ),
-                z=kgpy.vectors.Cartesian3D(
-                    x=self.z.x * other.x.x + self.z.y * other.y.x + self.z.z * other.z.x,
-                    y=self.z.x * other.x.y + self.z.y * other.y.y + self.z.z * other.z.y,
-                    z=self.z.x * other.x.z + self.z.y * other.y.z + self.z.z * other.z.z,
-                ),
-            )
-        elif isinstance(other, kgpy.vectors.Cartesian3D):
-            return kgpy.vectors.Cartesian3D(
-                x=self.x.x * other.x + self.x.y * other.y + self.x.z * other.z,
-                y=self.y.x * other.x + self.y.y * other.y + self.y.z * other.z,
-                z=self.z.x * other.x + self.z.y * other.y + self.z.z * other.z,
-            )
-        else:
-            return NotImplemented
-
-    def __rmatmul__(self: Cartesian3DT, other: kgpy.vectors.Cartesian3D):
-        if isinstance(other, kgpy.vectors.Cartesian3D):
-            return kgpy.vectors.Cartesian3D(
-                x=other.x * self.x.x + other.y * self.y.x + other.z * self.z.x,
-                y=other.x * self.x.y + other.y * self.y.y + other.z * self.z.y,
-                z=other.x * self.x.z + other.y * self.y.z + other.z * self.z.z,
-            )
-        else:
-            return NotImplemented
 
     def to_vector(self: Cartesian3DT) -> kgpy.vectors.Cartesian3D:
         return kgpy.vectors.Cartesian3D(x=self.x, y=self.y, z=self.z)
