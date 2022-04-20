@@ -27,6 +27,19 @@ import kgpy.ctis.instruments
 import kgpy.optics.aberrations
 
 # %%
+
+wvs = kgpy.labeled.Array([584] * u.AA, axes=['wavelength'])
+inputs = kgpy.optics.vectors.SpectralFieldVector(
+    field_x=kgpy.labeled.LinearSpace(-10 * u.arcsec, 10 * u.arcsec, num=5, axis='field_x'),
+    field_y=kgpy.labeled.LinearSpace(-10 * u.arcsec, 10 * u.arcsec, num=5, axis='field_y'),
+    wavelength=wvs,
+    # wavelength=kgpy.optics.vectors.DopplerVector(
+    #     wavelength_rest=wavelength_rest,
+    #     # velocity_los=kgpy.labeled.LinearSpace(-10 * u.km / u.s, 10 * u.km / u.s, num=3, axis='velocity_los'),
+    #     velocity_los=kgpy.labeled.LinearSpace(-.300 * u.AA, .3 * u.AA, num=3, axis='velocity_los') / wavelength_rest * astropy.constants.c,
+    # ).wavelength
+)
+
 instrument = kgpy.ctis.instruments.AberrationInstrument(
     aberration=kgpy.optics.aberrations.Aberration(
         distortion=kgpy.optics.aberrations.Distortion(kgpy.function.Polynomial(
@@ -38,7 +51,7 @@ instrument = kgpy.ctis.instruments.AberrationInstrument(
             input=None,
             coefficients=kgpy.vectors.CartesianND({
                 '': kgpy.optics.vectors.SpectralPositionVector(
-                    position_x=-574 * u.pix,
+                    position_x=-(584-10) * u.pix,
                     position_y=10 * u.pix,
                     wavelength=0 * u.AA,
                 ),
@@ -64,17 +77,7 @@ instrument = kgpy.ctis.instruments.AberrationInstrument(
 # %% md
 
 # %%
-wvs = kgpy.labeled.Array([584, 602, 630] * u.AA, axes=['wavelength'])
-inputs = kgpy.optics.vectors.SpectralFieldVector(
-    field_x=kgpy.labeled.LinearSpace(-10 * u.arcsec, 10 * u.arcsec, num=11, axis='field_x'),
-    field_y=kgpy.labeled.LinearSpace(-10 * u.arcsec, 10 * u.arcsec, num=11, axis='field_y'),
-    wavelength=wvs,
-    # wavelength=kgpy.optics.vectors.DopplerVector(
-    #     wavelength_rest=wavelength_rest,
-    #     # velocity_los=kgpy.labeled.LinearSpace(-10 * u.km / u.s, 10 * u.km / u.s, num=3, axis='velocity_los'),
-    #     velocity_los=kgpy.labeled.LinearSpace(-.300 * u.AA, .3 * u.AA, num=3, axis='velocity_los') / wavelength_rest * astropy.constants.c,
-    # ).wavelength
-)
+
 
 output = np.exp(-np.square(inputs.field_x / (10 * u.arcsec))) * np.exp(-np.square(inputs.field_y / (30 * u.arcsec)))
 
@@ -143,16 +146,18 @@ images.pcolormesh(
 #     images.output.array,
 # )
 # %%
-plt.show()
+# plt.show()
 
 input_coords = kgpy.optics.vectors.SpectralPositionVector(
-    position_x=kgpy.labeled.LinearSpace(1 * u.pix, 55 * u.pix, num=21, axis='position_x'),
-    position_y=kgpy.labeled.LinearSpace(1 * u.pix, 19 * u.pix, num=21, axis='position_y'),
-    wavelength=wvs)
+    position_x=kgpy.labeled.LinearSpace(0 * u.pix, 20 * u.pix, num=7, axis='position_x'),
+    position_y=kgpy.labeled.LinearSpace(0 * u.pix, 20 * u.pix, num=7, axis='position_y'),
+    wavelength=kgpy.labeled.Array([584] * u.AA, axes=['wavelength'])
+)
 
-import warnings
+# plt.show()
+# import warnings
 
-warnings.filterwarnings("error")
+# warnings.filterwarnings("error")
 
 test = images.interp_barycentric_linear(
     input_new=input_coords,
