@@ -13,7 +13,7 @@ def secant(
         root_guess: InputT,
         step_size: InputT,
         max_abs_error: OutputT,
-        max_iterations: int = 2,
+        max_iterations: int = 100,
 ) -> InputT:
 
     x0 = root_guess - step_size
@@ -58,6 +58,7 @@ def secant(
                         jacobian.coordinates[c].coordinates[component] = df_component.coordinates[c] / step_size.coordinates[component]
 
                 correction = 0.9999 * ~jacobian @ f1
+                print('correction',  correction)
 
             else:
                 jacobian = type(x1)()
