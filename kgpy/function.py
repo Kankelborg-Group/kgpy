@@ -159,7 +159,7 @@ class AbstractArray(
                 if input_component_column is not None:
                     index_final[input_component_column] = index_subplot['column']
 
-                inp = self.input.broadcasted[index_final]
+                inp = self.input_broadcasted[index_final]
                 inp_x = inp.coordinates_flat[input_component_x]
                 inp_y = inp.coordinates_flat[input_component_y]
 
