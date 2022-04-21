@@ -500,8 +500,8 @@ class Array(
         # index_nearest = self.input.index_nearest_brute(input_new)
 
         sum_index_nearest = 0
-        for axis in index_nearest:
-            sum_index_nearest = sum_index_nearest + index_nearest[axis]
+        for ax in index_nearest:
+            sum_index_nearest = sum_index_nearest + index_nearest[ax]
         where_even = sum_index_nearest % 2 == 0
 
         num_vertices = len(input_new.coordinates) + 1
@@ -509,24 +509,29 @@ class Array(
         axes_simplex = [
             'apex'
         ]
-        for a, axis in enumerate(index_nearest.keys()):
-            axis_simplex = f'simplex_{axis}'
-            axes_simplex.append(axis_simplex)
-            shape_axis = {
-                axis_simplex: 2,
-                'vertices': num_vertices,
-                'apex': 2
-            }
-            simplex_axis = kgpy.labeled.Array.zeros(shape=shape_axis, dtype=int)
-            simplex_axis[dict(vertices=a+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
-            simplex_axis[dict(vertices=0, apex=1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
-            index[axis] = index_nearest[axis] + simplex_axis
+        index_vertex = 0
+        for ax in index_nearest:
+            if ax in axis:
+                axis_simplex = f'simplex_{ax}'
+                axes_simplex.append(axis_simplex)
+                shape_axis = {
+                    axis_simplex: 2,
+                    'vertices': num_vertices,
+                    'apex': 2
+                }
+                simplex_axis = kgpy.labeled.Array.zeros(shape=shape_axis, dtype=int)
+                simplex_axis[dict(vertices=index_vertex+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
+                simplex_axis[dict(vertices=0, apex=1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
+                index[ax] = index_nearest[ax] + simplex_axis
+                index_vertex += 1
+            else:
+                index[ax] = index_nearest[ax]
 
         shape_index = kgpy.labeled.Array.broadcast_shapes(*index.values())
 
         closed_vertices = dict(vertices=kgpy.labeled.Array(array=np.array([0, 1, 2, 0]), axes=['vertices']))
 
-        axis_shifted = next(iter(index_nearest))
+        axis_shifted = next(ax for ax in index_nearest if ax in axis)
         axis_shifted_simplex = f'simplex_{axis_shifted}'
         shape_where_odd = shape_index.copy()
         shape_where_odd.pop(axis_shifted_simplex)

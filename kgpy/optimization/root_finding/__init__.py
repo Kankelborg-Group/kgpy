@@ -19,9 +19,15 @@ def secant(
     x0 = root_guess - step_size
     x1 = root_guess
 
+    f0 = None
+
     for i in range(max_iterations):
 
         f1 = func(x1)
+
+        if f0 is not None:
+            if np.all(f1 == f0):
+                return x1
 
         # if isinstance(f1, kgpy.vectors.AbstractVector):
         #     root_error = f1.length
@@ -93,6 +99,8 @@ def secant(
 
         x0 = x1
         x1 = x2
+
+        f0 = f1
 
     raise ValueError('Max iterations exceeded')
 
