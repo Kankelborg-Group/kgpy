@@ -159,7 +159,7 @@ class AbstractArray(
                 if input_component_column is not None:
                     index_final[input_component_column] = index_subplot['column']
 
-                inp = self.input.broadcasted[index_final]
+                inp = self.input_broadcasted[index_final]
                 inp_x = inp.coordinates_flat[input_component_x]
                 inp_y = inp.coordinates_flat[input_component_y]
 
@@ -496,7 +496,7 @@ class Array(
         """
 
         # index_nearest = self._calc_index_nearest(input_new)
-        index_nearest = self.input.index_nearest_secant(input_new, axis)
+        index_nearest = self.input.index_nearest_secant(input_new, axis=axis,)
         # index_nearest = self.input.index_nearest_brute(input_new)
 
         sum_index_nearest = 0
@@ -540,18 +540,13 @@ class Array(
         index[axis_shifted][{axis_shifted_simplex: 0}][where_even] = index[axis_shifted][{axis_shifted_simplex: 0}][where_even] + 1
         index[axis_shifted][{axis_shifted_simplex: 1}][where_even] = index[axis_shifted][{axis_shifted_simplex: 1}][where_even] - 1
 
-        for axis in index:
-            index[axis] = np.broadcast_to(index[axis], shape_index).copy()
+        for ax in index:
+            index[ax] = np.broadcast_to(index[ax], shape_index).copy()
             where_even = where_even.broadcast_to(shape_index)
 
         index = {k: np.clip(index[k], 0, self.input.shape[k] - 1) for k in index}
 
-        barycentric_transform_shape = shape_index.copy()
-        barycentric_transform_shape['vertices'] = len(input_new.coordinates)
-        barycentric_transform_shape['component'] = len(input_new.coordinates)
-        barycentric_transform = kgpy.labeled.Array.empty(barycentric_transform_shape)
-        if isinstance(input_new.unit, u.UnitBase):
-            barycentric_transform = barycentric_transform << input_new.unit
+        barycentric_transform = kgpy.matrix.CartesianND()
 
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
         index_1 = {k: index[k][dict(vertices=slice(1, None))] for k in index}
@@ -560,33 +555,23 @@ class Array(
         for c, component in enumerate(input_old.coordinates):
             x0 = input_old.coordinates[component][index_0]
             x1 = input_old.coordinates[component][index_1]
-            barycentric_transform[dict(component=c)] = x1 - x0
-
-        barycentric_transform = barycentric_transform.matrix_inverse(
-            axis_rows='component',
-            axis_columns='vertices',
-        )
+            dx = x1 - x0
+            barycentric_transform.coordinates[component] = kgpy.vectors.CartesianND(
+                coordinates={axis[i]: dx[dict(vertices=i)] for i in range(dx.shape['vertices'])},
+            )
 
         barycentric_coordinates = input_new - input_old[{axis: index[axis][dict(vertices=0)] for axis in index}]
-        barycentric_coordinates = barycentric_coordinates.array_labeled
-        barycentric_coordinates = barycentric_coordinates.add_axes(axes_simplex + ['vertices'])
+        barycentric_coordinates = ~barycentric_transform @ barycentric_coordinates
 
-        barycentric_coordinates = barycentric_transform.matrix_multiply(
-            barycentric_coordinates,
-            axis_rows='component',
-            axis_columns='vertices',
-        ).combine_axes(['vertices', 'component'], axis_new='vertices')
-
-        shape_weights = shape_index
-        weights = kgpy.labeled.Array.empty(shape_weights)
-        weights[dict(vertices=0)] = 1 - np.sum(barycentric_coordinates, axis='vertices')
-        weights[dict(vertices=slice(1, None))] = barycentric_coordinates
+        weights = barycentric_coordinates.copy_shallow()
+        weights.coordinates['origin'] = 1 - barycentric_coordinates.component_sum
+        weights = np.moveaxis(weights.array_labeled, 'component', 'vertices')
 
         epsilon = 1e-15
         mask_inside = (-epsilon <= weights) & (weights <= 1 + epsilon)
-        for axis in index:
-            mask_inside = mask_inside & (index[axis] >= 0)
-            mask_inside = mask_inside & (index[axis] < self.input.shape[axis])
+        for ax in index:
+            mask_inside = mask_inside & (index[ax] >= 0)
+            mask_inside = mask_inside & (index[ax] < self.input.shape[ax])
         mask_inside = np.all(mask_inside, axis='vertices')
 
         output_new = weights * self.output_broadcasted[index]
