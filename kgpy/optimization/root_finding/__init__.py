@@ -64,7 +64,7 @@ def secant(
                         jacobian.coordinates[c].coordinates[component] = df_component.coordinates[c] / step_size.coordinates[component]
 
                 correction = 0.9999 * ~jacobian @ f1
-                print('correction',  correction)
+                # print('correction',  correction)
 
             else:
                 jacobian = type(x1)()
