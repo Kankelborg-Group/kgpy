@@ -557,6 +557,8 @@ class Array(
 
         input_old = self.input_broadcasted
         for c, component in enumerate(input_old.coordinates):
+            if not isinstance(self.input.coordinates[component], kgpy.labeled.ArrayInterface):
+                continue
             if any(ax in self.input.coordinates[component].axes for ax in axis):
                 x0 = input_old.coordinates[component][index_0]
                 x1 = input_old.coordinates[component][index_1]
