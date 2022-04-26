@@ -502,17 +502,21 @@ class Array(
 
         # index_nearest = self._calc_index_nearest(input_new)
         # index_nearest = self.input.index_nearest_secant(input_new, axis=axis,)
-        indices_input = self.input[{ax: 0 for ax in self.input.shape if ax not in axis}].indices
-        where_input_even = kgpy.vectors.CartesianND(indices_input).component_sum % 2 == 0
         index_nearest = self.input.index_nearest_brute(
             value=input_new,
             axis=axis,
-            where=where_input_even,
         )
+
+        sum_index_nearest = 0
+        for ax in index_nearest:
+            sum_index_nearest = sum_index_nearest + index_nearest[ax]
+        where_even = sum_index_nearest % 2 == 0
 
         num_vertices = len(axis) + 1
         index = dict()
-        axes_simplex = []
+        axes_simplex = [
+            'apex',
+        ]
         index_vertex = 0
         for ax in index_nearest:
             if ax in axis:
@@ -521,18 +525,27 @@ class Array(
                 shape_axis = {
                     axis_simplex: 2,
                     'vertices': num_vertices,
+                    'apex': 2,
                 }
                 simplex_axis = kgpy.labeled.Array.zeros(shape=shape_axis, dtype=int)
                 simplex_axis[dict(vertices=index_vertex+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
+                simplex_axis[dict(vertices=0, apex=1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
                 index[ax] = index_nearest[ax] + simplex_axis
                 index_vertex += 1
             else:
                 index[ax] = index_nearest[ax]
 
         shape_index = kgpy.labeled.Array.broadcast_shapes(*index.values())
-
         for ax in index:
             index[ax] = np.broadcast_to(index[ax], shape_index).copy()
+
+        axis_shifted = axis[0]
+        axis_shifted_simplex = f'simplex_{axis_shifted}'
+        shape_where_even = shape_index.copy()
+        shape_where_even.pop(axis_shifted_simplex)
+        where_even = where_even.broadcast_to(shape_where_even)
+        index[axis_shifted][{axis_shifted_simplex: 0}][where_even] = index[axis_shifted][{axis_shifted_simplex: 0}][where_even] + 1
+        index[axis_shifted][{axis_shifted_simplex: 1}][where_even] = index[axis_shifted][{axis_shifted_simplex: 1}][where_even] - 1
 
         index = {k: np.clip(index[k], 0, self.input.shape[k] - 1) for k in index}
 
