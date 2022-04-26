@@ -236,6 +236,9 @@ class AbstractVector(
                 inputs_component.append(inp)
 
             for inp in inputs_component:
+                if inp is None:
+                    components_result[component] = None
+                    break
                 if not hasattr(inp, '__array_ufunc__'):
                     inp = np.array(inp)
                 try:
