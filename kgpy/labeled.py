@@ -273,9 +273,8 @@ class ArrayInterface(
 
     @property
     def indices(self) -> typ.Dict[str, ArrayT]:
-        result = np.indices(self.shape.values())
-        axes = list(self.shape.keys())
-        result = {axis: Array(r, axes=axes) for axis, r in zip(self.shape, result)}
+        shape = self.shape
+        result = {axis: Range(0, shape[axis], axis=axis) for axis in shape}
         return result
 
     def ndindex(
