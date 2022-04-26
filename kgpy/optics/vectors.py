@@ -63,7 +63,7 @@ class DopplerVector(kgpy.vectors.AbstractVector):
 
 
 @dataclasses.dataclass(eq=False)
-class FieldVector:
+class FieldVector(kgpy.vectors.AbstractVector):
     field_x: kgpy.uncertainty.ArrayLike = 0 * u.deg
     field_y: kgpy.uncertainty.ArrayLike = 0 * u.deg
 
@@ -73,7 +73,7 @@ class FieldVector:
 
 
 @dataclasses.dataclass(eq=False)
-class PupilVector:
+class PupilVector(kgpy.vectors.AbstractVector):
     pupil_x: kgpy.uncertainty.ArrayLike = 0 * u.mm
     pupil_y: kgpy.uncertainty.ArrayLike = 0 * u.mm
 
@@ -94,34 +94,34 @@ class PositionVector(kgpy.vectors.AbstractVector):
 
 @dataclasses.dataclass(eq=False)
 class SpectralFieldVector(
-    SpectralVector,
     FieldVector,
+    SpectralVector,
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class SpectralPositionVector(
-    SpectralVector,
     PositionVector,
+    SpectralVector,
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class ObjectVector(
-    DopplerVector,
     PupilVector,
     FieldVector,
+    DopplerVector,
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class SpotVector(
-    DopplerVector,
     PositionVector,
     FieldVector,
+    DopplerVector,
 ):
     pass
 

@@ -177,6 +177,13 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.mean(self, axis=axis, where=where)
 
+    def std(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.std(self, axis=axis, where=where)
+
     def all(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
@@ -266,9 +273,8 @@ class ArrayInterface(
 
     @property
     def indices(self) -> typ.Dict[str, ArrayT]:
-        result = np.indices(self.shape.values())
-        axes = list(self.shape.keys())
-        result = {axis: Array(r, axes=axes) for axis, r in zip(self.shape, result)}
+        shape = self.shape
+        result = {axis: Range(0, shape[axis], axis=axis) for axis in shape}
         return result
 
     def ndindex(
@@ -310,6 +316,7 @@ class ArrayInterface(
             func: typ.Callable[[ArrayInterfaceT], ArrayInterfaceT],
             value: ArrayInterfaceT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: typ.Optional[ArrayInterfaceT] = None,
     ) -> typ.Dict[str, AbstractArrayT]:
 
         if not self.shape:
@@ -320,18 +327,20 @@ class ArrayInterface(
         elif isinstance(axis, str):
             axis = [axis, ]
 
-        other = np.moveaxis(
-            a=self,
-            source=axis,
-            destination=[f'{ax}_dummy' for ax in axis],
-        )
+        axis_dummy = [f'{ax}_dummy' for ax in axis]
+        other = np.moveaxis(a=self, source=axis, destination=axis_dummy)
 
-        distance = func((value - other) / other.mean())
-        distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in axis], axis_new='dummy')
+        distance = func(value - other)
+        distance = distance.combine_axes(axes=axis_dummy, axis_new='dummy')
+
+        if where is not None:
+            where = np.moveaxis(where, source=axis, destination=axis_dummy)
+            where = where.combine_axes(axes=axis_dummy, axis_new='dummy')
+            where = where.broadcast_to(distance.shape)
+            distance[~where] = np.inf
 
         index_nearest = np.argmin(distance, axis='dummy')
-        index_base = index_nearest.indices
-
+        index_base = self[{ax: 0 for ax in axis}].indices
         shape_nearest = {ax: self.shape[ax] for ax in self.shape if ax in axis}
         index_nearest = np.unravel_index(index_nearest, shape_nearest)
         index = {**index_base, **index_nearest}
@@ -342,11 +351,13 @@ class ArrayInterface(
             self: ArrayInterfaceT,
             value: ArrayInterfaceT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: typ.Optional[ArrayInterfaceT] = None,
     ) -> typ.Dict[str, ArrayInterfaceT]:
         return self._index_arbitrary_brute(
             func=lambda x: x.length,
             value=value,
             axis=axis,
+            where=where,
         )
 
     def index_below_brute(
@@ -571,15 +582,18 @@ class AbstractArray(
         if shape[axis_rows] != shape[axis_columns]:
             raise ValueError('Matrix must be square')
 
+        axis_rows_inverse = axis_columns
+        axis_columns_inverse = axis_rows
+
         if shape[axis_rows] == 1:
             return 1 / self
 
         elif shape[axis_rows] == 2:
             result = Array(array=self.array.copy(), axes=self.axes.copy())
-            result[{axis_rows: 0, axis_columns: 0}] = self[{axis_rows: 1, axis_columns: 1}]
-            result[{axis_rows: 1, axis_columns: 1}] = self[{axis_rows: 0, axis_columns: 0}]
-            result[{axis_rows: 0, axis_columns: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
-            result[{axis_rows: 1, axis_columns: 0}] = -self[{axis_rows: 1, axis_columns: 0}]
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 0}] = self[{axis_rows: 1, axis_columns: 1}]
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 1}] = self[{axis_rows: 0, axis_columns: 0}]
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 0}] = -self[{axis_rows: 1, axis_columns: 0}]
             return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
 
         elif shape[axis_rows] == 3:
@@ -594,15 +608,15 @@ class AbstractArray(
             i = self[{axis_rows: 2, axis_columns: 2}]
 
             result = Array(array=self.array.copy(), axes=self.axes.copy())
-            result[{axis_rows: 0, axis_columns: 0}] = (e * i - f * h)
-            result[{axis_rows: 0, axis_columns: 1}] = -(b * i - c * h)
-            result[{axis_rows: 0, axis_columns: 2}] = (b * f - c * e)
-            result[{axis_rows: 1, axis_columns: 0}] = -(d * i - f * g)
-            result[{axis_rows: 1, axis_columns: 1}] = (a * i - c * g)
-            result[{axis_rows: 1, axis_columns: 2}] = -(a * f - c * d)
-            result[{axis_rows: 2, axis_columns: 0}] = (d * h - e * g)
-            result[{axis_rows: 2, axis_columns: 1}] = -(a * h - b * g)
-            result[{axis_rows: 2, axis_columns: 2}] = (a * e - b * d)
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 0}] = (e * i - f * h)
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 1}] = -(b * i - c * h)
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 2}] = (b * f - c * e)
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 0}] = -(d * i - f * g)
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 1}] = (a * i - c * g)
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 2}] = -(a * f - c * d)
+            result[{axis_rows_inverse: 2, axis_columns_inverse: 0}] = (d * h - e * g)
+            result[{axis_rows_inverse: 2, axis_columns_inverse: 1}] = -(a * h - b * g)
+            result[{axis_rows_inverse: 2, axis_columns_inverse: 2}] = (a * e - b * d)
             return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
 
         else:
@@ -617,8 +631,8 @@ class AbstractArray(
             axes_new = self.axes.copy()
             axes_new.remove(axis_rows)
             axes_new.remove(axis_columns)
-            axes_new.append(axis_rows)
-            axes_new.append(axis_columns)
+            axes_new.append(axis_rows_inverse)
+            axes_new.append(axis_columns_inverse)
 
             return Array(
                 array=np.linalg.inv(value),
@@ -658,6 +672,8 @@ class AbstractArray(
                 inp = Array(inp)
             elif isinstance(inp, AbstractArray):
                 pass
+            elif inp is None:
+                return None
             else:
                 return NotImplemented
             inputs_normalized.append(inp)
@@ -934,6 +950,7 @@ class AbstractArray(
             np.nansum,
             np.mean,
             np.nanmean,
+            np.std,
             np.median,
             np.nanmedian,
             np.percentile,
@@ -1062,6 +1079,8 @@ class AbstractArray(
                 item_axis = item_casted[axis_name]
                 if isinstance(item_axis, AbstractArray):
                     item_axis = item_axis.array_aligned(shape_advanced)
+                if axis_name not in axes:
+                    continue
                 index[axes.index(axis_name)] = item_axis
                 if not isinstance(item_axis, slice):
                     axes_new.remove(axis_name)
