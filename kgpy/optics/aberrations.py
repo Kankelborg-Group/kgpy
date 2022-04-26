@@ -27,8 +27,14 @@ class Distortion:
             scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
     ) -> kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]:
 
+        result_input = self.function(scene.input)
+
         result = kgpy.function.Array(
-            input=self.function(scene.input),
+            input=vectors.SpectralPositionVector(
+                wavelength=scene.input.wavelength,
+                position_x=result_input.position_x,
+                position_y=result_input.position_y
+            ),
             output=scene.output,
         )
 
@@ -37,10 +43,16 @@ class Distortion:
     def inverse(
             self: DistortionT,
             image: kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]
-    ) -> kgpy.function:
+    ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
+
+        result_input = self.function.inverse(image.input)
 
         return kgpy.function.Array(
-            input=self.function.inverse(image.input),
+            input=vectors.SpectralFieldVector(
+                wavelength=image.input.wavelength,
+                field_x=result_input.field_x,
+                field_y=result_input.field_y,
+            ),
             output=image.output,
         )
 
