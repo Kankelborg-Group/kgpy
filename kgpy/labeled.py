@@ -577,15 +577,18 @@ class AbstractArray(
         if shape[axis_rows] != shape[axis_columns]:
             raise ValueError('Matrix must be square')
 
+        axis_rows_inverse = axis_columns
+        axis_columns_inverse = axis_rows
+
         if shape[axis_rows] == 1:
             return 1 / self
 
         elif shape[axis_rows] == 2:
             result = Array(array=self.array.copy(), axes=self.axes.copy())
-            result[{axis_rows: 0, axis_columns: 0}] = self[{axis_rows: 1, axis_columns: 1}]
-            result[{axis_rows: 1, axis_columns: 1}] = self[{axis_rows: 0, axis_columns: 0}]
-            result[{axis_rows: 0, axis_columns: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
-            result[{axis_rows: 1, axis_columns: 0}] = -self[{axis_rows: 1, axis_columns: 0}]
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 0}] = self[{axis_rows: 1, axis_columns: 1}]
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 1}] = self[{axis_rows: 0, axis_columns: 0}]
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 0}] = -self[{axis_rows: 1, axis_columns: 0}]
             return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
 
         elif shape[axis_rows] == 3:
@@ -600,15 +603,15 @@ class AbstractArray(
             i = self[{axis_rows: 2, axis_columns: 2}]
 
             result = Array(array=self.array.copy(), axes=self.axes.copy())
-            result[{axis_rows: 0, axis_columns: 0}] = (e * i - f * h)
-            result[{axis_rows: 0, axis_columns: 1}] = -(b * i - c * h)
-            result[{axis_rows: 0, axis_columns: 2}] = (b * f - c * e)
-            result[{axis_rows: 1, axis_columns: 0}] = -(d * i - f * g)
-            result[{axis_rows: 1, axis_columns: 1}] = (a * i - c * g)
-            result[{axis_rows: 1, axis_columns: 2}] = -(a * f - c * d)
-            result[{axis_rows: 2, axis_columns: 0}] = (d * h - e * g)
-            result[{axis_rows: 2, axis_columns: 1}] = -(a * h - b * g)
-            result[{axis_rows: 2, axis_columns: 2}] = (a * e - b * d)
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 0}] = (e * i - f * h)
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 1}] = -(b * i - c * h)
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 2}] = (b * f - c * e)
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 0}] = -(d * i - f * g)
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 1}] = (a * i - c * g)
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 2}] = -(a * f - c * d)
+            result[{axis_rows_inverse: 2, axis_columns_inverse: 0}] = (d * h - e * g)
+            result[{axis_rows_inverse: 2, axis_columns_inverse: 1}] = -(a * h - b * g)
+            result[{axis_rows_inverse: 2, axis_columns_inverse: 2}] = (a * e - b * d)
             return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
 
         else:
@@ -623,8 +626,8 @@ class AbstractArray(
             axes_new = self.axes.copy()
             axes_new.remove(axis_rows)
             axes_new.remove(axis_columns)
-            axes_new.append(axis_rows)
-            axes_new.append(axis_columns)
+            axes_new.append(axis_rows_inverse)
+            axes_new.append(axis_columns_inverse)
 
             return Array(
                 array=np.linalg.inv(value),

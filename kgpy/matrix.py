@@ -37,11 +37,6 @@ class AbstractMatrix(
         pass
 
     @property
-    @abc.abstractmethod
-    def determinant(self: AbstractMatrixT) -> kgpy.uncertainty.ArrayLike:
-        pass
-
-    @property
     def transpose(self: AbstractMatrixT) -> AbstractMatrixT:
         row_prototype = next(iter(self.coordinates.values()))
         result = type(row_prototype)().to_matrix()
@@ -84,19 +79,24 @@ class AbstractMatrix(
 
         value_matrix = self / unit_matrix
 
+        axis_columns = 'column'
+        axis_rows = 'row'
         arrays = []
         for component_row in value_matrix.components:
-            array = kgpy.uncertainty.stack(list(value_matrix.coordinates[component_row].coordinates.values()), axis='column')
+            array = kgpy.uncertainty.stack(list(value_matrix.coordinates[component_row].coordinates.values()), axis=axis_columns)
             arrays.append(array)
-        arrays = np.stack(arrays, axis='row')
+        arrays = np.stack(arrays, axis=axis_rows)
 
-        arrays_inverse = arrays.matrix_inverse(axis_rows='row', axis_columns='column')
+        arrays_inverse = arrays.matrix_inverse(axis_rows=axis_rows, axis_columns=axis_columns)
+        axis_rows_inverse = axis_columns
+        axis_columns_inverse = axis_rows
 
         inverse_matrix = self.transpose
         for i, component_row in enumerate(inverse_matrix.components):
             coordinates_row = inverse_matrix.coordinates[component_row]
             for j, component_column in enumerate(coordinates_row.components):
-                coordinates_row.coordinates[component_column] = arrays_inverse[dict(row=i, column=j)]
+                element = arrays_inverse[{axis_rows_inverse: i, axis_columns_inverse: j}]
+                coordinates_row.coordinates[component_column] = element
 
         inverse_matrix = inverse_matrix / unit_matrix.transpose
         return inverse_matrix
@@ -134,10 +134,6 @@ class Cartesian1D(
         )
 
     @property
-    def determinant(self: Cartesian1DT) -> kgpy.uncertainty.ArrayLike:
-        return self.x.x
-
-    @property
     def transpose(self: Cartesian1DT) -> Cartesian1DT:
         return self
 
@@ -166,18 +162,6 @@ class Cartesian2D(
             x=kgpy.vectors.Cartesian2D(x=cos_a, y=-sin_a),
             y=kgpy.vectors.Cartesian2D(x=sin_a, y=cos_a),
         )
-
-    @property
-    def determinant(self: Cartesian2DT) -> kgpy.uncertainty.ArrayLike:
-        return self.x.x * self.y.y - self.x.y * self.y.x
-
-    def __invert__(self: Cartesian2DT) -> Cartesian2DT:
-        result = type(self)(
-            x=kgpy.vectors.Cartesian2D(x=self.y.y, y=-self.x.y),
-            y=kgpy.vectors.Cartesian2D(x=-self.y.x, y=self.x.x),
-        )
-        result = result / self.determinant
-        return result
 
     def to_vector(self: Cartesian2DT) -> kgpy.vectors.Cartesian2D:
         return kgpy.vectors.Cartesian2D(x=self.x, y=self.y)
@@ -230,25 +214,6 @@ class Cartesian3D(
             y=kgpy.vectors.Cartesian3D(x=sin_a, y=cos_a, z=0),
             z=kgpy.vectors.Cartesian3D(x=0, y=0, z=1),
         )
-
-    @property
-    def determinant(self: Cartesian3DT) -> kgpy.uncertainty.ArrayLike:
-        dx = self.x.x * (self.y.y * self.z.z - self.y.z * self.z.y)
-        dy = self.x.y * (self.y.z * self.z.x - self.y.x * self.z.z)
-        dz = self.x.z * (self.y.x * self.z.y - self.y.y * self.z.x)
-        return dx + dy + dz
-
-    def __invert__(self: Cartesian3DT) -> Cartesian3DT:
-        a, b, c = self.x.tuple
-        d, e, f = self.y.tuple
-        g, h, i = self.z.tuple
-        result = type(self)(
-            x=kgpy.vectors.Cartesian3D(x=+(e * i - f * h), y=-(b * i - c * h), z=+(b * f - c * e)),
-            y=kgpy.vectors.Cartesian3D(x=-(d * i - f * g), y=+(a * i - c * g), z=-(a * f - c * d)),
-            z=kgpy.vectors.Cartesian3D(x=+(d * h - e * g), y=-(a * h - b * g), z=+(a * e - b * d)),
-        )
-        determinant = a * result.x.x + b * result.y.x + c * result.z.x
-        return result / determinant
 
     def to_vector(self: Cartesian3DT) -> kgpy.vectors.Cartesian3D:
         return kgpy.vectors.Cartesian3D(x=self.x, y=self.y, z=self.z)
