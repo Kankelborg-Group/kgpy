@@ -177,6 +177,13 @@ class NDArrayMethodsMixin:
     ) -> NDArrayMethodsMixinT:
         return np.mean(self, axis=axis, where=where)
 
+    def std(
+            self: NDArrayMethodsMixinT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: NDArrayMethodsMixinT = np._NoValue,
+    ) -> NDArrayMethodsMixinT:
+        return np.std(self, axis=axis, where=where)
+
     def all(
             self: NDArrayMethodsMixinT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
@@ -934,6 +941,7 @@ class AbstractArray(
             np.nansum,
             np.mean,
             np.nanmean,
+            np.std,
             np.median,
             np.nanmedian,
             np.percentile,
