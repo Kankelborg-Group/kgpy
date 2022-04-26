@@ -667,6 +667,8 @@ class AbstractArray(
                 inp = Array(inp)
             elif isinstance(inp, AbstractArray):
                 pass
+            elif inp is None:
+                return None
             else:
                 return NotImplemented
             inputs_normalized.append(inp)
