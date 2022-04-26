@@ -281,6 +281,8 @@ class AbstractVector(
 
     def __matmul__(self: AbstractVectorT, other: AbstractVectorT) -> AbstractVectorT:
         if isinstance(other, AbstractVector):
+            if not self.coordinates.keys() == other.coordinates.keys():
+                raise ValueError('vectors have different components')
             result = 0
             for component in self.coordinates:
                 result = result + self.coordinates[component] * other.coordinates[component]
