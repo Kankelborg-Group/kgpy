@@ -316,6 +316,7 @@ class ArrayInterface(
             func: typ.Callable[[ArrayInterfaceT], ArrayInterfaceT],
             value: ArrayInterfaceT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: typ.Optional[ArrayInterfaceT] = None,
     ) -> typ.Dict[str, AbstractArrayT]:
 
         if not self.shape:
@@ -326,18 +327,20 @@ class ArrayInterface(
         elif isinstance(axis, str):
             axis = [axis, ]
 
-        other = np.moveaxis(
-            a=self,
-            source=axis,
-            destination=[f'{ax}_dummy' for ax in axis],
-        )
+        axis_dummy = [f'{ax}_dummy' for ax in axis]
+        other = np.moveaxis(a=self, source=axis, destination=axis_dummy)
 
-        distance = func((value - other) / other.mean())
-        distance = distance.combine_axes(axes=[f'{ax}_dummy' for ax in axis], axis_new='dummy')
+        distance = func(value - other)
+        distance = distance.combine_axes(axes=axis_dummy, axis_new='dummy')
+
+        if where is not None:
+            where = np.moveaxis(where, source=axis, destination=axis_dummy)
+            where = where.combine_axes(axes=axis_dummy, axis_new='dummy')
+            where = where.broadcast_to(distance.shape)
+            distance[~where] = np.inf
 
         index_nearest = np.argmin(distance, axis='dummy')
-        index_base = index_nearest.indices
-
+        index_base = self[{ax: 0 for ax in axis}].indices
         shape_nearest = {ax: self.shape[ax] for ax in self.shape if ax in axis}
         index_nearest = np.unravel_index(index_nearest, shape_nearest)
         index = {**index_base, **index_nearest}
@@ -348,11 +351,13 @@ class ArrayInterface(
             self: ArrayInterfaceT,
             value: ArrayInterfaceT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            where: typ.Optional[ArrayInterfaceT] = None,
     ) -> typ.Dict[str, ArrayInterfaceT]:
         return self._index_arbitrary_brute(
             func=lambda x: x.length,
             value=value,
             axis=axis,
+            where=where,
         )
 
     def index_below_brute(
