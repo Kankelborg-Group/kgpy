@@ -437,6 +437,8 @@ class AbstractVector(
         coordinates = self.coordinates
         for component in coordinates:
             coordinate = coordinates[component]
+            if coordinate is None:
+                continue
             if isinstance(coordinate, AbstractVector):
                 coordinate = coordinate.length
             result = result + np.square(coordinate)
