@@ -430,7 +430,7 @@ class Array(
     def interp_barycentric_linear(
             self: ArrayT,
             input_new: InputT,
-            axis,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
     ) -> ArrayT:
         """
         Interpolate this function using barycentric interpolation.
@@ -495,20 +495,24 @@ class Array(
         A new instance of class:`kgpy.function.Array` evaluated at the coordinates `input_new`.
         """
 
+        if axis is None:
+            axis = list(self.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
+
         # index_nearest = self._calc_index_nearest(input_new)
-        index_nearest = self.input.index_nearest_secant(input_new, axis=axis,)
-        # index_nearest = self.input.index_nearest_brute(input_new)
+        # index_nearest = self.input.index_nearest_secant(input_new, axis=axis,)
+        indices_input = self.input[{ax: 0 for ax in self.input.shape if ax not in axis}].indices
+        where_input_even = kgpy.vectors.CartesianND(indices_input).component_sum % 2 == 0
+        index_nearest = self.input.index_nearest_brute(
+            value=input_new,
+            axis=axis,
+            where=where_input_even,
+        )
 
-        sum_index_nearest = 0
-        for ax in index_nearest:
-            sum_index_nearest = sum_index_nearest + index_nearest[ax]
-        where_even = sum_index_nearest % 2 == 0
-
-        num_vertices = len(input_new.coordinates) + 1
+        num_vertices = len(axis) + 1
         index = dict()
-        axes_simplex = [
-            'apex'
-        ]
+        axes_simplex = []
         index_vertex = 0
         for ax in index_nearest:
             if ax in axis:
@@ -517,11 +521,9 @@ class Array(
                 shape_axis = {
                     axis_simplex: 2,
                     'vertices': num_vertices,
-                    'apex': 2
                 }
                 simplex_axis = kgpy.labeled.Array.zeros(shape=shape_axis, dtype=int)
                 simplex_axis[dict(vertices=index_vertex+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
-                simplex_axis[dict(vertices=0, apex=1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
                 index[ax] = index_nearest[ax] + simplex_axis
                 index_vertex += 1
             else:
@@ -529,47 +531,39 @@ class Array(
 
         shape_index = kgpy.labeled.Array.broadcast_shapes(*index.values())
 
-        closed_vertices = dict(vertices=kgpy.labeled.Array(array=np.array([0, 1, 2, 0]), axes=['vertices']))
-
-        axis_shifted = next(ax for ax in index_nearest if ax in axis)
-        axis_shifted_simplex = f'simplex_{axis_shifted}'
-        shape_where_odd = shape_index.copy()
-        shape_where_odd.pop(axis_shifted_simplex)
-        where_even = np.broadcast_to(where_even, shape_where_odd)
-        index[axis_shifted] = np.broadcast_to(index[axis_shifted], shape_index).copy()
-        index[axis_shifted][{axis_shifted_simplex: 0}][where_even] = index[axis_shifted][{axis_shifted_simplex: 0}][where_even] + 1
-        index[axis_shifted][{axis_shifted_simplex: 1}][where_even] = index[axis_shifted][{axis_shifted_simplex: 1}][where_even] - 1
-
         for ax in index:
             index[ax] = np.broadcast_to(index[ax], shape_index).copy()
-            where_even = where_even.broadcast_to(shape_index)
 
         index = {k: np.clip(index[k], 0, self.input.shape[k] - 1) for k in index}
 
         barycentric_transform = kgpy.matrix.CartesianND()
+        barycentric_coordinates = kgpy.vectors.CartesianND()
 
         index_0 = {k: index[k][dict(vertices=0)] for k in index}
         index_1 = {k: index[k][dict(vertices=slice(1, None))] for k in index}
 
         input_old = self.input_broadcasted
         for c, component in enumerate(input_old.coordinates):
-            x0 = input_old.coordinates[component][index_0]
-            x1 = input_old.coordinates[component][index_1]
-            dx = x1 - x0
-            barycentric_transform.coordinates[component] = kgpy.vectors.CartesianND(
-                coordinates={axis[i]: dx[dict(vertices=i)] for i in range(dx.shape['vertices'])},
-            )
+            if any(ax in self.input.coordinates[component].axes for ax in axis):
+                x0 = input_old.coordinates[component][index_0]
+                x1 = input_old.coordinates[component][index_1]
+                dx = x1 - x0
+                barycentric_transform.coordinates[component] = kgpy.vectors.CartesianND(
+                    coordinates={axis[i]: dx[dict(vertices=i)] for i in range(dx.shape['vertices'])},
+                )
+                barycentric_coordinates.coordinates[component] = input_new.coordinates[component] - input_old.coordinates[component][index_0]
 
-        barycentric_coordinates = input_new - input_old[{axis: index[axis][dict(vertices=0)] for axis in index}]
-        barycentric_coordinates = ~barycentric_transform @ barycentric_coordinates
+        barycentric_coordinates = (~barycentric_transform) @ barycentric_coordinates
 
-        weights = barycentric_coordinates.copy_shallow()
+        weights = kgpy.vectors.CartesianND()
         weights.coordinates['origin'] = 1 - barycentric_coordinates.component_sum
+        for component in barycentric_coordinates.coordinates:
+            weights.coordinates[component] = barycentric_coordinates.coordinates[component]
         weights = np.moveaxis(weights.array_labeled, 'component', 'vertices')
 
         epsilon = 1e-15
         mask_inside = (-epsilon <= weights) & (weights <= 1 + epsilon)
-        for ax in index:
+        for ax in axis:
             mask_inside = mask_inside & (index[ax] >= 0)
             mask_inside = mask_inside & (index[ax] < self.input.shape[ax])
         mask_inside = np.all(mask_inside, axis='vertices')
@@ -578,6 +572,10 @@ class Array(
         output_new = np.nansum(output_new, axis='vertices')
 
         mask_inside = np.broadcast_to(mask_inside, shape=output_new.shape, subok=True)
+
+        for component in input_new.coordinates:
+            if input_new.coordinates[component] is None:
+                input_new.coordinates[component] = self.input.coordinates[component]
 
         return Array(
             input=input_new,
