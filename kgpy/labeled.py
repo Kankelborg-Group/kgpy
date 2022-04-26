@@ -996,6 +996,8 @@ class AbstractArray(
                 elif np.isscalar(kwargs['axis']):
                     if kwargs['axis'] in axes:
                         kwargs['axis'] = axes.index(kwargs['axis'])
+                    else:
+                        return self
                 else:
                     kwargs['axis'] = tuple(axes.index(ax) for ax in kwargs['axis'] if ax in axes)
 
