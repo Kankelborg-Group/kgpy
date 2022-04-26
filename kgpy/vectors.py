@@ -311,6 +311,7 @@ class AbstractVector(
             np.nansum,
             np.mean,
             np.nanmean,
+            np.std,
             np.median,
             np.nanmedian,
             np.percentile,
