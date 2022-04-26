@@ -1072,6 +1072,8 @@ class AbstractArray(
                 item_axis = item_casted[axis_name]
                 if isinstance(item_axis, AbstractArray):
                     item_axis = item_axis.array_aligned(shape_advanced)
+                if axis_name not in axes:
+                    continue
                 index[axes.index(axis_name)] = item_axis
                 if not isinstance(item_axis, slice):
                     axes_new.remove(axis_name)
