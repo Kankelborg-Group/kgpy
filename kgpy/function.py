@@ -576,6 +576,7 @@ class Array(
 
         mask_inside = np.broadcast_to(mask_inside, shape=output_new.shape, subok=True)
 
+        input_new = input_new.copy_shallow()
         for component in input_new.coordinates:
             if input_new.coordinates[component] is None:
                 input_new.coordinates[component] = self.input.coordinates[component]
