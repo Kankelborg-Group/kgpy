@@ -419,6 +419,7 @@ class Array(
             self: ArrayT,
             input_new: InputT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            num_kernel: int = 1,
     ) -> ArrayT:
         """
         Interpolate this function using barycentric interpolation.
@@ -509,8 +510,11 @@ class Array(
         for ax in index_nearest:
             if ax in axis:
                 axis_simplex = f'simplex_{ax}'
+                axis_kernel = f'kernel_{ax}'
                 axes_simplex.append(axis_simplex)
+                axes_simplex.append(axis_kernel)
                 shape_axis = {
+                    axis_kernel: num_kernel,
                     axis_simplex: 2,
                     'vertices': num_vertices,
                     'apex': 2,
@@ -518,7 +522,8 @@ class Array(
                 simplex_axis = kgpy.labeled.Array.zeros(shape=shape_axis, dtype=int)
                 simplex_axis[dict(vertices=index_vertex+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
                 simplex_axis[dict(vertices=0, apex=1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
-                index[ax] = index_nearest[ax] + simplex_axis
+                kernel_axis = 2 * (kgpy.labeled.Range(stop=num_kernel, axis=axis_kernel) - num_kernel // 2)
+                index[ax] = index_nearest[ax] + simplex_axis + kernel_axis
                 index_vertex += 1
             else:
                 index[ax] = index_nearest[ax]
