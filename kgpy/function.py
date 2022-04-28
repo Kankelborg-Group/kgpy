@@ -239,28 +239,16 @@ class Array(
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None
     ) -> ArrayT:
 
-        input_old = self.input
-        if not isinstance(input_old, kgpy.vectors.AbstractVector):
-            input_old = kgpy.vectors.Cartesian1D(input_old)
+        index_nearest = self.input.index_nearest_brute(input_new, axis=axis)
 
-        if not isinstance(input_new, kgpy.vectors.AbstractVector):
-            input_new = kgpy.vectors.Cartesian1D(input_new)
-
-        input_old_interp = input_old.copy_shallow()
-        input_new_final = input_new.copy_shallow()
+        input_new = input_new.copy_shallow()
         for component in input_new.coordinates:
             if input_new.coordinates[component] is None:
-                input_old_interp.coordinates[component] = None
-                input_new_final.coordinates[component] = input_old.coordinates[component]
-
-        if axis is None:
-            axis = list(input_old_interp.shape.keys())
-        elif isinstance(axis, str):
-            axis = [axis, ]
+                input_new.coordinates[component] = self.input.coordinates[component]
 
         return type(self)(
-            input=input_new_final,
-            output=self.output_broadcasted[self.input.index_nearest_brute(input_new_final, axis=axis)],
+            input=input_new,
+            output=self.output_broadcasted[index_nearest],
         )
 
     def _interp_linear_1d_recursive(
