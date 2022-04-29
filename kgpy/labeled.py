@@ -383,6 +383,46 @@ class ArrayInterface(
             axis=axis,
         )
 
+    def _interp_linear_recursive(
+            self: ArrayInterfaceT,
+            item: typ.Dict[str, ArrayInterfaceT],
+            item_base: typ.Dict[str, ArrayInterfaceT],
+    ):
+        if not item:
+            raise ValueError('Item must contain at least one key')
+
+        axis = next(iter(item))
+        x = item.pop(axis)
+
+        where_valid = (0 <= x) & (x <= self.shape[axis] - 1)
+
+        x0 = np.floor(x, dtype=int)
+        x0[where_valid] = 0
+        x1 = x0 + 1
+
+        if item:
+            y0 = self._interp_linear_recursive(item=item, item_base={**item_base, axis: x0}, )
+            y1 = self._interp_linear_recursive(item=item, item_base={**item_base, axis: x1}, )
+        else:
+            y0 = self[item_base]
+            y1 = self[item_base]
+
+        result = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
+        result[~where_valid] = np.nan
+        return result
+
+    def interp_linear(
+            self: ArrayInterfaceT,
+            item: typ.Dict[str, AbstractArrayT],
+    ) -> ArrayInterfaceT:
+        return self._interp_linear_recursive(
+            item=item,
+            item_base=self[{ax: 0 for ax in item}].indices,
+        )
+
+    def __call__(self: ArrayInterfaceT, item: typ.Dict[str, AbstractArrayT]) -> ArrayInterfaceT:
+        return self.interp_linear(item=item)
+
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
