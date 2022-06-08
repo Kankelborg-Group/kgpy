@@ -219,6 +219,7 @@ class Cartesian3D(
         return kgpy.vectors.Cartesian3D(x=self.x, y=self.y, z=self.z)
 
 
+@dataclasses.dataclass(eq=False)
 class CartesianND(
     kgpy.vectors.CartesianND[kgpy.vectors.CartesianND],
     AbstractMatrix,

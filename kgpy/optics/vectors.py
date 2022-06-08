@@ -24,7 +24,7 @@ class Spherical(
     kgpy.vectors.AbstractVector,
 ):
     x: kgpy.uncertainty.ArrayLike = 0 * u.deg
-    y: kgpy.uncertainty.ArrayLike= 0 * u.deg
+    y: kgpy.uncertainty.ArrayLike = 0 * u.deg
 
     @property
     def cartesian(self: SphericalT) -> kgpy.vectors.Cartesian3D:
@@ -88,6 +88,10 @@ class PositionVector(kgpy.vectors.AbstractVector):
     position_y: kgpy.uncertainty.ArrayLike = 0 * u.mm
 
     @property
+    def position(self) -> 'PositionVector':
+        return PositionVector(self.position_x, self.position_y)
+
+    @property
     def position_xy(self):
         return kgpy.vectors.Cartesian2D(self.position_x, self.position_y)
 
@@ -97,6 +101,11 @@ class SpectralFieldVector(
     FieldVector,
     SpectralVector,
 ):
+
+    def to_matrix(self):
+        from . import matrix
+        return matrix.SpectralFieldMatrix(wavelength=self.wavelength, field_x=self.field_x, field_y=self.field_y)
+
     pass
 
 
