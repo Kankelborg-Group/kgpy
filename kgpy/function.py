@@ -239,28 +239,16 @@ class Array(
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None
     ) -> ArrayT:
 
-        input_old = self.input
-        if not isinstance(input_old, kgpy.vectors.AbstractVector):
-            input_old = kgpy.vectors.Cartesian1D(input_old)
+        index_nearest = self.input.index_nearest_brute(input_new, axis=axis)
 
-        if not isinstance(input_new, kgpy.vectors.AbstractVector):
-            input_new = kgpy.vectors.Cartesian1D(input_new)
-
-        input_old_interp = input_old.copy_shallow()
-        input_new_final = input_new.copy_shallow()
+        input_new = input_new.copy_shallow()
         for component in input_new.coordinates:
             if input_new.coordinates[component] is None:
-                input_old_interp.coordinates[component] = None
-                input_new_final.coordinates[component] = input_old.coordinates[component]
-
-        if axis is None:
-            axis = list(input_old_interp.shape.keys())
-        elif isinstance(axis, str):
-            axis = [axis, ]
+                input_new.coordinates[component] = self.input.coordinates[component]
 
         return type(self)(
-            input=input_new_final,
-            output=self.output_broadcasted[self.input.index_nearest_brute(input_new_final, axis=axis)],
+            input=input_new,
+            output=self.output_broadcasted[index_nearest],
         )
 
     def _interp_linear_1d_recursive(
@@ -431,6 +419,7 @@ class Array(
             self: ArrayT,
             input_new: InputT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            num_kernel: int = 1,
     ) -> ArrayT:
         """
         Interpolate this function using barycentric interpolation.
@@ -521,8 +510,11 @@ class Array(
         for ax in index_nearest:
             if ax in axis:
                 axis_simplex = f'simplex_{ax}'
+                axis_kernel = f'kernel_{ax}'
                 axes_simplex.append(axis_simplex)
+                axes_simplex.append(axis_kernel)
                 shape_axis = {
+                    axis_kernel: num_kernel,
                     axis_simplex: 2,
                     'vertices': num_vertices,
                     'apex': 2,
@@ -530,7 +522,8 @@ class Array(
                 simplex_axis = kgpy.labeled.Array.zeros(shape=shape_axis, dtype=int)
                 simplex_axis[dict(vertices=index_vertex+1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
                 simplex_axis[dict(vertices=0, apex=1)] = kgpy.labeled.Array(np.array([-1, 1], dtype=int), axes=[axis_simplex])
-                index[ax] = index_nearest[ax] + simplex_axis
+                kernel_axis = 2 * (kgpy.labeled.Range(stop=num_kernel, axis=axis_kernel) - num_kernel // 2)
+                index[ax] = index_nearest[ax] + simplex_axis + kernel_axis
                 index_vertex += 1
             else:
                 index[ax] = index_nearest[ax]
@@ -588,6 +581,7 @@ class Array(
 
         mask_inside = np.broadcast_to(mask_inside, shape=output_new.shape, subok=True)
 
+        input_new = input_new.copy_shallow()
         for component in input_new.coordinates:
             if input_new.coordinates[component] is None:
                 input_new.coordinates[component] = self.input.coordinates[component]
