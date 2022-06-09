@@ -102,11 +102,20 @@ def mean_trimmed(
 
     array_windowed = array_windowed.reshape(array.shape + (-1,))
 
-    result = scipy.stats.trim_mean(
+    threshold_lower = np.percentile(array_windowed, q=proportion, axis=~0, keepdims=True)
+    threshold_upper = np.percentile(array_windowed, q=1 - proportion, axis=~0, keepdims=True)
+
+    result = np.mean(
         a=array_windowed,
-        proportiontocut=proportion,
         axis=~0,
+        where=(threshold_lower < array_windowed) & (array_windowed < threshold_upper),
     )
+
+    # result = scipy.stats.trim_mean(
+    #     a=array_windowed,
+    #     proportiontocut=proportion,
+    #     axis=~0,
+    # )
 
     return result
 
