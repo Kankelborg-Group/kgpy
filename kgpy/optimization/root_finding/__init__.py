@@ -35,8 +35,12 @@ def secant(
                 return x1
 
         dx = x1 - x0
-        mask = dx.length != 0
-        mask = mask & np.isfinite(dx.length)
+        if hasattr(dx, 'length'):
+            mask = dx.length != 0
+            mask = mask & np.isfinite(dx.length)
+        else:
+            mask = dx != 0
+            mask = mask & np.isfinite(dx)
 
         if np.all(np.abs(dx) < step_size):
             return x1
