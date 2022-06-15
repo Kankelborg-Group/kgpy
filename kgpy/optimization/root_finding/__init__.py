@@ -91,6 +91,8 @@ def secant(
         # x2 = x1 - correction
         x2 = -correction + x1
 
+        mask = mask & np.isfinite(correction)
+
         if not isinstance(x2, (int, float, complex,)) and x2.shape:
             if not isinstance(mask, kgpy.labeled.ArrayInterface):
                 mask = kgpy.labeled.Array(mask)
