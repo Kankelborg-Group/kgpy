@@ -423,6 +423,41 @@ class ArrayInterface(
     def __call__(self: ArrayInterfaceT, item: typ.Dict[str, AbstractArrayT]) -> ArrayInterfaceT:
         return self.interp_linear(item=item)
 
+    def index_secant(
+            self: ArrayInterfaceT,
+            value: ArrayInterfaceT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, ArrayT]:
+
+        import kgpy.vectors
+        import kgpy.optimization
+
+        if axis is None:
+            axis = list(self.shape.keys())
+        elif isinstance(axis, str):
+            axis = [axis, ]
+
+        shape = self.shape
+        shape_nearest = kgpy.vectors.CartesianND({ax: shape[ax] for ax in axis})
+
+        def indices_factory(index: kgpy.vectors.CartesianND) -> typ.Dict[str, kgpy.labeled.Array]:
+            return index.coordinates
+
+        def get_index(index: kgpy.vectors.CartesianND) -> kgpy.vectors.CartesianND:
+            index = indices_factory(index)
+            value_new = self(index)
+            diff = value_new - value
+            diff = kgpy.vectors.CartesianND({c: diff.coordinates[c] for c in diff.coordinates if diff.coordinates[c] is not None})
+            return diff
+
+        result = kgpy.optimization.root_finding.secant(
+            func=get_index,
+            root_guess=shape_nearest // 2,
+            step_size=kgpy.vectors.CartesianND({ax: 1e-6 for ax in axis}),
+        )
+
+        return indices_factory(result)
+
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
