@@ -388,27 +388,43 @@ class ArrayInterface(
             item: typ.Dict[str, ArrayInterfaceT],
             item_base: typ.Dict[str, ArrayInterfaceT],
     ):
+        item = item.copy()
+
         if not item:
             raise ValueError('Item must contain at least one key')
 
         axis = next(iter(item))
         x = item.pop(axis)
 
-        where_valid = (0 <= x) & (x <= self.shape[axis] - 1)
+        if x.shape:
+            where_below = x < 0
+            where_above = (self.shape[axis] - 1) <= x
 
-        x0 = np.floor(x, dtype=int)
-        x0[where_valid] = 0
+            x0 = np.floor(x).astype(int)
+            x0[where_below] = 0
+            x0[where_above] = self.shape[axis] - 2
+
+        else:
+            if x < 0:
+                x0 = 0
+            elif x >= self.shape[axis] - 1:
+                x0 = self.shape[axis] - 2
+            else:
+                x0 = int(x)
+
         x1 = x0 + 1
 
-        if item:
-            y0 = self._interp_linear_recursive(item=item, item_base={**item_base, axis: x0}, )
-            y1 = self._interp_linear_recursive(item=item, item_base={**item_base, axis: x1}, )
-        else:
-            y0 = self[item_base]
-            y1 = self[item_base]
+        item_base_0 = {**item_base, axis: x0}
+        item_base_1 = {**item_base, axis: x1}
 
-        result = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
-        result[~where_valid] = np.nan
+        if item:
+            y0 = self._interp_linear_recursive(item=item, item_base=item_base_0, )
+            y1 = self._interp_linear_recursive(item=item, item_base=item_base_1, )
+        else:
+            y0 = self[item_base_0]
+            y1 = self[item_base_1]
+
+        result = y0 + (x - x0) * (y1 - y0)
         return result
 
     def interp_linear(
