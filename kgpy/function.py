@@ -338,19 +338,17 @@ class Array(
             axis = list(input_old_interp.shape.keys())
         elif isinstance(axis, str):
             axis = [axis, ]
-        else:
-            axis = axis.copy()
 
         if len(components) != len(axis):
             raise ValueError('Separable system must have as many axes as components')
 
-        output_new = self._interp_linear_1d_recursive(
-            input_old=input_old,
-            input_new=input_new_final,
-            index_below=self.input.index_below_brute(input_new_final, axis=axis),
-            components=components,
-            axis=axis,
-        )
+        index = self.input.broadcast_to(self.input.shape).index_secant(input_new, axis=axis)
+
+        shape = self.shape
+        output_new = self.output.interp_linear(index)
+        for a in axis:
+            where = (index[a] < 0) | (index[a] > shape[a] - 1)
+            output_new[where] = 0
 
         return Array(
             input=input_new_final,
