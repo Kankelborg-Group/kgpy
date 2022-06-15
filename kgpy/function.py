@@ -488,11 +488,11 @@ class Array(
             axis = [axis, ]
 
         # index_nearest = self._calc_index_nearest(input_new)
-        # index_nearest = self.input.index_nearest_secant(input_new, axis=axis,)
-        index_nearest = self.input.index_nearest_brute(
-            value=input_new,
-            axis=axis,
-        )
+        index_nearest = self.input.index_nearest_secant(input_new, axis=axis,)
+        # index_nearest = self.input.index_nearest_brute(
+        #     value=input_new,
+        #     axis=axis,
+        # )
 
         sum_index_nearest = 0
         for ax in index_nearest:
