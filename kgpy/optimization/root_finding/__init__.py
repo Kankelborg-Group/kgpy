@@ -42,7 +42,10 @@ def secant(
             mask = dx != 0
             mask = mask & np.isfinite(dx)
 
-        if np.all(np.abs(dx) < step_size):
+        if f0 is not None:
+            mask = mask & (f1 != f0).array_labeled.any('component')
+
+        if i > 0 and np.all(np.abs(dx) < step_size):
             return x1
 
         if np.all(x1 == x0):
