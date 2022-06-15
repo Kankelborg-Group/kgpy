@@ -58,7 +58,7 @@ class AbstractArray(
         pass
 
     @property
-    def inverse(self) -> ArrayT:
+    def inverse(self: AbstractArrayT) -> 'Array[OutputT, InputT]':
         return Array(
             input=self.output,
             output=self.input,
