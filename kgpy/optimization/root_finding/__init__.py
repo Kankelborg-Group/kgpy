@@ -67,8 +67,7 @@ def secant(
                     for c in jacobian.coordinates:
                         jacobian.coordinates[c].coordinates[component] = df_component.coordinates[c] / step_size.coordinates[component]
 
-                correction = 0.9999 * ~jacobian @ f1
-                print('correction',  correction)
+                correction = ~jacobian @ f1
 
             else:
                 jacobian = type(x1)()
@@ -80,13 +79,15 @@ def secant(
                     df_component = f1 - f0_component
                     jacobian.coordinates[component] = df_component / step_size.coordinates[component]
 
-                correction = 0.9999 * f1 / jacobian
+                correction = f1 / jacobian
 
         else:
             df = f1 - func(x0)
             mask = mask & (df != 0)
             jacobian = df / dx
-            correction = 0.9999 * f1 / jacobian
+            correction = f1 / jacobian
+
+        # correction = 0.999 * correction
 
         # x2 = x1 - correction
         x2 = -correction + x1
