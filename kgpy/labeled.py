@@ -340,7 +340,7 @@ class ArrayInterface(
             distance[~where] = np.inf
 
         index_nearest = np.argmin(distance, axis='dummy')
-        index_base = self[{ax: 0 for ax in axis}].indices
+        index_base = self.broadcasted[{ax: 0 for ax in axis}].indices
         shape_nearest = {ax: self.shape[ax] for ax in self.shape if ax in axis}
         index_nearest = np.unravel_index(index_nearest, shape_nearest)
         index = {**index_base, **index_nearest}
