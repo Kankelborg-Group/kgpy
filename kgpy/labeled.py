@@ -1444,6 +1444,7 @@ class LinearSpace(
     def index_below(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
         return {self.axis: (value - self.start) // self.step}
 
+
 @dataclasses.dataclass(eq=False)
 class _RandomSpaceMixin(_SpaceMixin):
 
