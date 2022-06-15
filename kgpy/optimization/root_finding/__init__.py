@@ -12,7 +12,7 @@ def secant(
         func: typ.Callable[[InputT], OutputT],
         root_guess: InputT,
         step_size: InputT,
-        max_abs_error: OutputT,
+        max_abs_error: typ.Optional[OutputT] = None,
         max_iterations: int = 100,
 ) -> InputT:
 
@@ -29,13 +29,10 @@ def secant(
             if np.all(f1 == f0):
                 return x1
 
-        # if isinstance(f1, kgpy.vectors.AbstractVector):
-        #     root_error = f1.length
-        # else:
-        #     root_error = np.abs(f1)
-        root_error = np.abs(f1)
-        if np.all(root_error < max_abs_error):
-            return x1
+        if max_abs_error is not None:
+            root_error = np.abs(f1)
+            if np.all(root_error < max_abs_error):
+                return x1
 
         dx = x1 - x0
         mask = dx.length != 0
