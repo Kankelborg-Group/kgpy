@@ -12,7 +12,7 @@ def secant(
         func: typ.Callable[[InputT], OutputT],
         root_guess: InputT,
         step_size: InputT,
-        max_abs_error: OutputT,
+        max_abs_error: typ.Optional[OutputT] = None,
         max_iterations: int = 100,
 ) -> InputT:
 
@@ -29,19 +29,23 @@ def secant(
             if np.all(f1 == f0):
                 return x1
 
-        # if isinstance(f1, kgpy.vectors.AbstractVector):
-        #     root_error = f1.length
-        # else:
-        #     root_error = np.abs(f1)
-        root_error = np.abs(f1)
-        if np.all(root_error < max_abs_error):
-            return x1
+        if max_abs_error is not None:
+            root_error = np.abs(f1)
+            if np.all(root_error < max_abs_error):
+                return x1
 
         dx = x1 - x0
-        mask = dx.length != 0
-        mask = mask & np.isfinite(dx.length)
+        if hasattr(dx, 'length'):
+            mask = dx.length != 0
+            mask = mask & np.isfinite(dx.length)
+        else:
+            mask = dx != 0
+            mask = mask & np.isfinite(dx)
 
-        if np.all(np.abs(dx) < step_size):
+        if f0 is not None:
+            mask = mask & (f1 != f0).array_labeled.any('component')
+
+        if i > 0 and np.all(np.abs(dx) < step_size):
             return x1
 
         if np.all(x1 == x0):
@@ -63,8 +67,7 @@ def secant(
                     for c in jacobian.coordinates:
                         jacobian.coordinates[c].coordinates[component] = df_component.coordinates[c] / step_size.coordinates[component]
 
-                correction = 0.9999 * ~jacobian @ f1
-                # print('correction',  correction)
+                correction = ~jacobian @ f1
 
             else:
                 jacobian = type(x1)()
@@ -76,16 +79,20 @@ def secant(
                     df_component = f1 - f0_component
                     jacobian.coordinates[component] = df_component / step_size.coordinates[component]
 
-                correction = 0.9999 * f1 / jacobian
+                correction = f1 / jacobian
 
         else:
             df = f1 - func(x0)
             mask = mask & (df != 0)
             jacobian = df / dx
-            correction = 0.9999 * f1 / jacobian
+            correction = f1 / jacobian
+
+        # correction = 0.999 * correction
 
         # x2 = x1 - correction
         x2 = -correction + x1
+
+        mask = mask & np.isfinite(correction)
 
         if not isinstance(x2, (int, float, complex,)) and x2.shape:
             if not isinstance(mask, kgpy.labeled.ArrayInterface):

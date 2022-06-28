@@ -9,7 +9,7 @@ setup(
         'numpy',
         'matplotlib',
         'scipy',
-        'astropy @ git+https://github.com/byrdie/astropy.git@quantity-reduce-where-kwarg#egg=astropy',
+        'astropy',
         'sunpy[all]',
         'aiapy',
         'pandas',

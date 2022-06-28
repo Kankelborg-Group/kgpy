@@ -21,7 +21,7 @@ def test_identify_and_fix():
 
     fixed_data, mask, stats = spikes.identify_and_fix(data, kernel_size=(11, 11, 31), percentile_threshold=(0.5, 99.5))
 
-    spikes.stats_list_plot(stats, ['$t$', '$y$', '$\lambda$'])
+    spikes.stats_list_plot(stats, ['$t$', '$y$', '$\\lambda$'])
 
     c1 = CubeSlicer(data, vmax=np.percentile(data, 99.9))
     c2 = CubeSlicer(fixed_data, vmax=np.percentile(fixed_data, 99.9))

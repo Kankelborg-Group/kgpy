@@ -429,6 +429,15 @@ class AbstractVector(
         for component in coordinates:
             coordinates[component][key[component]] = value[component]
 
+    def interp_linear(self: AbstractVectorT, item: typ.Dict[str, VectorLike]):
+        coordinates = dict()
+        for component in self.coordinates:
+            coordinates[component] = self.coordinates[component].interp_linear(item=item)
+        return type(self).from_coordinates(coordinates)
+
+    def __call__(self: AbstractVectorT, item: typ.Dict[str, VectorLike]):
+        return self.interp_linear(item=item)
+
     @property
     def component_sum(self) -> kgpy.uncertainty.ArrayLike:
         result = 0

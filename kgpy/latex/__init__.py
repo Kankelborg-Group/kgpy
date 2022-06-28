@@ -63,6 +63,9 @@ class Acronym(pylatex.base_classes.LatexObject):
     plural: bool = False
     short: bool = False
 
+    def __post_init__(self):
+        self.packages.append(pylatex.Package('acronym'))
+
     def dumps(self):
         name_short = self.name_short
         if name_short is None:
