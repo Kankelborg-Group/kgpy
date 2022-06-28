@@ -138,4 +138,5 @@ class InputAngleVector(
 class InputOutputAngleVector(
     InputAngleVector,
 ):
-    angle_output: Spherical = dataclasses.field(default_factory=Spherical)
+    angle_output_x: kgpy.uncertainty.ArrayLike = 0 * u.deg
+    angle_output_y: kgpy.uncertainty.ArrayLike = 0 * u.deg
