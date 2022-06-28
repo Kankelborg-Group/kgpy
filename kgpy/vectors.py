@@ -506,7 +506,6 @@ class AbstractVector(
         def indices_factory(index_nearest: AbstractVectorT) -> typ.Dict[str, kgpy.labeled.Array]:
             index_nearest = np.rint(index_nearest).astype(int)
             index_nearest = np.clip(index_nearest, a_min=0, a_max=shape_nearest - 1)
-            # print('index_nearest', index_nearest)
             indices = {**index_base, **index_nearest.coordinates}
             return indices
 
