@@ -24,7 +24,7 @@ class Spherical(
     kgpy.vectors.AbstractVector,
 ):
     x: kgpy.uncertainty.ArrayLike = 0 * u.deg
-    y: kgpy.uncertainty.ArrayLike= 0 * u.deg
+    y: kgpy.uncertainty.ArrayLike = 0 * u.deg
 
     @property
     def cartesian(self: SphericalT) -> kgpy.vectors.Cartesian3D:
