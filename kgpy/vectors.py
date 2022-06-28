@@ -517,7 +517,6 @@ class AbstractVector(
             func=get_index,
             root_guess=shape_nearest // 2,
             step_size=kgpy.vectors.CartesianND({ax: 1 for ax in axis}),
-            max_abs_error=0 * self.mean(),
         )
 
         return indices_factory(result)
