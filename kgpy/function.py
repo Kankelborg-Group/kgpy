@@ -252,66 +252,6 @@ class Array(
             output=self.output_broadcasted[index_nearest],
         )
 
-    def _interp_linear_1d_recursive(
-            self,
-            input_old: kgpy.vectors.AbstractVector,
-            input_new: kgpy.vectors.AbstractVector,
-            index_below: typ.Dict[str, kgpy.labeled.AbstractArray],
-            components: typ.List[str],
-            axis: typ.List[str],
-    ) -> kgpy.labeled.AbstractArray:
-
-        component = components.pop(0)
-        ax = []
-
-        x = input_new.coordinates[component]
-
-        ax = [a for a in x.shape if a in axis]
-        if len(ax) == 0:
-            raise ValueError(f'component {component} does not depend on interpolated axes {axis}')
-        elif len(ax) > 1:
-            raise ValueError(f'component {component} depends on more than one interpolated axes {axis}')
-        ax = ax[0]
-        axis.remove(ax)
-
-
-        index_above = copy.deepcopy(index_below)
-        index_above[ax] = index_above[ax] + 1
-
-        # input_old = self.input
-        # input_old = np.broadcast_to(input_old, input_old.shape)
-        # if isinstance(input_old, kgpy.vectors.AbstractVector):
-        x0 = input_old.broadcasted.coordinates[component][index_below]
-        x1 = input_old.broadcasted.coordinates[component][index_above]
-        # else:
-        #     x0 = input_old[index_below]
-        #     x1 = input_old[index_above]
-
-        if components:
-            y0 = self._interp_linear_1d_recursive(
-                input_old=input_old,
-                input_new=input_new,
-                index_below=index_below,
-                components=components.copy(),
-                axis=axis.copy(),
-            )
-            y1 = self._interp_linear_1d_recursive(
-                input_old=input_old,
-                input_new=input_new,
-                index_below=index_above,
-                components=components.copy(),
-                axis=axis.copy(),
-            )
-
-        else:
-            output = self.output_broadcasted
-            y0 = output[index_below]
-            y1 = output[index_above]
-
-        result = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
-
-        return result
-
     def interp_linear(
             self: ArrayT,
             input_new: InputT,
