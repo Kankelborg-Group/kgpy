@@ -511,7 +511,8 @@ class AbstractVector(
             return indices
 
         def get_index(index: AbstractVectorT) -> AbstractVectorT:
-            return self.broadcasted[indices_factory(index)] - value
+            diff = self.broadcasted[indices_factory(index)] - value
+            return kgpy.vectors.CartesianND({c: diff.coordinates[c] for c in diff.coordinates if diff.coordinates[c] is not None})
 
         result = kgpy.optimization.root_finding.secant(
             func=get_index,
