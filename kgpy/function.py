@@ -239,7 +239,8 @@ class Array(
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None
     ) -> ArrayT:
 
-        index_nearest = self.input.index_nearest_brute(input_new, axis=axis)
+        # index_nearest = self.input.index_nearest_brute(input_new, axis=axis)
+        index_nearest = self.input.index_nearest_secant(input_new, axis=axis)
 
         input_new = input_new.copy_shallow()
         for component in input_new.coordinates:
