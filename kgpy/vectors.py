@@ -693,7 +693,7 @@ class Cartesian2D(
             if not isinstance(color, kgpy.labeled.ArrayInterface):
                 color = kgpy.labeled.Array(color)
 
-            shape = kgpy.labeled.Array.broadcast_shapes(*coordinates.values(), where, color)
+            shape = kgpy.labeled.Array.broadcast_shapes(*coordinates.values(), where, color, *kwargs.values())
             shape_orthogonal = shape.copy()
             if axis_plot in shape_orthogonal:
                 shape_orthogonal.pop(axis_plot)
