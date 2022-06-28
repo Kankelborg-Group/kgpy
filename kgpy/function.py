@@ -508,7 +508,7 @@ class Array(
             weights.coordinates[component] = barycentric_coordinates.coordinates[component]
         weights = np.moveaxis(weights.array_labeled, 'component', 'vertices')
 
-        epsilon = 1e-15
+        epsilon = 1e-14
         mask_inside = (-epsilon <= weights) & (weights <= 1 + epsilon)
         for ax in axis:
             mask_inside = mask_inside & (index[ax] >= 0)

@@ -58,3 +58,5 @@ class AberrationInstrument(
 ):
 
     aberration: kgpy.optics.aberrations.Aberration = None
+
+

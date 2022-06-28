@@ -288,6 +288,9 @@ class AbstractVector(
                 raise ValueError('vectors have different components')
             result = 0
             for component in self.coordinates:
+                # print(component)
+                # print(self.coordinates[component])
+                # print(other.coordinates[component])
                 result = result + self.coordinates[component] * other.coordinates[component]
             return result
         else:
