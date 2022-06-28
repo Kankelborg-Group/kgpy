@@ -639,7 +639,7 @@ class Cartesian2D(
             kwarg = kwargs[k]
             if not isinstance(kwarg, kgpy.labeled.ArrayInterface):
                 kwarg = kgpy.labeled.Array(kwarg)
-            kwargs_broadcasted[k] = np.broadcast_to(kwarg, shape_kw)
+            kwargs_broadcasted[k] = np.broadcast_to(kwarg, {**kwarg.shape, **shape_kw})
 
         return kwargs_broadcasted
 
