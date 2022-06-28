@@ -1236,10 +1236,10 @@ class Array(
     def __post_init__(self: ArrayT):
         if self.axes is None:
             self.axes = []
-        if np.ndim(self.array) != len(self.axes):
+        if getattr(self.array, 'ndim', 0) != len(self.axes):
             raise ValueError('The number of axis names must match the number of dimensions.')
         if len(self.axes) != len(set(self.axes)):
-            raise ValueError('Each axis name must be unique.')
+            raise ValueError(f'Each axis name must be unique, got {self.axes}.')
 
     @classmethod
     def empty(cls: typ.Type[ArrayT], shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> ArrayT:
