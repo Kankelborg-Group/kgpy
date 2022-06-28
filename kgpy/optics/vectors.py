@@ -130,7 +130,8 @@ class SpotVector(
 class InputAngleVector(
     SpectralVector,
 ):
-    angle_input: Spherical = dataclasses.field(default_factory=Spherical)
+    angle_input_x: kgpy.uncertainty.ArrayLike = 0 * u.deg
+    angle_input_y: kgpy.uncertainty.ArrayLike = 0 * u.deg
 
 
 @dataclasses.dataclass(eq=False)
