@@ -463,7 +463,8 @@ class ArrayInterface(
             index = indices_factory(index)
             value_new = self(index)
             diff = value_new - value
-            diff = kgpy.vectors.CartesianND({c: diff.coordinates[c] for c in diff.coordinates if diff.coordinates[c] is not None})
+            if isinstance(diff, kgpy.vectors.AbstractVector):
+                diff = kgpy.vectors.CartesianND({c: diff.coordinates[c] for c in diff.coordinates if diff.coordinates[c] is not None})
             return diff
 
         result = kgpy.optimization.root_finding.secant(
