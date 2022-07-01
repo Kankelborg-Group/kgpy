@@ -126,6 +126,23 @@ _SymmetricMixinT = typ.TypeVar('_SymmetricMixinT', bound='SymmetricMixin')
 NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace')
 
 
+def ndindex(
+        shape: typ.Dict[str, int],
+        axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+) -> typ.Iterator[typ.Dict[str, int]]:
+    if axis_ignored is None:
+        axis_ignored = []
+    elif isinstance(axis_ignored, str):
+        axis_ignored = [axis_ignored]
+
+    for axis in axis_ignored:
+        if axis in shape:
+            shape.pop(axis)
+    shape_tuple = tuple(shape.values())
+    for index in np.ndindex(*shape_tuple):
+        yield dict(zip(shape.keys(), index))
+
+
 @dataclasses.dataclass(eq=False)
 class NDArrayMethodsMixin:
 
@@ -281,19 +298,10 @@ class ArrayInterface(
             self: typ.Type[ArrayInterfaceT],
             axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
     ) -> typ.Iterator[typ.Dict[str, int]]:
-
-        if axis_ignored is None:
-            axis_ignored = []
-        elif isinstance(axis_ignored, str):
-            axis_ignored = [axis_ignored]
-
-        shape = self.shape
-        for axis in axis_ignored:
-            if axis in shape:
-                shape.pop(axis)
-        shape_tuple = tuple(shape.values())
-        for index in np.ndindex(*shape_tuple):
-            yield dict(zip(shape.keys(), index))
+        return ndindex(
+            shape=self.shape,
+            axis_ignored=axis_ignored,
+        )
 
     @abc.abstractmethod
     def add_axes(self: ArrayInterfaceT, axes: typ.List) -> ArrayInterfaceT:
