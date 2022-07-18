@@ -256,7 +256,8 @@ class Surface(
                 text_position = transform_extra(text_position_local)
                 # text_position = text_position.reshape(-1, text_position.shape[~0])
 
-                for text_pos in text_position.ndindex(axis_ignored='wire'):
+                for index in text_position.ndindex(axis_ignored='wire'):
+                    text_pos = text_position[index]
 
                     wire_index = np.argmax(text_pos.coordinates[component_y], axis='wire')
 
