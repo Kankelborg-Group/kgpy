@@ -522,9 +522,11 @@ class IsoscelesTrapezoid(Polygon):
     @property
     def vertices(self) -> kgpy.vectors.Cartesian3D:
         m = np.tan(self.wedge_half_angle)
-        zero = 0 * self.apex_offset + 0 * self.half_width_left + 0 * self.half_width_right + 0 * m
+        zero = 0 * self.apex_offset + 0 * self.half_width_left + 0 * self.half_width_right + 0 * m * u.mm
         left_x, left_y = -self.half_width_left + zero, -m * (self.apex_offset + self.half_width_left) + zero
         right_x, right_y = self.half_width_right + zero, -m * (self.apex_offset - self.half_width_right) + zero
+        left_x = kgpy.labeled.Array(left_x)
+        left_y = kgpy.labeled.Array(left_y)
         vertices = kgpy.vectors.Cartesian3D(
             x=np.stack([left_x, right_x, right_x, left_x], axis='vertex'),
             y=np.stack([left_y, right_y, -right_y, -left_y], axis='vertex'),
