@@ -259,7 +259,7 @@ class Circular(
     @property
     def wire(self: CircularT) -> kgpy.vectors.Cartesian3D:
         wire = kgpy.vectors.Cylindrical(
-            radius=self.radius[..., np.newaxis],
+            radius=self.radius,
             azimuth=kgpy.labeled.LinearSpace(0 * u.deg, 360 * u.deg, num=self.num_samples, axis='wire'),
             z=0 * self.radius,
         ).cartesian
