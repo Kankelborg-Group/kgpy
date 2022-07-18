@@ -186,8 +186,8 @@ class Mirror(Material):
 
 @dataclasses.dataclass
 class Layer(kgpy.mixin.Copyable):
-    material: np.ndarray = dataclasses.field(default_factory=lambda: np.array([]))
-    thickness: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity([]))
+    material: typ.Optional[kgpy.labeled.Array] = None
+    thickness: typ.Optional[kgpy.labeled.Array] = None
     num_periods: int = 1
 
     def __eq__(self: LayerT, other: LayerT):
