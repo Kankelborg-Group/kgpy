@@ -242,11 +242,11 @@ class Circular(
 
     @property
     def min(self: CircularT) -> kgpy.vectors.Cartesian3D:
-        return -kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius) + self.decenter.vector
+        return self.transform(-kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius))
 
     @property
     def max(self: CircularT) -> kgpy.vectors.Cartesian3D:
-        return kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius) + self.decenter.vector
+        return self.transform(kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius))
 
     def is_unvignetted(self: CircularT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
         position = self.transform.inverse(position.to_3d())
