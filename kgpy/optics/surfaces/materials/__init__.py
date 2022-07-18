@@ -494,18 +494,18 @@ class CCDStern2004(Material):
 
     @property
     def quantum_efficiency_data(self):
-        return self.dataframe[1].to_numpy() * u.dimensionless_unscaled
+        return kgpy.labeled.Array(self.dataframe[1].to_numpy() * u.dimensionless_unscaled, axes=['wavelength'])
 
     @property
     def wavelength_data(self):
-        return self.dataframe[0].to_numpy() * u.AA
+        return kgpy.labeled.Array(self.dataframe[0].to_numpy() * u.AA, axes=['wavelength'])
 
-    def transmissivity(self, ray: rays.RayVector) -> u.Quantity:
+    def transmissivity(self, ray: rays.RayVector) -> kgpy.labeled.Array:
         transmissivity_function = kgpy.function.Array(
             input=self.wavelength_data,
             output=self.quantum_efficiency_data,
         )
-        return transmissivity_function.interp_linear(ray.wavelength)
+        return transmissivity_function.interp_linear(ray.wavelength).output
         # qe_interp = scipy.interpolate.interp1d(self.wavelength_data, self.quantum_efficiency_data)
         # qe = qe_interp(rays.wavelength.to(self.wavelength_data.unit)) * self.quantum_efficiency_data.unit
         # return qe
