@@ -665,7 +665,10 @@ class Cartesian2D(
                     ),
                     cmap=matplotlib.cm.viridis
                 )
-            color = kgpy.labeled.Array(np.array(colormap.to_rgba(color_array)), axes=color.axes + ['rgba'])
+            color = kgpy.labeled.Array(
+                np.array(colormap.to_rgba(color_array.reshape(-1)).reshape(color_array.shape + (4,))),
+                axes=color.axes + ['rgba']
+            )
 
         return color, colormap
 
