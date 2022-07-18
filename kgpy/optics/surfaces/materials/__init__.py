@@ -195,9 +195,9 @@ class Layer(kgpy.mixin.Copyable):
             return False
         if not isinstance(other, Layer):
             return False
-        if not (self.material == other.material).all():
+        if not np.all(self.material == other.material):
             return False
-        if not (self.thickness == other.thickness).all():
+        if not np.all(self.thickness == other.thickness):
             return False
         if not (self.num_periods == other.num_periods):
             return False
