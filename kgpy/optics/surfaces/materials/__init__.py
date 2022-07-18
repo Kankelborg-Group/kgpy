@@ -381,18 +381,20 @@ class AluminumThinFilm(Material):
         )
 
     def transmissivity_aluminum(self, ray: rays.RayVector) -> u.Quantity:
-        absorption = self.xrt_aluminum.get_absorption_coefficient(ray.energy.to(u.eV).value) / u.cm
+        absorption = self.xrt_aluminum.get_absorption_coefficient(ray.energy.to(u.eV).array.value) / u.cm
+        absorption = kgpy.labeled.Array(absorption, axes=ray.energy.axes)
         transmissivity = np.exp(-absorption * self.thickness / ray.direction.z)
         return transmissivity
 
     def transmissivity_aluminum_oxide(self, ray: rays.RayVector) -> u.Quantity:
-        absorption = self.xrt_aluminum_oxide.get_absorption_coefficient(ray.energy.to(u.eV).value) / u.cm
+        absorption = self.xrt_aluminum_oxide.get_absorption_coefficient(ray.energy.array.to(u.eV).value) / u.cm
+        absorption = kgpy.labeled.Array(absorption, axes=ray.energy.axes)
         transmissivity = np.exp(-absorption * 2 * self.thickness_oxide / ray.direction.z)
         return transmissivity
 
     def transmissivity(self, ray: rays.RayVector) -> u.Quantity:
         mesh_ratio = self.mesh_ratio.to(u.dimensionless_unscaled)
-        return mesh_ratio * self.transmissivity_aluminum(rays) * self.transmissivity_aluminum_oxide(rays)
+        return mesh_ratio * self.transmissivity_aluminum(ray) * self.transmissivity_aluminum_oxide(ray)
 
     def index_refraction(self, ray: rays.RayVector) -> u.Quantity:
         return 1 * u.dimensionless_unscaled
