@@ -11,6 +11,7 @@ import matplotlib.cm
 import matplotlib.lines
 import matplotlib.patches
 import matplotlib.axes
+import matplotlib.collections
 import mpl_toolkits.mplot3d.art3d
 import astropy.units as u
 import astropy.visualization
@@ -844,7 +845,7 @@ class Cartesian2D(
             color: typ.Optional[kgpy.labeled.ArrayLike] = None,
             colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
             **kwargs: typ.Any,
-    ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.Optional[matplotlib.cm.ScalarMappable]]:
+    ) -> typ.Tuple[typ.List[matplotlib.collections.PathCollection], typ.Optional[matplotlib.cm.ScalarMappable]]:
 
         return self._plot_func_uncertainty(
             func=ax.scatter,
