@@ -497,11 +497,13 @@ class System(
 
         position = rays_input_stops.output.position
         angle = rays_input_stops.output.angles
-        # dummy = labeled.Array.empty({a: 1 for a in axes})
-        # # shape = dummy.broadcast_shapes(position, angle)
-        # # print(shape)
-        # position = position.broadcast_to(dummy.shape_broadcasted(position))
-        # angle = angle.broadcast_to(dummy.shape_broadcasted(angle))
+
+        rays_output_stops = self.surfaces_all.raytrace(rays_input_stops)[~0]
+
+        angle = angle.broadcast_to(rays_output_stops.output.shape)
+        position = position.broadcast_to(rays_output_stops.output.shape)
+
+        where = rays_output_stops.output.mask
 
         if object_at_infinity:
             result.input.field_x.start = angle.x.array_labeled.min(axis=axes, where=where, initial=np.inf)
