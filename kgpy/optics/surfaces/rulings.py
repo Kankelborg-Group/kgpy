@@ -163,7 +163,7 @@ class CubicPolySpacing(ConstantDensity):
         term1 = self.ruling_spacing_linear * x
         term2 = self.ruling_spacing_quadratic * x2
         term3 = self.ruling_spacing_cubic * x * x2
-        ruling_spacing = term0 + term1 + term2 + term3
+        ruling_spacing = term0.to(u.um) + term1.to(u.um) + term2.to(u.um) + term3.to(u.um)
         groove_density = 1 / ruling_spacing
         return kgpy.vectors.Cartesian3D(x=groove_density, y=0 * groove_density, z=0 * groove_density)
 
