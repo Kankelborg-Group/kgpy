@@ -700,7 +700,9 @@ class Cartesian2D(
             if not isinstance(color, kgpy.labeled.ArrayInterface):
                 color = kgpy.labeled.Array(color)
 
-            shape = kgpy.labeled.Array.broadcast_shapes(*coordinates.values(), where, color, *kwargs.values())
+            shape_kwargs = kgpy.labeled.Array.broadcast_shapes(*kwargs.values(), color)
+
+            shape = kgpy.labeled.Array.broadcast_shapes(*coordinates.values(), where)
             shape_orthogonal = shape.copy()
             if axis_plot in shape_orthogonal:
                 shape_orthogonal.pop(axis_plot)
@@ -708,22 +710,28 @@ class Cartesian2D(
             for component in coordinates:
                 coordinates[component] = coordinates[component].broadcast_to(shape)
             where = where.broadcast_to(shape_orthogonal)
-            color = color.broadcast_to(shape_orthogonal)
+            color = color.broadcast_to(shape_kwargs)
 
             color, colormap = cls._calc_color(color, colormap)
 
-            kwargs = cls._broadcast_kwargs(kwargs, shape, axis_plot)
+            kwargs = cls._broadcast_kwargs(kwargs, shape_kwargs, axis_plot)
 
             lines = []
-            for index in coordinates[next(iter(coordinates))].ndindex(axis_ignored=axis_plot):
-                if where[index]:
-                    coordinates_index = {c: coordinates[c][index].array for c in coordinates}
+            if shape_kwargs:
+                for index in kgpy.labeled.ndindex(shape_kwargs):
+                    coordinates_index = {c: coordinates[c][index][where[index]].array for c in coordinates}
                     kwargs_index = {k: kwargs[k][index].array for k in kwargs}
                     lines += [func(
                         *coordinates_index.values(),
                         color=color[index].array,
                         **kwargs_index
                     )]
+            else:
+                coordinates_index = {c: coordinates[c][where].array for c in coordinates}
+                lines += [func(
+                    *coordinates_index.values(),
+                    color=color[dict()].array,
+                )]
 
         return lines, colormap
 
