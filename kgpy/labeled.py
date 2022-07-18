@@ -577,6 +577,21 @@ class AbstractArray(
             axes=list(shape.keys()),
         )
 
+    def change_axis_index(self, axis: str, index: int):
+        shape = self.shape
+        size_axis = shape.pop(axis)
+        keys = list(shape.keys())
+        values = list(shape.values())
+        index = index % len(self.shape) + 1
+        keys.insert(index, axis)
+        values.insert(index, size_axis)
+        shape_new = {k: v for k, v in zip(keys, values)}
+        return Array(
+            array=self.array_aligned(shape_new),
+            axes=keys,
+        )
+
+
     def combine_axes(
             self: AbstractArrayT,
             axes: typ.Sequence[str],
