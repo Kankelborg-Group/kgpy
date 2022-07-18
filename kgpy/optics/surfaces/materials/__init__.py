@@ -21,6 +21,7 @@ import kgpy.function
 import kgpy.transforms
 import kgpy.format
 import kgpy.plot
+from ... import vectors
 from ... import rays
 from .. import apertures
 from .. import sags
@@ -331,7 +332,10 @@ class MeasuredMultilayerMirror(MultilayerMirror):
     # wavelength_data: typ.Optional[u.Quantity] = None
 
     def transmissivity(self: MeasuredMultilayerMirrorT, ray: rays.RayVector) -> kgpy.uncertainty.ArrayLike:
-        return self.transmissivity_function.interp_linear(ray.wavelength)
+        return self.transmissivity_function.interp_barycentric_linear(
+            input_new=vectors.InputAngleVector(wavelength=ray.wavelength, angle_input_x=None, angle_input_y=None),
+            axis=['wavelength'],
+        ).output
         # interp = scipy.interpolate.interp1d(self.wavelength_data, self.efficiency_data, bounds_error=False)
         # return interp(rays.wavelength.to(self.wavelength_data.unit)) * self.efficiency_data.unit
 
