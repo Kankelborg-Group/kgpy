@@ -202,19 +202,37 @@ class Aperture(
                 )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Obscurable(
     kgpy.mixin.Copyable,
 ):
     is_obscuration: kgpy.labeled.ArrayLike = False
 
+    def __eq__(self: ObscurableT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.is_obscuration == other.is_obscuration):
+            return False
+        return True
 
-@dataclasses.dataclass
+
+@dataclasses.dataclass(eq=False)
 class Circular(
     Aperture,
     Obscurable,
 ):
     radius: kgpy.uncertainty.ArrayLike = 0 * u.mm
+
+    def __eq__(self: CircularT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.radius == other.radius):
+            return False
+        return True
 
     @property
     def broadcasted(self: CircularT):
@@ -248,7 +266,7 @@ class Circular(
         return self.transform(wire)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Polygon(
     Obscurable,
     Aperture,
@@ -305,11 +323,24 @@ class Polygon(
         return wire
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class RegularPolygon(Polygon):
     radius: kgpy.uncertainty.ArrayLike = 0 * u.mm
     num_sides: kgpy.labeled.ArrayLike = 8
     offset_angle: kgpy.uncertainty.ArrayLike = 0 * u.deg
+
+    def __eq__(self: RegularPolygonT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.radius == other.radius):
+            return False
+        if not np.all(self.num_sides == other.num_sides):
+            return False
+        if not np.all(self.offset_angle == other.offset_angle):
+            return False
+        return True
 
     @property
     def broadcasted(self: RegularPolygonT):
@@ -363,10 +394,28 @@ class RegularPolygon(Polygon):
 class IrregularPolygon(Polygon):
     vertices: kgpy.vectors.Cartesian3D = None
 
+    def __eq__(self: IrregularPolygonT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.vertices == other.vertices):
+            return False
+        return True
+
 
 @dataclasses.dataclass
 class Rectangular(Polygon):
     half_width: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian2D() * u.mm)
+
+    def __eq__(self: RectangularT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.half_width == other.half_width):
+            return False
+        return True
 
     @property
     def broadcasted(self: RectangularT):
@@ -454,6 +503,21 @@ class IsoscelesTrapezoid(Polygon):
     half_width_left: kgpy.uncertainty.ArrayLike = 0 * u.mm
     half_width_right: kgpy.uncertainty.ArrayLike = 0 * u.mm
     wedge_half_angle: kgpy.uncertainty.ArrayLike = 0 * u.deg
+
+    def __eq__(self: IsoscelesTrapezoidT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.apex_offset == other.apex_offset):
+            return False
+        if not np.all(self.half_width_left == other.half_width_left):
+            return False
+        if not np.all(self.half_width_right == other.half_width_right):
+            return False
+        if not np.all(self.wedge_half_angle == other.wedge_half_angle):
+            return False
+        return True
 
     @property
     def vertices(self) -> kgpy.vectors.Cartesian3D:
