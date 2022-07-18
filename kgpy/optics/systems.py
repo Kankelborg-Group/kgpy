@@ -344,7 +344,7 @@ class System(
 
         result = rays.RayFunction()
         result.input = object_grid_normalized.copy_shallow()
-        result.output.wavelength = result.input.wavelength_doppler
+        result.output.wavelength = result.input.wavelength
 
         visited_pupil_stops = []
         visited_pupil_stop = False
@@ -479,7 +479,7 @@ class System(
         result = rays.RayFunction()
         result.input = object_grid_normalized.copy_shallow()
         result.output.transform = self.object_surface.transform
-        result.output.wavelength = result.input.wavelength_doppler
+        result.output.wavelength = result.input.wavelength
 
         axes = [
             'wavelength',
