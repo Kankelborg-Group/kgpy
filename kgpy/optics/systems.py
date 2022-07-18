@@ -63,6 +63,7 @@ class System(
     object_surface: Surface = dataclasses.field(default_factory=Surface)
     surfaces: SurfaceList = dataclasses.field(default_factory=SurfaceList)
     object_grid_normalized: vectors.ObjectVector = dataclasses.field(default_factory=vectors.ObjectVector)
+    resample_over_entrance: bool = True
     field_margin: u.Quantity = 1 * u.nm  #: Margin between edge of field and nearest ray
     pupil_margin: u.Quantity = 1 * u.nm  #: Margin between edge of pupil and nearest ray
     # pointing: vector.Cartesian2D = dataclasses.field(default_factory=lambda: vector.Cartesian2D() * u.deg)
@@ -464,6 +465,9 @@ class System(
     def _calc_rays_input(self: SystemT, object_grid_normalized: vectors.ObjectVector) -> rays.RayFunction:
 
         rays_input_stops = self._calc_rays_input_stops(object_grid_normalized)
+
+        if not self.resample_over_entrance:
+            return rays_input_stops
 
         if self.object_surface.aperture is not None:
             aperture_unit = self.object_surface.aperture.wire.unit
