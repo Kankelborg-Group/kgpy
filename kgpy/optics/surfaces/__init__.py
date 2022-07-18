@@ -87,7 +87,7 @@ class Surface(
             return False
         if not self.aperture_mechanical == other.aperture_mechanical:
             return False
-        if not self.rulings == other.rulings:
+        if not self.ruling == other.ruling:
             return False
         if not self.baffle_loft_ids == other.baffle_loft_ids:
             return False
