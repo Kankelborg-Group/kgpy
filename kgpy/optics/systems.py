@@ -358,19 +358,19 @@ class System(
 
                 if surf.is_field_stop or surf.is_pupil_stop or surf.is_pupil_stop_test:
                     if surf.is_field_stop:
-                        result.input.field.x.start = surf.aperture.min.x + self.field_margin
-                        result.input.field.y.start = surf.aperture.min.y + self.field_margin
-                        result.input.field.x.stop = surf.aperture.max.x - self.field_margin
-                        result.input.field.y.stop = surf.aperture.max.y - self.field_margin
+                        result.input.field_x.start = surf.aperture.min.x + self.field_margin
+                        result.input.field_y.start = surf.aperture.min.y + self.field_margin
+                        result.input.field_x.stop = surf.aperture.max.x - self.field_margin
+                        result.input.field_y.stop = surf.aperture.max.y - self.field_margin
 
                     if surf in visited_pupil_stops:
                         continue
 
                     if surf.is_pupil_stop or surf.is_pupil_stop_test:
-                        result.input.pupil.x.start = surf.aperture.min.x + self.pupil_margin
-                        result.input.pupil.y.start = surf.aperture.min.y + self.pupil_margin
-                        result.input.pupil.x.stop = surf.aperture.max.x - self.pupil_margin
-                        result.input.pupil.y.stop = surf.aperture.max.y - self.pupil_margin
+                        result.input.pupil_x.start = surf.aperture.min.x + self.pupil_margin
+                        result.input.pupil_y.start = surf.aperture.min.y + self.pupil_margin
+                        result.input.pupil_x.stop = surf.aperture.max.x - self.pupil_margin
+                        result.input.pupil_y.stop = surf.aperture.max.y - self.pupil_margin
                         visited_pupil_stops.append(surf)
 
                     if surf.is_pupil_stop:
@@ -384,17 +384,17 @@ class System(
             result.output.transform = surfaces_subsystem[0].transform
 
             if surfaces_subsystem[~0].is_field_stop:
-                position_target = result.input.field
+                position_target = result.input.field_xy
             else:
-                position_target = result.input.pupil
+                position_target = result.input.pupil_xy
 
             unit_aperture_first = surfaces_subsystem[0].aperture.wire.unit
             if unit_aperture_first.is_equivalent(u.mm):
 
                 if surfaces_subsystem[0].is_field_stop:
-                    result.output.position = result.input.field.to_3d()
+                    result.output.position = result.input.field_xy.to_3d()
                 else:
-                    result.output.position = result.input.pupil.to_3d()
+                    result.output.position = result.input.pupil_xy.to_3d()
                 if surfaces_subsystem[0].sag is not None:
                     result.output.position.z = surfaces_subsystem[0].sag(result.output.position)
 
@@ -415,9 +415,9 @@ class System(
             elif unit_aperture_first.is_equivalent(u.deg):
 
                 if surfaces_subsystem[0].is_field_stop:
-                    result.output.angles = result.input.field
+                    result.output.angles = result.input.field_xy
                 else:
-                    result.output.angles = result.input.pupil
+                    result.output.angles = result.input.pupil_xy
 
                 def position_error(pos: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian2D:
                     rays_in = result.copy_shallow()
@@ -484,10 +484,10 @@ class System(
         axes = [
             'wavelength',
             'velocity_los',
-            'field.x',
-            'field.y',
-            'pupil.x',
-            'pupil.y',
+            'field_x',
+            'field_y',
+            'pupil_x',
+            'pupil_y',
             '_distribution',
         ]
 
@@ -500,30 +500,30 @@ class System(
         # angle = angle.broadcast_to(dummy.shape_broadcasted(angle))
 
         if object_at_infinity:
-            result.input.field.x.start = angle.x.array_labeled.min(axis=axes)
-            result.input.field.y.start = angle.y.array_labeled.min(axis=axes)
-            result.input.field.x.stop = angle.x.array_labeled.max(axis=axes)
-            result.input.field.y.stop = angle.y.array_labeled.max(axis=axes)
-            result.input.pupil.x.start = position.x.array_labeled.min(axis=axes)
-            result.input.pupil.y.start = position.y.array_labeled.min(axis=axes)
-            result.input.pupil.x.stop = position.x.array_labeled.max(axis=axes)
-            result.input.pupil.y.stop = position.y.array_labeled.max(axis=axes)
+            result.input.field_x.start = angle.x.array_labeled.min(axis=axes, where=where, initial=np.inf)
+            result.input.field_y.start = angle.y.array_labeled.min(axis=axes, where=where, initial=np.inf)
+            result.input.field_x.stop = angle.x.array_labeled.max(axis=axes, where=where, initial=-np.inf)
+            result.input.field_y.stop = angle.y.array_labeled.max(axis=axes, where=where, initial=-np.inf)
+            result.input.pupil_x.start = position.x.array_labeled.min(axis=axes, where=where, initial=np.inf)
+            result.input.pupil_y.start = position.y.array_labeled.min(axis=axes, where=where, initial=np.inf)
+            result.input.pupil_x.stop = position.x.array_labeled.max(axis=axes, where=where, initial=-np.inf)
+            result.input.pupil_y.stop = position.y.array_labeled.max(axis=axes, where=where, initial=-np.inf)
 
-            result.output.position = result.input.pupil.to_3d()
-            result.output.angles = result.input.field
+            result.output.position = result.input.pupil_xy.to_3d()
+            result.output.angles = result.input.field_xy
 
         else:
-            result.input.pupil.x.start = angle.x.array_labeled.min(axis=axes)
-            result.input.pupil.y.start = angle.y.array_labeled.min(axis=axes)
-            result.input.pupil.x.stop = angle.x.array_labeled.max(axis=axes)
-            result.input.pupil.y.stop = angle.y.array_labeled.max(axis=axes)
-            result.input.field.x.start = position.x.array_labeled.min(axis=axes)
-            result.input.field.y.start = position.y.array_labeled.min(axis=axes)
-            result.input.field.x.stop = position.x.array_labeled.max(axis=axes)
-            result.input.field.y.stop = position.y.array_labeled.max(axis=axes)
+            result.input.pupil_x.start = angle.x.array_labeled.min(axis=axes, where=where, initial=np.inf)
+            result.input.pupil_y.start = angle.y.array_labeled.min(axis=axes, where=where, initial=np.inf)
+            result.input.pupil_x.stop = angle.x.array_labeled.max(axis=axes, where=where, initial=-np.inf)
+            result.input.pupil_y.stop = angle.y.array_labeled.max(axis=axes, where=where, initial=-np.inf)
+            result.input.field_x.start = position.x.array_labeled.min(axis=axes, where=where, initial=np.inf)
+            result.input.field_y.start = position.y.array_labeled.min(axis=axes, where=where, initial=np.inf)
+            result.input.field_x.stop = position.x.array_labeled.max(axis=axes, where=where, initial=-np.inf)
+            result.input.field_y.stop = position.y.array_labeled.max(axis=axes, where=where, initial=-np.inf)
 
-            result.output.position = result.input.field.to_3d()
-            result.output.angles = result.input.pupil
+            result.output.position = result.input.field_xy.to_3d()
+            result.output.angles = result.input.pupil_xy
 
         return result
 
