@@ -281,7 +281,7 @@ class Polygon(
 
         # position = self.transform(position)
 
-        vertices = self.vertices
+        vertices = self.vertices.broadcasted
 
         result = False
         for v in range(vertices.shape['vertex']):
