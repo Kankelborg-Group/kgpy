@@ -28,7 +28,6 @@ CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
 @dataclasses.dataclass(eq=False)
 class AbstractMatrix(
     kgpy.vectors.AbstractVector,
-    abc.ABC,
 ):
 
     @classmethod
@@ -124,8 +123,8 @@ class AbstractMatrix(
 
 @dataclasses.dataclass(eq=False)
 class Cartesian1D(
-    kgpy.vectors.Cartesian1D[kgpy.vectors.Cartesian1D],
     AbstractMatrix,
+    kgpy.vectors.Cartesian1D[kgpy.vectors.Cartesian1D],
 ):
     @classmethod
     def identity(cls: typ.Type[Cartesian1DT]) -> Cartesian1DT:
@@ -143,8 +142,8 @@ class Cartesian1D(
 
 @dataclasses.dataclass(eq=False)
 class Cartesian2D(
+    AbstractMatrix,
     kgpy.vectors.Cartesian2D[kgpy.vectors.Cartesian2D, kgpy.vectors.Cartesian2D],
-    AbstractMatrix
 ):
 
     @classmethod
@@ -169,12 +168,12 @@ class Cartesian2D(
 
 @dataclasses.dataclass(eq=False)
 class Cartesian3D(
+    AbstractMatrix,
     kgpy.vectors.Cartesian3D[
         kgpy.vectors.Cartesian3D,
         kgpy.vectors.Cartesian3D,
         kgpy.vectors.Cartesian3D,
     ],
-    AbstractMatrix,
 ):
 
     @classmethod

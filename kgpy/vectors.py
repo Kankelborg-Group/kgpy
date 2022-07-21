@@ -42,9 +42,13 @@ ReturnT = typ.TypeVar('ReturnT')
 RadiusT = typ.TypeVar('RadiusT', bound=kgpy.uncertainty.ArrayLike)
 AzimuthT = typ.TypeVar('AzimuthT', bound=kgpy.uncertainty.ArrayLike)
 InclinationT = typ.TypeVar('InclinationT', bound=kgpy.uncertainty.ArrayLike)
+VectorInterfaceT = typ.TypeVar('VectorInterfaceT', bound='VectorInterface')
 AbstractVectorT = typ.TypeVar('AbstractVectorT', bound='AbstractVector')
+AbstractCartesian1DT = typ.TypeVar('AbstractCartesian1DT', bound='AbstractCartesian1D')
 Cartesian1DT = typ.TypeVar('Cartesian1DT', bound='Cartesian1D')
+AbstractCartesian2DT = typ.TypeVar('AbstractCartesian2DT', bound='AbstractCartesian2D')
 Cartesian2DT = typ.TypeVar('Cartesian2DT', bound='Cartesian2D')
+AbstractCartesian3DT = typ.TypeVar('AbstractCartesian3DT', bound='AbstractCartesian3D')
 Cartesian3DT = typ.TypeVar('Cartesian3DT', bound='Cartesian3D')
 CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
 PolarT = typ.TypeVar('PolarT', bound='Polar')
@@ -52,7 +56,7 @@ CylindricalT = typ.TypeVar('CylindricalT', bound='Cylindrical')
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
 SpatialSpectralT = typ.TypeVar('SpatialSpectralT', bound='SpatialSpectral')
 
-VectorLike = typ.Union[kgpy.uncertainty.ArrayLike, 'AbstractVector']
+VectorLike = typ.Union[kgpy.uncertainty.ArrayLike, 'VectorInterface']
 ItemArrayT = typ.Union[kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray, AbstractVectorT]
 
 
@@ -63,154 +67,93 @@ class ComponentAxis:
 
 
 @dataclasses.dataclass(eq=False)
-class AbstractVector(
+class VectorInterface(
     kgpy.labeled.ArrayInterface,
 ):
-    type_coordinates = kgpy.uncertainty.AbstractArray.type_array + (kgpy.uncertainty.AbstractArray, )
+    type_coordinates = kgpy.uncertainty.AbstractArray.type_array + (kgpy.uncertainty.AbstractArray,)
 
     @classmethod
-    def from_coordinates(cls: typ.Type[AbstractVectorT], coordinates: typ.Dict[str, VectorLike]) -> AbstractVectorT:
-        return cls(**coordinates)
+    @abc.abstractmethod
+    def prototype(cls: typ.Type[VectorInterfaceT]) -> typ.Type[AbstractVectorT]:
+        pass
 
     @classmethod
-    def linear_space(
-            cls: typ.Type[AbstractVectorT],
-            start: AbstractVectorT,
-            stop: AbstractVectorT,
-            num: AbstractVectorT,
-            endpoint: bool = True,
-    ) -> AbstractVectorT:
-        coordinates_start = start.coordinates_flat
-        coordinates_stop = stop.coordinates_flat
-        coordinates_num = num.coordinates_flat
-        coordinates_flat = dict()
-        for component in coordinates_start:
-            coordinates_flat[component] = kgpy.labeled.LinearSpace(
-                start=coordinates_start[component],
-                stop=coordinates_stop[component],
-                num=coordinates_num[component],
-                endpoint=endpoint,
-                axis=component,
-            )
-
-        result = cls()
-        result.coordinates_flat = coordinates_flat
-        return result
-
-    @classmethod
-    def stratified_random_space(
-            cls: typ.Type[AbstractVectorT],
-            start: AbstractVectorT,
-            stop: AbstractVectorT,
-            num: AbstractVectorT,
-            axis: AbstractVectorT,
-            endpoint: bool = True,
-            shape_extra: typ.Optional[typ.Dict[str, int]] = None
-    ) -> AbstractVectorT:
-        coordinates_start = start.coordinates_flat
-        coordinates_stop = stop.coordinates_flat
-        coordinates_num = num.coordinates_flat
-        coordinates_flat = dict()
-        for component in coordinates_start:
-
-            if shape_extra is None:
-                shape_extra = dict()
-            shape = {axis.coordinates_flat[c]: coordinates_num[c] for c in coordinates_num}
-            shape_extra_component = {**shape_extra, **shape}
-            shape_extra_component.pop(axis.coordinates_flat[component])
-
-            coordinates_flat[component] = kgpy.labeled.StratifiedRandomSpace(
-                start=coordinates_start[component],
-                stop=coordinates_stop[component],
-                num=coordinates_num[component],
-                endpoint=endpoint,
-                axis=axis.coordinates_flat[component],
-                shape_extra=shape_extra_component,
-            )
-
-        result = cls()
-        result.coordinates_flat = coordinates_flat
-        return result
+    def from_coordinates(cls: typ.Type[VectorInterfaceT], coordinates: typ.Dict[str, VectorLike]) -> AbstractVectorT:
+        return cls.prototype()(**coordinates)
 
     @property
-    def unit(self):
-        return getattr(self.coordinates[self.components[0]], 'unit', 1)
+    @abc.abstractmethod
+    def coordinates(self: VectorInterfaceT) -> typ.Dict[str, VectorLike]:
+        pass
+
+    # @property
+    # def coordinates_flat(self: AbstractVectorT) -> typ.Dict[str, kgpy.uncertainty.ArrayLike]:
+    #     result = dict()
+    #     coordinates = self.coordinates
+    #     for component in coordinates:
+    #         if isinstance(coordinates[component], AbstractVector):
+    #             coordinates_component = coordinates[component].coordinates_flat
+    #             coordinates_component = {f'{component}.{c}': coordinates_component[c] for c in coordinates_component}
+    #             result = {**result, **coordinates_component}
+    #         else:
+    #             result[component] = coordinates[component]
+    #     return result
+    
+    @property
+    def components(self: VectorInterfaceT) -> typ.List[str]:
+        return list(self.coordinates.keys())
 
     @property
-    def coordinates(self: AbstractVectorT) -> typ.Dict[str, VectorLike]:
-        return self.__dict__
-
-    @property
-    def coordinates_flat(self: AbstractVectorT) -> typ.Dict[str, kgpy.uncertainty.ArrayLike]:
-        result = dict()
-        coordinates = self.coordinates
-        for component in coordinates:
-            if isinstance(coordinates[component], AbstractVector):
-                coordinates_component = coordinates[component].coordinates_flat
-                coordinates_component = {f'{component}.{c}': coordinates_component[c] for c in coordinates_component}
-                result = {**result, **coordinates_component}
-            else:
-                result[component] = coordinates[component]
-        return result
-
-    @coordinates_flat.setter
-    def coordinates_flat(self: AbstractVectorT, value: typ.Dict[str, kgpy.uncertainty.ArrayLike]):
-        coordinates = self.coordinates
-        for component in value:
-            component_split = component.split('.')
-            coordinates_current = coordinates
-            for comp in component_split[:~0]:
-                coordinates_current = coordinates_current[comp].coordinates
-
-            coordinates_current[component_split[~0]] = value[component]
-
-    @property
-    def components(self: AbstractVectorT) -> typ.Tuple[str, ...]:
-        return tuple(field.name for field in dataclasses.fields(self))
-
-    @property
-    def normalize(self: AbstractVectorT) -> AbstractVectorT:
-        other = super().normalized
-        for component in other.coordinates:
-            if not isinstance(other.coordinates[component], kgpy.labeled.ArrayInterface):
-                other.coordinates[component] = kgpy.labeled.Array(other.coordinates[component])
-        return other
-
-    @property
-    def centers(self: AbstractVectorT) -> AbstractVectorT:
-        return self.from_coordinates({c: self.coordinates[c].centers for c in self.coordinates})
-
-    @property
-    def array_labeled(self: AbstractVectorT) -> kgpy.labeled.ArrayInterface:
+    def array_labeled(self: VectorInterfaceT) -> kgpy.labeled.ArrayInterface:
         coordinates = self.broadcasted.coordinates
         return np.stack(list(coordinates.values()), axis='component')
 
     @property
-    def array(self: AbstractVectorT) -> np.ndarray:
+    def array(self: VectorInterfaceT) -> np.ndarray:
         return self.array_labeled.array
 
-    def to(self: AbstractVectorT, unit: u.UnitBase) -> AbstractVectorT:
-        other = self.copy_shallow()
-        for component in other.coordinates:
-            other.coordinates[component] = other.coordinates[component].to(unit)
-        return other
-
     @property
-    def tuple(self: AbstractVectorT) -> typ.Tuple[VectorLike, ...]:
+    def tuple(self: VectorInterfaceT) -> typ.Tuple[VectorLike, ...]:
         return tuple(self.coordinates.values())
 
     @property
-    def shape(self: AbstractVectorT) -> typ.Dict[str, int]:
+    def shape(self: VectorInterfaceT) -> typ.Dict[str, int]:
         return kgpy.labeled.Array.broadcast_shapes(*self.coordinates.values())
 
+    @property
+    def component_sum(self: VectorInterfaceT) -> kgpy.uncertainty.ArrayLike:
+        result = 0
+        coordinates = self.coordinates
+        for component in coordinates:
+            result = result + coordinates[component]
+        return result
+
+    @property
+    def length(self: VectorInterfaceT) -> kgpy.uncertainty.ArrayLike:
+        result = 0
+        coordinates = self.coordinates
+        for component in coordinates:
+            coordinate = coordinates[component]
+            if coordinate is None:
+                continue
+            if isinstance(coordinate, AbstractVector):
+                coordinate = coordinate.length
+            result = result + np.square(coordinate)
+        result = np.sqrt(result)
+        return result
+
+    @property
+    def normalized(self: VectorInterfaceT) -> VectorInterfaceT:
+        return self / self.length
+
     def astype(
-            self: AbstractVectorT,
+            self: VectorInterfaceT,
             dtype: numpy.typing.DTypeLike,
             order: str = 'K',
             casting='unsafe',
             subok: bool = True,
             copy: bool = True,
-    ) -> AbstractVectorT:
+    ) -> VectorInterfaceT:
         kwargs = dict(
             dtype=dtype,
             order=order,
@@ -255,55 +198,52 @@ class AbstractVector(
 
         return type(self).from_coordinates(components_result)
 
-    def __bool__(self: AbstractVectorT) -> bool:
+    def __bool__(self: VectorInterfaceT) -> bool:
         result = True
         coordinates = self.coordinates
         for component in coordinates:
             result = result and coordinates[component].__bool__()
         return result
 
-    def __mul__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
+    def __mul__(self: VectorInterfaceT, other: typ.Union[VectorLike, u.UnitBase]) -> VectorInterfaceT:
         if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
             return type(self).from_coordinates({component: coordinates[component] * other for component in coordinates})
         else:
             return super().__mul__(other)
 
-    def __lshift__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
+    def __lshift__(self: VectorInterfaceT, other: typ.Union[VectorLike, u.UnitBase]) -> VectorInterfaceT:
         if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
             return type(self).from_coordinates({component: coordinates[component] << other for component in coordinates})
         else:
             return super().__lshift__(other)
 
-    def __truediv__(self: AbstractVectorT, other: typ.Union[VectorLike, u.UnitBase]) -> AbstractVectorT:
+    def __truediv__(self: VectorInterfaceT, other: typ.Union[VectorLike, u.UnitBase]) -> VectorInterfaceT:
         if isinstance(other, u.UnitBase):
             coordinates = self.coordinates
             return type(self).from_coordinates({component: coordinates[component] / other for component in coordinates})
         else:
             return super().__truediv__(other)
 
-    def __matmul__(self: AbstractVectorT, other: AbstractVectorT) -> AbstractVectorT:
-        if isinstance(other, AbstractVector):
+    def __matmul__(self: VectorInterfaceT, other: VectorInterfaceT) -> VectorInterfaceT:
+        if isinstance(other, VectorInterface):
             if not self.coordinates.keys() == other.coordinates.keys():
                 raise ValueError('vectors have different components')
             result = 0
             for component in self.coordinates:
-                # print(component)
-                # print(self.coordinates[component])
-                # print(other.coordinates[component])
                 result = result + self.coordinates[component] * other.coordinates[component]
             return result
         else:
             return NotImplemented
 
     def __array_function__(
-            self: AbstractVectorT,
+            self: VectorInterfaceT,
             func: typ.Callable,
             types: typ.Collection,
             args: typ.Tuple,
             kwargs: typ.Dict[str, typ.Any],
-    ) -> AbstractVectorT:
+    ) -> VectorInterfaceT:
 
         if func in [
             np.unravel_index,
@@ -392,7 +332,7 @@ class AbstractVector(
             return NotImplemented
 
     def __getitem__(
-            self: AbstractVectorT,
+            self: VectorInterfaceT,
             item: typ.Union[typ.Dict[str, typ.Union[int, slice, ItemArrayT]], ItemArrayT],
     ):
         if isinstance(item, AbstractVector):
@@ -410,6 +350,152 @@ class AbstractVector(
         else:
             raise TypeError
         return type(self).from_coordinates(coordinates)
+
+    def add_axes(self: VectorInterfaceT, axes: typ.List) -> VectorInterfaceT:
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component].add_axes(axes=axes)
+        return type(self).from_coordinates(coordinates_new)
+
+    def combine_axes(
+            self: VectorInterfaceT,
+            axes: typ.Sequence[str],
+            axis_new: typ.Optional[str] = None,
+    ) -> VectorInterfaceT:
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component].combine_axes(axes=axes, axis_new=axis_new)
+        return type(self).from_coordinates(coordinates_new)
+
+    def aligned(self: VectorInterfaceT, shape: typ.Dict[str, int]) -> AbstractVectorT:
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component].aligned(shape)
+        return type(self).from_coordinates(coordinates_new)
+
+    @property
+    def type_matrix(self: VectorInterfaceT) -> typ.Type['kgpy.matrix.AbstractMatrix']:
+        raise NotImplementedError
+
+    def to_matrix(self: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
+        return self.type_matrix.from_coordinates(self.coordinates.copy())
+
+    def outer(self: AbstractVectorT, other: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
+        coordinates = self.coordinates
+        coordinates_new = dict()
+        for component in coordinates:
+            coordinates_new[component] = coordinates[component] * other
+        return self.type_matrix.from_coordinates(coordinates_new)
+
+
+@dataclasses.dataclass(eq=False)
+class AbstractVector(
+    VectorInterface,
+):
+
+    @classmethod
+    def prototype(cls: typ.Type[AbstractVectorT]) -> typ.Type[AbstractVectorT]:
+        return cls
+
+    @classmethod
+    def linear_space(
+            cls: typ.Type[AbstractVectorT],
+            start: AbstractVectorT,
+            stop: AbstractVectorT,
+            num: AbstractVectorT,
+            endpoint: bool = True,
+    ) -> AbstractVectorT:
+        coordinates_start = start.coordinates_flat
+        coordinates_stop = stop.coordinates_flat
+        coordinates_num = num.coordinates_flat
+        coordinates_flat = dict()
+        for component in coordinates_start:
+            coordinates_flat[component] = kgpy.labeled.LinearSpace(
+                start=coordinates_start[component],
+                stop=coordinates_stop[component],
+                num=coordinates_num[component],
+                endpoint=endpoint,
+                axis=component,
+            )
+
+        result = cls()
+        result.coordinates_flat = coordinates_flat
+        return result
+
+    @classmethod
+    def stratified_random_space(
+            cls: typ.Type[AbstractVectorT],
+            start: AbstractVectorT,
+            stop: AbstractVectorT,
+            num: AbstractVectorT,
+            axis: AbstractVectorT,
+            endpoint: bool = True,
+            shape_extra: typ.Optional[typ.Dict[str, int]] = None
+    ) -> AbstractVectorT:
+        coordinates_start = start.coordinates_flat
+        coordinates_stop = stop.coordinates_flat
+        coordinates_num = num.coordinates_flat
+        coordinates_flat = dict()
+        for component in coordinates_start:
+
+            if shape_extra is None:
+                shape_extra = dict()
+            shape = {axis.coordinates_flat[c]: coordinates_num[c] for c in coordinates_num}
+            shape_extra_component = {**shape_extra, **shape}
+            shape_extra_component.pop(axis.coordinates_flat[component])
+
+            coordinates_flat[component] = kgpy.labeled.StratifiedRandomSpace(
+                start=coordinates_start[component],
+                stop=coordinates_stop[component],
+                num=coordinates_num[component],
+                endpoint=endpoint,
+                axis=axis.coordinates_flat[component],
+                shape_extra=shape_extra_component,
+            )
+
+        result = cls()
+        result.coordinates_flat = coordinates_flat
+        return result
+
+    @property
+    def unit(self):
+        return getattr(self.coordinates[self.components[0]], 'unit', 1)
+
+    @property
+    def coordinates(self: AbstractVectorT) -> typ.Dict[str, VectorLike]:
+        return self.__dict__
+
+    # @VectorInterface.coordinates_flat.setter
+    # def coordinates_flat(self: AbstractVectorT, value: typ.Dict[str, kgpy.uncertainty.ArrayLike]):
+    #     coordinates = self.coordinates
+    #     for component in value:
+    #         component_split = component.split('.')
+    #         coordinates_current = coordinates
+    #         for comp in component_split[:~0]:
+    #             coordinates_current = coordinates_current[comp].coordinates
+    #
+    #         coordinates_current[component_split[~0]] = value[component]
+
+    @property
+    def normalize(self: AbstractVectorT) -> AbstractVectorT:
+        other = super().normalized
+        for component in other.coordinates:
+            if not isinstance(other.coordinates[component], kgpy.labeled.ArrayInterface):
+                other.coordinates[component] = kgpy.labeled.Array(other.coordinates[component])
+        return other
+
+    @property
+    def centers(self: AbstractVectorT) -> AbstractVectorT:
+        return self.from_coordinates({c: self.coordinates[c].centers for c in self.coordinates})
+
+    def to(self: AbstractVectorT, unit: u.UnitBase) -> AbstractVectorT:
+        other = self.copy_shallow()
+        for component in other.coordinates:
+            other.coordinates[component] = other.coordinates[component].to(unit)
+        return other
 
     def __setitem__(
             self: AbstractVectorT,
@@ -438,57 +524,6 @@ class AbstractVector(
 
     def __call__(self: AbstractVectorT, item: typ.Dict[str, VectorLike]):
         return self.interp_linear(item=item)
-
-    @property
-    def component_sum(self) -> kgpy.uncertainty.ArrayLike:
-        result = 0
-        coordinates = self.coordinates
-        for component in coordinates:
-            result = result + coordinates[component]
-        return result
-
-    @property
-    def length(self) -> kgpy.uncertainty.ArrayLike:
-        result = 0
-        coordinates = self.coordinates
-        for component in coordinates:
-            coordinate = coordinates[component]
-            if coordinate is None:
-                continue
-            if isinstance(coordinate, AbstractVector):
-                coordinate = coordinate.length
-            result = result + np.square(coordinate)
-        result = np.sqrt(result)
-        return result
-
-    @property
-    def normalized(self: AbstractVectorT) -> AbstractVectorT:
-        return self / self.length
-
-    def add_axes(self: AbstractVectorT, axes: typ.List) -> AbstractVectorT:
-        coordinates = self.coordinates
-        coordinates_new = dict()
-        for component in coordinates:
-            coordinates_new[component] = coordinates[component].add_axes(axes=axes)
-        return type(self)(**coordinates_new)
-
-    def combine_axes(
-            self: AbstractVectorT,
-            axes: typ.Sequence[str],
-            axis_new: typ.Optional[str] = None,
-    ) -> AbstractVectorT:
-        coordinates = self.coordinates
-        coordinates_new = dict()
-        for component in coordinates:
-            coordinates_new[component] = coordinates[component].combine_axes(axes=axes, axis_new=axis_new)
-        return type(self)(**coordinates_new)
-
-    def aligned(self: AbstractVectorT, shape: typ.Dict[str, int]):
-        coordinates = self.coordinates
-        coordinates_new = dict()
-        for component in coordinates:
-            coordinates_new[component] = coordinates[component].aligned(shape)
-        return type(self)(**coordinates_new)
 
     def index_nearest_secant(
             self: AbstractVectorT,
@@ -525,13 +560,6 @@ class AbstractVector(
 
         return indices_factory(result)
 
-
-    def outer(self: AbstractVectorT, other: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
-        raise NotImplementedError
-
-    def to_matrix(self: AbstractVectorT) -> 'kgpy.matrix.AbstractMatrixT':
-        raise NotImplementedError
-
     def plot(
             self: AbstractVectorT,
             ax: matplotlib.axes.Axes,
@@ -547,78 +575,65 @@ class AbstractVector(
             **kwargs: typ.Any,
     ) -> typ.List[matplotlib.patches.Polygon]:
         raise NotImplementedError
+
+
+@dataclasses.dataclass(eq=False)
+class AbstractCartesian1D(
+    VectorInterface,
+    typ.Generic[XT],
+):
+
+    @property
+    @abc.abstractmethod
+    def x(self: AbstractCartesian1DT) -> kgpy.uncertainty.ArrayLike:
+        pass
+
+    @classmethod
+    def x_hat(cls: typ.Type[AbstractCartesian1DT]) -> AbstractCartesian1DT:
+        return cls.from_coordinates(dict(x=1))
+
+    @property
+    def type_matrix(self: AbstractCartesian1DT) -> typ.Type['kgpy.matrix.AbstractMatrix']:
+        import kgpy.matrix
+        return kgpy.matrix.Cartesian1D
 
 
 @dataclasses.dataclass(eq=False)
 class Cartesian1D(
+    AbstractCartesian1D[XT],
     AbstractVector,
-    typ.Generic[XT],
 ):
     x: XT = 0
 
-    @classmethod
-    def x_hat(cls: typ.Type[Cartesian1DT]) -> Cartesian1DT:
-        return cls(x=1)
-
-    def outer(self: Cartesian1DT, other: Cartesian1DT) -> 'kgpy.matrix.AbstractMatrixT':
-        raise NotImplementedError
-
-    def to_matrix(self: Cartesian1DT) -> 'kgpy.matrix.AbstractMatrixT':
-        import kgpy.matrix
-        return kgpy.matrix.Cartesian1D(self.x)
-
-    def plot(
-            self: Cartesian1DT,
-            ax: matplotlib.axes.Axes,
-            axis_plot: str,
-            **kwargs: typ.Any,
-    ) -> typ.List[matplotlib.lines.Line2D]:
-        raise NotImplementedError
-
-    def plot_filled(
-            self: Cartesian1DT,
-            ax: matplotlib.axes.Axes,
-            axis_plot: str,
-            **kwargs: typ.Any,
-    ) -> typ.List[matplotlib.patches.Polygon]:
-        raise NotImplementedError
-
 
 @dataclasses.dataclass(eq=False)
-class Cartesian2D(
-    Cartesian1D[XT],
+class AbstractCartesian2D(
+    AbstractCartesian1D[XT],
     typ.Generic[XT, YT],
 ):
-    y: YT = 0
-
-    @classmethod
-    def y_hat(cls: typ.Type[Cartesian2DT]) -> Cartesian2DT:
-        return cls(y=1)
 
     @property
-    def polar(self: Cartesian2DT) -> PolarT:
+    @abc.abstractmethod
+    def y(self: AbstractCartesian2DT) -> kgpy.uncertainty.ArrayLike:
+        pass
+
+    @classmethod
+    def y_hat(cls: typ.Type[AbstractCartesian2DT]) -> Cartesian1DT:
+        return cls.from_coordinates(dict(y=1))
+
+    @property
+    def polar(self: AbstractCartesian2DT) -> PolarT:
         return Polar(
             radius=np.sqrt(np.square(self.x) + np.square(self.y)),
             azimuth=np.arctan2(self.y, self.x)
         )
 
-    def outer(self: Cartesian2DT, other: Cartesian2DT) -> 'kgpy.matrix.Cartesian2D':
+    @property
+    def type_matrix(self: AbstractCartesian2DT) -> typ.Type['kgpy.matrix.Cartesian2D']:
         import kgpy.matrix
-        result = kgpy.matrix.Cartesian2D()
-        result.x.x = self.x * other.x
-        result.x.y = self.x * other.y
-        result.y.x = self.y * other.x
-        result.y.y = self.y * other.y
-        return result
+        return kgpy.matrix.Cartesian2D
 
-    def to_matrix(self: Cartesian2DT) -> 'kgpy.matrix.Cartesian2D':
-        import kgpy.matrix
-        return kgpy.matrix.Cartesian2D(
-            x=self.x,
-            y=self.y,
-        )
-
-    def to_3d(self: Cartesian2DT, z: typ.Optional[kgpy.uncertainty.ArrayLike] = None) -> Cartesian3DT:
+    def to_3d(self: AbstractCartesian2DT, z: typ.Optional[kgpy.uncertainty.ArrayLike] = None) -> Cartesian3DT:
         if z is None:
             z = 0 * self.x
         return Cartesian3D(
@@ -629,7 +644,7 @@ class Cartesian2D(
 
     @classmethod
     def _broadcast_kwargs(
-            cls,
+            cls: typ.Type[AbstractCartesian2DT],
             kwargs: typ.Dict[str, typ.Any],
             shape: typ.Dict[str, int],
             axis_plot: str,
@@ -648,7 +663,7 @@ class Cartesian2D(
 
     @classmethod
     def _calc_color(
-            cls: typ.Type[Cartesian2DT],
+            cls: typ.Type[AbstractCartesian2DT],
             color: typ.Optional[kgpy.labeled.ArrayLike] = None,
             colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
     ) -> typ.Tuple[typ.Optional[kgpy.labeled.ArrayLike], typ.Optional[matplotlib.cm.ScalarMappable]]:
@@ -675,7 +690,7 @@ class Cartesian2D(
 
     @classmethod
     def _plot_func(
-            cls,
+            cls: typ.Type[AbstractCartesian2DT],
             func: typ.Callable[[], typ.List[ReturnT]],
             coordinates: typ.Dict[str, kgpy.labeled.ArrayLike],
             axis_plot: str,
@@ -737,7 +752,7 @@ class Cartesian2D(
 
     @classmethod
     def _plot_func_uncertainty(
-            cls,
+            cls: typ.Type[AbstractCartesian2DT],
             func: typ.Callable[[], typ.List[ReturnT]],
             coordinates: typ.Dict[str, kgpy.uncertainty.ArrayLike],
             axis_plot: str,
@@ -808,7 +823,7 @@ class Cartesian2D(
         return lines, colormap
 
     def plot(
-            self: Cartesian2DT,
+            self: AbstractCartesian2DT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
             where: typ.Optional[kgpy.uncertainty.ArrayLike] = None,
@@ -827,7 +842,7 @@ class Cartesian2D(
         )
 
     def plot_filled(
-            self: Cartesian2DT,
+            self: AbstractCartesian2DT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
             **kwargs: typ.Any,
@@ -846,7 +861,7 @@ class Cartesian2D(
         )
 
     def scatter(
-            self: Cartesian2DT,
+            self: AbstractCartesian2DT,
             ax: matplotlib.axes.Axes,
             axis_plot: str,
             where: typ.Optional[kgpy.uncertainty.ArrayLike] = None,
@@ -867,22 +882,30 @@ class Cartesian2D(
 
 
 @dataclasses.dataclass(eq=False)
-class Cartesian3D(
-    Cartesian2D[XT, YT],
+class Cartesian2D(
+    AbstractCartesian2D[XT, YT],
+    Cartesian1D[XT],
+):
+    y: YT = 0
+
+
+@dataclasses.dataclass(eq=False)
+class AbstractCartesian3D(
+    AbstractCartesian2D[XT, YT],
     typ.Generic[XT, YT, ZT],
 ):
-    z: ZT = 0
+
+    @property
+    @abc.abstractmethod
+    def z(self: AbstractCartesian3DT) -> kgpy.uncertainty.ArrayLike:
+        pass
 
     @classmethod
-    def z_hat(cls: typ.Type[Cartesian3DT]) -> Cartesian3DT:
-        return cls(z=1)
+    def z_hat(cls: typ.Type[AbstractCartesian3DT]) -> Cartesian3DT:
+        return cls.from_coordinates(dict(z=1))
 
     @property
-    def length(self: Cartesian3DT) -> kgpy.uncertainty.ArrayLike:
-        return np.sqrt(np.square(self.x) + np.square(self.y) + np.square(self.z))
-
-    @property
-    def xy(self: Cartesian3DT) -> Cartesian2DT:
+    def xy(self: AbstractCartesian3DT) -> Cartesian2DT:
         return Cartesian2D(
             x=self.x,
             y=self.y,
@@ -905,27 +928,10 @@ class Cartesian3D(
             inclination=np.arccos(self.z / radius)
         )
 
-    def outer(self: Cartesian3DT, other: Cartesian3DT) -> 'kgpy.matrix.Cartesian3D':
+    @property
+    def type_matrix(self: AbstractCartesian3DT) -> typ.Type['kgpy.matrix.Cartesian3D']:
         import kgpy.matrix
-        result = kgpy.matrix.Cartesian3D()
-        result.x.x = self.x * other.x
-        result.x.y = self.x * other.y
-        result.x.z = self.x * other.z
-        result.y.x = self.y * other.x
-        result.y.y = self.y * other.y
-        result.y.z = self.y * other.z
-        result.z.x = self.z * other.x
-        result.z.y = self.z * other.y
-        result.z.z = self.z * other.z
-        return result
-
-    def to_matrix(self: Cartesian3DT) -> 'kgpy.matrix.Cartesian3D':
-        import kgpy.matrix
-        return kgpy.matrix.Cartesian3D(
-            x=self.x,
-            y=self.y,
-            z=self.z,
-        )
+        return kgpy.matrix.Cartesian3D
 
     def plot(
             self: Cartesian3DT,
@@ -963,7 +969,6 @@ class Cartesian3D(
                 colormap=colormap,
                 **kwargs,
             )
-
 
     def plot_filled(
         self: Cartesian3DT,
@@ -1015,6 +1020,15 @@ class Cartesian3D(
                 ))]
 
         return polygons
+
+
+@dataclasses.dataclass(eq=False)
+class Cartesian3D(
+    AbstractCartesian3D[XT, YT, ZT],
+    Cartesian2D[XT, YT],
+    typ.Generic[XT, YT, ZT],
+):
+    z: ZT = 0
 
 
 @dataclasses.dataclass(eq=False)
