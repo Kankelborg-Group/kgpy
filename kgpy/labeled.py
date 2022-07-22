@@ -143,6 +143,22 @@ def ndindex(
         yield dict(zip(shape.keys(), index))
 
 
+def indices(shape: typ.Dict[str, int]) -> 'Array':
+    return kgpy.labeled.Array(
+        array=np.indices(shape.values()),
+        axes=['axis'] + list(shape.keys()),
+    )
+
+
+def stack(arrays: typ.List['ArrayLike'], axis: str):
+
+    if any([isinstance(a, AbstractArray) for a in arrays]):
+        return np.stack(arrays=arrays, axis=axis)
+
+    else:
+        return Array(np.stack(arrays), axes=[axis])
+
+
 @dataclasses.dataclass(eq=False)
 class NDArrayMethodsMixin:
 
@@ -1623,19 +1639,3 @@ class NormalRandomSpace(
             value = value << unit
 
         return value
-
-
-def indices(shape: typ.Dict[str, int]) -> Array:
-    return kgpy.labeled.Array(
-        array=np.indices(shape.values()),
-        axes=['axis'] + list(shape.keys()),
-    )
-
-
-def stack(arrays: typ.List[ArrayLike], axis: str):
-
-    if any([isinstance(a, AbstractArray) for a in arrays]):
-        return np.stack(arrays=arrays, axis=axis)
-
-    else:
-        return Array(np.stack(arrays), axes=[axis])
