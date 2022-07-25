@@ -1046,6 +1046,9 @@ class CartesianND(
 
     coordinates: typ.Dict[str, CoordinateT] = None
 
+    def __getattr__(self: CartesianNDT, item: str):
+        return self.coordinates[item]
+
     @classmethod
     def from_coordinates(cls: typ.Type[CartesianNDT], coordinates: typ.Dict[str, CoordinateT]) -> CartesianNDT:
         return cls(coordinates)
