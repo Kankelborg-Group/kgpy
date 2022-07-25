@@ -301,6 +301,13 @@ class ArrayInterface(
     def length(self: ArrayInterfaceT) -> AbstractArrayT:
         return np.abs(self)
 
+    @abc.abstractmethod
+    def __getitem__(
+            self: ArrayInterfaceT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, 'ArrayInterface']], 'ArrayInterface'],
+    ) -> ArrayInterfaceT:
+        pass
+
     @property
     def indices(self) -> typ.Dict[str, ArrayT]:
         return indices(self.shape)
