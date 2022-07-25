@@ -334,7 +334,7 @@ class ArrayInterface(
         pass
 
     @abc.abstractmethod
-    def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]):
+    def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]) -> 'ArrayInterface':
         pass
 
     def _index_arbitrary_brute(
