@@ -81,6 +81,66 @@ class VectorInterface(
     def from_coordinates(cls: typ.Type[VectorInterfaceT], coordinates: typ.Dict[str, VectorLike]) -> AbstractVectorT:
         return cls.prototype()(**coordinates)
 
+    @classmethod
+    def linear_space(
+            cls: typ.Type[AbstractVectorT],
+            start: AbstractVectorT,
+            stop: AbstractVectorT,
+            num: AbstractVectorT,
+            endpoint: bool = True,
+    ) -> AbstractVectorT:
+        coordinates_start = start.coordinates_flat
+        coordinates_stop = stop.coordinates_flat
+        coordinates_num = num.coordinates_flat
+        coordinates_flat = dict()
+        for component in coordinates_start:
+            coordinates_flat[component] = kgpy.labeled.LinearSpace(
+                start=coordinates_start[component],
+                stop=coordinates_stop[component],
+                num=coordinates_num[component],
+                endpoint=endpoint,
+                axis=component,
+            )
+
+        result = cls.prototype()()
+        result.coordinates_flat = coordinates_flat
+        return result
+
+    @classmethod
+    def stratified_random_space(
+            cls: typ.Type[AbstractVectorT],
+            start: AbstractVectorT,
+            stop: AbstractVectorT,
+            num: AbstractVectorT,
+            axis: AbstractVectorT,
+            endpoint: bool = True,
+            shape_extra: typ.Optional[typ.Dict[str, int]] = None
+    ) -> AbstractVectorT:
+        coordinates_start = start.coordinates_flat
+        coordinates_stop = stop.coordinates_flat
+        coordinates_num = num.coordinates_flat
+        coordinates_flat = dict()
+        for component in coordinates_start:
+
+            if shape_extra is None:
+                shape_extra = dict()
+            shape = {axis.coordinates_flat[c]: coordinates_num[c] for c in coordinates_num}
+            shape_extra_component = {**shape_extra, **shape}
+            shape_extra_component.pop(axis.coordinates_flat[component])
+
+            coordinates_flat[component] = kgpy.labeled.StratifiedRandomSpace(
+                start=coordinates_start[component],
+                stop=coordinates_stop[component],
+                num=coordinates_num[component],
+                endpoint=endpoint,
+                axis=axis.coordinates_flat[component],
+                shape_extra=shape_extra_component,
+            )
+
+        result = cls.prototype()()
+        result.coordinates_flat = coordinates_flat
+        return result
+
     @property
     @abc.abstractmethod
     def coordinates(self: VectorInterfaceT) -> typ.Dict[str, VectorLike]:
@@ -399,66 +459,6 @@ class AbstractVector(
     @classmethod
     def prototype(cls: typ.Type[AbstractVectorT]) -> typ.Type[AbstractVectorT]:
         return cls
-
-    @classmethod
-    def linear_space(
-            cls: typ.Type[AbstractVectorT],
-            start: AbstractVectorT,
-            stop: AbstractVectorT,
-            num: AbstractVectorT,
-            endpoint: bool = True,
-    ) -> AbstractVectorT:
-        coordinates_start = start.coordinates_flat
-        coordinates_stop = stop.coordinates_flat
-        coordinates_num = num.coordinates_flat
-        coordinates_flat = dict()
-        for component in coordinates_start:
-            coordinates_flat[component] = kgpy.labeled.LinearSpace(
-                start=coordinates_start[component],
-                stop=coordinates_stop[component],
-                num=coordinates_num[component],
-                endpoint=endpoint,
-                axis=component,
-            )
-
-        result = cls()
-        result.coordinates_flat = coordinates_flat
-        return result
-
-    @classmethod
-    def stratified_random_space(
-            cls: typ.Type[AbstractVectorT],
-            start: AbstractVectorT,
-            stop: AbstractVectorT,
-            num: AbstractVectorT,
-            axis: AbstractVectorT,
-            endpoint: bool = True,
-            shape_extra: typ.Optional[typ.Dict[str, int]] = None
-    ) -> AbstractVectorT:
-        coordinates_start = start.coordinates_flat
-        coordinates_stop = stop.coordinates_flat
-        coordinates_num = num.coordinates_flat
-        coordinates_flat = dict()
-        for component in coordinates_start:
-
-            if shape_extra is None:
-                shape_extra = dict()
-            shape = {axis.coordinates_flat[c]: coordinates_num[c] for c in coordinates_num}
-            shape_extra_component = {**shape_extra, **shape}
-            shape_extra_component.pop(axis.coordinates_flat[component])
-
-            coordinates_flat[component] = kgpy.labeled.StratifiedRandomSpace(
-                start=coordinates_start[component],
-                stop=coordinates_stop[component],
-                num=coordinates_num[component],
-                endpoint=endpoint,
-                axis=axis.coordinates_flat[component],
-                shape_extra=shape_extra_component,
-            )
-
-        result = cls()
-        result.coordinates_flat = coordinates_flat
-        return result
 
     @property
     def unit(self):
