@@ -577,9 +577,16 @@ class AbstractVector(
         raise NotImplementedError
 
 
+@dataclasses.dataclass
+class Cartesian(
+    VectorInterface,
+):
+    pass
+
+
 @dataclasses.dataclass(eq=False)
 class AbstractCartesian1D(
-    VectorInterface,
+    Cartesian,
     typ.Generic[XT],
 ):
 
@@ -1033,7 +1040,7 @@ class Cartesian3D(
 
 @dataclasses.dataclass(eq=False)
 class CartesianND(
-    AbstractVector,
+    Cartesian,
     typ.Generic[CoordinateT],
 ):
 
