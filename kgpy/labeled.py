@@ -96,6 +96,8 @@ import numpy.typing
 import astropy.units as u
 import kgpy.mixin
 import kgpy.units
+if typ.TYPE_CHECKING:
+    import kgpy.vectors
 
 __all__ = [
     'AbstractArray',
@@ -124,6 +126,7 @@ CenterT = typ.TypeVar('CenterT', bound='ArrayLike')
 WidthT = typ.TypeVar('WidthT', bound='ArrayLike')
 _SymmetricMixinT = typ.TypeVar('_SymmetricMixinT', bound='SymmetricMixin')
 NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace')
+WorldCoordinateSpaceT = typ.TypeVar('WorldCoordinateSpaceT', bound='WorldCoordinateSpace')
 
 
 def ndindex(
@@ -1641,3 +1644,41 @@ class NormalRandomSpace(
             value = value << unit
 
         return value
+
+
+ReferencePixelT = typ.TypeVar('ReferencePixelT', bound='kgpy.vectors.Cartesian')
+
+
+@dataclasses.dataclass(eq=False)
+class WorldCoordinateSpace(
+    AbstractArray,
+    typ.Generic[ReferencePixelT]
+
+):
+
+    crval: Array
+    crpix: ReferencePixelT
+    cdelt: Array
+    pc_row: ReferencePixelT
+    shape_wcs: typ.Dict[str, int]
+
+    @property
+    def array_labeled(self: WorldCoordinateSpaceT) -> ArrayT:
+        import kgpy.vectors
+        coordinates_pix = kgpy.vectors.CartesianND(indices(self.shape_wcs))
+        coordinates_pix = coordinates_pix - self.crpix
+        coordinates_world = self.pc_row @ coordinates_pix
+        coordinates_world = self.cdelt * coordinates_world + self.crval
+        return coordinates_world
+
+    @property
+    def array(self: WorldCoordinateSpaceT) -> ArrT:
+        return self.array_labeled.array
+
+    @property
+    def axes(self: WorldCoordinateSpaceT) -> typ.Optional[typ.List[str]]:
+        return self.array_labeled.axes
+
+    @property
+    def shape(self: WorldCoordinateSpaceT) -> typ.Dict[str, int]:
+        return self.array_labeled.shape
