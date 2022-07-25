@@ -143,11 +143,8 @@ def ndindex(
         yield dict(zip(shape.keys(), index))
 
 
-def indices(shape: typ.Dict[str, int]) -> 'Array':
-    return kgpy.labeled.Array(
-        array=np.indices(shape.values()),
-        axes=['axis'] + list(shape.keys()),
-    )
+def indices(shape: typ.Dict[str, int]) -> typ.Dict[str, ArrayT]:
+    return {axis: Range(0, shape[axis], axis=axis) for axis in shape}
 
 
 def stack(arrays: typ.List['ArrayLike'], axis: str):
@@ -306,9 +303,7 @@ class ArrayInterface(
 
     @property
     def indices(self) -> typ.Dict[str, ArrayT]:
-        shape = self.shape
-        result = {axis: Range(0, shape[axis], axis=axis) for axis in shape}
-        return result
+        return indices(self.shape)
 
     def ndindex(
             self: typ.Type[ArrayInterfaceT],
