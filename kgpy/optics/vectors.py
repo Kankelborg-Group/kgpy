@@ -8,7 +8,6 @@ import kgpy.transforms
 
 __all__ = [
     'StokesVector',
-    'SpectralVector',
     'SpectralFieldVector',
     'ObjectVector',
     'SpotVector',
@@ -16,7 +15,6 @@ __all__ = [
 
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
 StokesVectorT = typ.TypeVar('StokesVectorT', bound='StokesVector')
-SpectralVectorT = typ.TypeVar('SpectralVectorT', bound='SpectralVector')
 
 
 @dataclasses.dataclass(eq=False)
@@ -45,21 +43,6 @@ class StokesVector(
     q: kgpy.uncertainty.ArrayLike = 0 * astropy.units.dimensionless_unscaled
     u: kgpy.uncertainty.ArrayLike = 0 * astropy.units.dimensionless_unscaled
     v: kgpy.uncertainty.ArrayLike = 0 * astropy.units.dimensionless_unscaled
-
-
-@dataclasses.dataclass(eq=False)
-class SpectralVector(kgpy.vectors.AbstractVector):
-    wavelength: kgpy.uncertainty.ArrayLike = 0 * u.nm
-
-
-@dataclasses.dataclass(eq=False)
-class DopplerVector(kgpy.vectors.AbstractVector):
-    wavelength_rest: kgpy.uncertainty.ArrayLike = 0 * u.nm
-    velocity_los: kgpy.uncertainty.ArrayLike = 0 * u.km / u.s
-
-    @property
-    def wavelength(self: SpectralVectorT) -> kgpy.uncertainty.ArrayLike:
-        return self.wavelength_rest * (1 + self.velocity_los / astropy.constants.c)
 
 
 @dataclasses.dataclass(eq=False)
@@ -99,7 +82,7 @@ class PositionVector(kgpy.vectors.AbstractVector):
 @dataclasses.dataclass(eq=False)
 class SpectralFieldVector(
     FieldVector,
-    SpectralVector,
+    kgpy.vectors.SpectralVector,
 ):
 
     def to_matrix(self):
@@ -112,7 +95,7 @@ class SpectralFieldVector(
 @dataclasses.dataclass(eq=False)
 class SpectralPositionVector(
     PositionVector,
-    SpectralVector,
+    kgpy.vectors.SpectralVector,
 ):
     pass
 
@@ -121,7 +104,7 @@ class SpectralPositionVector(
 class ObjectVector(
     PupilVector,
     FieldVector,
-    DopplerVector,
+    kgpy.vectors.DopplerVector,
 ):
     pass
 
@@ -130,14 +113,14 @@ class ObjectVector(
 class SpotVector(
     PositionVector,
     FieldVector,
-    DopplerVector,
+    kgpy.vectors.DopplerVector,
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class InputAngleVector(
-    SpectralVector,
+    kgpy.vectors.SpectralVector,
 ):
     angle_input_x: kgpy.uncertainty.ArrayLike = 0 * u.deg
     angle_input_y: kgpy.uncertainty.ArrayLike = 0 * u.deg
