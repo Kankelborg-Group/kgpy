@@ -1663,6 +1663,14 @@ class WorldCoordinateSpace(
     shape_wcs: typ.Dict[str, int]
 
     @property
+    def unit(self: WorldCoordinateSpaceT) -> u.UnitBase:
+        return self.cdelt.unit
+
+    @property
+    def normalized(self: WorldCoordinateSpaceT) -> WorldCoordinateSpaceT:
+        return self
+
+    @property
     def array_labeled(self: WorldCoordinateSpaceT) -> ArrayT:
         import kgpy.vectors
         coordinates_pix = kgpy.vectors.CartesianND(indices(self.shape_wcs))
