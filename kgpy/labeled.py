@@ -1201,7 +1201,7 @@ class AbstractArray(
             shape_advanced = self.broadcast_shapes(*item_advanced.values())
 
             value = np.moveaxis(
-                a=self.array,
+                self.array,
                 source=axes_indices_advanced,
                 destination=list(range(len(axes_indices_advanced))),
             )
