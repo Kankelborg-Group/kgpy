@@ -584,7 +584,7 @@ class AbstractArray(
         for axis_index, axis_name in enumerate(self.axes):
             source.append(axis_index)
             destination.append(list(shape.keys()).index(axis_name))
-        value = np.moveaxis(a=value, source=source, destination=destination)
+        value = np.moveaxis(value, source=source, destination=destination)
         return value
 
     def aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ArrayT:
