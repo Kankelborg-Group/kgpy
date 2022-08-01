@@ -1656,14 +1656,12 @@ ReferencePixelT = typ.TypeVar('ReferencePixelT', bound='kgpy.vectors.Cartesian')
 @dataclasses.dataclass(eq=False)
 class WorldCoordinateSpace(
     AbstractArray,
-    typ.Generic[ReferencePixelT]
-
 ):
 
     crval: Array
-    crpix: ReferencePixelT
+    crpix: kgpy.vectors.CartesianND
     cdelt: Array
-    pc_row: ReferencePixelT
+    pc_row: kgpy.vectors.CartesianND
     shape_wcs: typ.Dict[str, int]
 
     @property
@@ -1677,7 +1675,7 @@ class WorldCoordinateSpace(
     @property
     def array_labeled(self: WorldCoordinateSpaceT) -> ArrayT:
         import kgpy.vectors
-        coordinates_pix = kgpy.vectors.CartesianND(indices(self.shape_wcs))
+        coordinates_pix = kgpy.vectors.CartesianND(indices(self.shape_wcs)) << u.pix
         coordinates_pix = coordinates_pix - self.crpix
         coordinates_world = self.pc_row @ coordinates_pix
         coordinates_world = self.cdelt * coordinates_world + self.crval
