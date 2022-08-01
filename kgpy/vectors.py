@@ -1053,6 +1053,7 @@ class Cartesian3D(
 @dataclasses.dataclass(eq=False)
 class CartesianND(
     Cartesian,
+    AbstractVector,
     typ.Generic[CoordinateT],
 ):
 
