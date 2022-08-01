@@ -15,8 +15,8 @@ __all__ = [
 ]
 
 WavelengthT = typ.TypeVar('WavelengthT', bound=kgpy.uncertainty.ArrayLike)
-WavelengthReferenceT = typ.TypeVar('WavelengthReferenceT', bound=kgpy.uncertainty.ArrayLike)
-WavelengthRelativeT = typ.TypeVar('WavelengthRelativeT', bound=kgpy.uncertainty.ArrayLike)
+WavelengthBaseT = typ.TypeVar('WavelengthReferenceT', bound=kgpy.uncertainty.ArrayLike)
+WavelengthOffsetT = typ.TypeVar('WavelengthRelativeT', bound=kgpy.uncertainty.ArrayLike)
 WavelengthRestT = typ.TypeVar('WavelengthRestT', bound=kgpy.uncertainty.ArrayLike)
 VelocityT = typ.TypeVar('VelocityT', bound=kgpy.uncertainty.ArrayLike)
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
@@ -74,13 +74,13 @@ class SpectralVector(
 
 
 @dataclasses.dataclass(eq=False)
-class RelativeSpectralVector(
+class OffsetSpectralVector(
     AbstractSpectralVector,
     kgpy.vectors.AbstractVector,
-    typ.Generic[WavelengthReferenceT, WavelengthRelativeT],
+    typ.Generic[WavelengthBaseT, WavelengthOffsetT],
 ):
-    wavelength_base: WavelengthReferenceT = 0 * u.nm
-    wavelength_offset: WavelengthRelativeT = 0 * u.nm
+    wavelength_base: WavelengthBaseT = 0 * u.nm
+    wavelength_offset: WavelengthOffsetT = 0 * u.nm
 
     @property
     def wavelength(self: SpectralReferenceVectorT) -> kgpy.uncertainty.ArrayLike:
