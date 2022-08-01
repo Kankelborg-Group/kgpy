@@ -1066,6 +1066,10 @@ class CartesianND(
     def from_coordinates(cls: typ.Type[CartesianNDT], coordinates: typ.Dict[str, CoordinateT]) -> CartesianNDT:
         return cls(coordinates)
 
+    @classmethod
+    def from_components(cls: typ.Type[CartesianNDT], **components: CoordinateT) -> CartesianNDT:
+        return cls.from_coordinates(components)
+
     def __post_init__(self: CartesianNDT):
         if self.coordinates is None:
             self.coordinates = dict()
