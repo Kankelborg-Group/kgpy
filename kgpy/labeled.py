@@ -259,6 +259,10 @@ class ArrayInterface(
         pass
 
     @property
+    def ndim(self: ArrayInterfaceT) -> int:
+        return len(self.shape)
+
+    @property
     @abc.abstractmethod
     def array_labeled(self: ArrayInterfaceT) -> ArrayInterfaceT:
         pass
