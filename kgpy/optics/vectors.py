@@ -79,12 +79,12 @@ class RelativeSpectralVector(
     kgpy.vectors.AbstractVector,
     typ.Generic[WavelengthReferenceT, WavelengthRelativeT],
 ):
-    wavelength_reference: WavelengthReferenceT = 0 * u.nm
-    wavelength_relative: WavelengthRelativeT = 0 * u.nm
+    wavelength_base: WavelengthReferenceT = 0 * u.nm
+    wavelength_offset: WavelengthRelativeT = 0 * u.nm
 
     @property
     def wavelength(self: SpectralReferenceVectorT) -> kgpy.uncertainty.ArrayLike:
-        return self.wavelength_reference + self.wavelength_relative
+        return self.wavelength_base + self.wavelength_offset
 
 
 @dataclasses.dataclass(eq=False)
