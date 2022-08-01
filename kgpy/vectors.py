@@ -44,11 +44,6 @@ ReturnT = typ.TypeVar('ReturnT')
 RadiusT = typ.TypeVar('RadiusT', bound=kgpy.uncertainty.ArrayLike)
 AzimuthT = typ.TypeVar('AzimuthT', bound=kgpy.uncertainty.ArrayLike)
 InclinationT = typ.TypeVar('InclinationT', bound=kgpy.uncertainty.ArrayLike)
-WavelengthT = typ.TypeVar('WavelengthT', bound=kgpy.uncertainty.ArrayLike)
-WavelengthReferenceT = typ.TypeVar('WavelengthReferenceT', bound=kgpy.uncertainty.ArrayLike)
-WavelengthRelativeT = typ.TypeVar('WavelengthRelativeT', bound=kgpy.uncertainty.ArrayLike)
-WavelengthRestT = typ.TypeVar('WavelengthRestT', bound=kgpy.uncertainty.ArrayLike)
-VelocityT = typ.TypeVar('VelocityT', bound=kgpy.uncertainty.ArrayLike)
 TimeT = typ.TypeVar('TimeT', bound=kgpy.uncertainty.ArrayLike)
 
 VectorInterfaceT = typ.TypeVar('VectorInterfaceT', bound='VectorInterface')
@@ -63,10 +58,6 @@ CartesianNDT = typ.TypeVar('CartesianNDT', bound='CartesianND')
 PolarT = typ.TypeVar('PolarT', bound='Polar')
 CylindricalT = typ.TypeVar('CylindricalT', bound='Cylindrical')
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
-AbstractSpectralVectorT = typ.TypeVar('AbstractSpectralVectorT', bound='AbstractSpectralVector')
-SpectralVectorT = typ.TypeVar('SpectralVectorT', bound='SpectralVector')
-SpectralReferenceVectorT = typ.TypeVar('SpectralReferenceVectorT', bound='SpectralReferenceVector')
-DopplerVectorT = typ.TypeVar('DopplerVectorT', bound='DopplerVector')
 
 VectorLike = typ.Union[kgpy.uncertainty.ArrayLike, 'VectorInterface']
 ItemArrayT = typ.Union[kgpy.labeled.AbstractArray, kgpy.uncertainty.AbstractArray, AbstractVectorT]
@@ -1199,52 +1190,6 @@ class Spherical(
             azimuth=self.azimuth,
             z=self.radius * np.cos(self.inclination),
         )
-
-
-@dataclasses.dataclass(eq=False)
-class AbstractSpectralVector(VectorInterface):
-
-    @property
-    @abc.abstractmethod
-    def wavelength(self: AbstractSpectralVectorT) -> kgpy.uncertainty.ArrayLike:
-        pass
-
-
-@dataclasses.dataclass(eq=False)
-class SpectralVector(
-    AbstractSpectralVector,
-    AbstractVector,
-    typ.Generic[WavelengthT],
-):
-    wavelength: WavelengthT = 0 * u.nm
-
-
-@dataclasses.dataclass(eq=False)
-class RelativeSpectralVector(
-    AbstractSpectralVector,
-    AbstractVector,
-    typ.Generic[WavelengthReferenceT, WavelengthRelativeT],
-):
-    wavelength_reference: WavelengthReferenceT = 0 * u.nm
-    wavelength_relative: WavelengthRelativeT = 0 * u.nm
-
-    @property
-    def wavelength(self: SpectralReferenceVectorT) -> kgpy.uncertainty.ArrayLike:
-        return self.wavelength_reference + self.wavelength_relative
-
-
-@dataclasses.dataclass(eq=False)
-class DopplerVector(
-    AbstractSpectralVector,
-    AbstractVector,
-    typ.Generic[WavelengthRestT, VelocityT],
-):
-    wavelength_rest: WavelengthRestT = 0 * u.nm
-    velocity_los: VelocityT = 0 * u.km / u.s
-
-    @property
-    def wavelength(self: DopplerVectorT) -> kgpy.uncertainty.ArrayLike:
-        return self.wavelength_rest * (1 + self.velocity_los / astropy.constants.c)
 
 
 @dataclasses.dataclass(eq=False)

@@ -1,4 +1,5 @@
 import typing as typ
+import abc
 import dataclasses
 import astropy.units as u
 import astropy.constants
@@ -13,8 +14,17 @@ __all__ = [
     'SpotVector',
 ]
 
+WavelengthT = typ.TypeVar('WavelengthT', bound=kgpy.uncertainty.ArrayLike)
+WavelengthReferenceT = typ.TypeVar('WavelengthReferenceT', bound=kgpy.uncertainty.ArrayLike)
+WavelengthRelativeT = typ.TypeVar('WavelengthRelativeT', bound=kgpy.uncertainty.ArrayLike)
+WavelengthRestT = typ.TypeVar('WavelengthRestT', bound=kgpy.uncertainty.ArrayLike)
+VelocityT = typ.TypeVar('VelocityT', bound=kgpy.uncertainty.ArrayLike)
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
 StokesVectorT = typ.TypeVar('StokesVectorT', bound='StokesVector')
+AbstractSpectralVectorT = typ.TypeVar('AbstractSpectralVectorT', bound='AbstractSpectralVector')
+SpectralVectorT = typ.TypeVar('SpectralVectorT', bound='SpectralVector')
+SpectralReferenceVectorT = typ.TypeVar('SpectralReferenceVectorT', bound='SpectralReferenceVector')
+DopplerVectorT = typ.TypeVar('DopplerVectorT', bound='DopplerVector')
 
 
 @dataclasses.dataclass(eq=False)
@@ -43,6 +53,52 @@ class StokesVector(
     q: kgpy.uncertainty.ArrayLike = 0 * astropy.units.dimensionless_unscaled
     u: kgpy.uncertainty.ArrayLike = 0 * astropy.units.dimensionless_unscaled
     v: kgpy.uncertainty.ArrayLike = 0 * astropy.units.dimensionless_unscaled
+
+
+@dataclasses.dataclass(eq=False)
+class AbstractSpectralVector(kgpy.vectors.VectorInterface):
+
+    @property
+    @abc.abstractmethod
+    def wavelength(self: AbstractSpectralVectorT) -> kgpy.uncertainty.ArrayLike:
+        pass
+
+
+@dataclasses.dataclass(eq=False)
+class SpectralVector(
+    AbstractSpectralVector,
+    kgpy.vectors.AbstractVector,
+    typ.Generic[WavelengthT],
+):
+    wavelength: WavelengthT = 0 * u.nm
+
+
+@dataclasses.dataclass(eq=False)
+class RelativeSpectralVector(
+    AbstractSpectralVector,
+    kgpy.vectors.AbstractVector,
+    typ.Generic[WavelengthReferenceT, WavelengthRelativeT],
+):
+    wavelength_reference: WavelengthReferenceT = 0 * u.nm
+    wavelength_relative: WavelengthRelativeT = 0 * u.nm
+
+    @property
+    def wavelength(self: SpectralReferenceVectorT) -> kgpy.uncertainty.ArrayLike:
+        return self.wavelength_reference + self.wavelength_relative
+
+
+@dataclasses.dataclass(eq=False)
+class DopplerVector(
+    AbstractSpectralVector,
+    kgpy.vectors.AbstractVector,
+    typ.Generic[WavelengthRestT, VelocityT],
+):
+    wavelength_rest: WavelengthRestT = 0 * u.nm
+    velocity_los: VelocityT = 0 * u.km / u.s
+
+    @property
+    def wavelength(self: DopplerVectorT) -> kgpy.uncertainty.ArrayLike:
+        return self.wavelength_rest * (1 + self.velocity_los / astropy.constants.c)
 
 
 @dataclasses.dataclass(eq=False)
@@ -82,7 +138,7 @@ class PositionVector(kgpy.vectors.AbstractVector):
 @dataclasses.dataclass(eq=False)
 class SpectralFieldVector(
     FieldVector,
-    kgpy.vectors.SpectralVector,
+    SpectralVector,
 ):
 
     def to_matrix(self):
@@ -95,7 +151,7 @@ class SpectralFieldVector(
 @dataclasses.dataclass(eq=False)
 class SpectralPositionVector(
     PositionVector,
-    kgpy.vectors.SpectralVector,
+    SpectralVector,
 ):
     pass
 
@@ -104,7 +160,7 @@ class SpectralPositionVector(
 class ObjectVector(
     PupilVector,
     FieldVector,
-    kgpy.vectors.DopplerVector,
+    DopplerVector,
 ):
     pass
 
@@ -113,14 +169,14 @@ class ObjectVector(
 class SpotVector(
     PositionVector,
     FieldVector,
-    kgpy.vectors.DopplerVector,
+    DopplerVector,
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class InputAngleVector(
-    kgpy.vectors.SpectralVector,
+    SpectralVector,
 ):
     angle_input_x: kgpy.uncertainty.ArrayLike = 0 * u.deg
     angle_input_y: kgpy.uncertainty.ArrayLike = 0 * u.deg
