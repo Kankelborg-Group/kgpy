@@ -152,9 +152,17 @@ class PositionVector(
 
 
 @dataclasses.dataclass(eq=False)
-class SpectralFieldVector(
+class AbstractSpectralFieldVector(
     typ.Generic[WavelengthT, FieldXT, FieldYT],
     FieldVector[FieldXT, FieldYT],
+    AbstractSpectralVector[WavelengthT],
+):
+    pass
+
+
+@dataclasses.dataclass(eq=False)
+class SpectralFieldVector(
+    AbstractSpectralFieldVector[WavelengthT, FieldXT, FieldYT],
     SpectralVector[WavelengthT],
 ):
     @property
@@ -165,8 +173,7 @@ class SpectralFieldVector(
 
 @dataclasses.dataclass(eq=False)
 class OffsetSpectralFieldVector(
-    typ.Generic[WavelengthBaseT, WavelengthOffsetT, FieldXT, FieldYT],
-    FieldVector[FieldXT, FieldYT],
+    AbstractSpectralFieldVector[WavelengthT, FieldXT, FieldYT],
     OffsetSpectralVector[WavelengthBaseT, WavelengthOffsetT],
 ):
     pass
