@@ -21,10 +21,10 @@ import kgpy.function
 import kgpy.transforms
 import kgpy.format
 import kgpy.plot
-from ... import vectors
-from ... import rays
-from .. import apertures
+from .. import vectors
 from .. import sags
+from .. import apertures
+from .. import rays
 
 __all__ = [
     'Material',

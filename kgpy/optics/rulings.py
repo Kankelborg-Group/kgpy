@@ -4,9 +4,10 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import kgpy.mixin
+import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vectors
-from .. import rays
+from . import rays
 from . import materials
 
 __all__ = [
@@ -27,6 +28,12 @@ class Ruling(
     kgpy.mixin.Copyable,
     abc.ABC,
 ):
+
+    def __getitem__(
+            self: RulingT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> RulingT:
+        return self.copy_shallow()
 
     @abc.abstractmethod
     def normal(self: RulingT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
@@ -57,7 +64,7 @@ class Ruling(
 
 @dataclasses.dataclass
 class ConstantDensity(Ruling):
-    diffraction_order: u.Quantity = 1 * u.dimensionless_unscaled
+    diffraction_order: kgpy.uncertainty.ArrayLike = 1 * u.dimensionless_unscaled
     ruling_density: kgpy.uncertainty.ArrayLike = 0 * (1 / u.mm)
 
     def __eq__(self: ConstantDensityT, other: ConstantDensityT) -> bool:
@@ -68,6 +75,17 @@ class ConstantDensity(Ruling):
         if not np.all(other.ruling_density == self.ruling_density):
             return False
         return True
+
+    def __getitem__(
+            self: ConstantDensityT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> ConstantDensityT:
+        result = super().__getitem__(item)
+        if isinstance(self.diffraction_order, kgpy.labeled.ArrayInterface):
+            result.diffraction_order = self.diffraction_order[item]
+        if isinstance(self.ruling_density, kgpy.labeled.ArrayInterface):
+            result.ruling_density = self.ruling_density[item]
+        return result
 
     @property
     def ruling_spacing(self: ConstantDensityT) -> kgpy.uncertainty.ArrayLike:
@@ -155,6 +173,19 @@ class CubicPolySpacing(ConstantDensity):
         if not (other.ruling_spacing_quadratic == self.ruling_spacing_quadratic).all():
             return False
         return True
+
+    def __getitem__(
+            self: CubicPolySpacingT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> CubicPolySpacingT:
+        result = super().__getitem__(item)
+        if isinstance(self.ruling_spacing_linear, kgpy.labeled.ArrayInterface):
+            result.ruling_spacing_linear = self.ruling_spacing_linear[item]
+        if isinstance(self.ruling_spacing_quadratic, kgpy.labeled.ArrayInterface):
+            result.ruling_spacing_quadratic = self.ruling_spacing_quadratic[item]
+        if isinstance(self.ruling_spacing_cubic, kgpy.labeled.ArrayInterface):
+            result.ruling_spacing_cubic = self.ruling_spacing_cubic[item]
+        return result
 
     def normal(self: CubicPolySpacingT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         x = position.x

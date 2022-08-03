@@ -4,6 +4,7 @@ import dataclasses
 import numpy as np
 import astropy.units as u
 import kgpy.mixin
+import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vectors
 
@@ -54,6 +55,12 @@ class Sag(
     def __call__(self: SagT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
         pass
 
+    def __getitem__(
+            self: SagT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> SagT:
+        return self.copy_shallow()
+
     @abc.abstractmethod
     def normal(self: SagT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         pass
@@ -86,6 +93,17 @@ class Standard(Sag):
         if not np.all(self.conic == other.conic):
             return False
         return True
+
+    def __getitem__(
+            self: StandardT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> StandardT:
+        result = super().__getitem__(item)
+        if isinstance(self.radius, kgpy.labeled.ArrayInterface):
+            result.radius = self.radius[item]
+        if isinstance(self.conic, kgpy.labeled.ArrayInterface):
+            result.conic = self.conic[item]
+        return result
 
     def normal(self, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         x2, y2 = np.square(position.x), np.square(position.y)
@@ -132,6 +150,15 @@ class Toroidal(Standard):
         if not np.all(self.radius_of_rotation == other.radius_of_rotation):
             return False
         return True
+
+    def __getitem__(
+            self: ToroidalT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> ToroidalT:
+        result = super().__getitem__(item)
+        if isinstance(self.radius_of_rotation, kgpy.labeled.ArrayInterface):
+            result.radius_of_rotation = self.radius_of_rotation[item]
+        return result
 
     def normal(self: ToroidalT, position: kgpy.vectors.Cartesian2D) -> kgpy.vectors.Cartesian3D:
         x2 = np.square(position.x)

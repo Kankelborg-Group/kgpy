@@ -2,6 +2,7 @@
 kgpy.optics is a package designed for simulating optical systems.
 """
 from . import vectors
+from . import apertures
 from . import aberrations
 from . import rays
 from . import surfaces
@@ -12,6 +13,7 @@ from . import systems
 
 __all__ = [
     'vectors',
+    'apertures',
     'aberrations',
     'rays',
     'surfaces',

@@ -13,10 +13,10 @@ import kgpy.vectors
 import kgpy.transforms
 import kgpy.optimization
 import kgpy.io.dxf
-from .. import rays
 from . import sags
-from . import materials
 from . import apertures
+from . import rays
+from . import materials
 from . import rulings
 
 __all__ = [
