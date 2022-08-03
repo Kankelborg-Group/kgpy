@@ -56,6 +56,14 @@ class Material(
 ):
     name: str = ''
 
+    def __getitem__(
+            self: MaterialT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]]]
+    ) -> MaterialT:
+        return type(self)(
+            name=self.name,
+        )
+
     @abc.abstractmethod
     def index_refraction(self: MaterialT, ray: rays.RayVector) -> kgpy.uncertainty.ArrayLike:
         pass
@@ -81,6 +89,15 @@ class Material(
 class Mirror(Material):
     name: str = 'mirror'
     thickness: typ.Optional[kgpy.uncertainty.ArrayLike] = None
+
+    def __getitem__(
+            self: MirrorT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ):
+        result = super().__getitem__(item)
+        if self.thickness is not None:
+            result.thickness = self.thickness[item]
+        return result
 
     def index_refraction(self: MirrorT, ray: rays.RayVector) -> kgpy.uncertainty.ArrayLike:
         return -np.sign(ray.index_refraction) * u.dimensionless_unscaled
@@ -204,6 +221,19 @@ class Layer(kgpy.mixin.Copyable):
             return False
         return True
 
+    def __getitem__(
+            self: LayerT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> LayerT:
+        result = type(self)()
+        if self.material is not None:
+            result.material = self.material[item]
+        if self.thickness is not None:
+            result.thickness = self.thickness[item]
+        result.num_periods = self.num_periods
+        return result
+
+
     def plot(
             self: LayerT,
             ax: matplotlib.axes.Axes,
@@ -290,6 +320,16 @@ class MultilayerMirror(Mirror):
     cap: Layer = dataclasses.field(default_factory=Layer)
     main: Layer = dataclasses.field(default_factory=Layer)
     base: Layer = dataclasses.field(default_factory=Layer)
+
+    def __getitem__(
+            self: MultilayerMirrorT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ):
+        result = super().__getitem__(item)
+        result.cap = self.cap[item]
+        result.main = self.main[item]
+        result.base = self.base[item]
+        return result
 
     # def transmissivity(self, rays: Rays) -> u.Quantity:
     #     raise NotImplementedError
