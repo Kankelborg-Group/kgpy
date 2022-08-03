@@ -162,6 +162,13 @@ class SpectralFieldVector(
         from . import matrix
         return matrix.SpectralFieldMatrix
 
+
+@dataclasses.dataclass(eq=False)
+class OffsetSpectralFieldVector(
+    typ.Generic[WavelengthBaseT, WavelengthOffsetT, FieldXT, FieldYT],
+    FieldVector[FieldXT, FieldYT],
+    OffsetSpectralVector[WavelengthBaseT, WavelengthOffsetT],
+):
     pass
 
 
