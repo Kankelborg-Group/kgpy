@@ -173,6 +173,24 @@ class OffsetSpectralFieldVector(
 
 
 @dataclasses.dataclass(eq=False)
+class TemporalSpectralFieldVector(
+    typ.Generic[TimeT, WavelengthT, FieldXT, FieldYT],
+    SpectralFieldVector[WavelengthT, FieldXT, FieldYT],
+    kgpy.vectors.TemporalVector[TimeT],
+):
+    pass
+
+
+@dataclasses.dataclass
+class TemporalOffsetSpectralFieldVector(
+    typ.Generic[TimeT, WavelengthBaseT, WavelengthOffsetT, FieldXT, FieldYT],
+    OffsetSpectralFieldVector[WavelengthBaseT, WavelengthOffsetT, FieldXT, FieldYT],
+    kgpy.vectors.TemporalVector[TimeT],
+):
+    pass
+
+
+@dataclasses.dataclass(eq=False)
 class SpectralPositionVector(
     typ.Generic[WavelengthT, PositionXT, PositionYT],
     PositionVector[PositionXT, PositionYT],
