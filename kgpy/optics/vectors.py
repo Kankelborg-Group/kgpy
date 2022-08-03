@@ -14,10 +14,17 @@ __all__ = [
     'SpotVector',
 ]
 
+TimeT = typ.TypeVar('TimeT', bound=kgpy.uncertainty.ArrayLike)
 WavelengthT = typ.TypeVar('WavelengthT', bound=kgpy.uncertainty.ArrayLike)
-WavelengthBaseT = typ.TypeVar('WavelengthReferenceT', bound=kgpy.uncertainty.ArrayLike)
-WavelengthOffsetT = typ.TypeVar('WavelengthRelativeT', bound=kgpy.uncertainty.ArrayLike)
+WavelengthBaseT = typ.TypeVar('WavelengthBaseT', bound=kgpy.uncertainty.ArrayLike)
+WavelengthOffsetT = typ.TypeVar('WavelengthOffsetT', bound=kgpy.uncertainty.ArrayLike)
 WavelengthRestT = typ.TypeVar('WavelengthRestT', bound=kgpy.uncertainty.ArrayLike)
+FieldXT = typ.TypeVar('FieldXT', bound=kgpy.uncertainty.ArrayLike)
+FieldYT = typ.TypeVar('FieldYT', bound=kgpy.uncertainty.ArrayLike)
+PupilXT = typ.TypeVar('PupilXT', bound=kgpy.uncertainty.ArrayLike)
+PupilYT = typ.TypeVar('PupilYT', bound=kgpy.uncertainty.ArrayLike)
+PositionXT = typ.TypeVar('PositionXT', bound=kgpy.uncertainty.ArrayLike)
+PositionYT = typ.TypeVar('PositionYT', bound=kgpy.uncertainty.ArrayLike)
 VelocityT = typ.TypeVar('VelocityT', bound=kgpy.uncertainty.ArrayLike)
 SphericalT = typ.TypeVar('SphericalT', bound='Spherical')
 StokesVectorT = typ.TypeVar('StokesVectorT', bound='StokesVector')
@@ -102,74 +109,86 @@ class DopplerVector(
 
 
 @dataclasses.dataclass(eq=False)
-class FieldVector(kgpy.vectors.AbstractVector):
-    field_x: kgpy.uncertainty.ArrayLike = 0 * u.deg
-    field_y: kgpy.uncertainty.ArrayLike = 0 * u.deg
+class FieldVector(
+    kgpy.vectors.AbstractVector,
+    typ.Generic[FieldXT, FieldYT],
+):
+    field_x: FieldXT = 0 * u.deg
+    field_y: FieldYT = 0 * u.deg
 
     @property
-    def field_xy(self) -> kgpy.vectors.Cartesian2D:
+    def field_xy(self) -> kgpy.vectors.Cartesian2D[FieldXT, FieldYT]:
         return kgpy.vectors.Cartesian2D(self.field_x, self.field_y)
 
 
 @dataclasses.dataclass(eq=False)
-class PupilVector(kgpy.vectors.AbstractVector):
-    pupil_x: kgpy.uncertainty.ArrayLike = 0 * u.mm
-    pupil_y: kgpy.uncertainty.ArrayLike = 0 * u.mm
+class PupilVector(
+    kgpy.vectors.AbstractVector,
+    typ.Generic[PupilXT, PupilYT],
+):
+    pupil_x: PupilXT = 0 * u.mm
+    pupil_y: PupilYT = 0 * u.mm
 
     @property
-    def pupil_xy(self) -> kgpy.vectors.Cartesian2D:
+    def pupil_xy(self) -> kgpy.vectors.Cartesian2D[PupilXT, PupilYT]:
         return kgpy.vectors.Cartesian2D(self.pupil_x, self.pupil_y)
 
 
 @dataclasses.dataclass(eq=False)
-class PositionVector(kgpy.vectors.AbstractVector):
-    position_x: kgpy.uncertainty.ArrayLike = 0 * u.mm
-    position_y: kgpy.uncertainty.ArrayLike = 0 * u.mm
+class PositionVector(
+    kgpy.vectors.AbstractVector,
+    typ.Generic[PositionXT, PositionYT]
+):
+    position_x: PositionXT = 0 * u.mm
+    position_y: PositionYT = 0 * u.mm
 
     @property
     def position(self) -> 'PositionVector':
         return PositionVector(self.position_x, self.position_y)
 
     @property
-    def position_xy(self):
+    def position_xy(self) -> kgpy.vectors.Cartesian2D[PositionXT, PositionYT]:
         return kgpy.vectors.Cartesian2D(self.position_x, self.position_y)
 
 
 @dataclasses.dataclass(eq=False)
 class SpectralFieldVector(
-    FieldVector,
-    SpectralVector,
+    typ.Generic[WavelengthT, FieldXT, FieldYT],
+    FieldVector[FieldXT, FieldYT],
+    SpectralVector[WavelengthT],
 ):
-
-    def to_matrix(self):
+    @property
+    def type_matrix(self):
         from . import matrix
-        return matrix.SpectralFieldMatrix(wavelength=self.wavelength, field_x=self.field_x, field_y=self.field_y)
+        return matrix.SpectralFieldMatrix
 
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class SpectralPositionVector(
-    PositionVector,
-    SpectralVector,
+    typ.Generic[WavelengthT, PositionXT, PositionYT],
+    PositionVector[PositionXT, PositionYT],
+    SpectralVector[WavelengthT],
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class ObjectVector(
-    PupilVector,
-    FieldVector,
-    DopplerVector,
+    typ.Generic[WavelengthBaseT, WavelengthOffsetT, FieldXT, FieldYT, PupilXT, PupilYT],
+    PupilVector[PupilXT, PupilYT],
+    OffsetSpectralFieldVector[WavelengthBaseT, WavelengthOffsetT, FieldXT, FieldYT],
 ):
     pass
 
 
 @dataclasses.dataclass(eq=False)
 class SpotVector(
-    PositionVector,
-    FieldVector,
-    DopplerVector,
+    typ.Generic[WavelengthBaseT, WavelengthOffsetT, FieldXT, FieldYT, PositionXT, PositionYT],
+    PositionVector[PositionXT, PositionYT],
+    FieldVector[FieldXT, FieldYT],
+    OffsetSpectralVector[WavelengthBaseT, WavelengthOffsetT],
 ):
     pass
 
