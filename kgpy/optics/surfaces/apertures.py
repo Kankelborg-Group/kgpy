@@ -54,6 +54,7 @@ class Aperture(
     abc.ABC
 ):
     num_samples: int = 1000
+    is_active: bool = True
 
     def __getitem__(
             self: ApertureT,
@@ -273,6 +274,10 @@ class Circular(
         return self.transform(kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius))
 
     def is_unvignetted(self: CircularT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+
+        if not self.is_active:
+            return True
+
         position = self.transform.inverse(position.to_3d())
         is_inside = position.length <= self.radius
         if not self.is_obscuration:
@@ -302,6 +307,9 @@ class Polygon(
         return shapely.geometry.Polygon(self.vertices)
 
     def is_unvignetted(self: PolygonT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+
+        if not self.is_active:
+            return True
 
         # position = self.transform(position)
 
@@ -477,6 +485,10 @@ class Rectangular(Polygon):
         return out
 
     def is_unvignetted(self: RectangularT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+
+        if not self.is_active:
+            return True
+
         amin = self.min
         amax = self.max
         m1 = position.x <= amax.x
