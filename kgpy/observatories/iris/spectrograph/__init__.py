@@ -132,7 +132,31 @@ class Cube(kgpy.obs.spectral.Cube):
         return other
 
     @property
-    def colors(self):
+    def colormap_spectrum(self) -> matplotlib.cm.ScalarMappable:
+        colormap = matplotlib.cm.get_cmap('gist_rainbow')
+        segment_data = colormap._segmentdata.copy()
+
+        last_segment = ~1
+        segment_data['red'] = segment_data['red'][:last_segment].copy()
+        segment_data['green'] = segment_data['green'][:last_segment].copy()
+        segment_data['blue'] = segment_data['blue'][:last_segment].copy()
+        segment_data['alpha'] = segment_data['alpha'][:last_segment].copy()
+
+        segment_data['red'][:, 0] /= segment_data['red'][~0, 0]
+        segment_data['green'][:, 0] /= segment_data['green'][~0, 0]
+        segment_data['blue'][:, 0] /= segment_data['blue'][~0, 0]
+        segment_data['alpha'][:, 0] /= segment_data['alpha'][~0, 0]
+
+        colormap = matplotlib.colors.LinearSegmentedColormap(
+            name='spectrum',
+            segmentdata=segment_data,
+        )
+        mappable = matplotlib.cm.ScalarMappable(
+            cmap=colormap.reversed(),
+        )
+        return mappable
+
+    def colors(self, shift_doppler_max: u.Quantity = 50 * u.km / u.s):
 
         intensity = np.nan_to_num(self.intensity)
 
@@ -155,31 +179,11 @@ class Cube(kgpy.obs.spectral.Cube):
         intensity = (intensity - intensity_min) / (intensity_max - intensity_min)
         del intensity_max
 
-        colormap = matplotlib.cm.get_cmap('gist_rainbow')
-        segment_data = colormap._segmentdata.copy()
+        mappable = self.colormap_spectrum
 
-        last_segment = ~1
-        segment_data['red'] = segment_data['red'][:last_segment].copy()
-        segment_data['green'] = segment_data['green'][:last_segment].copy()
-        segment_data['blue'] = segment_data['blue'][:last_segment].copy()
-        segment_data['alpha'] = segment_data['alpha'][:last_segment].copy()
+        # shift_doppler = 50 * u.km / u.s
 
-        segment_data['red'][:, 0] /= segment_data['red'][~0, 0]
-        segment_data['green'][:, 0] /= segment_data['green'][~0, 0]
-        segment_data['blue'][:, 0] /= segment_data['blue'][~0, 0]
-        segment_data['alpha'][:, 0] /= segment_data['alpha'][~0, 0]
-
-        colormap = matplotlib.colors.LinearSegmentedColormap(
-            name='spectrum',
-            segmentdata=segment_data,
-        )
-        mappable = matplotlib.cm.ScalarMappable(
-            cmap=colormap.reversed(),
-        )
-
-        shift_doppler = 50 * u.km / u.s
-
-        wavl_delta = shift_doppler / astropy.constants.c * wavl_center
+        wavl_delta = shift_doppler_max / astropy.constants.c * wavl_center
         wavl_left = wavl_center - wavl_delta
         wavl_right = wavl_center + wavl_delta
         pix_left = int(wcs.world_to_pixel_values(wavl_left.to(u.m), 0 * u.arcsec, 0 * u.arcsec, )[0])
@@ -207,10 +211,11 @@ class Cube(kgpy.obs.spectral.Cube):
             thresh_min: u.Quantity = 0.01 * u.percent,
             thresh_max: u.Quantity = 99.9 * u.percent,
             frame_interval: u.Quantity = 1 * u.s,
+            max_doppler_shift: u.Quantity = 50 * u.km / u.s,
     ) -> matplotlib.animation.FuncAnimation:
 
         other = self.window_doppler(shift_doppler=300 * u.km / u.s)
-        data = other.colors[:, channel_index]
+        data = other.colors(max_doppler_shift)[:, channel_index]
 
         pad = 300
         pads = [pad, pad]
@@ -228,6 +233,9 @@ class Cube(kgpy.obs.spectral.Cube):
             frame=sunpy.coordinates.frames.Helioprojective
         )
 
+        shift_x_min, shift_y_min = 0, 0
+        shift_x_max, shift_y_max = 0, 0
+
         for i in range(data.shape[0]):
             if i == index_reference:
                 continue
@@ -240,25 +248,45 @@ class Cube(kgpy.obs.spectral.Cube):
             shift_x = reference_coordinate_rotated.Tx - self.wcs[i, channel_index].wcs.crval[2] * u.deg
             shift_y = reference_coordinate_rotated.Ty - self.wcs[i, channel_index].wcs.crval[1] * u.deg
 
-            shift_x = shift_x / (self.wcs[i, channel_index].wcs.cdelt[2] * u.deg)
-            shift_y = shift_y / (self.wcs[i, channel_index].wcs.cdelt[1] * u.deg)
-            shift = np.rint(np.array([shift_y, shift_x, 0]))
+            shift_x = -int(shift_x / (self.wcs[i, channel_index].wcs.cdelt[2] * u.deg))
+            shift_y = -int(shift_y / (self.wcs[i, channel_index].wcs.cdelt[1] * u.deg))
+            shift = np.array([shift_y, shift_x, 0])
             print(shift)
 
-            data_shifted = np.fft.ifftn(scipy.ndimage.fourier_shift(np.fft.fftn(data[i]), -shift)).real
+            data_shifted = np.fft.ifftn(scipy.ndimage.fourier_shift(np.fft.fftn(data[i]), shift)).real
             data[i] = data_shifted
-            mask_shifted = np.isclose(data_shifted, 0)
-            data[i, mask_shifted] = data[i - 1, mask_shifted]
+            # mask_shifted = np.isclose(data_shifted, 0)
+            # data[i, mask_shifted] = data[i - 1, mask_shifted]
 
-        data = data[..., pad:-pad, :, :]
+            shift_x_min = min(shift_x_min, shift_x)
+            shift_y_min = min(shift_y_min, shift_y)
+            shift_x_max = max(shift_x_max, shift_x)
+            shift_y_max = max(shift_y_max, shift_y)
+
+        print('shift_min', shift_x_min, shift_y_min)
+        print('shift_max', shift_x_max, shift_y_max)
+
+        slice_y = slice(pad + int(shift_y_min), -pad + int(shift_y_max))
+        slice_x = slice(pad + int(shift_x_min), -pad + int(shift_x_max))
+        data = data[..., slice_y, slice_x, :]
 
         img = ax.imshow(
             X=data[0],
             origin='lower',
         )
 
+        text = ax.text(
+            x=0,
+            y=0,
+            s=astropy.time.Time(np.mean(self.time[0, channel_index].to_value('unix')), format='unix').strftime('%Y-%m-%d %H:%M:%S'),
+            ha='left',
+            va='bottom',
+            color='white',
+        )
+
         def func(i: int):
             img.set_data(data[i])
+            text.set_text(astropy.time.Time(np.mean(self.time[i, channel_index].to_value('unix')), format='unix').strftime('%Y-%m-%d %H:%M:%S'))
 
         return matplotlib.animation.FuncAnimation(
             fig=ax.figure,
