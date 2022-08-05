@@ -1359,7 +1359,12 @@ class Array(
                     item_axis = item_axis.array_aligned(self.shape_broadcasted(item_axis))
                 index[self.axes.index(axis)] = item_axis
 
-            self.array[tuple(index)] = value.array_aligned({axis: 1 for axis in axes})
+            if value.shape:
+                value = value.array_aligned({axis: 1 for axis in axes})
+            else:
+                value = value.array
+
+            self.array[tuple(index)] = value
 
 
 @dataclasses.dataclass(eq=False)
