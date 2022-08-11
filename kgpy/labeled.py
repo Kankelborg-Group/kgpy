@@ -1076,6 +1076,18 @@ class AbstractArray(
 
             return hist, edges_x, edges_y
 
+        elif func in [np.nan_to_num]:
+            args = list(args)
+            if args:
+                a = args.pop(0)
+            else:
+                a = kwargs.pop('a')
+
+            return Array(
+                array=func(a.array, *args, **kwargs),
+                axes=self.axes.copy(),
+            )
+
         elif func in [
             np.ndim,
             np.argmin,
