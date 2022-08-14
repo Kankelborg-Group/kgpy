@@ -93,6 +93,7 @@ import random
 import copy
 import numpy as np
 import numpy.typing
+import scipy.ndimage
 import astropy.units as u
 import kgpy.mixin
 import kgpy.units
@@ -1282,6 +1283,31 @@ class AbstractArray(
         )
 
         return indices_factory(result)
+
+    def filter_median(
+            self: AbstractArrayT,
+            shape_kernel: typ.Dict[str, int],
+            mode: str = 'reflect',
+    ):
+
+        shape = self.shape
+        shape_kernel_final = {axis: shape_kernel[axis] if axis in shape_kernel else 1 for axis in shape}
+
+        inp = self.array
+        if isinstance(inp, u.Quantity):
+            inp = inp.value
+        result = Array(
+            array=scipy.ndimage.median_filter(
+                input=inp,
+                size=tuple(shape_kernel_final.values()),
+                mode=mode,
+            ),
+            axes=self.axes.copy(),
+        )
+        if isinstance(self.array, u.Quantity):
+            result = result << self.unit
+
+        return result
 
 
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
