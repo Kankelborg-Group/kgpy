@@ -1510,6 +1510,33 @@ class LinearSpace(
     def index_below(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
         return {self.axis: (value - self.start) // self.step}
 
+    def interp_linear(
+            self: LinearSpaceT,
+            item: typ.Dict[str, AbstractArrayT],
+    ) -> AbstractArray:
+
+        item = item.copy()
+
+        if self.axis in item:
+
+            x = item.pop(self.axis)
+            x0 = 0
+
+            y0 = self.start.interp_linear(item)
+            y1 = self.stop.interp_linear(item)
+
+            result = y0 + (x - x0) * (y1 - y0)
+            return result
+
+        else:
+            return type(self)(
+                start=self.start.interp_linear(item),
+                stop=self.stop.interp_linear(item),
+                num=self.num,
+                endpoint=self.endpoint,
+                axis=self.axis,
+            )
+
 
 @dataclasses.dataclass(eq=False)
 class _RandomSpaceMixin(_SpaceMixin):
