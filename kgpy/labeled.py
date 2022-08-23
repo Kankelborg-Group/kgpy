@@ -490,12 +490,19 @@ class ArrayInterface(
         shape = self.shape
         shape_nearest = kgpy.vectors.CartesianND({ax: shape[ax] for ax in axis})
 
+        if isinstance(self, kgpy.vectors.VectorInterface):
+            coordinates = self.coordinates
+            coordinates = {comp: None if value.coordinates[comp] is None else coordinates[comp] for comp in coordinates}
+            self_subspace = type(self).from_coordinates(coordinates)
+        else:
+            self_subspace = self
+
         def indices_factory(index: kgpy.vectors.CartesianND) -> typ.Dict[str, kgpy.labeled.Array]:
             return index.coordinates
 
         def get_index(index: kgpy.vectors.CartesianND) -> kgpy.vectors.CartesianND:
             index = indices_factory(index)
-            value_new = self(index)
+            value_new = self_subspace(index)
             diff = value_new - value
             if isinstance(diff, kgpy.vectors.AbstractVector):
                 diff = kgpy.vectors.CartesianND({c: diff.coordinates[c] for c in diff.coordinates if diff.coordinates[c] is not None})
