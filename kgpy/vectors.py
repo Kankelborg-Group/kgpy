@@ -522,7 +522,10 @@ class AbstractVector(
     def interp_linear(self: AbstractVectorT, item: typ.Dict[str, VectorLike]):
         coordinates = dict()
         for component in self.coordinates:
-            coordinates[component] = self.coordinates[component].interp_linear(item=item)
+            if self.coordinates[component] is not None:
+                coordinates[component] = self.coordinates[component].interp_linear(item=item)
+            else:
+                coordinates[component] = self.coordinates[component]
         return type(self).from_coordinates(coordinates)
 
     def __call__(self: AbstractVectorT, item: typ.Dict[str, VectorLike]):
