@@ -583,7 +583,7 @@ class AbstractVector(
         raise NotImplementedError
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Cartesian(
     VectorInterface,
 ):
@@ -1053,8 +1053,13 @@ class CartesianND(
 
     coordinates: typ.Dict[str, CoordinateT] = None
 
-    def __getattr__(self: CartesianNDT, item: str):
-        return self.coordinates[item]
+    # def __getattr__(self: CartesianNDT, item: str):
+    #     if item in self.coordinates:
+    #         return self.coordinates[item]
+    #     if item == 'coordinates':
+    #         return self.coordinates
+    #     else:
+    #         return self.coordinates[item]
 
     @classmethod
     def from_coordinates(cls: typ.Type[CartesianNDT], coordinates: typ.Dict[str, CoordinateT]) -> CartesianNDT:
