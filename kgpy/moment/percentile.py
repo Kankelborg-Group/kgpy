@@ -38,7 +38,7 @@ def arg_percentile(cube: np.ndarray, percentile: float, axis: int = ~0) -> np.nd
 
 
 def intensity(cube: np.ndarray, axis: int = ~0) -> np.ndarray:
-    return np.sum(cube, axis=axis, keepdims=True)
+    return np.nansum(cube, axis=axis, keepdims=True)
 
 
 def shift(cube: np.ndarray, axis: int = ~0) -> np.ndarray:
