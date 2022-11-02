@@ -7,7 +7,7 @@ __all__ = ['arg_percentile', 'intensity', 'shift', 'width', 'skew', 'first_four_
 def arg_percentile(cube: np.ndarray, percentile: float, axis: int = ~0) -> np.ndarray:
     mod_axis = axis % len(cube.shape)
 
-    cs = np.cumsum(cube, axis=axis)
+    cs = np.nancumsum(cube, axis=axis)
 
     y = percentile * intensity(cube, axis=axis)
     x1 = np.argmax(cs > y, axis=axis)
