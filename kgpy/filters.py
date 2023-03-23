@@ -357,7 +357,10 @@ def _mean_trimmed_numba_1d(
                 sum_convol += value
                 num_convol += 1
 
-        result[index_array_x,] = sum_convol / num_convol
+        if sum_convol > 0:
+            result[index_array_x,] = sum_convol / num_convol
+        else:
+            result[index_array_x,] = 0
 
     return result
 
@@ -411,7 +414,10 @@ def _mean_trimmed_numba_2d(
                         sum_convol += value
                         num_convol += 1
 
-            result[index_array_x, index_array_y] = sum_convol / num_convol
+            if sum_convol > 0:
+                result[index_array_x, index_array_y] = sum_convol / num_convol
+            else:
+                result[index_array_x, index_array_y] = 0
 
     return result
 
@@ -474,6 +480,9 @@ def _mean_trimmed_numba_3d(
                                 sum_convol += value
                                 num_convol += 1
 
-                result[index_array_x, index_array_y, index_array_z] = sum_convol / num_convol
+                if sum_convol > 0:
+                    result[index_array_x, index_array_y, index_array_z] = sum_convol / num_convol
+                else:
+                    result[index_array_x, index_array_y, index_array_z] = 0
 
     return result
