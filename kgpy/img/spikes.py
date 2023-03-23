@@ -6,6 +6,7 @@ import scipy.signal
 import scipy.interpolate
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+import kgpy.filters
 
 __all__ = ['identify', 'fix', 'identify_and_fix']
 
@@ -92,9 +93,18 @@ def identify_and_fix(
         percentile_threshold: tp.Union[float, tp.Tuple[float, float]] = 99,
         poly_deg: int = 1,
         num_hist_bins: int = 128,
+        filter_type: str = "median"
 ) -> tp.Tuple[np.ndarray, np.ndarray, tp.List[Stats]]:
 
-    mask, stats = identify(data, axis, kernel_size, percentile_threshold, poly_deg, num_hist_bins)
+    mask, stats = identify(
+        data=data,
+        axis=axis,
+        kernel_size=kernel_size,
+        percentile_threshold=percentile_threshold,
+        poly_deg=poly_deg,
+        num_hist_bins=num_hist_bins,
+        filter_type=filter_type
+    )
 
     fixed_data, mask = fix(data, mask, axis)
     
@@ -108,6 +118,7 @@ def identify(
         percentile_threshold: tp.Union[float, tp.Tuple[float, float]] = 99,
         poly_deg: int = 1,
         num_hist_bins: int = 128,
+        filter_type: str = "median"
 ) -> tp.Tuple[np.ndarray, tp.List[Stats]]:
     """
     Identify spikes in an image using a local median-dependent threshold.
@@ -156,7 +167,12 @@ def identify(
         k_sh[axis] = pencil_size
         k_sh[ax] = kernel_size[i]
 
-        fdata = scipy.ndimage.filters.percentile_filter(data, 50, size=k_sh)
+        if filter_type == "median":
+            fdata = scipy.ndimage.median_filter(data, size=k_sh)
+        elif filter_type == "trimmed_mean":
+            fdata = kgpy.filters.mean_trimmed(data, kernel_size=k_sh)
+        else:
+            raise ValueError(f"filter type {filter_type} not recognized")
 
         hist, hist_extent, xgrid, ygrid = calc_hist(fdata, data, num_hist_bins)
 
