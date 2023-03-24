@@ -170,7 +170,7 @@ def identify(
         if filter_type == "median":
             fdata = scipy.ndimage.median_filter(data, size=k_sh)
         elif filter_type == "trimmed_mean":
-            fdata = kgpy.filters.mean_trimmed(data, kernel_size=k_sh)
+            fdata = kgpy.filters.mean_trimmed_numba(data, kernel_shape=k_sh)
         else:
             raise ValueError(f"filter type {filter_type} not recognized")
 
