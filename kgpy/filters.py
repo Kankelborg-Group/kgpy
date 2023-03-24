@@ -292,7 +292,7 @@ def mean_trimmed_numba(
 
     axis_orthogonal = tuple(ax for ax in range(array.ndim) if ax not in axis)
 
-    shape_orthogonal = tuple(sz for sz in np.array(array.shape)[np.array(axis_orthogonal)])
+    shape_orthogonal = tuple(sz for sz in np.array(array.shape)[np.array(axis_orthogonal).astype(int)])
 
     result = np.zeros_like(array)
 
