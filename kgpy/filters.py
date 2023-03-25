@@ -346,8 +346,8 @@ def _mean_trimmed_numba_1d(
 
             values[index_kernel_x,] = array[index_final_x,]
 
-        thresh_min = np.percentile(values, proportion)
-        thresh_max = np.percentile(values, 1 - proportion)
+        thresh_min = np.quantile(values, proportion)
+        thresh_max = np.quantile(values, 1 - proportion)
 
         sum_convol = 0
         num_convol = 0
@@ -357,7 +357,7 @@ def _mean_trimmed_numba_1d(
                 sum_convol += value
                 num_convol += 1
 
-        if sum_convol > 0:
+        if num_convol > 0:
             result[index_array_x,] = sum_convol / num_convol
         else:
             result[index_array_x,] = 0
@@ -402,8 +402,8 @@ def _mean_trimmed_numba_2d(
 
                     values[index_kernel_x, index_kernel_y] = array[index_final_x, index_final_y]
 
-            thresh_min = np.percentile(values, proportion)
-            thresh_max = np.percentile(values, 1 - proportion)
+            thresh_min = np.quantile(values, proportion)
+            thresh_max = np.quantile(values, 1 - proportion)
 
             sum_convol = 0
             num_convol = 0
@@ -414,7 +414,7 @@ def _mean_trimmed_numba_2d(
                         sum_convol += value
                         num_convol += 1
 
-            if sum_convol > 0:
+            if num_convol > 0:
                 result[index_array_x, index_array_y] = sum_convol / num_convol
             else:
                 result[index_array_x, index_array_y] = 0
@@ -467,8 +467,8 @@ def _mean_trimmed_numba_3d(
 
                             values[index_kernel_x, index_kernel_y, index_kernel_z] = array[index_final_x, index_final_y, index_final_z]
 
-                thresh_min = np.percentile(values, proportion)
-                thresh_max = np.percentile(values, 1 - proportion)
+                thresh_min = np.quantile(values, proportion)
+                thresh_max = np.quantile(values, 1 - proportion)
 
                 sum_convol = 0
                 num_convol = 0
@@ -480,7 +480,7 @@ def _mean_trimmed_numba_3d(
                                 sum_convol += value
                                 num_convol += 1
 
-                if sum_convol > 0:
+                if num_convol > 0:
                     result[index_array_x, index_array_y, index_array_z] = sum_convol / num_convol
                 else:
                     result[index_array_x, index_array_y, index_array_z] = 0
