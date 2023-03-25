@@ -353,7 +353,7 @@ def _mean_trimmed_numba_1d(
         num_convol = 0
         for index_kernel_x in numba.prange(kernel_shape_x):
             value = values[index_kernel_x,]
-            if thresh_min < value < thresh_max:
+            if thresh_min <= value <= thresh_max:
                 sum_convol += value
                 num_convol += 1
 
@@ -410,7 +410,7 @@ def _mean_trimmed_numba_2d(
             for index_kernel_x in numba.prange(kernel_shape_x):
                 for index_kernel_y in numba.prange(kernel_shape_y):
                     value = values[index_kernel_x, index_kernel_y]
-                    if thresh_min < value < thresh_max:
+                    if thresh_min <= value <= thresh_max:
                         sum_convol += value
                         num_convol += 1
 
@@ -476,7 +476,7 @@ def _mean_trimmed_numba_3d(
                     for index_kernel_y in numba.prange(kernel_shape_y):
                         for index_kernel_z in numba.prange(kernel_shape_z):
                             value = values[index_kernel_x, index_kernel_y, index_kernel_z]
-                            if thresh_min < value < thresh_max:
+                            if thresh_min <= value <= thresh_max:
                                 sum_convol += value
                                 num_convol += 1
 
