@@ -115,6 +115,7 @@ def identify(
         data: np.ndarray,
         axis: tp.Optional[tp.Union[int, tp.Tuple[int, ...]]] = None,
         kernel_size: tp.Union[int, tp.Tuple[int, ...]] = 11,
+        pencil_size: int = 3,
         percentile_threshold: tp.Union[float, tp.Tuple[float, float]] = 99,
         poly_deg: int = 1,
         num_hist_bins: int = 128,
@@ -142,7 +143,6 @@ def identify(
     :param plot_histograms:
     :return:
     """
-    pencil_size = 3
     spike_mask = np.zeros_like(data)
     
     if axis is None:
