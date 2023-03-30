@@ -1,4 +1,5 @@
 import typing as tp
+import functools
 import dataclasses
 import numpy as np
 import scipy.ndimage.filters
@@ -17,73 +18,91 @@ class Stats:
     A class representing a statistical model of spikes in an image.
     """
 
-    hist: np.ndarray
-    hist_extent: np.ndarray
-    x: np.ndarray
-    thresh_pts_upper: np.ndarray
-    thresh_pts_lower:  np.ndarray
-    fit_weights: np.ndarray
-    poly_deg: int = 1
+    histogram: np.ndarray
+    x_edges: np.ndarray
+    y_edges: np.ndarray
+    percentile_lower: float
+    percentile_upper: float
+
+    @property
+    def x(self):
+        return (self.x_edges[1:] + self.x_edges[:~0]) / 2
+
+    @property
+    def y(self):
+        return (self.y_edges[1:] + self.y_edges[:~0]) / 2
+
+    @property
+    def histogram_normalized(self) -> np.ndarray:
+        hist = self.histogram
+        hist_sum = np.sum(hist, axis=~0, keepdims=True)
+        hist /= hist_sum
+        hist = np.nan_to_num(hist)
+        return hist
+
+    @property
+    def histogram_cumsum(self) -> np.ndarray:
+        return np.cumsum(self.histogram_normalized, axis=~0)
+
+    @functools.cached_property
+    def _thresh(self):
+
+        hist_cumsum = self.histogram_cumsum
+
+        thresh = scipy.interpolate.LinearNDInterpolator(
+            points=np.stack(
+                arrays=[
+                    np.broadcast_to(self.x[:, np.newaxis], hist_cumsum.shape).reshape(-1),
+                    hist_cumsum.reshape(-1)
+                ],
+                axis=~0,
+            ),
+            values=np.broadcast_to(self.y[np.newaxis, :], hist_cumsum.shape).reshape(-1),
+            fill_value=0,
+        )
+
+        return thresh
 
     def thresh_upper(self, x: np.ndarray):
-        return self._thresh(self.thresh_pts_upper, x)
+        return self._thresh(x, self.percentile_upper / 100)
 
     def thresh_lower(self, x: np.ndarray):
-        return self._thresh(self.thresh_pts_lower, x)
+        return self._thresh(x, self.percentile_lower / 100)
 
-    def _thresh(self, thresh_pts: np.ndarray, x: np.ndarray):
+    def plot(
+            self,
+            ax: plt.Axes,
+            label: str = ''
+    ):
+        norm = LogNorm()
+        img = ax.pcolormesh(
+            *np.broadcast_arrays(self.x_edges[:, np.newaxis], self.y_edges[np.newaxis, :]),
+            self.histogram_normalized,
+            norm=norm,
+        )
 
-        use_fit_thresh = self.x[np.argmax(self.fit_weights < 1e9)]
+        x = np.linspace(self.x_edges.min(), self.x_edges.max(), num=1001)
 
-        new_thresh_pts = np.empty_like(x)
+        ax.plot(x, self.thresh_upper(x), color="black")
+        ax.plot(x, self.thresh_lower(x), color="black")
 
-        i = x <= use_fit_thresh
-        j = x > use_fit_thresh
-
-        new_thresh_pts[i] = np.interp(x[i], self.x, thresh_pts)
-        new_thresh_pts[j] = self._thresh_fit(thresh_pts)(x[j])
-
-        return new_thresh_pts
-    
-    def _thresh_fit(self, thresh_pts: np.ndarray) -> np.poly1d:
-
-        return np.poly1d(np.polyfit(self.x, thresh_pts, deg=self.poly_deg, w=self.fit_weights))
+        ax.set_title(label)
 
 
 def stats_list_plot(stats: tp.List[Stats], labels: tp.Optional[tp.List[str]] = None):
 
-    fig, ax = plt.subplots(1, len(stats), figsize=(10, 4))   # type: plt.Figure, tp.List[plt.Axes]
-
+    fig, ax = plt.subplots(1, len(stats), figsize=(10, 4), constrained_layout=True, squeeze=False)
     if isinstance(ax, plt.Axes):
         ax = [ax]
 
     for i, s in enumerate(stats):
-        
-        if i == len(stats) - 1:
-            cbar = True
-        else:
-            cbar = False
             
         if labels is not None:
             label = labels[i]
         else:
             label = ''
             
-        stats_plot(s, fig, ax[i], colorbar=cbar, label=label)
-
-
-def stats_plot(stats: Stats, fig: plt.Figure, ax: plt.Axes, colorbar: bool = False, label=''):
-    # norm = None
-    norm = LogNorm()
-    im = ax.imshow(stats.hist.T, norm=norm, origin='lower', extent=stats.hist_extent)
-    if colorbar:
-        fig.colorbar(im, ax=ax)
-
-    ax.plot(stats.x, stats.thresh_pts_upper, 'k', scaley=False)
-    ax.plot(stats.x, stats.thresh_pts_lower, 'k', scaley=False)
-    ax.plot(stats.x, stats.thresh_upper(stats.x), 'r', scaley=False)
-    ax.plot(stats.x, stats.thresh_lower(stats.x), 'r', scaley=False)
-    ax.set_title(label)
+        s.plot(ax=ax[0, i], label=label)
 
 
 def identify_and_fix(
@@ -91,7 +110,6 @@ def identify_and_fix(
         axis: tp.Optional[tp.Union[int, tp.Tuple[int, ...]]] = None,
         kernel_size: tp.Union[int, tp.Tuple[int, ...]] = 11,
         percentile_threshold: tp.Union[float, tp.Tuple[float, float]] = 99,
-        poly_deg: int = 1,
         num_hist_bins: int = 128,
         filter_type: str = "median"
 ) -> tp.Tuple[np.ndarray, np.ndarray, tp.List[Stats]]:
@@ -101,7 +119,6 @@ def identify_and_fix(
         axis=axis,
         kernel_size=kernel_size,
         percentile_threshold=percentile_threshold,
-        poly_deg=poly_deg,
         num_hist_bins=num_hist_bins,
         filter_type=filter_type
     )
@@ -117,7 +134,6 @@ def identify(
         kernel_size: tp.Union[int, tp.Tuple[int, ...]] = 11,
         pencil_size: int = 3,
         percentile_threshold: tp.Union[float, tp.Tuple[float, float]] = 99,
-        poly_deg: int = 1,
         num_hist_bins: int = 128,
         filter_type: str = "median"
 ) -> tp.Tuple[np.ndarray, tp.List[Stats]]:
@@ -174,27 +190,23 @@ def identify(
         else:
             raise ValueError(f"filter type {filter_type} not recognized")
 
-        hist, hist_extent, xgrid, ygrid = calc_hist(fdata, data, num_hist_bins)
+        hist, x_edges, y_edges = calc_hist(
+            xdata=fdata,
+            ydata=data,
+            num_hist_bins=num_hist_bins,
+        )
 
-        hist_sum = np.sum(hist, axis=~0, keepdims=True)
-        hist /= hist_sum
+        stats_axis = Stats(
+            histogram=hist,
+            x_edges=x_edges,
+            y_edges=y_edges,
+            percentile_lower=percentile_threshold[0],
+            percentile_upper=percentile_threshold[1],
+        )
+        stats.append(stats_axis)
 
-        cs = np.cumsum(hist, axis=~0)
-
-        y_thresh_upper_ind = np.argmax(cs > (percentile_threshold[1] / 100), axis=~0) + 1
-        y_thresh_lower_ind = np.argmax(cs > (percentile_threshold[0] / 100), axis=~0)
-
-        y_thresh_upper = ygrid[y_thresh_upper_ind]
-        y_thresh_lower = ygrid[y_thresh_lower_ind]
-
-        fit_weights = np.sqrt(hist_sum[..., 0])
-
-        axis_stats = Stats(hist, hist_extent, xgrid, y_thresh_upper, y_thresh_lower, fit_weights=fit_weights,
-                           poly_deg=poly_deg)
-        stats.append(axis_stats)
-
-        data_thresh_upper = axis_stats.thresh_upper(fdata)
-        data_thresh_lower = axis_stats.thresh_lower(fdata)
+        data_thresh_upper = stats_axis.thresh_upper(fdata)
+        data_thresh_lower = stats_axis.thresh_lower(fdata)
         
         ind = np.logical_or(data_thresh_lower > data, data > data_thresh_upper)
         spike_mask[ind] += 1
@@ -205,23 +217,23 @@ def identify(
 
 
 def calc_hist(xdata: np.ndarray, ydata: np.ndarray, num_hist_bins: int):
-    h_min = np.min(xdata)
-    h_max = np.max(xdata)
-    hrange = [
-        [h_min, h_max],
-        [np.min(ydata), 2 * h_max],
-    ]
-    
-    hist, edges_x, edges_y = np.histogram2d(xdata.ravel(), ydata.ravel(), bins=num_hist_bins, range=hrange)
-    hist_extent = np.array([edges_x[0], edges_x[-1], edges_y[0], edges_y[-1]])
-    
-    dx = (edges_x[-1] - edges_x[0]) / len(edges_x)
-    dy = (edges_y[-1] - edges_y[0]) / len(edges_y)
-    
-    xgrid = edges_x[:-1] + dx / 2
-    ygrid = edges_y
 
-    return hist, hist_extent, xgrid, ygrid
+    x_edges = np.geomspace(1, xdata.max(), num=num_hist_bins + 1)
+    y_edges = np.geomspace(1, ydata.max(), num=num_hist_bins + 1)
+
+    x_edges = np.concatenate([-x_edges[::-1], x_edges])
+    y_edges = np.concatenate([-y_edges[::-1], y_edges])
+
+    x_edges = x_edges[x_edges >= xdata.min()]
+    y_edges = y_edges[y_edges >= ydata.min()]
+
+    hist, x_edges, y_edges = np.histogram2d(
+        x=xdata.reshape(-1),
+        y=ydata.reshape(-1),
+        bins=(x_edges, y_edges),
+    )
+
+    return hist, x_edges, y_edges
 
 
 def fix(
