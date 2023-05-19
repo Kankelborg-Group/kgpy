@@ -289,6 +289,8 @@ def median_numba(
     if isinstance(axis, int):
         axis = (axis, )
 
+    axis = tuple(ax % array.ndim for ax in axis)
+
     axis_orthogonal = tuple(ax for ax in range(array.ndim) if ax not in axis)
 
     shape_orthogonal = tuple(sz for sz in np.array(array.shape)[np.array(axis_orthogonal)])
