@@ -85,7 +85,7 @@ The above example can be accomplished by using the :class:`kgpy.labeled.LinearSp
      <br>
 
 """
-
+from __future__ import annotations
 import typing as typ
 import abc
 import dataclasses
