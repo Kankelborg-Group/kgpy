@@ -1131,6 +1131,7 @@ class AbstractArray(
             np.clip,
             np.ptp,
             np.trapz,
+            np.average,
         ]:
 
             labeled_arrays = [arg for arg in args if isinstance(arg, AbstractArray)]
