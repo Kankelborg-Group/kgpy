@@ -97,6 +97,7 @@ import scipy.ndimage
 import astropy.units as u
 import kgpy.mixin
 import kgpy.colormaps
+import kgpy.filters
 import kgpy.units
 if typ.TYPE_CHECKING:
     import kgpy.vectors
@@ -1300,6 +1301,50 @@ class AbstractArray(
         )
 
         return indices_factory(result)
+
+    def filter_mean(
+            self: AbstractArrayT,
+            shape_kernel: dict[str, int],
+    ):
+
+        inp = self.array
+        if isinstance(inp, u.Quantity):
+            inp = inp.value
+        result = Array(
+            array=kgpy.filters.mean_numba(
+                array=inp,
+                kernel_shape=tuple(shape_kernel.values()),
+                axis=tuple(self.axes.index(ax) for ax in shape_kernel),
+            ),
+            axes=self.axes.copy(),
+        )
+        if isinstance(self.array, u.Quantity):
+            result = result << self.unit
+
+        return result
+
+    def filter_mean_trimmed(
+            self: AbstractArrayT,
+            shape_kernel: dict[str, int],
+            proportion: float = 0.25,
+    ):
+
+        inp = self.array
+        if isinstance(inp, u.Quantity):
+            inp = inp.value
+        result = Array(
+            array=kgpy.filters.mean_trimmed_numba(
+                array=inp,
+                kernel_shape=tuple(shape_kernel.values()),
+                proportion=proportion,
+                axis=tuple(self.axes.index(ax) for ax in shape_kernel),
+            ),
+            axes=self.axes.copy(),
+        )
+        if isinstance(self.array, u.Quantity):
+            result = result << self.unit
+
+        return result
 
     def filter_median(
             self: AbstractArrayT,
