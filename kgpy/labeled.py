@@ -1627,6 +1627,19 @@ class LinearSpace(
             endpoint=self.endpoint,
         )
 
+    def index(
+            self: LinearSpaceT,
+            value: LinearSpaceT,
+            axis: typ.Dict[str, int],
+    ) -> typ.Dict[str, ArrayT]:
+        result = super().index(
+            value=value,
+            axis=[a for a in axis if a != self.axis],
+        )
+        result[self.axis] = (value - self.start) / self.step
+
+        return result
+
     def index_nearest(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
         return {self.axis: np.rint((value - self.start) / self.step).astype(int)}
 
