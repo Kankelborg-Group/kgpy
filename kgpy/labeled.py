@@ -96,6 +96,7 @@ import numpy.typing
 import scipy.ndimage
 import astropy.units as u
 import kgpy.mixin
+import kgpy.colormaps
 import kgpy.units
 if typ.TYPE_CHECKING:
     import kgpy.vectors
@@ -1324,6 +1325,41 @@ class AbstractArray(
             result = result << self.unit
 
         return result
+
+    def colorize_axis(
+            self: AbstractArray,
+            axis: str,
+            percentile_max: u.Quantity = 99 * u.percent,
+            percentile_min: u.Quantity = 1 * u.percent,
+    ) -> Array:
+
+        shape = self.shape
+
+        axis_threshold = self.axes.copy()
+        axis_threshold.remove(axis)
+
+        threshold_max = np.percentile(self, q=float(percentile_max), axis=axis_threshold)
+        threshold_min = np.percentile(self, q=float(percentile_min), axis=axis_threshold)
+
+        self_normalized = (self - threshold_min) / (threshold_max - threshold_min)
+
+        index = kgpy.labeled.Range(stop=shape[axis], axis=axis)
+
+        colormap = kgpy.colormaps.spectral_colors()
+
+        color = kgpy.labeled.Array(colormap.to_rgba(index.array), axes=index.axes + ['rgba'])
+        color = np.sum(color * self_normalized, axis=axis) / np.sum(color, axis=axis)
+
+        slice_rgb = slice(None, ~0)
+        index_alpha = ~0
+        color_max = np.max(color[dict(rgba=slice_rgb)], axis='rgba')
+
+        color[dict(rgba=index_alpha)] = np.nan_to_num(np.sqrt(color_max))
+
+        mask = color_max > 0
+        color[dict(rgba=slice_rgb)][mask] = color[dict(rgba=slice_rgb)][mask] / color_max[mask]
+
+        return color
 
 
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
