@@ -744,12 +744,13 @@ class AbstractArray(
             return 1 / self
 
         elif shape[axis_rows] == 2:
+            det = self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
             result = Array(array=self.array.copy(), axes=self.axes.copy())
-            result[{axis_rows_inverse: 0, axis_columns_inverse: 0}] = self[{axis_rows: 1, axis_columns: 1}]
-            result[{axis_rows_inverse: 1, axis_columns_inverse: 1}] = self[{axis_rows: 0, axis_columns: 0}]
-            result[{axis_rows_inverse: 0, axis_columns_inverse: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
-            result[{axis_rows_inverse: 1, axis_columns_inverse: 0}] = -self[{axis_rows: 1, axis_columns: 0}]
-            return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 0}] = self[{axis_rows: 1, axis_columns: 1}] / det
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 1}] = self[{axis_rows: 0, axis_columns: 0}] / det
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 1}] = -self[{axis_rows: 0, axis_columns: 1}] / det
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 0}] = -self[{axis_rows: 1, axis_columns: 0}] / det
+            return result
 
         elif shape[axis_rows] == 3:
             a = self[{axis_rows: 0, axis_columns: 0}]
