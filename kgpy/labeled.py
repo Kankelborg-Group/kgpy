@@ -1359,10 +1359,10 @@ class AbstractArray(
         if isinstance(inp, u.Quantity):
             inp = inp.value
         result = Array(
-            array=scipy.ndimage.median_filter(
-                input=inp,
-                size=tuple(shape_kernel_final.values()),
-                mode=mode,
+            array=kgpy.filters.median_numba(
+                array=inp,
+                kernel_shape=tuple(shape_kernel.values()),
+                axis=tuple(self.axes.index(ax) for ax in shape_kernel),
             ),
             axes=self.axes.copy(),
         )
