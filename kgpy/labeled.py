@@ -974,7 +974,7 @@ class AbstractArray(
             arrays = [np.broadcast_to(arr, shape).array for arr in arrays]
 
             return Array(
-                array=np.stack(arrays=arrays, axis=0, **kwargs),
+                array=np.stack(arrays, axis=0, **kwargs),
                 axes=[axis] + list(shape.keys()),
             )
 
@@ -1000,7 +1000,7 @@ class AbstractArray(
 
             axes = list(shape.keys())
             return Array(
-                array=func(arrays=arrays, axis=axes.index(axis)),
+                array=func(arrays, axis=axes.index(axis)),
                 axes=axes,
             )
 
