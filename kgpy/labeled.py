@@ -516,6 +516,13 @@ class ArrayInterface(
 
         return indices_factory(result)
 
+    def index(
+            self: ArrayInterfaceT,
+            value: ArrayInterfaceT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, ArrayInterfaceT]:
+        return self.index_secant(value=value, axis=axis)
+
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
