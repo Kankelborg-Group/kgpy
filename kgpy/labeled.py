@@ -1852,14 +1852,27 @@ class WorldCoordinateSpace(
     def normalized(self: WorldCoordinateSpaceT) -> WorldCoordinateSpaceT:
         return self
 
-    @property
-    def array_labeled(self: WorldCoordinateSpaceT) -> ArrayT:
+    def __call__(self: WorldCoordinateSpaceT, item: typ.Dict[str, AbstractArrayT]) -> ArrayT:
         import kgpy.vectors
-        coordinates_pix = kgpy.vectors.CartesianND(indices(self.shape_wcs)) << u.pix
+        coordinates_pix = kgpy.vectors.CartesianND(item) * u.pix
         coordinates_pix = coordinates_pix - self.crpix
-        coordinates_world = self.pc_row @ coordinates_pix
+        coordinates_world = 0 * u.pix
+        for component in coordinates_pix.coordinates:
+            pc_component = self.pc_row.coordinates[component]
+            if np.any(pc_component != 0):
+                coordinates_world = coordinates_world + pc_component * coordinates_pix.coordinates[component]
         coordinates_world = self.cdelt * coordinates_world + self.crval
         return coordinates_world
+
+    def interp_linear(
+            self: WorldCoordinateSpaceT,
+            item: typ.Dict[str, AbstractArrayT],
+    ) -> ArrayT:
+        return self(item)
+
+    @property
+    def array_labeled(self: WorldCoordinateSpaceT) -> ArrayT:
+        return self(indices(self.shape_wcs))
 
     @property
     def array(self: WorldCoordinateSpaceT) -> ArrT:
@@ -1867,8 +1880,21 @@ class WorldCoordinateSpace(
 
     @property
     def axes(self: WorldCoordinateSpaceT) -> typ.Optional[typ.List[str]]:
-        return self.array_labeled.axes
+        return list(self.shape.keys())
 
     @property
     def shape(self: WorldCoordinateSpaceT) -> typ.Dict[str, int]:
-        return self.array_labeled.shape
+        shape = self(indices({axis: 1 for axis in self.shape_wcs})).shape
+        shape = {axis: self.shape_wcs[axis] if axis in self.shape_wcs else shape[axis] for axis in shape}
+        return shape
+
+    def broadcast_to(
+            self: WorldCoordinateSpaceT,
+            shape: typ.Dict[str, int],
+    ) -> typ.Union[WorldCoordinateSpaceT, AbstractArrayT]:
+
+        if self.shape == shape:
+            if all(self.shape[axis_self] == shape[axis] for axis_self, axis in zip(self.shape, shape)):
+                return self
+
+        return super().broadcast_to(shape)
