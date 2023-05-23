@@ -13,10 +13,10 @@ import kgpy.vectors
 import kgpy.transforms
 import kgpy.optimization
 import kgpy.io.dxf
-from .. import rays
 from . import sags
-from . import materials
 from . import apertures
+from . import rays
+from . import materials
 from . import rulings
 
 __all__ = [
@@ -87,7 +87,7 @@ class Surface(
             return False
         if not self.aperture_mechanical == other.aperture_mechanical:
             return False
-        if not self.rulings == other.rulings:
+        if not self.ruling == other.ruling:
             return False
         if not self.baffle_loft_ids == other.baffle_loft_ids:
             return False
@@ -123,6 +123,8 @@ class Surface(
             ray: rays.RayVector,
             intercept_error: u.Quantity = 0.1 * u.nm
     ) -> rays.RayVector:
+
+        print(self.name)
 
         ray = ray.copy_shallow()
 
@@ -168,6 +170,8 @@ class Surface(
                 ray.mask = ray.mask & self.aperture.is_unvignetted(ray.field_angles)
             else:
                 ray.mask = ray.mask & self.aperture.is_unvignetted(ray.position)
+
+        print("ray.mask", ray.mask.sum())
 
         return ray
 
@@ -256,7 +260,8 @@ class Surface(
                 text_position = transform_extra(text_position_local)
                 # text_position = text_position.reshape(-1, text_position.shape[~0])
 
-                for text_pos in text_position.ndindex(axis_ignored='wire'):
+                for index in text_position.ndindex(axis_ignored='wire'):
+                    text_pos = text_position[index]
 
                     wire_index = np.argmax(text_pos.coordinates[component_y], axis='wire')
 

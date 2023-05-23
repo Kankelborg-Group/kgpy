@@ -1,3 +1,2 @@
-__all__ = ['inversion']
-
-from . import inversion
+from . import instruments
+# from . import inversion

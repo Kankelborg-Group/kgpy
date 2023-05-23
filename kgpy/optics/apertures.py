@@ -54,6 +54,13 @@ class Aperture(
     abc.ABC
 ):
     num_samples: int = 1000
+    is_active: bool = True
+
+    def __getitem__(
+            self: ApertureT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> ApertureT:
+        return self.copy_shallow()
 
     @abc.abstractmethod
     def is_unvignetted(self: ApertureT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
@@ -202,19 +209,55 @@ class Aperture(
                 )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Obscurable(
-    kgpy.mixin.Copyable,
+    Aperture,
 ):
     is_obscuration: kgpy.labeled.ArrayLike = False
 
+    def __eq__(self: ObscurableT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.is_obscuration == other.is_obscuration):
+            return False
+        return True
 
-@dataclasses.dataclass
+    def __getitem__(
+            self: ObscurableT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> ObscurableT:
+        result = super().__getitem__(item)
+        if isinstance(self.is_obscuration, kgpy.labeled.AbstractArray):
+            result.is_obscuration = self.is_obscuration[item]
+        return result
+
+
+@dataclasses.dataclass(eq=False)
 class Circular(
-    Aperture,
+    # Aperture,
     Obscurable,
 ):
     radius: kgpy.uncertainty.ArrayLike = 0 * u.mm
+
+    def __eq__(self: CircularT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.radius == other.radius):
+            return False
+        return True
+
+    def __getitem__(
+            self: CircularT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> CircularT:
+        result = super().__getitem__(item)
+        if isinstance(self.radius, kgpy.labeled.ArrayInterface):
+            result.radius = self.radius[item]
+        return result
 
     @property
     def broadcasted(self: CircularT):
@@ -224,13 +267,17 @@ class Circular(
 
     @property
     def min(self: CircularT) -> kgpy.vectors.Cartesian3D:
-        return -kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius) + self.decenter.vector
+        return self.transform(-kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius))
 
     @property
     def max(self: CircularT) -> kgpy.vectors.Cartesian3D:
-        return kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius) + self.decenter.vector
+        return self.transform(kgpy.vectors.Cartesian3D(x=self.radius, y=self.radius, z=0 * self.radius))
 
     def is_unvignetted(self: CircularT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+
+        if not self.is_active:
+            return True
+
         position = self.transform.inverse(position.to_3d())
         is_inside = position.length <= self.radius
         if not self.is_obscuration:
@@ -241,17 +288,17 @@ class Circular(
     @property
     def wire(self: CircularT) -> kgpy.vectors.Cartesian3D:
         wire = kgpy.vectors.Cylindrical(
-            radius=self.radius[..., np.newaxis],
+            radius=self.radius,
             azimuth=kgpy.labeled.LinearSpace(0 * u.deg, 360 * u.deg, num=self.num_samples, axis='wire'),
             z=0 * self.radius,
         ).cartesian
         return self.transform(wire)
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class Polygon(
     Obscurable,
-    Aperture,
+    # Aperture,
     abc.ABC,
 ):
 
@@ -261,9 +308,12 @@ class Polygon(
 
     def is_unvignetted(self: PolygonT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
 
+        if not self.is_active:
+            return True
+
         # position = self.transform(position)
 
-        vertices = self.vertices
+        vertices = self.vertices.broadcasted
 
         result = False
         for v in range(vertices.shape['vertex']):
@@ -305,11 +355,35 @@ class Polygon(
         return wire
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(eq=False)
 class RegularPolygon(Polygon):
     radius: kgpy.uncertainty.ArrayLike = 0 * u.mm
-    num_sides: kgpy.labeled.ArrayLike = 8
+    num_sides: int = 8
     offset_angle: kgpy.uncertainty.ArrayLike = 0 * u.deg
+
+    def __eq__(self: RegularPolygonT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.radius == other.radius):
+            return False
+        if not np.all(self.num_sides == other.num_sides):
+            return False
+        if not np.all(self.offset_angle == other.offset_angle):
+            return False
+        return True
+
+    def __getitem__(
+            self: RegularPolygonT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> RegularPolygonT:
+        result = super().__getitem__(item)
+        if isinstance(self.radius, kgpy.labeled.ArrayInterface):
+            result.radius = self.radius[item]
+        if isinstance(self.offset_angle, kgpy.labeled.ArrayInterface):
+            result.offset_angle = self.offset_angle[item]
+        return result
 
     @property
     def broadcasted(self: RegularPolygonT):
@@ -363,10 +437,45 @@ class RegularPolygon(Polygon):
 class IrregularPolygon(Polygon):
     vertices: kgpy.vectors.Cartesian3D = None
 
+    def __eq__(self: IrregularPolygonT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.vertices == other.vertices):
+            return False
+        return True
+
+    def __getitem__(
+            self: IrregularPolygonT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> IrregularPolygonT:
+        result = super().__getitem__(item)
+        if isinstance(self.vertices, kgpy.labeled.ArrayInterface):
+            result.vertices = self.vertices[item]
+        return result
+
 
 @dataclasses.dataclass
 class Rectangular(Polygon):
     half_width: kgpy.vectors.Cartesian2D = dataclasses.field(default_factory=lambda: kgpy.vectors.Cartesian2D() * u.mm)
+
+    def __eq__(self: RectangularT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.half_width == other.half_width):
+            return False
+        return True
+
+    def __getitem__(
+            self: RectangularT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> RectangularT:
+        result = super().__getitem__(item)
+        result.half_width = self.half_width[item]
+        return result
 
     @property
     def broadcasted(self: RectangularT):
@@ -376,6 +485,10 @@ class Rectangular(Polygon):
         return out
 
     def is_unvignetted(self: RectangularT, position: kgpy.vectors.Cartesian2D) -> kgpy.uncertainty.ArrayLike:
+
+        if not self.is_active:
+            return True
+
         amin = self.min
         amax = self.max
         m1 = position.x <= amax.x
@@ -455,12 +568,44 @@ class IsoscelesTrapezoid(Polygon):
     half_width_right: kgpy.uncertainty.ArrayLike = 0 * u.mm
     wedge_half_angle: kgpy.uncertainty.ArrayLike = 0 * u.deg
 
+    def __eq__(self: IsoscelesTrapezoidT, other: ApertureT) -> bool:
+        if not super().__eq__(other):
+            return False
+        if not isinstance(other, type(self)):
+            return False
+        if not np.all(self.apex_offset == other.apex_offset):
+            return False
+        if not np.all(self.half_width_left == other.half_width_left):
+            return False
+        if not np.all(self.half_width_right == other.half_width_right):
+            return False
+        if not np.all(self.wedge_half_angle == other.wedge_half_angle):
+            return False
+        return True
+
+    def __getitem__(
+            self: IsoscelesTrapezoidT,
+            item:typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> IsoscelesTrapezoidT:
+        result = super().__getitem__(item)
+        if isinstance(self.apex_offset, kgpy.labeled.ArrayInterface):
+            result.apex_offset = self.apex_offset[item]
+        if isinstance(self.half_width_left, kgpy.labeled.ArrayInterface):
+            result.half_width_left = self.half_width_left[item]
+        if isinstance(self.half_width_right, kgpy.labeled.ArrayInterface):
+            result.half_width_right = self.half_width_right[item]
+        if isinstance(self.wedge_half_angle, kgpy.labeled.ArrayInterface):
+            result.wedge_half_angle = self.wedge_half_angle[item]
+        return result
+
     @property
     def vertices(self) -> kgpy.vectors.Cartesian3D:
         m = np.tan(self.wedge_half_angle)
-        zero = 0 * self.apex_offset + 0 * self.half_width_left + 0 * self.half_width_right + 0 * m
+        zero = 0 * self.apex_offset + 0 * self.half_width_left + 0 * self.half_width_right + 0 * m * u.mm
         left_x, left_y = -self.half_width_left + zero, -m * (self.apex_offset + self.half_width_left) + zero
         right_x, right_y = self.half_width_right + zero, -m * (self.apex_offset - self.half_width_right) + zero
+        left_x = kgpy.labeled.Array(left_x)
+        left_y = kgpy.labeled.Array(left_y)
         vertices = kgpy.vectors.Cartesian3D(
             x=np.stack([left_x, right_x, right_x, left_x], axis='vertex'),
             y=np.stack([left_y, right_y, -right_y, -left_y], axis='vertex'),

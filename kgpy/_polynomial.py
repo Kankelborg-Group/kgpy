@@ -29,7 +29,7 @@ class Polynomial3D(
 
     def __call__(
             self,
-            vector_input: vectors.Vector3D,
+            vector_input: vectors.Cartesian3D,
             # x: u.Quantity, y: u.Quantity, z: u.Quantity
     ) -> u.Quantity:
         result = 0
@@ -39,7 +39,7 @@ class Polynomial3D(
 
     def dx(
             self,
-            vector_input: vectors.Vector3D,
+            vector_input: vectors.Cartesian3D,
     ) -> u.Quantity:
         result = 0
         for c, v in zip(self.coefficients, self._vandermonde_dx(vector_input, degree=self.degree)):
@@ -48,7 +48,7 @@ class Polynomial3D(
 
     def dy(
             self,
-            vector_input: vectors.Vector3D,
+            vector_input: vectors.Cartesian3D,
     ) -> u.Quantity:
         result = 0
         for c, v in zip(self.coefficients, self._vandermonde_dy(vector_input, degree=self.degree)):
@@ -57,7 +57,7 @@ class Polynomial3D(
 
     def dz(
             self,
-            vector_input: vectors.Vector3D,
+            vector_input: vectors.Cartesian3D,
     ) -> u.Quantity:
         result = 0
         for c, v in zip(self.coefficients, self._vandermonde_dz(vector_input, degree=self.degree)):
@@ -72,7 +72,7 @@ class Polynomial3D(
             # y: u.Quantity,
             # z: u.Quantity,
             # data: u.Quantity,
-            data_input: vectors.Vector3D,
+            data_input: vectors.Cartesian3D,
             data_output: u.Quantity,
             mask: typ.Optional[np.ndarray] = None,
             degree: int = 1,
@@ -125,7 +125,7 @@ class Polynomial3D(
             vander_unit = [v.unit for v in vander]
 
             b = data_output[i][m]
-            if isinstance(b, vectors.Vector):
+            if isinstance(b, vectors.AbstractVector):
                 b = b.quantity
 
             coeffs = np.linalg.lstsq(
@@ -137,7 +137,7 @@ class Polynomial3D(
 
             coefficients.append([c / unit for c, unit in zip(coeffs, vander_unit)])
 
-        if isinstance(data_output, vectors.Vector):
+        if isinstance(data_output, vectors.AbstractVector):
             coefficients_factory = type(data_output).from_quantity
         else:
             coefficients_factory = lambda x: x
@@ -154,7 +154,7 @@ class Polynomial3D(
         )
 
     @staticmethod
-    def _vandermonde(vector_input: vectors.Vector3D, degree: int = 1) -> typ.List[u.Quantity]:
+    def _vandermonde(vector_input: vectors.Cartesian3D, degree: int = 1) -> typ.List[u.Quantity]:
         vander = []
         for d in range(degree + 1):
             for k in range(d + 1):
@@ -165,7 +165,7 @@ class Polynomial3D(
         return vander
 
     @staticmethod
-    def _vandermonde_dx(vector_input: vectors.Vector3D, degree: int = 1) -> typ.List[u.Quantity]:
+    def _vandermonde_dx(vector_input: vectors.Cartesian3D, degree: int = 1) -> typ.List[u.Quantity]:
         vander = []
         for d in range(degree + 1):
             for k in range(d + 1):
@@ -181,7 +181,7 @@ class Polynomial3D(
         return vander
 
     @staticmethod
-    def _vandermonde_dy(vector_input: vectors.Vector3D, degree: int = 1) -> typ.List[u.Quantity]:
+    def _vandermonde_dy(vector_input: vectors.Cartesian3D, degree: int = 1) -> typ.List[u.Quantity]:
         vander = []
         for d in range(degree + 1):
             for k in range(d + 1):
@@ -197,7 +197,7 @@ class Polynomial3D(
         return vander
 
     @staticmethod
-    def _vandermonde_dz(vector_input: vectors.Vector3D, degree: int = 1) -> typ.List[u.Quantity]:
+    def _vandermonde_dz(vector_input: vectors.Cartesian3D, degree: int = 1) -> typ.List[u.Quantity]:
         vander = []
         for d in range(degree + 1):
             for k in range(d + 1):
@@ -257,8 +257,8 @@ class Vector2DValuedPolynomial3D(
     @classmethod
     def from_lstsq_fit(
             cls,
-            data_input: vectors.Vector3D,
-            data_output: vectors.Vector2D,
+            data_input: vectors.Cartesian3D,
+            data_output: vectors.Cartesian2D,
             mask: typ.Optional[np.ndarray] = None,
             degree: int = 1,
             input_names: typ.List[str] = None,
@@ -287,36 +287,36 @@ class Vector2DValuedPolynomial3D(
 
     def __call__(
             self,
-            vector_input: vectors.Vector3D,
+            vector_input: vectors.Cartesian3D,
     ):
-        return vectors.Vector2D(
+        return vectors.Cartesian2D(
             x=self.x(vector_input=vector_input),
             y=self.y(vector_input=vector_input),
         )
 
     def dx(
             self,
-            vector_input: vectors.Vector3D,
+            vector_input: vectors.Cartesian3D,
     ):
-        return vectors.Vector2D(
+        return vectors.Cartesian2D(
             x=self.x.dx(vector_input=vector_input),
             y=self.y.dx(vector_input=vector_input),
         )
 
     def dy(
             self,
-            vector_input: vectors.Vector3D,
+            vector_input: vectors.Cartesian3D,
     ):
-        return vectors.Vector2D(
+        return vectors.Cartesian2D(
             x=self.x.dy(vector_input=vector_input),
             y=self.y.dy(vector_input=vector_input),
         )
 
     def dz(
             self,
-            vector_input: vectors.Vector3D,
+            vector_input: vectors.Cartesian3D,
     ):
-        return vectors.Vector2D(
+        return vectors.Cartesian2D(
             x=self.x.dz(vector_input=vector_input),
             y=self.y.dz(vector_input=vector_input),
         )

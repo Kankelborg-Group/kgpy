@@ -21,9 +21,10 @@ import kgpy.function
 import kgpy.transforms
 import kgpy.format
 import kgpy.plot
-from ... import rays
-from .. import apertures
+from .. import vectors
 from .. import sags
+from .. import apertures
+from .. import rays
 
 __all__ = [
     'Material',
@@ -55,6 +56,14 @@ class Material(
 ):
     name: str = ''
 
+    def __getitem__(
+            self: MaterialT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]]]
+    ) -> MaterialT:
+        return type(self)(
+            name=self.name,
+        )
+
     @abc.abstractmethod
     def index_refraction(self: MaterialT, ray: rays.RayVector) -> kgpy.uncertainty.ArrayLike:
         pass
@@ -80,6 +89,15 @@ class Material(
 class Mirror(Material):
     name: str = 'mirror'
     thickness: typ.Optional[kgpy.uncertainty.ArrayLike] = None
+
+    def __getitem__(
+            self: MirrorT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ):
+        result = super().__getitem__(item)
+        if self.thickness is not None:
+            result.thickness = self.thickness[item]
+        return result
 
     def index_refraction(self: MirrorT, ray: rays.RayVector) -> kgpy.uncertainty.ArrayLike:
         return -np.sign(ray.index_refraction) * u.dimensionless_unscaled
@@ -186,8 +204,8 @@ class Mirror(Material):
 
 @dataclasses.dataclass
 class Layer(kgpy.mixin.Copyable):
-    material: np.ndarray = dataclasses.field(default_factory=lambda: np.array([]))
-    thickness: u.Quantity = dataclasses.field(default_factory=lambda: u.Quantity([]))
+    material: typ.Optional[kgpy.labeled.Array] = None
+    thickness: typ.Optional[kgpy.labeled.Array] = None
     num_periods: int = 1
 
     def __eq__(self: LayerT, other: LayerT):
@@ -195,13 +213,26 @@ class Layer(kgpy.mixin.Copyable):
             return False
         if not isinstance(other, Layer):
             return False
-        if not (self.material == other.material).all():
+        if not np.all(self.material == other.material):
             return False
-        if not (self.thickness == other.thickness).all():
+        if not np.all(self.thickness == other.thickness):
             return False
         if not (self.num_periods == other.num_periods):
             return False
         return True
+
+    def __getitem__(
+            self: LayerT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ) -> LayerT:
+        result = type(self)()
+        if self.material is not None:
+            result.material = self.material[item]
+        if self.thickness is not None:
+            result.thickness = self.thickness[item]
+        result.num_periods = self.num_periods
+        return result
+
 
     def plot(
             self: LayerT,
@@ -290,6 +321,16 @@ class MultilayerMirror(Mirror):
     main: Layer = dataclasses.field(default_factory=Layer)
     base: Layer = dataclasses.field(default_factory=Layer)
 
+    def __getitem__(
+            self: MultilayerMirrorT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, kgpy.labeled.AbstractArray]], kgpy.labeled.AbstractArray],
+    ):
+        result = super().__getitem__(item)
+        result.cap = self.cap[item]
+        result.main = self.main[item]
+        result.base = self.base[item]
+        return result
+
     # def transmissivity(self, rays: Rays) -> u.Quantity:
     #     raise NotImplementedError
 
@@ -331,7 +372,10 @@ class MeasuredMultilayerMirror(MultilayerMirror):
     # wavelength_data: typ.Optional[u.Quantity] = None
 
     def transmissivity(self: MeasuredMultilayerMirrorT, ray: rays.RayVector) -> kgpy.uncertainty.ArrayLike:
-        return self.transmissivity_function.interp_linear(ray.wavelength)
+        return self.transmissivity_function.interp_barycentric_linear(
+            input_new=vectors.InputAngleVector(wavelength=ray.wavelength, angle_input_x=None, angle_input_y=None),
+            axis=['wavelength'],
+        ).output
         # interp = scipy.interpolate.interp1d(self.wavelength_data, self.efficiency_data, bounds_error=False)
         # return interp(rays.wavelength.to(self.wavelength_data.unit)) * self.efficiency_data.unit
 
@@ -377,18 +421,20 @@ class AluminumThinFilm(Material):
         )
 
     def transmissivity_aluminum(self, ray: rays.RayVector) -> u.Quantity:
-        absorption = self.xrt_aluminum.get_absorption_coefficient(ray.energy.to(u.eV).value) / u.cm
+        absorption = self.xrt_aluminum.get_absorption_coefficient(ray.energy.to(u.eV).array.value) / u.cm
+        absorption = kgpy.labeled.Array(absorption, axes=ray.energy.axes)
         transmissivity = np.exp(-absorption * self.thickness / ray.direction.z)
         return transmissivity
 
     def transmissivity_aluminum_oxide(self, ray: rays.RayVector) -> u.Quantity:
-        absorption = self.xrt_aluminum_oxide.get_absorption_coefficient(ray.energy.to(u.eV).value) / u.cm
+        absorption = self.xrt_aluminum_oxide.get_absorption_coefficient(ray.energy.array.to(u.eV).value) / u.cm
+        absorption = kgpy.labeled.Array(absorption, axes=ray.energy.axes)
         transmissivity = np.exp(-absorption * 2 * self.thickness_oxide / ray.direction.z)
         return transmissivity
 
     def transmissivity(self, ray: rays.RayVector) -> u.Quantity:
         mesh_ratio = self.mesh_ratio.to(u.dimensionless_unscaled)
-        return mesh_ratio * self.transmissivity_aluminum(rays) * self.transmissivity_aluminum_oxide(rays)
+        return mesh_ratio * self.transmissivity_aluminum(ray) * self.transmissivity_aluminum_oxide(ray)
 
     def index_refraction(self, ray: rays.RayVector) -> u.Quantity:
         return 1 * u.dimensionless_unscaled
@@ -488,18 +534,18 @@ class CCDStern2004(Material):
 
     @property
     def quantum_efficiency_data(self):
-        return self.dataframe[1].to_numpy() * u.dimensionless_unscaled
+        return kgpy.labeled.Array(self.dataframe[1].to_numpy() * u.dimensionless_unscaled, axes=['wavelength'])
 
     @property
     def wavelength_data(self):
-        return self.dataframe[0].to_numpy() * u.AA
+        return kgpy.labeled.Array(self.dataframe[0].to_numpy() * u.AA, axes=['wavelength'])
 
-    def transmissivity(self, ray: rays.RayVector) -> u.Quantity:
+    def transmissivity(self, ray: rays.RayVector) -> kgpy.labeled.Array:
         transmissivity_function = kgpy.function.Array(
             input=self.wavelength_data,
             output=self.quantum_efficiency_data,
         )
-        return transmissivity_function.interp_linear(ray.wavelength)
+        return transmissivity_function.interp_linear(ray.wavelength).output
         # qe_interp = scipy.interpolate.interp1d(self.wavelength_data, self.quantum_efficiency_data)
         # qe = qe_interp(rays.wavelength.to(self.wavelength_data.unit)) * self.quantum_efficiency_data.unit
         # return qe

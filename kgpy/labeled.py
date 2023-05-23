@@ -85,7 +85,7 @@ The above example can be accomplished by using the :class:`kgpy.labeled.LinearSp
      <br>
 
 """
-
+from __future__ import annotations
 import typing as typ
 import abc
 import dataclasses
@@ -93,9 +93,14 @@ import random
 import copy
 import numpy as np
 import numpy.typing
+import scipy.ndimage
 import astropy.units as u
 import kgpy.mixin
+import kgpy.colormaps
+import kgpy.filters
 import kgpy.units
+if typ.TYPE_CHECKING:
+    import kgpy.vectors
 
 __all__ = [
     'AbstractArray',
@@ -124,6 +129,37 @@ CenterT = typ.TypeVar('CenterT', bound='ArrayLike')
 WidthT = typ.TypeVar('WidthT', bound='ArrayLike')
 _SymmetricMixinT = typ.TypeVar('_SymmetricMixinT', bound='SymmetricMixin')
 NormalRandomSpaceT = typ.TypeVar('NormalRandomSpaceT', bound='NormalRandomSpace')
+WorldCoordinateSpaceT = typ.TypeVar('WorldCoordinateSpaceT', bound='WorldCoordinateSpace')
+
+
+def ndindex(
+        shape: typ.Dict[str, int],
+        axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+) -> typ.Iterator[typ.Dict[str, int]]:
+    if axis_ignored is None:
+        axis_ignored = []
+    elif isinstance(axis_ignored, str):
+        axis_ignored = [axis_ignored]
+
+    for axis in axis_ignored:
+        if axis in shape:
+            shape.pop(axis)
+    shape_tuple = tuple(shape.values())
+    for index in np.ndindex(*shape_tuple):
+        yield dict(zip(shape.keys(), index))
+
+
+def indices(shape: typ.Dict[str, int]) -> typ.Dict[str, ArrayT]:
+    return {axis: Range(0, shape[axis], axis=axis) for axis in shape}
+
+
+def stack(arrays: typ.List['ArrayLike'], axis: str):
+
+    if any([isinstance(a, AbstractArray) for a in arrays]):
+        return np.stack(arrays=arrays, axis=axis)
+
+    else:
+        return Array(np.stack(arrays), axes=[axis])
 
 
 @dataclasses.dataclass(eq=False)
@@ -226,6 +262,10 @@ class ArrayInterface(
         pass
 
     @property
+    def ndim(self: ArrayInterfaceT) -> int:
+        return len(self.shape)
+
+    @property
     @abc.abstractmethod
     def array_labeled(self: ArrayInterfaceT) -> ArrayInterfaceT:
         pass
@@ -271,29 +311,25 @@ class ArrayInterface(
     def length(self: ArrayInterfaceT) -> AbstractArrayT:
         return np.abs(self)
 
+    @abc.abstractmethod
+    def __getitem__(
+            self: ArrayInterfaceT,
+            item: typ.Union[typ.Dict[str, typ.Union[int, slice, 'ArrayInterface']], 'ArrayInterface'],
+    ) -> ArrayInterfaceT:
+        pass
+
     @property
     def indices(self) -> typ.Dict[str, ArrayT]:
-        shape = self.shape
-        result = {axis: Range(0, shape[axis], axis=axis) for axis in shape}
-        return result
+        return indices(self.shape)
 
     def ndindex(
             self: typ.Type[ArrayInterfaceT],
             axis_ignored: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
     ) -> typ.Iterator[typ.Dict[str, int]]:
-
-        if axis_ignored is None:
-            axis_ignored = []
-        elif isinstance(axis_ignored, str):
-            axis_ignored = [axis_ignored]
-
-        shape = self.shape
-        for axis in axis_ignored:
-            if axis in shape:
-                shape.pop(axis)
-        shape_tuple = tuple(shape.values())
-        for index in np.ndindex(*shape_tuple):
-            yield dict(zip(shape.keys(), index))
+        return ndindex(
+            shape=self.shape,
+            axis_ignored=axis_ignored,
+        )
 
     @abc.abstractmethod
     def add_axes(self: ArrayInterfaceT, axes: typ.List) -> ArrayInterfaceT:
@@ -308,7 +344,7 @@ class ArrayInterface(
         pass
 
     @abc.abstractmethod
-    def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]):
+    def aligned(self: ArrayInterfaceT, shape: typ.Dict[str, int]) -> 'ArrayInterface':
         pass
 
     def _index_arbitrary_brute(
@@ -456,12 +492,19 @@ class ArrayInterface(
         shape = self.shape
         shape_nearest = kgpy.vectors.CartesianND({ax: shape[ax] for ax in axis})
 
+        if isinstance(self, kgpy.vectors.VectorInterface):
+            coordinates = self.coordinates
+            coordinates = {comp: None if value.coordinates[comp] is None else coordinates[comp] for comp in coordinates}
+            self_subspace = type(self).from_coordinates(coordinates)
+        else:
+            self_subspace = self
+
         def indices_factory(index: kgpy.vectors.CartesianND) -> typ.Dict[str, kgpy.labeled.Array]:
             return index.coordinates
 
         def get_index(index: kgpy.vectors.CartesianND) -> kgpy.vectors.CartesianND:
             index = indices_factory(index)
-            value_new = self(index)
+            value_new = self_subspace(index)
             diff = value_new - value
             if isinstance(diff, kgpy.vectors.AbstractVector):
                 diff = kgpy.vectors.CartesianND({c: diff.coordinates[c] for c in diff.coordinates if diff.coordinates[c] is not None})
@@ -474,6 +517,13 @@ class ArrayInterface(
         )
 
         return indices_factory(result)
+
+    def index(
+            self: ArrayInterfaceT,
+            value: ArrayInterfaceT,
+            axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+    ) -> typ.Dict[str, ArrayInterfaceT]:
+        return self.index_secant(value=value, axis=axis)
 
 
 @dataclasses.dataclass(eq=False)
@@ -555,7 +605,7 @@ class AbstractArray(
         for axis_index, axis_name in enumerate(self.axes):
             source.append(axis_index)
             destination.append(list(shape.keys()).index(axis_name))
-        value = np.moveaxis(a=value, source=source, destination=destination)
+        value = np.moveaxis(value, source=source, destination=destination)
         return value
 
     def aligned(self: AbstractArrayT, shape: typ.Dict[str, int]) -> ArrayT:
@@ -568,6 +618,21 @@ class AbstractArray(
             array=self.array_aligned(shape),
             axes=list(shape.keys()),
         )
+
+    def change_axis_index(self, axis: str, index: int):
+        shape = self.shape
+        size_axis = shape.pop(axis)
+        keys = list(shape.keys())
+        values = list(shape.values())
+        index = index % len(self.shape) + 1
+        keys.insert(index, axis)
+        values.insert(index, size_axis)
+        shape_new = {k: v for k, v in zip(keys, values)}
+        return Array(
+            array=self.array_aligned(shape_new),
+            axes=keys,
+        )
+
 
     def combine_axes(
             self: AbstractArrayT,
@@ -681,12 +746,13 @@ class AbstractArray(
             return 1 / self
 
         elif shape[axis_rows] == 2:
+            det = self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
             result = Array(array=self.array.copy(), axes=self.axes.copy())
-            result[{axis_rows_inverse: 0, axis_columns_inverse: 0}] = self[{axis_rows: 1, axis_columns: 1}]
-            result[{axis_rows_inverse: 1, axis_columns_inverse: 1}] = self[{axis_rows: 0, axis_columns: 0}]
-            result[{axis_rows_inverse: 0, axis_columns_inverse: 1}] = -self[{axis_rows: 0, axis_columns: 1}]
-            result[{axis_rows_inverse: 1, axis_columns_inverse: 0}] = -self[{axis_rows: 1, axis_columns: 0}]
-            return result / self.matrix_determinant(axis_rows=axis_rows, axis_columns=axis_columns)
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 0}] = self[{axis_rows: 1, axis_columns: 1}] / det
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 1}] = self[{axis_rows: 0, axis_columns: 0}] / det
+            result[{axis_rows_inverse: 0, axis_columns_inverse: 1}] = -self[{axis_rows: 0, axis_columns: 1}] / det
+            result[{axis_rows_inverse: 1, axis_columns_inverse: 0}] = -self[{axis_rows: 1, axis_columns: 0}] / det
+            return result
 
         elif shape[axis_rows] == 3:
             a = self[{axis_rows: 0, axis_columns: 0}]
@@ -910,7 +976,7 @@ class AbstractArray(
             arrays = [np.broadcast_to(arr, shape).array for arr in arrays]
 
             return Array(
-                array=np.stack(arrays=arrays, axis=0, **kwargs),
+                array=np.stack(arrays, axis=0, **kwargs),
                 axes=[axis] + list(shape.keys()),
             )
 
@@ -936,7 +1002,7 @@ class AbstractArray(
 
             axes = list(shape.keys())
             return Array(
-                array=func(arrays=arrays, axis=axes.index(axis)),
+                array=func(arrays, axis=axes.index(axis)),
                 axes=axes,
             )
 
@@ -1028,6 +1094,18 @@ class AbstractArray(
 
             return hist, edges_x, edges_y
 
+        elif func in [np.nan_to_num]:
+            args = list(args)
+            if args:
+                a = args.pop(0)
+            else:
+                a = kwargs.pop('a')
+
+            return Array(
+                array=func(a.array, *args, **kwargs),
+                axes=self.axes.copy(),
+            )
+
         elif func in [
             np.ndim,
             np.argmin,
@@ -1055,6 +1133,7 @@ class AbstractArray(
             np.clip,
             np.ptp,
             np.trapz,
+            np.average,
         ]:
 
             labeled_arrays = [arg for arg in args if isinstance(arg, AbstractArray)]
@@ -1157,7 +1236,7 @@ class AbstractArray(
             shape_advanced = self.broadcast_shapes(*item_advanced.values())
 
             value = np.moveaxis(
-                a=self.array,
+                self.array,
                 source=axes_indices_advanced,
                 destination=list(range(len(axes_indices_advanced))),
             )
@@ -1222,6 +1301,110 @@ class AbstractArray(
         )
 
         return indices_factory(result)
+
+    def filter_mean(
+            self: AbstractArrayT,
+            shape_kernel: dict[str, int],
+    ):
+
+        inp = self.array
+        if isinstance(inp, u.Quantity):
+            inp = inp.value
+        result = Array(
+            array=kgpy.filters.mean_numba(
+                array=inp,
+                kernel_shape=tuple(shape_kernel.values()),
+                axis=tuple(self.axes.index(ax) for ax in shape_kernel),
+            ),
+            axes=self.axes.copy(),
+        )
+        if isinstance(self.array, u.Quantity):
+            result = result << self.unit
+
+        return result
+
+    def filter_mean_trimmed(
+            self: AbstractArrayT,
+            shape_kernel: dict[str, int],
+            proportion: float = 0.25,
+    ):
+
+        inp = self.array
+        if isinstance(inp, u.Quantity):
+            inp = inp.value
+        result = Array(
+            array=kgpy.filters.mean_trimmed_numba(
+                array=inp,
+                kernel_shape=tuple(shape_kernel.values()),
+                proportion=proportion,
+                axis=tuple(self.axes.index(ax) for ax in shape_kernel),
+            ),
+            axes=self.axes.copy(),
+        )
+        if isinstance(self.array, u.Quantity):
+            result = result << self.unit
+
+        return result
+
+    def filter_median(
+            self: AbstractArrayT,
+            shape_kernel: typ.Dict[str, int],
+            mode: str = 'reflect',
+    ):
+
+        shape = self.shape
+        shape_kernel_final = {axis: shape_kernel[axis] if axis in shape_kernel else 1 for axis in shape}
+
+        inp = self.array
+        if isinstance(inp, u.Quantity):
+            inp = inp.value
+        result = Array(
+            array=kgpy.filters.median_numba(
+                array=inp,
+                kernel_shape=tuple(shape_kernel.values()),
+                axis=tuple(self.axes.index(ax) for ax in shape_kernel),
+            ),
+            axes=self.axes.copy(),
+        )
+        if isinstance(self.array, u.Quantity):
+            result = result << self.unit
+
+        return result
+
+    def colorize_axis(
+            self: AbstractArray,
+            axis: str,
+            percentile_max: u.Quantity = 99 * u.percent,
+            percentile_min: u.Quantity = 1 * u.percent,
+    ) -> Array:
+
+        shape = self.shape
+
+        axis_threshold = self.axes.copy()
+        axis_threshold.remove(axis)
+
+        threshold_max = np.percentile(self, q=float(percentile_max), axis=axis_threshold)
+        threshold_min = np.percentile(self, q=float(percentile_min), axis=axis_threshold)
+
+        self_normalized = (self - threshold_min) / (threshold_max - threshold_min)
+
+        index = kgpy.labeled.Range(stop=shape[axis], axis=axis)
+
+        colormap = kgpy.colormaps.spectral_colors()
+
+        color = kgpy.labeled.Array(colormap.to_rgba(index.array), axes=index.axes + ['rgba'])
+        color = np.sum(color * self_normalized, axis=axis) / np.sum(color, axis=axis)
+
+        slice_rgb = slice(None, ~0)
+        index_alpha = ~0
+        color_max = np.max(color[dict(rgba=slice_rgb)], axis='rgba')
+
+        color[dict(rgba=index_alpha)] = np.nan_to_num(np.sqrt(color_max))
+
+        mask = color_max > 0
+        color[dict(rgba=slice_rgb)][mask] = color[dict(rgba=slice_rgb)][mask] / color_max[mask]
+
+        return color
 
 
 ArrayLike = typ.Union[kgpy.units.QuantityLike, AbstractArray]
@@ -1311,7 +1494,12 @@ class Array(
                     item_axis = item_axis.array_aligned(self.shape_broadcasted(item_axis))
                 index[self.axes.index(axis)] = item_axis
 
-            self.array[tuple(index)] = value.array_aligned({axis: 1 for axis in axes})
+            if value.shape:
+                value = value.array_aligned({axis: 1 for axis in axes})
+            else:
+                value = value.array
+
+            self.array[tuple(index)] = value
 
 
 @dataclasses.dataclass(eq=False)
@@ -1439,11 +1627,51 @@ class LinearSpace(
             endpoint=self.endpoint,
         )
 
+    def index(
+            self: LinearSpaceT,
+            value: LinearSpaceT,
+            axis: typ.Dict[str, int],
+    ) -> typ.Dict[str, ArrayT]:
+        result = super().index(
+            value=value,
+            axis=[a for a in axis if a != self.axis],
+        )
+        result[self.axis] = (value - self.start) / self.step
+
+        return result
+
     def index_nearest(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
         return {self.axis: np.rint((value - self.start) / self.step).astype(int)}
 
     def index_below(self, value: AbstractArrayT) -> typ.Dict[str, AbstractArrayT]:
         return {self.axis: (value - self.start) // self.step}
+
+    def interp_linear(
+            self: LinearSpaceT,
+            item: typ.Dict[str, AbstractArrayT],
+    ) -> AbstractArray:
+
+        item = item.copy()
+
+        if self.axis in item:
+
+            x = item.pop(self.axis)
+            x0 = 0
+
+            y0 = self.start.interp_linear(item)
+            y1 = self.stop.interp_linear(item)
+
+            result = y0 + (x - x0) * (y1 - y0)
+            return result
+
+        else:
+            return type(self)(
+                start=self.start.interp_linear(item),
+                stop=self.stop.interp_linear(item),
+                num=self.num,
+                endpoint=self.endpoint,
+                axis=self.axis,
+            )
 
 
 @dataclasses.dataclass(eq=False)
@@ -1602,17 +1830,71 @@ class NormalRandomSpace(
         return value
 
 
-def indices(shape: typ.Dict[str, int]) -> Array:
-    return kgpy.labeled.Array(
-        array=np.indices(shape.values()),
-        axes=['axis'] + list(shape.keys()),
-    )
+ReferencePixelT = typ.TypeVar('ReferencePixelT', bound='kgpy.vectors.Cartesian')
 
 
-def stack(arrays: typ.List[ArrayLike], axis: str):
+@dataclasses.dataclass(eq=False)
+class WorldCoordinateSpace(
+    AbstractArray,
+):
 
-    if any([isinstance(a, AbstractArray) for a in arrays]):
-        return np.stack(arrays=arrays, axis=axis)
+    crval: Array
+    crpix: kgpy.vectors.CartesianND
+    cdelt: Array
+    pc_row: kgpy.vectors.CartesianND
+    shape_wcs: typ.Dict[str, int]
 
-    else:
-        return Array(np.stack(arrays), axes=[axis])
+    @property
+    def unit(self: WorldCoordinateSpaceT) -> u.UnitBase:
+        return self.cdelt.unit
+
+    @property
+    def normalized(self: WorldCoordinateSpaceT) -> WorldCoordinateSpaceT:
+        return self
+
+    def __call__(self: WorldCoordinateSpaceT, item: typ.Dict[str, AbstractArrayT]) -> ArrayT:
+        import kgpy.vectors
+        coordinates_pix = kgpy.vectors.CartesianND(item) * u.pix
+        coordinates_pix = coordinates_pix - self.crpix
+        coordinates_world = 0 * u.pix
+        for component in coordinates_pix.coordinates:
+            pc_component = self.pc_row.coordinates[component]
+            if np.any(pc_component != 0):
+                coordinates_world = coordinates_world + pc_component * coordinates_pix.coordinates[component]
+        coordinates_world = self.cdelt * coordinates_world + self.crval
+        return coordinates_world
+
+    def interp_linear(
+            self: WorldCoordinateSpaceT,
+            item: typ.Dict[str, AbstractArrayT],
+    ) -> ArrayT:
+        return self(item)
+
+    @property
+    def array_labeled(self: WorldCoordinateSpaceT) -> ArrayT:
+        return self(indices(self.shape_wcs))
+
+    @property
+    def array(self: WorldCoordinateSpaceT) -> ArrT:
+        return self.array_labeled.array
+
+    @property
+    def axes(self: WorldCoordinateSpaceT) -> typ.Optional[typ.List[str]]:
+        return list(self.shape.keys())
+
+    @property
+    def shape(self: WorldCoordinateSpaceT) -> typ.Dict[str, int]:
+        shape = self(indices({axis: 1 for axis in self.shape_wcs})).shape
+        shape = {axis: self.shape_wcs[axis] if axis in self.shape_wcs else shape[axis] for axis in shape}
+        return shape
+
+    def broadcast_to(
+            self: WorldCoordinateSpaceT,
+            shape: typ.Dict[str, int],
+    ) -> typ.Union[WorldCoordinateSpaceT, AbstractArrayT]:
+
+        if self.shape == shape:
+            if all(self.shape[axis_self] == shape[axis] for axis_self, axis in zip(self.shape, shape)):
+                return self
+
+        return super().broadcast_to(shape)

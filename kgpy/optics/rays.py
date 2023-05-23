@@ -404,6 +404,33 @@ class RayFunction(
         position = self.distortion.model(inverse=True)(position)
         return position
 
+    def distortion(self, polynomial_degree: int = 1) -> aberrations.Distortion:
+        return aberrations.Distortion(
+            function=kgpy.function.PolynomialArray(
+                input=vectors.SpectralFieldVector(
+                    field_x=self.input.field_x,
+                    field_y=self.input.field_y,
+                    wavelength=self.input.wavelength,
+                ),
+                output=vectors.SpectralPositionVector(
+                    position_x=self.output.position.x.mean(('pupil_x', 'pupil_y')),
+                    position_y=self.output.position.y.mean(('pupil_x', 'pupil_y')),
+                    wavelength=self.input.wavelength,
+                ),
+                degree=polynomial_degree,
+                axes_model=['spectral_line', 'velocity', 'field_x', 'field_y'],
+            )
+        )
+
+    @property
+    def effective_area(self) -> aberrations.EffectiveArea:
+        return aberrations.EffectiveArea(
+            function=kgpy.function.Array(
+                input=self.input.wavelength,
+                output=self.output.intensity.sum(axis=('field_x', 'field_y', 'pupil_x', 'pupil_y')),
+            )
+        )
+
     # @property
     # def distortion(self) -> Distortion:
     #     return Distortion(
@@ -828,87 +855,87 @@ class RayFunction(
         grid = self.input_grids[axis]
         return self.calc_labels(name, grid)
 
-    def plot_position(
-            self,
-            ax: typ.Optional[plt.Axes] = None,
-            color_axis: str = 'wavelength',
-            plot_vignetted: bool = False,
-    ) -> plt.Axes:
-        return self.plot_attribute(
-            attr_x=self.position.x,
-            attr_y=self.position.y,
-            ax=ax,
-            color_axis=color_axis,
-            plot_vignetted=plot_vignetted
-        )
-
-    def plot_direction(
-            self,
-            ax: typ.Optional[plt.Axes] = None,
-            color_axis: str = 'wavelength',
-            plot_vignetted: bool = False,
-    ) -> plt.Axes:
-        return self.plot_attribute(
-            attr_x=np.arctan(self.direction.x, self.direction.z).to(u.arcmin),
-            attr_y=np.arctan(self.direction.y, self.direction.z).to(u.arcmin),
-            ax=ax,
-            color_axis=color_axis,
-            plot_vignetted=plot_vignetted
-        )
-
-    def plot_attribute(
-            self,
-            attr_x: u.Quantity,
-            attr_y: u.Quantity,
-            ax: typ.Optional[plt.Axes] = None,
-            color_axis: str = 'wavelength',
-            plot_vignetted: bool = False,
-    ) -> plt.Axes:
-        if ax is None:
-            _, ax = plt.subplots()
-
-        attr_x = np.broadcast_to(attr_x, self.grid_shape)
-        attr_y = np.broadcast_to(attr_y, self.grid_shape)
-
-        if plot_vignetted:
-            mask = self.error_mask
-        else:
-            mask = self.mask
-        mask = np.broadcast_to(mask, self.grid_shape)
-
-        mesh = self.input_grid.points_from_axis(color_axis)
-        # sl = self.axis.ndim * [np.newaxis]
-        # sl[color_axis] = slice(None)
-        # mesh = self.input_grid.grids[color_axis][sl]
-        mesh = np.broadcast_to(mesh, self.grid_shape, subok=True)
-
-        with astropy.visualization.quantity_support():
-            colormap = plt.cm.viridis
-            colornorm = plt.Normalize(vmin=mesh.value.min(), vmax=mesh.value.max())
-            color = colormap(colornorm(mesh.value))
-            scatter = ax.scatter(
-                x=attr_x[mask],
-                y=attr_y[mask],
-                c=color[mask],
-            )
-            ax.figure.colorbar(
-                plt.cm.ScalarMappable(cmap=colormap, norm=colornorm),
-                ax=ax,
-                fraction=0.02,
-                label=self.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
-            )
-
-            # try:
-            #     ax.legend(
-            #         handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
-            #         labels=list(self.grid_labels(color_axis).flatten()),
-            #         loc='center left',
-            #         bbox_to_anchor=(1.0, 0.5),
-            #     )
-            # except ValueError:
-            #     pass
-
-        return ax
+    # def plot_position(
+    #         self,
+    #         ax: typ.Optional[plt.Axes] = None,
+    #         color_axis: str = 'wavelength',
+    #         plot_vignetted: bool = False,
+    # ) -> plt.Axes:
+    #     return self.plot_attribute(
+    #         attr_x=self.output.position.x,
+    #         attr_y=self.output.position.y,
+    #         ax=ax,
+    #         color_axis=color_axis,
+    #         plot_vignetted=plot_vignetted
+    #     )
+    #
+    # def plot_direction(
+    #         self,
+    #         ax: typ.Optional[plt.Axes] = None,
+    #         color_axis: str = 'wavelength',
+    #         plot_vignetted: bool = False,
+    # ) -> plt.Axes:
+    #     return self.plot_attribute(
+    #         attr_x=np.arctan(self.direction.x, self.direction.z).to(u.arcmin),
+    #         attr_y=np.arctan(self.direction.y, self.direction.z).to(u.arcmin),
+    #         ax=ax,
+    #         color_axis=color_axis,
+    #         plot_vignetted=plot_vignetted
+    #     )
+    #
+    # def plot_attribute(
+    #         self,
+    #         attr_x: u.Quantity,
+    #         attr_y: u.Quantity,
+    #         ax: typ.Optional[plt.Axes] = None,
+    #         color_axis: str = 'wavelength',
+    #         plot_vignetted: bool = False,
+    # ) -> plt.Axes:
+    #     if ax is None:
+    #         _, ax = plt.subplots()
+    #
+    #     attr_x = np.broadcast_to(attr_x, self.grid_shape)
+    #     attr_y = np.broadcast_to(attr_y, self.grid_shape)
+    #
+    #     if plot_vignetted:
+    #         mask = self.error_mask
+    #     else:
+    #         mask = self.mask
+    #     mask = np.broadcast_to(mask, self.grid_shape)
+    #
+    #     mesh = self.input_grid.points_from_axis(color_axis)
+    #     # sl = self.axis.ndim * [np.newaxis]
+    #     # sl[color_axis] = slice(None)
+    #     # mesh = self.input_grid.grids[color_axis][sl]
+    #     mesh = np.broadcast_to(mesh, self.grid_shape, subok=True)
+    #
+    #     with astropy.visualization.quantity_support():
+    #         colormap = plt.cm.viridis
+    #         colornorm = plt.Normalize(vmin=mesh.value.min(), vmax=mesh.value.max())
+    #         color = colormap(colornorm(mesh.value))
+    #         scatter = ax.scatter(
+    #             x=attr_x[mask],
+    #             y=attr_y[mask],
+    #             c=color[mask],
+    #         )
+    #         ax.figure.colorbar(
+    #             plt.cm.ScalarMappable(cmap=colormap, norm=colornorm),
+    #             ax=ax,
+    #             fraction=0.02,
+    #             label=self.axis.latex_names[color_axis] + ' (' + str(mesh.unit) + ')',
+    #         )
+    #
+    #         # try:
+    #         #     ax.legend(
+    #         #         handles=scatter.legend_elements(num=self.input_grids[color_axis].flatten())[0],
+    #         #         labels=list(self.grid_labels(color_axis).flatten()),
+    #         #         loc='center left',
+    #         #         bbox_to_anchor=(1.0, 0.5),
+    #         #     )
+    #         # except ValueError:
+    #         #     pass
+    #
+    #     return ax
 
     def plot_pupil_hist2d_vs_field(
             self,
@@ -1040,7 +1067,7 @@ class RayFunctionList(
             component_y: str = 'y',
             component_z: str = 'z',
             transform_extra: typ.Optional[kgpy.transforms.TransformList] = None,
-            color_axis: str = 'wavelength',
+            color_axis: str = 'wavelength_base',
             plot_vignetted: bool = False,
             colormap: typ.Optional[matplotlib.cm.ScalarMappable] = None,
             # plot_colorbar: bool = True,
@@ -1063,16 +1090,18 @@ class RayFunctionList(
         else:
             mask = img_rays.output.mask
 
-        color_axis = color_axis.split('.')
-        color = img_rays.input
-        for element in color_axis:
-            color = color.coordinates[element]
+        if "color" not in kwargs:
+            color_axis = color_axis.split('.')
+            color = img_rays.input
+            for element in color_axis:
+                color = color.coordinates[element]
+            kwargs["color"] = color
 
         return intercepts.plot(
             ax=ax,
             axis_plot='surface',
             where=mask,
-            color=color,
+            # color=color,
             colormap=colormap,
             component_x=component_x,
             component_y=component_y,

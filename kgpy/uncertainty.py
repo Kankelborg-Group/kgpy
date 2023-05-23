@@ -322,6 +322,10 @@ class AbstractArray(
         elif isinstance(item, dict):
             item_nominal = {key: item[key].nominal if isinstance(item[key], AbstractArray) else item[key] for key in item}
             item_distribution = {key: item[key].distribution if isinstance(item[key], AbstractArray) else item[key] for key in item}
+            if self.axis_distribution not in item_distribution:
+                if self.axis_distribution in kgpy.labeled.Array.broadcast_shapes(*item_distribution.values()):
+                    item_distribution[self.axis_distribution] = kgpy.labeled.Range(stop=self.shape_all[self.axis_distribution])
+
             return Array(
                 nominal=self.nominal.__getitem__(item_nominal),
                 distribution=self.distribution.__getitem__(item_distribution),
@@ -331,7 +335,8 @@ class AbstractArray(
                 shape = {**item.shape, **self.shape_distribution}
                 item_distribution = np.broadcast_to(item, shape)
             else:
-                item_distribution = item.shape
+                item_distribution = item
+
             return Array(
                 nominal=self.nominal.__getitem__(item),
                 distribution=self.distribution.__getitem__(item_distribution),

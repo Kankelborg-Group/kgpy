@@ -107,7 +107,8 @@ class CylindricalComponent(TranslationComponent[SurfaceT]):
     @property
     def transform(self) -> kgpy.transforms.TransformList:
         return super().transform + kgpy.transforms.TransformList([
-            kgpy.transforms.Translation(self.translation_cylindrical.cartesian),
+            kgpy.transforms.RotationZ(self.translation_cylindrical.azimuth),
+            kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(self.translation_cylindrical.radius, 0 * u.mm, self.translation_cylindrical.z)),
         ])
 
     @property
