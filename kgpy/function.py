@@ -161,8 +161,8 @@ class AbstractArray(
                     index_final[input_component_column] = index_subplot['column']
 
                 inp = self.input_broadcasted[index_final]
-                inp_x = inp.coordinates_flat[input_component_x]
-                inp_y = inp.coordinates_flat[input_component_y]
+                inp_x = inp.coordinates[input_component_x]
+                inp_y = inp.coordinates[input_component_y]
 
                 out = self.output_broadcasted[index_final]
                 if output_component_color is not None:
@@ -178,7 +178,7 @@ class AbstractArray(
                 )
 
                 if index_subplot['row'] == axs.shape['row'] - 1:
-                    if isinstance(inp_x, u.Quantity):
+                    if isinstance(inp_x.array, u.Quantity):
                         ax.set_xlabel(f'{input_component_x} ({inp_x.unit})')
                     else:
                         ax.set_xlabel(f'{input_component_x}')
@@ -186,7 +186,7 @@ class AbstractArray(
                     ax.set_xlabel(None)
 
                 if index_subplot['column'] == 0:
-                    if isinstance(inp_y, u.Quantity):
+                    if isinstance(inp_y.array, u.Quantity):
                         ax.set_ylabel(f'{input_component_y} ({inp_y.unit})')
                     else:
                         ax.set_ylabel(f'{input_component_y}')
@@ -195,7 +195,7 @@ class AbstractArray(
 
                 if input_component_column is not None:
                     if index_subplot['row'] == 0:
-                        inp_column = inp.coordinates_flat[input_component_column]
+                        inp_column = inp.coordinates[input_component_column]
                         ax.text(
                             x=0.5,
                             y=1.01,
@@ -207,7 +207,7 @@ class AbstractArray(
 
                 if input_component_row is not None:
                     if index_subplot['column'] == axs.shape['column'] - 1:
-                        inp_row = inp.coordinates_flat[input_component_row]
+                        inp_row = inp.coordinates[input_component_row]
                         ax.text(
                             x=1.01,
                             y=0.5,
