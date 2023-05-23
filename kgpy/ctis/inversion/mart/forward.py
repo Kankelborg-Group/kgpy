@@ -75,16 +75,18 @@ def model(
     x, y, l = np.meshgrid(np.arange(ssh[x_axis]), np.arange(ssh[y_axis]), np.arange(ssh[w_axis]))
     x, y, l = x.flatten(), y.flatten(), l.flatten()
 
-    # rotated_cube = scipy.ndimage.rotate(
-    #     input=cube.copy(),
-    #     angle=az,
-    #     axes=(x_axis, y_axis),
-    #     **rotation_kwargs
-    # )
-    rotated_cube = rotate(
-        image=cube.copy(),
+    rotated_cube = scipy.ndimage.rotate(
+        input=cube.copy(),
         angle=az,
+        axes=(x_axis, y_axis),
+        **rotation_kwargs
     )
+    # rotated_cube = rotate(
+    #     image=cube.copy(),
+    #     angle=az,
+    #     axes=
+    #
+    # )
 
     ssh[x_axis] += np.abs(spectral_order) * ssh[w_axis]
     shifted_cube = np.zeros(ssh)
@@ -155,7 +157,8 @@ def deproject(
     in_sl[x_axis] = slice(max(0, -tx), min(csh[x_axis], -tx + shifted_projection.shape[x_axis]))
     in_sl[y_axis] = slice(max(0, -ty), min(csh[y_axis], -ty + shifted_projection.shape[y_axis]))
 
-    shifted_projection[tuple(out_sl)] = projection[in_sl]
+
+    shifted_projection[tuple(out_sl)] = projection[tuple(in_sl)]
     backprojected_cube = np.zeros_like(shifted_projection)
 
     ssh = list(cube_shape)
@@ -169,23 +172,23 @@ def deproject(
     out_sl[x_axis], out_sl[y_axis], out_sl[w_axis] = x - spectral_order * (l), y, l
     in_sl[x_axis], in_sl[y_axis], in_sl[w_axis] = x, y, l
 
-    backprojected_cube[tuple(out_sl)] = shifted_projection[in_sl]
+    backprojected_cube[tuple(out_sl)] = shifted_projection[tuple(in_sl)]
     del shifted_projection
     del x, y, l
 
     az = -1 * projection_azimuth.to_value(u.deg)
 
-    # backprojected_cube = scipy.ndimage.rotate(
-    #     input=backprojected_cube,
-    #     angle=az,
-    #     axes=(x_axis, y_axis),
-    #     **rotation_kwargs
-    # )
-
-
-    backprojected_cube = rotate(
-        image=backprojected_cube,
+    backprojected_cube = scipy.ndimage.rotate(
+        input=backprojected_cube,
         angle=az,
+        axes=(x_axis, y_axis),
+        **rotation_kwargs
     )
+
+
+    # backprojected_cube = rotate(
+    #     image=backprojected_cube,
+    #     angle=az,
+    # )
 
     return backprojected_cube
