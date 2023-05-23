@@ -257,7 +257,7 @@ class Array(
             self: ArrayT,
             input_new: InputT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
-    ) -> OutputT:
+    ) -> ArrayT:
 
         input_old = self.input
         if not isinstance(input_old, kgpy.vectors.AbstractVector):
@@ -284,13 +284,13 @@ class Array(
         if len(components) != len(axis):
             raise ValueError('Separable system must have as many axes as components')
 
-        index = self.input.broadcast_to(self.input.shape).index_secant(input_new, axis=axis)
+        index = self.input.index_secant(input_new, axis=axis)
 
         shape = self.shape
         output_new = self.output.interp_linear(index)
         for a in axis:
             where = (index[a] < 0) | (index[a] > shape[a] - 1)
-            output_new[where] = 0
+            output_new[where.broadcast_to(output_new.shape)] = 0
 
         return Array(
             input=input_new_final,
