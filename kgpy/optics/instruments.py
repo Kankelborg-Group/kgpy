@@ -1,4 +1,5 @@
-from typing import Self, TypeVar, Generic
+from typing import TypeVar, Generic
+from typing_extensions import Self
 import abc
 import dataclasses
 import kgpy.uncertainty
