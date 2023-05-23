@@ -28,6 +28,7 @@ PolynomialArrayT = typ.TypeVar('PolynomialArrayT', bound='PolynomialArray')
 
 @dataclasses.dataclass(eq=False)
 class AbstractArray(
+    kgpy.mixin.Pickleable,
     kgpy.mixin.Copyable,
     abc.ABC,
     typ.Generic[InputT, OutputT],
