@@ -19,8 +19,8 @@ __all__ = [
 @dataclasses.dataclass
 class Distortion:
     wavelength: u.Quantity
-    spatial_mesh_input: vectors.Vector2D
-    spatial_mesh_output: vectors.Vector2D
+    spatial_mesh_input: vectors.Cartesian2D
+    spatial_mesh_output: vectors.Cartesian2D
     mask: np.ndarray
     polynomial_degree: int = 1
 
@@ -49,16 +49,16 @@ class Distortion:
         return model
 
     @property
-    def plate_scale(self) -> vectors.Vector2D:
+    def plate_scale(self) -> vectors.Cartesian2D:
         model = self.model()
         # output_max = self.spatial_mesh_input.max()
         # output_min = self.spatial_mesh_input.min()
         # dy = model(output_max.to_3d(self.wavelength)) - model(output_min.to_3d(self.wavelength))
         # dx = output_max - output_min
         # return dx / dy
-        center_fov = vectors.Vector3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
+        center_fov = vectors.Cartesian3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
         # return 1 / model.dx(center_fov)
-        return vectors.Vector2D(
+        return vectors.Cartesian2D(
             x=1 / model.dx(center_fov).length,
             y=1 / model.dy(center_fov).length,
         )
@@ -66,14 +66,14 @@ class Distortion:
     @property
     def dispersion(self) -> u.Quantity:
         model = self.model()
-        center_fov = vectors.Vector3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
+        center_fov = vectors.Cartesian3D(x=0 * u.arcsec, y=0 * u.arcsec, z=self.wavelength)
         return 1 / model.dz(center_fov).length
 
     def residual(
             self,
             other: typ.Optional['Distortion'] = None,
             inverse: bool = False,
-    ) -> vectors.Vector2D:
+    ) -> vectors.Cartesian2D:
         if other is None:
             other = self
         mesh_input, mesh_output = other.spatial_mesh_input, other.spatial_mesh_output
@@ -91,11 +91,11 @@ class Distortion:
             self,
             cube: u.Quantity,
             wavelength: u.Quantity,
-            spatial_input_min: vectors.Vector2D,
-            spatial_input_max: vectors.Vector2D,
-            spatial_output_min: vectors.Vector2D,
-            spatial_output_max: vectors.Vector2D,
-            spatial_samples_output: typ.Union[int, vectors.Vector2D],
+            spatial_input_min: vectors.Cartesian2D,
+            spatial_input_max: vectors.Cartesian2D,
+            spatial_output_min: vectors.Cartesian2D,
+            spatial_output_max: vectors.Cartesian2D,
+            spatial_samples_output: typ.Union[int, vectors.Cartesian2D],
             inverse: bool = False,
             # channel_index: typ.Optional[int] = None,
             interp_order: int = 1,
@@ -104,9 +104,9 @@ class Distortion:
     ) -> np.ndarray:
 
         # if isinstance(spatial_samples_output, int):
-        #     spatial_samples_output = vector.Vector2D(spatial_samples_output, spatial_samples_output)
+        #     spatial_samples_output = vector.Cartesian2D(spatial_samples_output, spatial_samples_output)
 
-        output_grid = vectors.Vector3D()
+        output_grid = vectors.Cartesian3D()
         output_grid.x = np.linspace(spatial_output_min.x, spatial_output_max.x, spatial_samples_output.x)
         output_grid.y = np.linspace(spatial_output_min.y, spatial_output_max.y, spatial_samples_output.y)
         output_grid.x = output_grid.x[..., :, np.newaxis, np.newaxis]
@@ -125,7 +125,7 @@ class Distortion:
         coordinates = model(output_grid)
         coordinates = (coordinates - spatial_input_min) / (spatial_input_max - spatial_input_min)
         # coordinates *= cube.shape[~1:] * u.pix
-        coordinates = coordinates * vectors.Vector2D(x=cube.shape[~2] * u.pix, y=cube.shape[~1] * u.pix)
+        coordinates = coordinates * vectors.Cartesian2D(x=cube.shape[~2] * u.pix, y=cube.shape[~1] * u.pix)
         coordinates = coordinates.to_3d(wavelength)
 
         sh = cube.shape[:~2]
@@ -241,13 +241,13 @@ class Distortion:
 @dataclasses.dataclass
 class Vignetting:
     wavelength: u.Quantity
-    spatial_mesh: vectors.Vector2D
+    spatial_mesh: vectors.Cartesian2D
     unvignetted_percent: u.Quantity
     mask: np.ndarray
     polynomial_degree: int = 1
 
     @property
-    def mesh(self) -> vectors.Vector3D:
+    def mesh(self) -> vectors.Cartesian3D:
         return self.spatial_mesh.to_3d(z=self.wavelength)
 
     def __call__(
@@ -255,8 +255,8 @@ class Vignetting:
             cube: np.ndarray,
             wavelength: u.Quantity,
             # spatial_domain: u.Quantity,
-            spatial_min: vectors.Vector2D,
-            spatial_max: vectors.Vector2D,
+            spatial_min: vectors.Cartesian2D,
+            spatial_max: vectors.Cartesian2D,
             inverse: bool = False,
     ) -> np.ndarray:
         return Vignetting.apply_model(
@@ -273,15 +273,15 @@ class Vignetting:
             model: 'polynomial.Polynomial3D',
             cube: np.ndarray,
             wavelength: u.Quantity,
-            spatial_min: vectors.Vector2D,
-            spatial_max: vectors.Vector2D,
+            spatial_min: vectors.Cartesian2D,
+            spatial_max: vectors.Cartesian2D,
             # spatial_domain: u.Quantity,
     ):
 
         # grid_x = np.linspace(output_min[x], output_max[x], cube.shape[~1])
         # grid_y = np.linspace(output_min[y], output_max[y], cube.shape[~0])
         # wavelength, grid_x, grid_y = np.broadcast_arrays(wavelength[..., None, None], grid_x[..., None], grid_y, subok=True)
-        grid = vectors.Vector3D()
+        grid = vectors.Cartesian3D()
         grid.x = np.linspace(spatial_min.x, spatial_max.x, cube.shape[~2])[..., :, np.newaxis, np.newaxis]
         grid.y = np.linspace(spatial_min.y, spatial_max.y, cube.shape[~1])[..., np.newaxis, :, np.newaxis]
         grid.z = wavelength[..., np.newaxis, np.newaxis, :]
@@ -386,7 +386,7 @@ class Vignetting:
     @staticmethod
     def plot(
             wavelength: u.Quantity,
-            spatial_mesh: vectors.Vector2D,
+            spatial_mesh: vectors.Cartesian2D,
             data: u.Quantity,
             axs: typ.Optional[typ.MutableSequence[plt.Axes]] = None,
             config_index: typ.Optional[typ.Union[int, typ.Tuple[int, ...]]] = None,
@@ -433,7 +433,7 @@ class Vignetting:
             extent = kgpy.plot.calc_extent(
                 data_min=mesh.min(),
                 data_max=mesh.max(),
-                num_steps=kgpy.vector.Vector2D.from_quantity(mesh.shape * u.dimensionless_unscaled),
+                num_steps=kgpy.vector.Cartesian2D.from_quantity(mesh.shape * u.dimensionless_unscaled),
             )
 
             img = axs[i].imshow(
@@ -469,11 +469,11 @@ class Aberration:
             # spatial_domain_input: u.Quantity,
             # spatial_domain_output: u.Quantity,
             # spatial_samples_output: typ.Union[int, typ.Tuple[int, int]],
-            spatial_input_min: vectors.Vector2D,
-            spatial_input_max: vectors.Vector2D,
-            spatial_output_min: vectors.Vector2D,
-            spatial_output_max: vectors.Vector2D,
-            spatial_samples_output: typ.Union[int, vectors.Vector2D],
+            spatial_input_min: vectors.Cartesian2D,
+            spatial_input_max: vectors.Cartesian2D,
+            spatial_output_min: vectors.Cartesian2D,
+            spatial_output_max: vectors.Cartesian2D,
+            spatial_samples_output: typ.Union[int, vectors.Cartesian2D],
             inverse: bool = False,
     ) -> u.Quantity:
         if not inverse:
