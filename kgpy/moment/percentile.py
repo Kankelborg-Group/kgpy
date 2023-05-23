@@ -13,24 +13,11 @@ def arg_percentile(cube: np.ndarray, percentile: float, axis: int = ~0) -> np.nd
     x1 = np.argmax(cs > y, axis=axis)
     x0 = x1 - 1
 
-    indices = np.indices(x1.shape)
-    indices = np.expand_dims(indices, axis)
-
     x0 = np.expand_dims(x0, axis)
     x1 = np.expand_dims(x1, axis)
 
-    indices_0 = list(indices)
-    indices_1 = list(indices)
-
-    if axis >= 0:
-        indices_0.insert(axis, x0)
-        indices_1.insert(axis, x1)
-    else:
-        indices_0.insert(mod_axis + 1, x0)
-        indices_1.insert(mod_axis + 1, x1)
-
-    y0 = cs[tuple(indices_0)]
-    y1 = cs[tuple(indices_1)]
+    y0 = np.take_along_axis(cs, x0, axis=axis)
+    y1 = np.take_along_axis(cs, x1, axis=axis)
 
     x = (y - y0) / (y1 - y0) * (x1 - x0) + x0
 
