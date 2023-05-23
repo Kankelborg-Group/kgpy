@@ -17,6 +17,7 @@ import ChiantiPy.core
 import adjustText
 import kgpy.mixin
 import kgpy.format
+import kgpy.labeled
 
 __all__ = [
     'Bunch',
@@ -50,7 +51,7 @@ class Bunch(
 
     @wavelength_min.setter
     def wavelength_min(self, value: u.Quantity):
-        self.WvlRange[0] = value.to(u.AA).value
+        self.WvlRange[0] = value.to(u.AA).array.value
 
     @property
     def wavelength_max(self) -> u.Quantity:
@@ -58,65 +59,68 @@ class Bunch(
 
     @wavelength_max.setter
     def wavelength_max(self, value: u.Quantity):
-        self.WvlRange[1] = value.to(u.AA).value
+        self.WvlRange[1] = value.to(u.AA).array.value
 
     @property
-    def temperature(self) -> u.Quantity:
-        return self.Temperature
+    def temperature(self) -> kgpy.labeled.Array:
+        return kgpy.labeled.Array(self.Temperature, axes=['temperature'])
 
     @property
-    def ion_all(self) -> np.ndarray:
-        return self.Intensity['ionS']
+    def ion_all(self) -> kgpy.labeled.Array:
+        return kgpy.labeled.Array(self.Intensity['ionS'].astype(object), axes=['ion'])
 
     @property
-    def wavelength_all(self) -> u.Quantity:
-        return self.Intensity['wvl'] << u.AA
+    def wavelength_all(self) -> kgpy.labeled.Array:
+        return kgpy.labeled.Array(self.Intensity['wvl'] << u.AA, axes=['ion'])
 
     @property
-    def intensity_all(self) -> u.Quantity:
-        intensity = np.trapz(self.Intensity['intensity'], self.temperature[..., np.newaxis], axis=0)
-        return intensity * u.erg / u.cm ** 2 / u.s / u.sr
+    def intensity_all(self) -> kgpy.labeled.Array:
+        intensity = kgpy.labeled.Array(self.Intensity['intensity'], axes=['temperature', 'ion'])
+        intensity = np.trapz(intensity, self.temperature, axis='temperature')
+        return intensity * (u.erg / u.cm ** 2 / u.s / u.sr)
 
     @property
-    def wavelength_mask(self) -> np.ndarray:
+    def wavelength_mask(self) -> kgpy.labeled.Array:
         return (self.wavelength_all > self.wavelength_min) & (self.wavelength_all < self.wavelength_max)
 
     @property
-    def indices_masked_sorted(self) -> np.ndarray:
+    def indices_masked_sorted(self) -> typ.Dict[str, kgpy.labeled.Array]:
         if self._indices_masked_sorted is None:
-            self._indices_masked_sorted = np.argsort(self.intensity_all[self.wavelength_mask])
+            intensity = self.intensity_all[self.wavelength_mask]
+            intensity = np.moveaxis(intensity, 'boolean', 'ion')
+            self._indices_masked_sorted = np.argsort(intensity, axis='ion')
         return self._indices_masked_sorted
 
-    def _mask_and_sort(self, arr: numpy.typing.ArrayLike) -> numpy.typing.ArrayLike:
-        return arr[self.wavelength_mask][self.indices_masked_sorted][::-1]
+    def _mask_and_sort(self, arr: numpy.typing.ArrayLike) -> kgpy.labeled.Array:
+        return np.moveaxis(arr[self.wavelength_mask], 'boolean', 'ion')[self.indices_masked_sorted][dict(ion=slice(None, None, -1))]
 
     @property
-    def ion(self) -> np.ndarray:
+    def ion(self) -> kgpy.labeled.Array:
         if self._ion is None:
             self._ion = self._mask_and_sort(self.ion_all)
         return self._ion
 
     @property
-    def ion_spectroscopic(self):
+    def ion_spectroscopic(self) -> kgpy.labeled.Array:
         return to_spectroscopic(self.ion, use_latex=True)
 
     @property
-    def wavelength(self) -> u.Quantity:
+    def wavelength(self) -> kgpy.labeled.Array:
         if self._wavelength is None:
             self._wavelength = self._mask_and_sort(self.wavelength_all)
         return self._wavelength
 
     @property
-    def intensity(self) -> u.Quantity:
+    def intensity(self) -> kgpy.labeled.Array:
         if self._intensity is None:
             self._intensity = self._mask_and_sort(self.intensity_all)
         return self._intensity
 
-    def fullname(self, digits_after_decimal: int = 3, use_latex: bool = True) -> np.ndarray:
+    def fullname(self, digits_after_decimal: int = 3, use_latex: bool = True) -> kgpy.labeled.Array:
         k = dict(digits_after_decimal=digits_after_decimal, scientific_notation=False)
         ion = to_spectroscopic(self.ion, use_latex=use_latex)
-        result = [i + ' ' + kgpy.format.quantity(w, **k) for i, w in zip(ion, self.wavelength)]
-        return np.array(result)
+        result = [i + ' ' + kgpy.format.quantity(w, **k) for i, w in zip(ion.array, self.wavelength.array)]
+        return kgpy.labeled.Array(np.array(result), axes=self.ion.axes)
 
     def dataframe(self, num_emission_lines: int = 10) -> pandas.DataFrame:
         wavelength = self.wavelength[:num_emission_lines]
@@ -145,16 +149,17 @@ class Bunch(
 
     ) -> typ.Tuple[matplotlib.collections.LineCollection, typ.List[matplotlib.text.Text]]:
         with astropy.visualization.quantity_support():
-            wavelength = self.wavelength[:num_emission_lines]
-            intensity = self.intensity[:num_emission_lines]
+            wavelength = self.wavelength.array[:num_emission_lines]
+            intensity = self.intensity.array[:num_emission_lines]
 
             if num_labels == None:
                 num_labels = num_emission_lines
 
             if relative_int:
                 intensity /= intensity.max()
-            ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
-            fullname = self.fullname(digits_after_decimal=digits_after_decimal,use_latex=use_latex)[:num_emission_lines]
+            # ion = to_spectroscopic(self.ion[:num_emission_lines], use_latex=False)
+            fullname = self.fullname(digits_after_decimal=digits_after_decimal,use_latex=use_latex)
+            fullname = fullname.array[:num_emission_lines]
 
             if line_mask != slice(None, None):
                 wavelength = wavelength[line_mask]
@@ -236,10 +241,11 @@ class Bunch(
         return lines
 
 
-def to_spectroscopic(ions: typ.Sequence[str], use_latex: bool = True) -> np.ndarray:
+def to_spectroscopic(ions: kgpy.labeled.Array, use_latex: bool = True) -> kgpy.labeled.Array:
     ion_latex = []
-    for ion in ions:
-        element, ion = ion.split('_')
+    for index_ion in ions.ndindex():
+        ion = ions[index_ion]
+        element, ion = ion.array.split('_')
 
         element = list(element)
         element[0] = element[0].upper()
@@ -254,7 +260,7 @@ def to_spectroscopic(ions: typ.Sequence[str], use_latex: bool = True) -> np.ndar
 
         ion_latex.append(element + ion)
 
-    return numpy.array(ion_latex)
+    return kgpy.labeled.Array(np.array(ion_latex), axes=ions.axes)
 
 
 def temperature() -> u.Quantity:
