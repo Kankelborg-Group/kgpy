@@ -1,21 +1,23 @@
+from __future__ import annotations
 import typing as typ
 import abc
 import dataclasses
+import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.function
 import kgpy.optics
-from . import vectors
+import kgpy.solar
+from . import overlappograms
 
 __all__ = [
     'AbstractInstrument',
-    'AbstractAberrationInstrument',
-    'AberrationInstrument',
+    'AbstractSystemInstrument',
+    'SystemInstrument',
 ]
 
-SceneT = kgpy.function.AbstractArray[kgpy.optics.vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]
-ImageT = kgpy.function.AbstractArray[vectors.PixelVector, kgpy.uncertainty.ArrayLike]
 AbstractInstrumentT = typ.TypeVar('AbstractInstrumentT', bound='AbstractInstrument')
-AbstractAberrationInstrumentT = typ.TypeVar('AbstractAberrationInstrumentT', bound='AbstractAberrationInstrument')
+AbstractSystemInstrumentT = typ.TypeVar('AbstractSystemInstrumentT', bound='AbstractSystemInstrument')
+SystemInstrumentT = typ.TypeVar('SystemInstrumentT', bound='SystemInstrument')
 
 
 @dataclasses.dataclass
@@ -27,36 +29,59 @@ class AbstractInstrument(
     """
 
     @abc.abstractmethod
-    def __call__(self: AbstractInstrumentT, scene: SceneT) -> ImageT:
+    def __call__(
+            self: AbstractInstrumentT,
+            scene: kgpy.solar.SpectralRadiance,
+            axis_field: str | list[str],
+            axis_wavelength: str | list[str],
+            wavelength_sum: bool = True,
+    ) -> overlappograms.Overlappogram:
         pass
 
     @abc.abstractmethod
-    def deproject(self: AbstractInstrumentT, image: ImageT) -> SceneT:
+    def deproject(
+            self: AbstractInstrumentT,
+            image: overlappograms.Overlappogram,
+    ) -> kgpy.solar.SpectralRadiance:
         pass
 
 
 @dataclasses.dataclass
-class AbstractAberrationInstrument(
+class AbstractSystemInstrument(
     AbstractInstrument,
 ):
 
     @property
     @abc.abstractmethod
-    def aberration(self: AbstractAberrationInstrumentT) -> kgpy.optics.aberrations.Aberration:
+    def system(self: AbstractSystemInstrumentT) -> kgpy.optics.systems.AbstractSystem:
         pass
 
-    def __call__(self: AbstractAberrationInstrumentT, scene: SceneT) -> ImageT:
-        return self.aberration(scene)
+    def __call__(
+            self: AbstractSystemInstrumentT,
+            scene: kgpy.solar.SpectralRadiance,
+            axis_field: str | list[str],
+            axis_wavelength: str | list[str],
+            wavelength_sum: bool = True,
+    ) -> overlappograms.Overlappogram:
+        return self.system(
+            scene=scene,
+            axis_field=axis_field,
+            axis_wavelength=axis_wavelength,
+            wavelength_sum=wavelength_sum,
+        )
 
-    def deproject(self: AbstractAberrationInstrumentT, image: ImageT) -> SceneT:
-        return self.aberration.inverse(image)
+    def deproject(
+            self: AbstractSystemInstrumentT,
+            image: overlappograms.Overlappogram,
+    ) -> kgpy.solar.SpectralRadiance:
+        return self.system.inverse(image)
 
 
 @dataclasses.dataclass
-class AberrationInstrument(
-    AbstractAberrationInstrument
+class SystemInstrument(
+    AbstractSystemInstrument
 ):
 
-    aberration: kgpy.optics.aberrations.Aberration = None
+    system: kgpy.optics.systems.AbstractSystem = None
 
 
