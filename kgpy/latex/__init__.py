@@ -48,6 +48,20 @@ class Document(pylatex.Document):
             ))
         )
 
+    def set_variable_array_labeled(
+            self,
+            name: str,
+            value: u.Quantity,
+            scientific_notation: typ.Optional[bool] = None,
+            digits_after_decimal: int = 3,
+    ) -> None:
+        self.set_variable_quantity(
+            name=name,
+            value=value.array,
+            scientific_notation=scientific_notation,
+            digits_after_decimal=digits_after_decimal,
+        )
+
 
 class FigureStar(pylatex.Figure):
     def __init__(self, *, position: str = None, **kwargs):
