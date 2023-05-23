@@ -19,13 +19,12 @@ AbstractInversionT = typ.TypeVar('AbstractInversionT', bound='AbstractInversion'
 class AbstractInversion(
     abc.ABC,
 ):
+    instrument: instruments.AbstractInstrument
 
     @abc.abstractmethod
     def __call__(
             self: AbstractInversionT,
-            instrument: instruments.AbstractInstrument,
-            image: kgpy.function.Array[vectors.PixelVector, kgpy.labeled.Array],
-
+            image: kgpy.function.Array[vectors.DispersionOffsetSpectralPositionVector, kgpy.labeled.Array],
     ) -> kgpy.function.Array[kgpy.optics.vectors.SpectralFieldVector, kgpy.labeled.Array]:
 
         pass
