@@ -1,6 +1,8 @@
 """
 kgpy.optics is a package designed for simulating optical systems.
 """
+from __future__ import annotations
+import abc
 import collections
 import dataclasses
 import pathlib
@@ -14,15 +16,19 @@ import scipy.interpolate
 import astropy.units as u
 import astropy.visualization
 import matplotlib.pyplot as plt
+import matplotlib.cm
 import matplotlib.colors
 import matplotlib.lines
 import matplotlib.colorbar
 import matplotlib.axes
+import matplotlib.collections
 from ezdxf.addons.r12writer import R12FastStreamWriter
 # from kgpy import mixin, linspace, vector, optimization, transform, obs, grid
 from kgpy import mixin
 from kgpy import labeled
+import kgpy.uncertainty
 import kgpy.vectors
+import kgpy.function
 from kgpy import transforms
 from kgpy import optimization
 from kgpy.io import dxf
@@ -30,21 +36,162 @@ from . import aberrations
 from . import vectors
 from . import rays
 from .surfaces import Surface, SurfaceList
+from . import detectors
 from .baffles import Baffle, BaffleList
 from .breadboards import Breadboard
 
 __all__ = [
-    'aberrations',
-    'rays',
-    'surfaces',
-    'components',
-    'baffles',
-    'breadboards',
+    'AbstractSystem',
+    'InterpolatedSystem',
     'System',
     'SystemList',
 ]
 
+PointSpreadT = typ.TypeVar('PointSpreadT', bound=aberrations.PointSpread)
+DistortionT = typ.TypeVar('DistortionT', bound=aberrations.Distortion)
+VignettingT = typ.TypeVar('VignettingT', bound=aberrations.Vignetting)
+EffectiveAreaT = typ.TypeVar('EffectiveAreaT', bound=aberrations.EffectiveArea)
+FieldStopT = typ.TypeVar('FieldStopT', bound=aberrations.FieldStop)
+DetectorT = typ.TypeVar('DetectorT', bound=detectors.Detector)
+
+AbstractSystemT = typ.TypeVar('AbstractSystemT', bound='AbstractSystem')
+InterpolatedSystemT = typ.TypeVar('InterpolatedSystemT', bound='InterpolatedSystem')
 SystemT = typ.TypeVar('SystemT', bound='System')
+
+
+@dataclasses.dataclass
+class AbstractSystem(
+    abc.ABC,
+):
+    @abc.abstractmethod
+    def __call__(
+            self: AbstractSystemT,
+            scene: kgpy.function.AbstractArray[vectors.OffsetSpectralFieldVector, kgpy.uncertainty.ArrayLike],
+            axis_field: str | list[str],
+            axis_wavelength: str | list[str],
+    ) -> kgpy.function.Array[vectors.OffsetSpectralPositionVector, kgpy.uncertainty.ArrayLike]:
+        pass
+
+    def inverse(
+            self: AbstractSystemT,
+            images: kgpy.function.AbstractArray[vectors.OffsetSpectralPositionVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.OffsetSpectralFieldVector, kgpy.uncertainty.ArrayLike]:
+        pass
+
+
+@dataclasses.dataclass
+class InterpolatedSystem(
+    AbstractSystem,
+    typ.Generic[DistortionT, PointSpreadT, VignettingT, EffectiveAreaT, FieldStopT]
+):
+    distortion: DistortionT
+    point_spread: typ.Optional[PointSpreadT] = None
+    vignetting: typ.Optional[VignettingT] = None
+    effective_area: typ.Optional[EffectiveAreaT] = None
+    field_stop: typ.Optional[FieldStopT] = None
+    detector: DetectorT = None
+
+    def __call__(
+            self: InterpolatedSystemT,
+            scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
+            axis_field: str | list[str],
+            axis_wavelength: str | list[str],
+            wavelength_sum: bool = True,
+    ) -> kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]:
+
+        print('scene.input.wavelength', scene.input.wavelength.shape)
+
+        if self.effective_area is not None:
+            scene = self.effective_area(scene)
+
+        if self.field_stop is not None:
+            scene = self.field_stop(scene)
+
+        if self.vignetting is not None:
+            scene = self.vignetting(scene)
+
+        # axis_field_x = scene.input.field_x.axes
+        # if len(axis_field_x) > 1:
+        #
+        #
+        # # wavelength = scene.input.wavelength.combine_axes(axes=axis_wavelength, axis_new='wavelength')
+        # shape_scene = scene.shape
+        # shape_scene_field = {axis: shape_scene[axis] for axis in shape_scene if axis in axis_field}
+        # kgpy.labeled.indices(shape_scene_field)
+        #
+        # indices_scene = vectors.SpectralFieldVector(
+        #     wavelength=scene.input.wavelength,
+        #     field_x=kgpy.labeled.Range(stop=),
+        #     field_y=scene.input.field_y.indices
+        # )
+        # print('indices_scene', indices_scene)
+
+
+        #
+        #
+        # position_pixels = self.detector.position_pixels
+        # position_pixels = vectors.SpectralPositionVector(
+        #     wavelength=scene.input.wavelength,
+        #     position_x=position_pixels.x,
+        #     position_y=position_pixels.y,
+        # )
+        # position_pixels_sky = self.distortion.function.inverse(position_pixels)
+        #
+        # print('scene', scene.shape)
+        #
+        # scene_notime = kgpy.function.Array(
+        #     input=vectors.SpectralFieldVector(
+        #         wavelength=scene.input.wavelength,
+        #         field_x=scene.input.field_x,
+        #         field_y=scene.input.field_y,
+        #     ),
+        #     output=scene.output,
+        # )
+        #
+        # axis_interp = ['wavelength_offset', 'helioprojective_x', 'helioprojective_y']
+        # image = kgpy.function.Array(
+        #     input=position_pixels,
+        #     output=scene_notime.interp_linear(position_pixels_sky, axis=axis_interp).output,
+        # )
+
+        # index_interpolator = type(self.distortion.function)(
+        #     input=scene.input.index_secant(self.distortion.function),
+        # )
+
+        image = self.distortion(scene)
+
+        print('image.input.wavelength', image.input.wavelength.shape)
+
+        # if self.point_spread is not None:
+        #     result = self.point_spread(image)
+
+        if self.detector is not None:
+            image = self.detector(
+                image,
+                axis_field=axis_field,
+                axis_wavelength=axis_wavelength,
+                wavelength_sum=wavelength_sum,
+            )
+
+        return image
+
+    def inverse(
+            self: InterpolatedSystemT,
+            image: kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
+
+        scene = self.distortion.inverse(image)
+
+        if self.vignetting is not None:
+            scene = self.vignetting.inverse(scene)
+
+        if self.field_stop is not None:
+            scene = self.field_stop.inverse(scene)
+
+        if self.effective_area is not None:
+            scene = self.effective_area.inverse(scene)
+
+        return scene
 
 
 @dataclasses.dataclass
@@ -181,6 +328,7 @@ class System(
 
     @property
     def rays_input(self) -> rays.RayFunction:
+        print('rays_input')
         if self._rays_input_cache is None:
             self._rays_input_cache = self._calc_rays_input(self.object_grid_normalized)
         return self._rays_input_cache
@@ -504,6 +652,7 @@ class System(
         position = position.broadcast_to(rays_output_stops.output.shape)
 
         where = rays_output_stops.output.mask
+        print('where', where.sum())
 
         if object_at_infinity:
             result.input.field_x.start = angle.x.array_labeled.min(axis=axes, where=where, initial=np.inf)
@@ -533,7 +682,12 @@ class System(
 
         return result
 
-
+    @property
+    def interpolated(self: SystemT) -> InterpolatedSystem:
+        return InterpolatedSystem(
+            distortion=self.rays_output.distortion(self.distortion_polynomial_degree),
+            detector=self.surfaces[~0],
+        )
 
 
 
@@ -728,10 +882,11 @@ class System(
             self,
             ax: typ.Optional[plt.Axes] = None,
             surf: typ.Optional[Surface] = None,
-            color_axis: str = 'wavelength',
+            color_axis: str = 'wavelength_rest',
             plot_apertures: bool = True,
             plot_vignetted: bool = False,
-    ) -> plt.Axes:
+            index: typ.Dict[str, int] = None
+    ) -> typ.Tuple[typ.List[matplotlib.lines.Line2D], typ.List[matplotlib.collections.PathCollection], matplotlib.cm.ScalarMappable]:
         if ax is None:
             _, ax = plt.subplots()
 
@@ -740,22 +895,37 @@ class System(
         if surf is None:
             surf = surfaces[~0]
 
+        if index is None:
+            index = {}
+
         surf_index = surfaces.index(surf)
         surf_rays = self.raytrace[surf_index].copy_shallow()
-        surf_rays.vignetted_mask = self.rays_output.vignetted_mask
+        # surf_rays.mask = self.rays_output.mask
 
-        surf_rays.plot_position(ax=ax, color_axis=color_axis, plot_vignetted=plot_vignetted)
+        if plot_vignetted:
+            where = None
+        else:
+            where = self.rays_output.output.mask
+
+        points, colormap = surf_rays.output.position.xy[index].scatter(
+            ax=ax,
+            axis_plot='surface',
+            where=where[index],
+            color=getattr(surf_rays.input, color_axis),
+        )
 
         if plot_apertures:
-            surf.plot(ax=ax, plot_annotations=False)
+            lines = surf.plot(ax=ax, plot_annotations=False)
+        else:
+            lines = []
 
-        return ax
+        return lines, points, colormap
 
     def plot_projections(
             self,
             surface_first: typ.Optional[Surface] = None,
             surface_last: typ.Optional[Surface] = None,
-            color_axis: str = 'wavelength',
+            color_axis: str = 'spectral_line',
             plot_vignetted: bool = False,
             plot_rays: bool = True,
     ) -> plt.Figure:
@@ -805,7 +975,7 @@ class System(
             surface_first: typ.Optional[Surface] = None,
             surface_last: typ.Optional[Surface] = None,
             plot_rays: bool = True,
-            color_axis: str = 'wavelength',
+            color_axis: str = 'wavelength_base',
             plot_vignetted: bool = False,
             plot_colorbar: bool = True,
             plot_baffles: bool = True,

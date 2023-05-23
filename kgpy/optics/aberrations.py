@@ -2,6 +2,7 @@ import abc
 import typing as typ
 import dataclasses
 import astropy.units as u
+import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vectors
 import kgpy.function
@@ -9,10 +10,13 @@ from . import vectors
 import numpy as np
 import kgpy.matrix
 from . import matrix
+from . import apertures
 
 PointSpreadT = typ.TypeVar('PointSpreadT', bound='PointSpread')
 DistortionT = typ.TypeVar('DistortionT', bound='Distortion')
 VignettingT = typ.TypeVar('VignettingT', bound='Vignetting')
+EffectiveAreaT = typ.TypeVar('EffectiveAreaT', bound='EffectiveArea')
+FieldStopT = typ.TypeVar('FieldStopT', bound='FieldStop')
 AberrationT = typ.TypeVar('AberrationT', bound='Aberration')
 
 
@@ -32,33 +36,23 @@ class AbstractDistortion:
 
     def __call__(
             self: DistortionT,
-            scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
+            scene: kgpy.function.Array[vectors.OffsetSpectralFieldVector, kgpy.uncertainty.ArrayLike],
     ) -> kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]:
-        result_input = self.function(scene.input)
 
-        result = kgpy.function.Array(
-            input=vectors.SpectralPositionVector(
-                wavelength=scene.input.wavelength,
-                position_x=result_input.position_x,
-                position_y=result_input.position_y
-            ),
+        inputs = self.function(scene.input.vector_spectral_field)
+        inputs.wavelength = scene.input.wavelength
+        return kgpy.function.Array(
+            input=inputs,
             output=scene.output,
         )
 
-        return result
-
     def inverse(
             self: DistortionT,
-            image: kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]
+            image: kgpy.function.Array[vectors.OffsetSpectralPositionVector, kgpy.uncertainty.ArrayLike]
     ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
-        result_input = self.function.inverse(image.input)
 
         return kgpy.function.Array(
-            input=vectors.SpectralFieldVector(
-                wavelength=image.input.wavelength,
-                field_x=result_input.field_x,
-                field_y=result_input.field_y,
-            ),
+            input=self.function.inverse(image.input.vector_spectral_position),
             output=image.output,
         )
 
@@ -75,7 +69,7 @@ class AbstractDistortion:
 
 @dataclasses.dataclass(eq=False)
 class Distortion(AbstractDistortion):
-    function: kgpy.function.AbstractArray[vectors.SpectralFieldVector, vectors.SpectralPositionVector]
+    function: kgpy.function.AbstractArray[vectors.SpectralFieldVector, vectors.SpectralPositionVector] = None
 
 
 @dataclasses.dataclass(eq=False)
@@ -147,31 +141,99 @@ class Vignetting:
 
 @dataclasses.dataclass(eq=False)
 class EffectiveArea:
-    pass
-
-
-@dataclasses.dataclass(eq=False)
-class Aberration:
-    # point_spread: PointSpread
-    distortion: Distortion
-
-    # vignetting: Vignetting
-    # effective_area: EffectiveArea
+    function: kgpy.function.AbstractArray[kgpy.labeled.Array, kgpy.uncertainty.ArrayLike]
 
     def __call__(
-            self: AberrationT,
+            self: EffectiveAreaT,
             scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
-    ) -> kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]:
-        # result = self.vignetting(scene)
-        result = self.distortion(scene)
+    ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
+
+        result = scene.copy_shallow()
+        result.output = result.output * self.function(scene.input.wavelength)
 
         return result
 
     def inverse(
-            self: AberrationT,
-            image: kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike],
+            self: EffectiveAreaT,
+            scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
     ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
-        result = self.distortion.inverse(image)
-        result = self.vignetting.inverse(result)
+
+        result = scene.copy_shallow()
+        result.output = result.output / self.function(scene.input.wavelength)
 
         return result
+
+
+@dataclasses.dataclass(eq=False)
+class FieldStop:
+
+    aperture: apertures.Aperture
+
+    def __call__(
+            self: FieldStopT,
+            scene: kgpy.function.Array[vectors.OffsetSpectralFieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.OffsetSpectralFieldVector, kgpy.uncertainty.ArrayLike]:
+
+        where_unvignetted = ~self.aperture.is_unvignetted(scene.input.field_xy)
+
+        result = scene.copy_shallow()
+        result.output = result.output.copy()
+        where_unvignetted = where_unvignetted.broadcast_to(result.output.shape)
+        result.output[where_unvignetted] = 0
+
+        return result
+
+    def inverse(
+            self: FieldStopT,
+            scene: kgpy.function.Array[vectors.OffsetSpectralFieldVector, kgpy.uncertainty.ArrayLike],
+    ) -> kgpy.function.Array[vectors.OffsetSpectralFieldVector, kgpy.uncertainty.ArrayLike]:
+        return scene
+
+
+# @dataclasses.dataclass(eq=False)
+# class Aberration:
+#
+#     distortion: Distortion
+#     point_spread: typ.Optional[PointSpread] = None
+#     vignetting: typ.Optional[Vignetting] = None
+#     effective_area: typ.Optional[EffectiveArea] = None
+#     field_stop: typ.Optional[FieldStop] = None
+#
+#     def __call__(
+#             self: AberrationT,
+#             scene: kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike],
+#     ) -> kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike]:
+#
+#         if self.effective_area is not None:
+#             scene = self.effective_area(scene)
+#
+#         if self.field_stop is not None:
+#             scene = self.field_stop(scene)
+#
+#         if self.vignetting is not None:
+#             scene = self.vignetting(scene)
+#
+#         image = self.distortion(scene)
+#
+#         # if self.point_spread is not None:
+#         #     result = self.point_spread(image)
+#
+#         return image
+#
+#     def inverse(
+#             self: AberrationT,
+#             image: kgpy.function.Array[vectors.SpectralPositionVector, kgpy.uncertainty.ArrayLike],
+#     ) -> kgpy.function.Array[vectors.SpectralFieldVector, kgpy.uncertainty.ArrayLike]:
+#
+#         scene = self.distortion.inverse(image)
+#
+#         if self.vignetting is not None:
+#             scene = self.vignetting.inverse(scene)
+#
+#         if self.field_stop is not None:
+#             scene = self.field_stop.inverse(scene)
+#
+#         if self.effective_area is not None:
+#             scene = self.effective_area.inverse(scene)
+#
+#         return scene

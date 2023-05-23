@@ -124,6 +124,8 @@ class Surface(
             intercept_error: u.Quantity = 0.1 * u.nm
     ) -> rays.RayVector:
 
+        print(self.name)
+
         ray = ray.copy_shallow()
 
         if not self.is_active:
@@ -168,6 +170,8 @@ class Surface(
                 ray.mask = ray.mask & self.aperture.is_unvignetted(ray.field_angles)
             else:
                 ray.mask = ray.mask & self.aperture.is_unvignetted(ray.position)
+
+        print("ray.mask", ray.mask.sum())
 
         return ray
 

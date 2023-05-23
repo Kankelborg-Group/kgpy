@@ -1,3 +1,4 @@
+from __future__ import annotations
 import typing as typ
 import abc
 import dataclasses
@@ -32,6 +33,9 @@ AbstractSpectralVectorT = typ.TypeVar('AbstractSpectralVectorT', bound='Abstract
 SpectralVectorT = typ.TypeVar('SpectralVectorT', bound='SpectralVector')
 SpectralReferenceVectorT = typ.TypeVar('SpectralReferenceVectorT', bound='SpectralReferenceVector')
 DopplerVectorT = typ.TypeVar('DopplerVectorT', bound='DopplerVector')
+OffsetSpectralFieldVectorT = typ.TypeVar('OffsetSpectralFieldVectorT', bound='OffsetSpectralFieldVector')
+SpectralFieldVectorT = typ.TypeVar('SpectralFieldVectorT', bound='SpectralFieldVector')
+OffsetSpectralPositionVectorT = typ.TypeVar('OffsetSpectralPositionVectorT', bound='OffsetSpectralPositionVector')
 
 
 @dataclasses.dataclass(eq=False)
@@ -63,19 +67,25 @@ class StokesVector(
 
 
 @dataclasses.dataclass(eq=False)
-class AbstractSpectralVector(kgpy.vectors.VectorInterface):
+class AbstractSpectralVector(
+    kgpy.vectors.VectorInterface,
+    typ.Generic[WavelengthT],
+):
 
     @property
     @abc.abstractmethod
-    def wavelength(self: AbstractSpectralVectorT) -> kgpy.uncertainty.ArrayLike:
+    def wavelength(self: AbstractSpectralVectorT) -> WavelengthT:
         pass
+
+    @property
+    def vector_spectral(self: AbstractSpectralVectorT) -> 'SpectralVector':
+        return SpectralVector(self.wavelength)
 
 
 @dataclasses.dataclass(eq=False)
 class SpectralVector(
-    AbstractSpectralVector,
     kgpy.vectors.AbstractVector,
-    typ.Generic[WavelengthT],
+    AbstractSpectralVector[WavelengthT],
 ):
     wavelength: WavelengthT = 0 * u.nm
 
@@ -92,6 +102,10 @@ class OffsetSpectralVector(
     @property
     def wavelength(self: SpectralReferenceVectorT) -> kgpy.uncertainty.ArrayLike:
         return self.wavelength_base + self.wavelength_offset
+
+    @property
+    def velocity_los(self):
+        return (astropy.constants.c * self.wavelength_offset / self.wavelength).to(u.km / u.s)
 
 
 @dataclasses.dataclass(eq=False)
@@ -152,17 +166,9 @@ class PositionVector(
 
 
 @dataclasses.dataclass(eq=False)
-class AbstractSpectralFieldVector(
+class SpectralFieldVector(
     typ.Generic[WavelengthT, FieldXT, FieldYT],
     FieldVector[FieldXT, FieldYT],
-    AbstractSpectralVector[WavelengthT],
-):
-    pass
-
-
-@dataclasses.dataclass(eq=False)
-class SpectralFieldVector(
-    AbstractSpectralFieldVector[WavelengthT, FieldXT, FieldYT],
     SpectralVector[WavelengthT],
 ):
     @property
@@ -173,10 +179,17 @@ class SpectralFieldVector(
 
 @dataclasses.dataclass(eq=False)
 class OffsetSpectralFieldVector(
-    AbstractSpectralFieldVector[WavelengthT, FieldXT, FieldYT],
+    typ.Generic[WavelengthBaseT, WavelengthOffsetT, FieldXT, FieldYT],
+    FieldVector[FieldXT, FieldYT],
     OffsetSpectralVector[WavelengthBaseT, WavelengthOffsetT],
 ):
-    pass
+    @property
+    def vector_spectral_field(self: OffsetSpectralFieldVectorT) -> SpectralFieldVector:
+        return SpectralFieldVector(
+            wavelength=self.wavelength,
+            field_x=self.field_x,
+            field_y=self.field_y,
+        )
 
 
 @dataclasses.dataclass(eq=False)
@@ -202,6 +215,49 @@ class SpectralPositionVector(
     typ.Generic[WavelengthT, PositionXT, PositionYT],
     PositionVector[PositionXT, PositionYT],
     SpectralVector[WavelengthT],
+):
+    @property
+    def type_matrix(self):
+        from . import matrix
+        return matrix.SpectralPositionMatrix
+
+    @property
+    def vector_spectral_position(self: OffsetSpectralPositionVectorT) -> SpectralPositionVector:
+        return SpectralPositionVector(
+            wavelength=self.wavelength,
+            position_x=self.position_x,
+            position_y=self.position_y,
+        )
+
+
+@dataclasses.dataclass(eq=False)
+class OffsetSpectralPositionVector(
+    PositionVector[PositionXT, PositionYT],
+    OffsetSpectralVector[WavelengthBaseT, WavelengthOffsetT],
+):
+    @property
+    def vector_spectral_position(self: OffsetSpectralPositionVectorT) -> SpectralPositionVector:
+        return SpectralPositionVector(
+            wavelength=self.wavelength,
+            position_x=self.position_x,
+            position_y=self.position_y,
+        )
+
+
+@dataclasses.dataclass(eq=False)
+class TemporalSpectralPositionVector(
+    typ.Generic[TimeT, WavelengthT, PositionXT, PositionYT],
+    SpectralPositionVector[WavelengthT, PositionXT, PositionYT],
+    kgpy.vectors.TemporalVector[TimeT],
+):
+    pass
+
+
+@dataclasses.dataclass(eq=False)
+class TemporalOffsetSpectralPositionVector(
+    typ.Generic[TimeT, WavelengthBaseT, WavelengthOffsetT, PositionXT, PositionYT],
+    OffsetSpectralPositionVector[WavelengthBaseT, WavelengthOffsetT, PositionXT, PositionYT],
+    kgpy.vectors.TemporalVector[TimeT],
 ):
     pass
 

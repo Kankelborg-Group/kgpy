@@ -4,8 +4,11 @@ kgpy.optics is a package designed for simulating optical systems.
 from . import vectors
 from . import apertures
 from . import aberrations
+from . import sags
+from . import materials
 from . import rays
 from . import surfaces
+from . import detectors
 from . import baffles
 from . import breadboards
 from . import components
