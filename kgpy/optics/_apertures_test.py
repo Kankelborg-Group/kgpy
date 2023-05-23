@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
 import kgpy.labeled
@@ -53,7 +54,7 @@ class TestRectangular:
         argnames='decenter_x,facecolor',
         argvalues=[
             (0 * u.mm, 'blue'),
-            (kgpy.labeled.LinearSpace(-50 * u.mm, 50 * u.mm, num=3, axis='chan'), kgpy.labeled.Array(['blue', 'green', 'red'], axes=['chan'])),
+            (kgpy.labeled.LinearSpace(-50 * u.mm, 50 * u.mm, num=3, axis='chan'), kgpy.labeled.Array(np.array(['blue', 'green', 'red']), axes=['chan'])),
         ]
     )
     def test_plot_3d(self, decenter_x: kgpy.uncertainty.ArrayLike, facecolor: str):
