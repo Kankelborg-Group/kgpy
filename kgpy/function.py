@@ -577,6 +577,8 @@ class AbstractPolynomial(
         return PolynomialArray(
             input=self.output,
             output=self.input,
+            degree=self.degree,
+            axes_model=self.axes_model,
         )
 
     def _design_matrix_recursive(
