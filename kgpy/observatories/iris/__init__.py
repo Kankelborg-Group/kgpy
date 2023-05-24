@@ -7,9 +7,9 @@ import astropy.time
 import astropy.coordinates
 import numpy as np
 
-from . import sji, spectrograph, mosaics
+from . import sji, spectrograph, mosaics, studies
 
-__all__ = ['mosaics']
+__all__ = ['mosaics', 'studies']
 
 
 @dataclasses.dataclass
@@ -24,10 +24,11 @@ class Obs:
             thresh_min: u.Quantity = 0.01 * u.percent,
             thresh_max: u.Quantity = 99.9 * u.percent,
             frame_interval: u.Quantity = 1 * u.s,
+            max_doppler_shift: u.Quantity = 50 * u.km / u.s
     ):
 
         data_sji = self.sji_images.intensity[:, channel_index]
-        data_sg = self.sg_cubes.window_doppler(shift_doppler=300 * u.km / u.s).colors[:, channel_index]
+        data_sg = self.sg_cubes.window_doppler().colors(max_doppler_shift)[:, channel_index]
         data_sg_projected = np.zeros(data_sji.shape + (4,))
 
         wcs_sg = self.sg_cubes.wcs[:, channel_index]
@@ -71,9 +72,11 @@ class Obs:
         img_sji = ax.imshow(
             X=data_sji[0].value,
             cmap='gray',
-            vmin=np.nanpercentile(data_sji, thresh_min).value,
-            vmax=np.nanpercentile(data_sji, thresh_max).value,
-            # norm=matplotlib.colors.PowerNorm(gamma=0.5),
+            norm=matplotlib.colors.PowerNorm(
+                gamma=0.5,
+                vmin=np.nanpercentile(data_sji, thresh_min).value,
+                vmax=np.nanpercentile(data_sji, thresh_max).value,
+            ),
             origin='lower',
         )
 

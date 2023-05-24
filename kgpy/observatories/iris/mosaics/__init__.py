@@ -1,15 +1,174 @@
+from typing import Type
+from typing_extensions import Self
 import typing as typ
 import pathlib
 import numpy as np
+import numpy.typing as npt
 import astropy.units as u
 import astropy.time
 import astropy.wcs
 import astropy.io.fits
 from kgpy import obs, img
+import kgpy.mixin
+import kgpy.labeled
+import kgpy.vectors
+import kgpy.optics
+import kgpy.solar
 from . import saa
 from . import url
 
 __all__ = ['Cube', 'saa', 'url']
+
+
+class SpectralRadiance(
+    kgpy.solar.SpectralRadiance[
+        kgpy.optics.vectors.TemporalOffsetSpectralFieldVector[
+            kgpy.labeled.Array,
+            kgpy.labeled.Array,
+            kgpy.labeled.WorldCoordinateSpace,
+            kgpy.labeled.WorldCoordinateSpace,
+            kgpy.labeled.WorldCoordinateSpace,
+        ],
+        kgpy.labeled.Array,
+    ],
+    kgpy.mixin.Pickleable,
+):
+
+    @classmethod
+    def from_path_array(
+            cls: Type[Self],
+            path_array: kgpy.labeled.Array[npt.NDArray[pathlib.Path]],
+    ) -> Self:
+
+        shape_base = path_array.shape
+
+        hdu_prototype = astropy.io.fits.open(
+            name=str(path_array[dict(time=0, wavelength_base=0)].array),
+        )[0]
+
+        wcs_prototype = astropy.wcs.WCS(hdu_prototype)
+
+        shape_wcs = {k:v for k, v in zip(reversed(wcs_prototype.axis_type_names), wcs_prototype.array_shape)}
+        shape_wcs = {'wavelength_offset' if k == 'Wavelength' else k:v for k,v in shape_wcs.items()}
+        shape_wcs = {'solar_x' if k == 'Solar X' else k:v for k,v in shape_wcs.items()}
+        shape_wcs = {'solar_y' if k == 'Solar Y' else k:v for k,v in shape_wcs.items()}
+        # shape_wcs['wavelength_offset'] = shape_wcs.pop('Wavelength')
+        # shape_wcs['solar_x'] = shape_wcs.pop('Solar X')
+        # shape_wcs['solar_y'] = shape_wcs.pop('Solar Y')
+
+        shape = dict(**shape_base, **shape_wcs)
+
+        self = cls(
+            input=kgpy.optics.vectors.TemporalOffsetSpectralFieldVector(
+                time=kgpy.labeled.Array(
+                    array=astropy.time.Time(np.zeros(tuple(shape_base.values())), format='jd'),
+                    axes=list(shape_base.keys()),
+                ),
+                wavelength_base=kgpy.labeled.Array([hdu_prototype.header['LAMREF']] * u.AA, axes=['wavelength_base']),
+                wavelength_offset=kgpy.labeled.WorldCoordinateSpace(
+                    crval=kgpy.labeled.Array.zeros(shape_base) * u.AA,
+                    crpix=kgpy.vectors.CartesianND.from_components(
+                        wavelength_offset=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                        solar_x=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                        solar_y=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                    ),
+                    cdelt=kgpy.labeled.Array.zeros(shape_base) * (u.AA / u.pix),
+                    pc_row=kgpy.vectors.CartesianND.from_components(
+                        wavelength_offset=kgpy.labeled.Array.zeros(shape_base),
+                        solar_x=kgpy.labeled.Array.zeros(shape_base),
+                        solar_y=kgpy.labeled.Array.zeros(shape_base),
+                    ),
+                    shape_wcs=shape_wcs,
+                ),
+                field_x=kgpy.labeled.WorldCoordinateSpace(
+                    crval=kgpy.labeled.Array.zeros(shape_base) * u.arcsec,
+                    crpix=kgpy.vectors.CartesianND.from_components(
+                        wavelength_offset=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                        solar_x=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                        solar_y=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                    ),
+                    cdelt=kgpy.labeled.Array.zeros(shape_base) * (u.arcsec / u.pix),
+                    pc_row=kgpy.vectors.CartesianND.from_components(
+                        wavelength_offset=kgpy.labeled.Array.zeros(shape_base),
+                        solar_x=kgpy.labeled.Array.zeros(shape_base),
+                        solar_y=kgpy.labeled.Array.zeros(shape_base),
+                    ),
+                    shape_wcs=shape_wcs,
+                ),
+                field_y=kgpy.labeled.WorldCoordinateSpace(
+                    crval=kgpy.labeled.Array.zeros(shape_base) * u.arcsec,
+                    crpix=kgpy.vectors.CartesianND.from_components(
+                        wavelength_offset=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                        solar_x=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                        solar_y=kgpy.labeled.Array.zeros(shape_base) * u.pix,
+                    ),
+                    cdelt=kgpy.labeled.Array.zeros(shape_base) * (u.arcsec / u.pix),
+                    pc_row=kgpy.vectors.CartesianND.from_components(
+                        wavelength_offset=kgpy.labeled.Array.zeros(shape_base),
+                        solar_x=kgpy.labeled.Array.zeros(shape_base),
+                        solar_y=kgpy.labeled.Array.zeros(shape_base),
+                    ),
+                    shape_wcs=shape_wcs,
+                ),
+            ),
+            output=kgpy.labeled.Array.zeros(shape) << u.DN,
+        )
+
+        i_solar_x = wcs_prototype.axis_type_names.index('Solar X')
+        i_solar_y = wcs_prototype.axis_type_names.index('Solar Y')
+        i_wavelength_offset = wcs_prototype.axis_type_names.index('Wavelength')
+
+        for index in path_array.ndindex():
+
+            hdu = astropy.io.fits.open(path_array[index].array)[0]
+
+            print('hdu.data.shape', hdu.data.shape)
+
+            wcs = astropy.wcs.WCS(hdu).wcs
+
+            self.output[index] = kgpy.labeled.Array(hdu.data << u.DN, axes=list(shape_wcs.keys()))
+            self.input.time[index] = astropy.time.Time(hdu.header['DATE_OBS'])
+
+            self.input.wavelength_offset.crval[index] = (wcs.crval[i_wavelength_offset] << u.AA) - self.input.wavelength_base.broadcast_to(shape_base)[index]
+            self.input.wavelength_offset.crpix.wavelength_offset[index] = wcs.crpix[i_wavelength_offset] << u.pix
+            self.input.wavelength_offset.crpix.solar_x[index] = wcs.crpix[i_solar_x] << u.pix
+            self.input.wavelength_offset.crpix.solar_y[index] = wcs.crpix[i_solar_y] << u.pix
+            self.input.wavelength_offset.cdelt[index] = wcs.cdelt[i_wavelength_offset] << (u.AA / u.pix)
+            self.input.wavelength_offset.pc_row.wavelength_offset[index] = wcs.pc[i_wavelength_offset, i_wavelength_offset]
+            self.input.wavelength_offset.pc_row.solar_x[index] = wcs.pc[i_wavelength_offset, i_solar_x]
+            self.input.wavelength_offset.pc_row.solar_y[index] = wcs.pc[i_wavelength_offset, i_solar_y]
+
+            self.input.field_x.crval[index] = wcs.crval[i_solar_x] << u.arcsec
+            self.input.field_x.crpix.wavelength_offset[index] = wcs.crpix[i_wavelength_offset] << u.pix
+            self.input.field_x.crpix.solar_x[index] = wcs.crpix[i_solar_x] << u.pix
+            self.input.field_x.crpix.solar_y[index] = wcs.crpix[i_solar_y] << u.pix
+            self.input.field_x.cdelt[index] = wcs.cdelt[i_solar_x] << (u.arcsec / u.pix)
+            self.input.field_x.pc_row.wavelength_offset[index] = wcs.pc[i_solar_x, i_wavelength_offset]
+            self.input.field_x.pc_row.solar_x[index] = wcs.pc[i_solar_x, i_solar_x]
+            self.input.field_x.pc_row.solar_y[index] = wcs.pc[i_solar_x, i_solar_y]
+
+            self.input.field_y.crval[index] = wcs.crval[i_solar_y] << u.arcsec
+            self.input.field_y.crpix.wavelength_offset[index] = wcs.crpix[i_wavelength_offset] << u.pix
+            self.input.field_y.crpix.solar_x[index] = wcs.crpix[i_solar_x] << u.pix
+            self.input.field_y.crpix.solar_y[index] = wcs.crpix[i_solar_y] << u.pix
+            self.input.field_y.cdelt[index] = wcs.cdelt[i_solar_y] << (u.arcsec / u.pix)
+            self.input.field_y.pc_row.wavelength_offset[index] = wcs.pc[i_solar_y, i_wavelength_offset]
+            self.input.field_y.pc_row.solar_x[index] = wcs.pc[i_solar_y, i_solar_x]
+            self.input.field_y.pc_row.solar_y[index] = wcs.pc[i_solar_y, i_solar_y]
+
+        self = cls(
+            input=kgpy.optics.vectors.TemporalOffsetSpectralFieldVector(
+                time=self.input.time,
+                wavelength_base=self.input.wavelength_base,
+                wavelength_offset=self.input.wavelength_offset.array_labeled,
+                field_x=self.input.field_x.array_labeled,
+                field_y=self.input.field_y.array_labeled,
+            ),
+            output=self.output
+        )
+
+        return self
+
 
 
 class Cube(obs.spectral.Cube):
@@ -81,16 +240,19 @@ def load_index(disk_cache: pathlib.Path = index_cache):
     else:
 
         path_array = np.array([[url.base / path] for path in url.path_list])
+        path_array = kgpy.labeled.Array(path_array, axes=['time', 'wavelength_base'])
 
-        # path_array = path_array[:4]
+        path_array = path_array[dict(time=slice(4))]
 
-        cube = Cube.from_path_array(path_array)
+        cube = SpectralRadiance.from_path_array(path_array)
+
+        # cube = Cube.from_path_array(path_array)
 
         # for i in range(path_array.shape[0]):
         #     for region_x, region_y in zip(saa.regions_x[i], saa.regions_y[i]):
         #         cube.intensity[i, ..., slice(*region_y), slice(*region_x), :] = 0
 
-        cube.to_pickle(disk_cache)
+        # cube.to_pickle(disk_cache)
 
     return cube
 
