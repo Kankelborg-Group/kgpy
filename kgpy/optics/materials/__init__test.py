@@ -5,9 +5,10 @@ import kgpy.labeled
 import kgpy.uncertainty
 import kgpy.vectors
 import kgpy.transforms
-import kgpy.optics.surfaces.apertures
-import kgpy.optics.surfaces.sags
-import kgpy.optics.surfaces.materials
+import kgpy.optics.surfaces
+import kgpy.optics.apertures
+import kgpy.optics.sags
+import kgpy.optics.materials
 
 
 class TestMirror:
@@ -21,13 +22,13 @@ class TestMirror:
     )
     def test_plot(self, decenter_x, color):
         fig, ax = plt.subplots()
-        sag = kgpy.optics.surfaces.sags.Standard(radius=10000 * u.mm)
-        aperture = kgpy.optics.surfaces.apertures.RegularPolygon(
+        sag = kgpy.optics.sags.Standard(radius=10000 * u.mm)
+        aperture = kgpy.optics.apertures.RegularPolygon(
             transform=kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(x=decenter_x) * u.mm),
             radius=100 * u.mm,
             num_sides=8,
         )
-        material = kgpy.optics.surfaces.materials.Mirror(thickness=10 * u.mm)
+        material = kgpy.optics.materials.Mirror(thickness=10 * u.mm)
         assert material.plot(
             ax=ax,
             sag=sag,
@@ -41,13 +42,13 @@ class TestMirror:
 
     def test_plot_3d(self):
         fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
-        sag = kgpy.optics.surfaces.sags.Standard(radius=10000 * u.mm)
-        aperture = kgpy.optics.surfaces.apertures.RegularPolygon(
+        sag = kgpy.optics.sags.Standard(radius=10000 * u.mm)
+        aperture = kgpy.optics.apertures.RegularPolygon(
             transform=kgpy.transforms.Translation(kgpy.vectors.Cartesian3D(x=0) * u.mm),
             radius=100 * u.mm,
             num_sides=8,
         )
-        material = kgpy.optics.surfaces.materials.Mirror(thickness=20 * u.mm)
+        material = kgpy.optics.materials.Mirror(thickness=20 * u.mm)
         assert material.plot(
             ax=ax,
             sag=sag,
