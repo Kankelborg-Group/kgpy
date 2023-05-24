@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 import astropy.units as u
 import matplotlib.pyplot as plt
 import kgpy.labeled
@@ -17,7 +18,7 @@ class TestMirror:
         argnames='decenter_x, color',
         argvalues=[
             (0, 'black'),
-            (kgpy.labeled.LinearSpace(-500, 500, 3, axis='chan'), kgpy.labeled.Array(['black', 'blue', 'green'], axes=['chan']))
+            (kgpy.labeled.LinearSpace(-500, 500, 3, axis='chan'), kgpy.labeled.Array(np.array(['black', 'blue', 'green']), axes=['chan']))
         ]
     )
     def test_plot(self, decenter_x, color):
