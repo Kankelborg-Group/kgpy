@@ -6,7 +6,6 @@ import time
 import numpy as np
 import scipy.ndimage
 from tensorflow import keras
-import tensorflow_addons as tfa
 import kgpy.mixin
 import kgpy.labeled
 import kgpy.vectors
