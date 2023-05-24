@@ -118,7 +118,7 @@ class DiscretePSF(PSF):
         psf = psf.real
         psf = psf / psf.sum(axis=grid.axis.position_xy, keepdims=True)
 
-        frequency = kgpy.vectors.Vector2D(
+        frequency = kgpy.vectors.Cartesian2D(
             x=np.fft.fftfreq(n=psf.shape[cls.axis.position_x], d=grid.position.step_size.x),
             y=np.fft.fftfreq(n=psf.shape[cls.axis.position_y], d=grid.position.step_size.y),
         )
@@ -183,8 +183,8 @@ class DiscretePSF(PSF):
 
     def __call__(
             self,
-            field: kgpy.vectors.Vector2D,
-            position: kgpy.vectors.Vector2D,
+            field: kgpy.vectors.Cartesian2D,
+            position: kgpy.vectors.Cartesian2D,
             wavelength: u.Quantity,
     ):
         if not self.shape:
