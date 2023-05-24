@@ -29,6 +29,8 @@ setup(
         'numba',
         'pylatex',
         'tensorflow',
+        'requests',
+        'paramiko',
     ],
     url='https://github.com/Kankelborg-Group/kgpy',
     license='',
