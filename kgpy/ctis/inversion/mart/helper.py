@@ -99,7 +99,6 @@ def image_setup(
     data = data[:1000, :6000, :40]
     sh = data.shape
 
-
     # Especially confused about these next three lines:
     data = data.reshape(
         (sh[0], sh[1] // rebin_factor, rebin_factor, sh[2] // wavelength_rebin_factor, wavelength_rebin_factor))
@@ -109,7 +108,7 @@ def image_setup(
     region = data[x_range[0]:x_range[1], y_range[0]:y_range[1]]
 
     # Add a border
-    region = np.pad(region,[(border,border),(border,border),(0,0)])
+    region = np.pad(region, [(border, border), (border, border), (0, 0)])
 
     return region, wcs
 
@@ -135,7 +134,7 @@ def generate_projections(
         spectral_order: int = 1,
         poisson_noise: bool = False,
         rotation_kwargs: typ.Dict = default_rotation_kwargs,
-        projection_shape = None
+        projection_shape=None
 ) -> np.ndarray:
     """
     Given a data cube a list of angles, create a projection through the cube for each of those angles at the given
@@ -155,7 +154,7 @@ def generate_projections(
             projection_azimuth=angle,
             spectral_order=spectral_order,
             rotation_kwargs=rotation_kwargs,
-            projection_shape = projection_shape
+            projection_shape=projection_shape
         )
         if poisson_noise:
             proj[proj <= 0] = 0

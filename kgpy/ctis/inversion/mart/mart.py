@@ -127,8 +127,8 @@ class MART:
         :return: filtered version of input array.
         """
 
-        # cube_exp = cube ** self.contrast_exponent
-        cube_exp = (cube / 1) ** self.contrast_exponent
+        cube_exp = cube ** self.contrast_exponent
+        # cube_exp = (cube / 1) ** self.contrast_exponent
 
         cube_filtered = cube * (1 + cube_exp)
 
@@ -218,7 +218,7 @@ class MART:
             'max_multiplicative_iterations': self.max_multiplicative_iteration,
             'simple_mart': self.simple_mart,
             'lgof_mart': self.lgof_mart,
-            'track_cue_history': self.track_cube_history,
+            'track_cube_history': self.track_cube_history,
             'rotation_kwargs': self.rotation_kwargs,
             'verbose': self.verbose
         }
