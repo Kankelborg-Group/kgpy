@@ -141,9 +141,9 @@ def identify(
         if axis.ndim == 0:
             axis = np.array([axis])
 
-    kernel_size = np.array(kernel_size, dtype=np.int)
+    kernel_size = np.array(kernel_size, dtype=int)
     if kernel_size.ndim == 0:
-        kernel_size = np.array([kernel_size] * axis.size, dtype=np.int)
+        kernel_size = np.array([kernel_size] * axis.size, dtype=int)
 
     if np.array(percentile_threshold).ndim == 0:
         percentile_threshold = (100 - percentile_threshold, percentile_threshold)
@@ -152,7 +152,7 @@ def identify(
 
     for i, ax in enumerate(axis):
 
-        k_sh = np.ones(data.ndim, dtype=np.int)
+        k_sh = np.ones(data.ndim, dtype=int)
         k_sh[axis] = pencil_size
         k_sh[ax] = kernel_size[i]
 
@@ -221,14 +221,14 @@ def fix(
     if axis.ndim == 0:
         axis = np.array([axis])
 
-    kernel_size = np.array(kernel_size, dtype=np.int)
+    kernel_size = np.array(kernel_size, dtype=int)
     if kernel_size.ndim == 0:
-        kernel_size = np.array([kernel_size] * axis.size, dtype=np.int)
+        kernel_size = np.array([kernel_size] * axis.size, dtype=int)
 
     fixed_data = data.copy()
     fixed_data[mask] = 0
 
-    norm = np.ones_like(mask, dtype=np.float)
+    norm = np.ones_like(mask, dtype=float)
     norm[mask] = 0
     
     for i, ax in enumerate(axis):
@@ -239,7 +239,7 @@ def fix(
         x = np.arange(ksz) - ksz // 2
         kernel = np.exp(-np.abs(x) / a)
 
-        k_sh = np.ones(len(data.shape), dtype=np.int)
+        k_sh = np.ones(len(data.shape), dtype=int)
         k_sh[ax] = ksz
         kernel = np.reshape(kernel, k_sh)
 
@@ -249,7 +249,7 @@ def fix(
     fixed_data /= norm
     fixed_data = np.nan_to_num(fixed_data, copy=False)
     fixed_data[~mask] = data[~mask]
-    spikes = np.zeros_like(mask, dtype=np.float)
+    spikes = np.zeros_like(mask, dtype=float)
     spikes[mask] = data[mask]
 
     return fixed_data, spikes

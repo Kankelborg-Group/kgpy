@@ -132,7 +132,7 @@ class ImageTransform:
         return coords
 
     def coord_post_process(self, coords, reverse=None):
-        post_crop = np.array([self.post_transform_crop[1].start, self.post_transform_crop[0].start], dtype=np.float)
+        post_crop = np.array([self.post_transform_crop[1].start, self.post_transform_crop[0].start], dtype=float)
         post_crop[np.isnan(post_crop)] = 0
         if reverse:
             coords = coords - np.array(self.post_transform_translation[::-1]).reshape(2, 1, 1) + post_crop.reshape(2, 1,
@@ -143,7 +143,7 @@ class ImageTransform:
         return coords
 
     def coord_pre_process(self, coords, reverse=None):
-        crop = np.array([self.initial_crop[1].start, self.initial_crop[0].start], dtype=np.float)
+        crop = np.array([self.initial_crop[1].start, self.initial_crop[0].start], dtype=float)
         crop[np.isnan(crop)] = 0
         pad = self.initial_pad
         pad = np.array([pad[1][0], pad[0][0]])

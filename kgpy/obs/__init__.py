@@ -59,7 +59,7 @@ class Image(mixin.Pickleable):
         self.wcs = np.empty(sh, dtype=astropy.wcs.WCS)
         self.time = astropy.time.Time(np.zeros(sh), format='unix')
         self.time_index = np.arange(shape[self.axis.time])
-        self.channel = np.zeros(shape[1], dtype=np.int) * u.chan
+        self.channel = np.zeros(shape[1], dtype=int) * u.chan
         self.exposure_length = np.zeros(sh) * u.s
         return self
 

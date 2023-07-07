@@ -6,7 +6,6 @@ import dataclasses
 import copy
 import numpy as np
 import numpy.typing
-import numba
 
 __all__ = [
     'linspace', 'midspace',
