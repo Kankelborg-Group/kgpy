@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kgpy"
+authors = [
+    {name = "Roy T. Smart", email = "roytsmart@gmail.com"},
+    {name = "Jacob D. Parker", email="jacobdparker@gmail.com"}
+]
+description = "Generic Python utilities for use with Kankelborg Group repositories."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    'pytest',
+    'numpy',
+    'matplotlib',
+    'scipy',
+    'astropy',
+    'sunpy[all]',
+    'aiapy',
+    'pandas',
+    'wget',
+    'urlpath',
+    'shapely',
+    'ezdxf',
+    'sphinx-autodoc-typehints',
+    'astropy-sphinx-theme',
+    'roman',
+    'ipyparallel',
+    'adjustText',
+    'ChiantiPy',
+    'xrt',
+    'thermo',
+    'numba',
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/Kankelborg-Group/kgpy"
+Documentation = "https://kgpy.readthedocs.io/en/latest/"
+
+[tool.setuptools_scm]
