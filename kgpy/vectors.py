@@ -745,8 +745,8 @@ class AbstractCartesian2D(
             kwargs = cls._broadcast_kwargs(kwargs, shape_kwargs, axis_plot)
 
             lines = []
-            if shape_kwargs:
-                for index in kgpy.labeled.ndindex(shape_kwargs):
+            if shape_orthogonal:
+                for index in kgpy.labeled.ndindex(shape_orthogonal):
                     coordinates_index = {c: coordinates[c][index][where[index]].array for c in coordinates}
                     kwargs_index = {k: kwargs[k][index].array for k in kwargs}
                     lines += [func(
