@@ -1426,6 +1426,8 @@ class Array(
             raise ValueError('The number of axis names must match the number of dimensions.')
         if len(self.axes) != len(set(self.axes)):
             raise ValueError(f'Each axis name must be unique, got {self.axes}.')
+        if not all(isinstance(ax, str) for ax in self.axes):
+            raise ValueError(f"each axis should be a string, got {self.axes}")
 
     @classmethod
     def empty(cls: typ.Type[ArrayT], shape: typ.Dict[str, int], dtype: numpy.typing.DTypeLike = float) -> ArrayT:
