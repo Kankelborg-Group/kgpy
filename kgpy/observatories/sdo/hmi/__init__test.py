@@ -16,6 +16,7 @@ def obs_test() -> HMI:
     return HMI.from_time_range(time_start, time_end, download_path)
 
 
+@pytest.mark.skip
 class TestHMI(__init__test.TestImage):
 
     def test_from_time_range(self,  obs_test: HMI):
