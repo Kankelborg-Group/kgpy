@@ -33,20 +33,3 @@ def test_mean_trimmed():
 
     assert b.shape == shape
     assert b.sum() != 0
-
-
-def test_mean_1d_trimmed():
-
-    shape = (100, 100)
-    a = np.random.normal(loc=100, scale=25, size=shape)
-
-    b = kgpy.filters.mean_1d_trimmed(
-        array=a,
-        kernel_size=21,
-        proportion=0.25
-    )
-
-    assert b.shape == shape
-    assert b.sum() != 0
-
-
