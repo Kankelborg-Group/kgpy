@@ -14,6 +14,7 @@ def secant(
         step_size: InputT,
         max_abs_error: typ.Optional[OutputT] = None,
         max_iterations: int = 100,
+        damping: float = 1,
 ) -> InputT:
 
     x0 = root_guess - step_size
@@ -87,7 +88,7 @@ def secant(
             jacobian = df / dx
             correction = f1 / jacobian
 
-        # correction = 0.999 * correction
+        correction = damping * correction
 
         # x2 = x1 - correction
         x2 = -correction + x1
