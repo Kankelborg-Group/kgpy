@@ -925,6 +925,13 @@ class AbstractCartesian3D(
         )
 
     @property
+    def zx(self) -> Cartesian2DT:
+        return Cartesian2D(
+            x=self.z,
+            y=self.x,
+        )
+
+    @property
     def cylindrical(self: Cartesian3DT) -> CylindricalT:
         return Cylindrical(
             radius=np.sqrt(np.square(self.x) + np.square(self.y)),
