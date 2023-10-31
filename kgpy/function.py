@@ -257,6 +257,7 @@ class Array(
             self: ArrayT,
             input_new: InputT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            damping: float = 1,
     ) -> ArrayT:
 
         input_old = self.input
@@ -284,7 +285,7 @@ class Array(
         if len(components) != len(axis):
             raise ValueError('Separable system must have as many axes as components')
 
-        index = self.input.index_secant(input_new, axis=axis)
+        index = self.input.index_secant(input_new, axis=axis, damping=damping)
 
         shape = self.shape
         output_new = self.output.interp_linear(index)
