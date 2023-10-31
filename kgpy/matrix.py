@@ -233,3 +233,65 @@ class CartesianND(
 
     def to_vector(self: CartesianNDT) -> kgpy.vectors.CartesianNDT:
         return kgpy.vectors.CartesianND(self.coordinates)
+
+    def __invert__(self):
+
+        num_components = len(self.components)
+
+        if num_components == 2:
+
+            return super().__invert__()
+
+            x, y = self.coordinates.keys()
+            aa, bb = self.coordinates.values()
+
+            xx, xy = aa.coordinates.keys()
+            yx, yy = bb.coordinates.keys()
+
+            a, b = aa.coordinates.values()
+            c, d = bb.coordinates.values()
+
+            det = a * d - b * c
+
+            return type(aa).from_coordinates({
+                xx: type(self).from_coordinates({x: d, y: -b}).to_vector(),
+                xy: type(self).from_coordinates({x: -c, y: a}).to_vector(),
+            }).to_matrix() / det
+
+        elif num_components == 3:
+
+            x, y, z = self.coordinates.keys()
+            aa, bb, cc = self.coordinates.values()
+
+            a, b, c = aa.coordinates.values()
+            d, e, f = bb.coordinates.values()
+            g, h, i = cc.coordinates.values()
+
+            xx, xy, xz = aa.coordinates.keys()
+            yx, yy, yz = bb.coordinates.keys()
+            zx, zy, zz = cc.coordinates.keys()
+
+            assert xx == yx == zx
+            assert xy == yy == zy
+            assert xz == yz == zz
+
+            det = (a * e * i) + (b * f * g) + (c * d * h) - (c * e * g) - (b * d * i) - (a * f * h)
+
+            result_xx = (e * i - f * h) / det
+            result_xy = -(b * i - c * h) / det
+            result_xz = (b * f - c * e) / det
+            result_yx = -(d * i - f * g) / det
+            result_yy = (a * i - c * g) / det
+            result_yz = -(a * f - c * d) / det
+            result_zx = (d * h - e * g) / det
+            result_zy = -(a * h - b * g) / det
+            result_zz = (a * e - b * d) / det
+
+            return CartesianND.from_coordinates({
+                xx: kgpy.vectors.CartesianND.from_coordinates({x: result_xx, y: result_xy, z: result_xz}),
+                xy: kgpy.vectors.CartesianND.from_coordinates({x: result_yx, y: result_yy, z: result_yz}),
+                xz: kgpy.vectors.CartesianND.from_coordinates({x: result_zx, y: result_zy, z: result_zz}),
+            })
+
+        else:
+            return super().__invert__()
