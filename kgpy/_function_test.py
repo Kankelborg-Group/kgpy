@@ -41,13 +41,13 @@ class TestArray:
             input=kgpy.vectors.Cartesian2D(x, y),
             output=output,
         )
-        b = a.interp_nearest(kgpy.vectors.Cartesian2D(x, None))
+        b = a.interp_nearest(kgpy.vectors.Cartesian2D(x, y))
 
-        assert np.all(a.output == b.output)
+        assert np.all(np.isclose(a.output, b.output))
 
         x_fine = x.copy()
         x_fine.num = 100
-        c = a.interp_nearest(kgpy.vectors.Cartesian2D(x, None))
+        c = a.interp_nearest(kgpy.vectors.Cartesian2D(x, y))
 
         assert c.output.sum() != 0
 
@@ -153,14 +153,14 @@ class TestArray:
         z = kgpy.labeled.LinearSpace(start=0, stop=1, num=shape['z'], axis='z')
         x_rotated = x * np.cos(angle) - y * np.sin(angle)
         y_rotated = x * np.sin(angle) + y * np.cos(angle)
-        position = kgpy.vectors.Cartesian2D(x, y)
+        position = kgpy.vectors.Cartesian2D(x + 0 * y, y + 0 * x)
         a = kgpy.function.Array(
             input=position,
             output=np.cos(x * x) * np.cos(y * y),
         )
 
         b = a.interp_linear(position)
-        assert np.all(a.output - b < 1e-6)
+        assert np.all(a.output - b.output < 1e-6)
 
         shape_large = dict(
             x=100,
