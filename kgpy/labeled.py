@@ -479,6 +479,7 @@ class ArrayInterface(
             self: ArrayInterfaceT,
             value: ArrayInterfaceT,
             axis: typ.Optional[typ.Union[str, typ.Sequence[str]]] = None,
+            damping: float = 1,
     ) -> typ.Dict[str, ArrayT]:
 
         import kgpy.vectors
@@ -514,6 +515,7 @@ class ArrayInterface(
             func=get_index,
             root_guess=shape_nearest // 2,
             step_size=kgpy.vectors.CartesianND({ax: 1e-6 for ax in axis}),
+            damping=damping,
         )
 
         return indices_factory(result)
