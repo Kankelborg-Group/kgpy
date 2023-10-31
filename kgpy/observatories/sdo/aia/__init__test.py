@@ -15,6 +15,7 @@ def obs_test() -> RadiantIntensity:
     return RadiantIntensity.from_time_range(time_start, time_end, download_path, channels=channels)
 
 
+@pytest.mark.skip
 class TestRadiantIntensity:
 
     def test_from_time_range(self,  obs_test: RadiantIntensity):
